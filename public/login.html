@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login to Digistore24</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        }
+
+        body {
+            background-color: #f5f6f8;
+            min-height: 100vh;
+        }
+
+        .back-link {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 20px;
+            color: #000;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .logo {
+            width: 64px;
+            height: 64px;
+            margin: 20px;
+            background-color: #0066ff;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .logo svg {
+            width: 40px;
+            height: 40px;
+            fill: white;
+        }
+
+        .container {
+            display: flex;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            gap: 40px;
+        }
+
+        .login-form {
+            flex: 1;
+            max-width: 480px;
+        }
+
+        .login-form h1 {
+            font-size: 36px;
+            margin-bottom: 40px;
+        }
+
+        .form-group {
+            margin-bottom: 24px;
+        }
+
+        .form-group label {
+            display: block;
+            text-transform: uppercase;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #0066ff;
+        }
+
+        .error-text {
+            color: #ff4444;
+            font-size: 14px;
+            margin-top: 4px;
+            display: none;
+        }
+
+        .error-text.visible {
+            display: block;
+        }
+
+        .login-button {
+            width: 100%;
+            padding: 16px;
+            background-color: #000;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .login-button:hover {
+            background-color: #333;
+        }
+
+        .signup-section {
+            flex: 1;
+            background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('https://images.unsplash.com/photo-1551434678-e076c223a692?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80');
+            background-size: cover;
+            background-position: center;
+            border-radius: 12px;
+            padding: 40px;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+
+        .signup-section h2 {
+            font-size: 24px;
+            margin-bottom: 16px;
+        }
+
+        .signup-button {
+            display: inline-block;
+            padding: 12px 24px;
+            background-color: white;
+            color: #000;
+            text-decoration: none;
+            border-radius: 4px;
+            font-weight: 600;
+            margin-top: 20px;
+            transition: background-color 0.2s;
+        }
+
+        .signup-button:hover {
+            background-color: #f0f0f0;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
+
+            .login-form {
+                max-width: 100%;
+            }
+
+            .signup-section {
+                min-height: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="logo">
+       <img src="assets/uploads/favicon.png" style="height: 100%;" alt=""> <!-- Updated path -->
+    </div>
+
+    <div class="container">
+        <div class="login-form">
+            <h1>Login to Digistore24</h1>
+            <form id="loginForm" onsubmit="return handleSubmit(event)">
+                <div class="form-group">
+                    <label for="username">EMAIL OR USERNAME</label>
+                    <input type="text" id="username" name="username" placeholder="name@example.com or username" required>
+                    <div class="error-text" id="usernameError">Please complete this field.</div>
+                </div>
+                <div class="form-group">
+                    <label for="password">PASSWORD</label>
+                    <input type="password" id="password" name="password" placeholder="Password" required>
+                    <div class="error-text" id="passwordError">Please complete this field.</div>
+                </div>
+                <button type="submit" class="login-button">Login</button>
+            </form>
+        </div>
+
+        <div class="signup-section">
+            <h2>Don't have an account?</h2>
+            <p>Sign up for free.</p>
+            <a href="register.html" class="signup-button">Sign up</a> <!-- Updated path -->
+        </div>
+    </div>
+
+    <script src="../script.js"></script> <!-- Updated path -->
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check if user is already logged in
+            const authToken = localStorage.getItem('auth_token');
+            if (authToken) {
+                try {
+                    const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
+                    // Redirect logic might change based on API integration
+                    const redirectPath = userData.isAdmin ? 'admin/dashboard.html' : 'dashboard.html'; // Relative paths
+                    window.location.href = redirectPath;
+                } catch (error) {
+                    console.error("Auth check error:", error);
+                }
+            }
+
+            // Check if user just registered
+            const registeredUsername = sessionStorage.getItem('registered_username');
+            if (registeredUsername) {
+                document.getElementById('username').value = registeredUsername;
+                showNotification('Registration successful! Please login with your new account.', 'success');
+                sessionStorage.removeItem('registered_username');
+            }
+            
+            function showNotification(message, type) {
+                let notification = document.getElementById('notification');
+                if (!notification) {
+                    notification = document.createElement('div');
+                    notification.id = 'notification';
+                    notification.style.padding = '15px';
+                    notification.style.margin = '0 0 20px 0';
+                    notification.style.borderRadius = '4px';
+                    notification.style.display = 'none';
+                    
+                    const heading = document.querySelector('h1');
+                    heading.parentNode.insertBefore(notification, heading.nextSibling);
+                }
+                
+                if (type === 'success') {
+                    notification.style.backgroundColor = '#d4edda';
+                    notification.style.color = '#155724';
+                    notification.style.border = '1px solid #c3e6cb';
+                } else {
+                    notification.style.backgroundColor = '#f8d7da';
+                    notification.style.color = '#721c24';
+                    notification.style.border = '1px solid #f5c6cb';
+                }
+                
+                notification.textContent = message;
+                notification.style.display = 'block';
+                
+                if (type === 'success') {
+                    setTimeout(() => {
+                        notification.style.display = 'none';
+                    }, 5000);
+                }
+            }
+        });
+
+        async function handleSubmit(event) {
+            event.preventDefault();
+            console.log('Login form submitted'); // Debug log
+            
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            const loginButton = document.querySelector('button[type="submit"]');
+            const originalText = loginButton.textContent;
+            
+            // Basic validation
+            let isValid = true;
+            
+            if (!username) {
+                document.getElementById('usernameError').classList.add('visible');
+                isValid = false;
+            } else {
+                document.getElementById('usernameError').classList.remove('visible');
+            }
+            
+            if (!password) {
+                document.getElementById('passwordError').classList.add('visible');
+                isValid = false;
+            } else {
+                document.getElementById('passwordError').classList.remove('visible');
+            }
+            
+            if (isValid) {
+                loginButton.textContent = 'Logging in...';
+                loginButton.disabled = true;
+                
+                try {
+                    console.log('Calling login() function');
+                    // This will eventually call the API: fetch('/api/auth/login', ...)
+                    if (typeof login !== 'function') { 
+                        throw new Error('login() function not found. Ensure script.js is loaded.');
+                    }
+                    
+                    const response = await login(username, password); // Using old script.js for now
+                    console.log('Login response:', response);
+                    
+                    if (response && response.success) {
+                        localStorage.setItem('auth_token', response.user.referralCode);
+                        localStorage.setItem('user_data', JSON.stringify(response.user));
+                        
+                        showNotification('Login successful! Redirecting to dashboard...', 'success');
+                        setTimeout(() => {
+                            window.location.href = 'dashboard.html'; // Relative path
+                        }, 1000);
+                    } else {
+                        const errorMsg = response?.message || 'Invalid credentials';
+                        console.error('Login failed:', errorMsg);
+                        showNotification(errorMsg, 'error');
+                    }
+                } catch (error) {
+                    console.error('Login error:', error);
+                    showNotification('An error occurred. Please check console and try again.', 'error');
+                } finally {
+                    loginButton.textContent = originalText;
+                    loginButton.disabled = false;
+                }
+            }
+        }
+    </script>
+</body>
+</html>
