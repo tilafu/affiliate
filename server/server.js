@@ -17,7 +17,9 @@ app.get('/api/health', (req, res) => {
 
 // Define Routes
 const authRoutes = require('./routes/auth');
+const userRoutes = require('./routes/user'); // Import user routes
 app.use('/api/auth', authRoutes);
+app.use('/api/user', userRoutes); // Mount user routes
 
 // Start server
 app.listen(PORT, () => {

@@ -196,10 +196,13 @@
         </div>
     </div>
 
-    <script src="../script.js"></script> <!-- Updated path -->
+    <!-- Link to new JS files -->
+    <script src="js/main.js"></script> 
+    <script src="js/auth.js"></script> 
 
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
+        // Keep DOMContentLoaded for initial checks, but move handleSubmit logic
+        document.addEventListener('DOMContentLoaded', function() { 
             // Check if user is already logged in
             const authToken = localStorage.getItem('auth_token');
             if (authToken) {
@@ -254,70 +257,18 @@
                     }, 5000);
                 }
             }
+            
+            // Add event listener to call handleLoginSubmit from auth.js
+            const loginForm = document.getElementById('loginForm');
+            if(loginForm) {
+                loginForm.addEventListener('submit', handleLoginSubmit);
+            } else {
+                console.error('Login form not found');
+            }
         });
 
-        async function handleSubmit(event) {
-            event.preventDefault();
-            console.log('Login form submitted'); // Debug log
-            
-            const username = document.getElementById('username').value.trim();
-            const password = document.getElementById('password').value;
-            const loginButton = document.querySelector('button[type="submit"]');
-            const originalText = loginButton.textContent;
-            
-            // Basic validation
-            let isValid = true;
-            
-            if (!username) {
-                document.getElementById('usernameError').classList.add('visible');
-                isValid = false;
-            } else {
-                document.getElementById('usernameError').classList.remove('visible');
-            }
-            
-            if (!password) {
-                document.getElementById('passwordError').classList.add('visible');
-                isValid = false;
-            } else {
-                document.getElementById('passwordError').classList.remove('visible');
-            }
-            
-            if (isValid) {
-                loginButton.textContent = 'Logging in...';
-                loginButton.disabled = true;
-                
-                try {
-                    console.log('Calling login() function');
-                    // This will eventually call the API: fetch('/api/auth/login', ...)
-                    if (typeof login !== 'function') { 
-                        throw new Error('login() function not found. Ensure script.js is loaded.');
-                    }
-                    
-                    const response = await login(username, password); // Using old script.js for now
-                    console.log('Login response:', response);
-                    
-                    if (response && response.success) {
-                        localStorage.setItem('auth_token', response.user.referralCode);
-                        localStorage.setItem('user_data', JSON.stringify(response.user));
-                        
-                        showNotification('Login successful! Redirecting to dashboard...', 'success');
-                        setTimeout(() => {
-                            window.location.href = 'dashboard.html'; // Relative path
-                        }, 1000);
-                    } else {
-                        const errorMsg = response?.message || 'Invalid credentials';
-                        console.error('Login failed:', errorMsg);
-                        showNotification(errorMsg, 'error');
-                    }
-                } catch (error) {
-                    console.error('Login error:', error);
-                    showNotification('An error occurred. Please check console and try again.', 'error');
-                } finally {
-                    loginButton.textContent = originalText;
-                    loginButton.disabled = false;
-                }
-            }
-        }
+        // Note: The actual handleSubmit logic will now reside in public/js/auth.js
+        // The showNotification function should be moved to public/js/main.js
     </script>
 </body>
 </html>
