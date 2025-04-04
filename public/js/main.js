@@ -1,5 +1,7 @@
-// Base URL for API calls (adjust if your server runs elsewhere)
-const API_BASE_URL = '/api'; 
+// This should be your API base URL, for example:
+// const API_BASE_URL = ''; // Empty if API is on same origin
+// or
+const API_BASE_URL = 'http://localhost:3000'; // If API is on a different port
 
 // Function to display notifications on the page
 function showNotification(message, type = 'info', duration = 5000) {
@@ -105,19 +107,33 @@ async function fetchWithAuth(url, options = {}) {
             headers,
         });
 
-        if (response.status === 401) { // Unauthorized
-            // Clear token and redirect to login
+        // Handle 401 (Unauthorized) upfront
+        if (response.status === 401) {
             localStorage.removeItem('auth_token');
             localStorage.removeItem('user_data');
-            window.location.href = 'login.html'; 
-            throw new Error('Unauthorized'); // Prevent further processing
+            window.location.href = 'login.html';
+            throw new Error('Unauthorized');
         }
 
-        return response; // Return the full response object
+        // Handle other errors
+        if (!response.ok) {
+            let errorData = {};
+            try {
+                errorData = await response.json();
+            } catch (parseErr) {
+                // If parsing fails, keep it empty
+            }
+            const errorMsg = errorData.message || `Error status ${response.status}`;
+            throw new Error(errorMsg);
+        }
 
+        return await response.json();
     } catch (error) {
         console.error('API request error:', error);
-        showNotification('Network error or server issue. Please try again.', 'error');
-        throw error; // Re-throw the error for specific handling if needed
+        // Only show notification for non-401 errors (avoid duplicate notifications)
+        if (error.message !== 'Unauthorized') {
+            showNotification('Network error or server issue. Please try again.', 'error');
+        }
+        throw error;
     }
 }

@@ -32,7 +32,7 @@ async function handleLoginSubmit(event) {
     loginButton.disabled = true;
 
     try {
-        const response = await fetch(`${API_BASE_URL}/auth/login`, {
+        const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -120,7 +120,7 @@ async function handleRegisterSubmit(event) {
     };
 
     try {
-        const response = await fetch(`${API_BASE_URL}/auth/register`, {
+        const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -156,3 +156,29 @@ async function handleRegisterSubmit(event) {
         submitButton.disabled = false;
     }
 }
+
+function attachLogoutHandlers() {
+  // Select all elements with the "logout" class
+  const logoutElements = document.querySelectorAll('.logout');
+  
+  // Attach click event listeners to each logout element
+  logoutElements.forEach(function(el) {
+    el.addEventListener('click', function(e) {
+      e.preventDefault();
+      console.log('Logging out...');
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('user_data');
+      
+      // If you have a showNotification function:
+      if (typeof showNotification === 'function') {
+        showNotification('Logged out successfully.', 'success');
+      }
+      
+      // Redirect to login page
+      window.location.href = 'login.html';
+    });
+  });
+}
+
+// Make the function available globally
+window.attachLogoutHandlers = attachLogoutHandlers;

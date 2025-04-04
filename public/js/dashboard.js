@@ -1,105 +1,112 @@
-document.addEventListener('DOMContentLoaded', async () => {
-    console.log('Dashboard script loaded');
+// Function to initialize dashboard logic (fetching data, setting up listeners)
+async function initializeDashboard() {
+    console.log('Initializing dashboard logic...');
     const token = getToken(); // From main.js
 
     if (!token) {
         console.log('No token found, redirecting to login.');
-        window.location.href = 'login.html';
+        window.location.href = 'login.html'; // Redirect if no token
         return;
     }
 
-    // Elements to update
+    // Get elements AFTER sidebar is loaded
     const usernameEl = document.getElementById('dashboard-username');
     const refcodeEl = document.getElementById('dashboard-refcode');
-    const balancesEl = document.getElementById('dashboard-balances');
+    const balancesEl = document.getElementById('dashboard-balances'); // Assuming this is outside the sidebar
 
-    // Attempt to load data from localStorage first for faster display (optional)
-    const cachedUserData = JSON.parse(localStorage.getItem('user_data'));
-    if (cachedUserData) {
-        console.log('Using cached user data');
-        usernameEl.textContent = cachedUserData.username || 'N/A';
-        refcodeEl.textContent = `REFERRAL CODE: ${cachedUserData.referralCode || 'N/A'}`;
-        // Note: Balances might be stale, fetch fresh data below
-        if (cachedUserData.accounts) {
-             const mainBalance = cachedUserData.accounts.main?.balance ?? 'N/A';
-             // Training balance might not exist if fetched during login after cap reached
-             const trainingBalance = cachedUserData.accounts.training?.balance ?? 'N/A'; 
-             balancesEl.textContent = `Main: $${mainBalance} | Training: $${trainingBalance}`;
-        } else {
-             balancesEl.textContent = 'Balances: N/A';
-        }
-    } else {
-        console.log('No cached user data found.');
+    if (!usernameEl || !refcodeEl) {
+        console.error('Sidebar elements (username/refcode) not found after component load.');
+        return; // Stop if essential elements are missing
     }
 
-    // Fetch fresh user data from the backend
-    try {
-        console.log('Fetching user profile data...');
-        // We need to create this endpoint on the backend
-        const response = await fetchWithAuth('/user/profile'); // Using fetchWithAuth from main.js
-
-        if (!response.ok) {
-            // fetchWithAuth already handles 401 redirect
-            // Handle other errors (e.g., 404, 500)
-            console.error(`Error fetching profile: ${response.status}`);
-            showNotification(`Error loading profile (${response.status})`, 'error');
-             if (!cachedUserData) { // Show error state if no cache
-                 usernameEl.textContent = 'Error';
-                 refcodeEl.textContent = 'REFERRAL CODE: Error';
-                 balancesEl.textContent = 'Balances: Error';
-             }
-            return; 
-        }
-
-        const data = await response.json();
-        console.log('Profile API response:', data);
-
-        if (data.success && data.user) {
-            const user = data.user;
-            // Update UI with fresh data
-            usernameEl.textContent = user.username;
-            refcodeEl.textContent = `REFERRAL CODE: ${user.referral_code}`; // Use snake_case from DB
-             const mainBalance = user.accounts?.main?.balance ?? 'N/A';
-             const trainingBalance = user.accounts?.training?.balance ?? 'N/A';
+     // Check for cached user data (for faster initial load)
+     const cachedUserData = JSON.parse(localStorage.getItem('user_data'));
+     if (cachedUserData) {
+         console.log('Using cached user data');
+         usernameEl.textContent = cachedUserData.username || 'N/A';
+         refcodeEl.textContent = `REFERRAL CODE: ${cachedUserData.referral_code || 'N/A'}`; // Use correct property name
+         if (balancesEl && cachedUserData.accounts) { // Check if balancesEl exists
+             const mainBalance = cachedUserData.accounts.main?.balance ?? 'N/A';
+             const trainingBalance = cachedUserData.accounts.training?.balance ?? 'N/A';
              balancesEl.textContent = `Main: $${mainBalance} | Training: $${trainingBalance}`;
+         } else if (balancesEl) {
+             balancesEl.textContent = 'Balances: N/A';
+         }
+     } else {
+         console.log('No cached user data found.');
+     }
 
-            // Update localStorage cache
-            localStorage.setItem('user_data', JSON.stringify(user)); 
-        } else {
-            console.error('Profile API call failed:', data.message);
-            showNotification(data.message || 'Failed to load profile data.', 'error');
+     // Fetch fresh user data from the backend
+     try {
+         console.log('Fetching user profile data...');
+         const data = await fetchWithAuth('/api/user/profile'); // Corrected path
+         console.log('Profile API response:', data);
+
+         if (data.success && data.user) {
+             const user = data.user;
+             usernameEl.textContent = user.username;
+             refcodeEl.textContent = `REFERRAL CODE: ${user.referral_code}`;
+             if (balancesEl) { // Check if balancesEl exists
+                 const mainBalance = user.accounts?.main?.balance ?? 'N/A';
+                 const trainingBalance = user.accounts?.training?.balance ?? 'N/A';
+                 balancesEl.textContent = `Main: $${mainBalance} | Training: $${trainingBalance}`;
+             }
+
+             // Update localStorage cache
+             localStorage.setItem('user_data', JSON.stringify(user));
+         } else {
+             console.error('Profile API call failed:', data.message);
+             showNotification(data.message || 'Failed to load profile data.', 'error');
              if (!cachedUserData) {
                  usernameEl.textContent = 'Error';
                  refcodeEl.textContent = 'REFERRAL CODE: Error';
-                 balancesEl.textContent = 'Balances: Error';
+                 if (balancesEl) balancesEl.textContent = 'Balances: Error';
              }
-        }
-    } catch (error) {
-        // Network errors or fetchWithAuth errors (like 401) are caught here
-        console.error('Error in dashboard setup:', error);
-        // Notification might have already been shown by fetchWithAuth
-         if (!cachedUserData && error.message !== 'Unauthorized') { // Avoid double notification on 401
+         }
+     } catch (error) {
+         console.error('Error fetching profile data:', error);
+         // Only show error if we have no cached data (avoid duplicate notifications on 401)
+         if (!cachedUserData && error.message !== 'Unauthorized') {
              showNotification('Could not load dashboard data.', 'error');
              usernameEl.textContent = 'Error';
              refcodeEl.textContent = 'REFERRAL CODE: Error';
-             balancesEl.textContent = 'Balances: Error';
+             if (balancesEl) balancesEl.textContent = 'Balances: Error';
          }
-    }
-});
+     }
 
-// Add logout functionality (example)
+    // --- Logout functionality (ensure it's attached after sidebar loads) ---
+    // Note: If attachLogoutHandlers is defined globally (e.g., in main.js),
+    // it might be better called from initializeSidebarScripts in components.js
+    const logoutLink = document.querySelector('a[href="logout.html"]'); // Still might be outside sidebar
+     if (logoutLink) {
+         logoutLink.addEventListener('click', (e) => {
+             e.preventDefault();
+             console.log('Logging out via logout.html link...');
+             localStorage.removeItem('auth_token');
+             localStorage.removeItem('user_data');
+             showNotification('Logged out successfully.', 'success', 2000);
+             window.location.href = 'login.html';
+         });
+     }
+}
+
+// Wait for the DOM and then potentially wait for the sidebar component
 document.addEventListener('DOMContentLoaded', () => {
-    const logoutLink = document.querySelector('a[href="logout.html"]'); // Find logout link
-    if (logoutLink) {
-        logoutLink.addEventListener('click', (e) => {
-            e.preventDefault(); // Prevent default link behavior
-            console.log('Logging out...');
-            localStorage.removeItem('auth_token');
-            localStorage.removeItem('user_data');
-            showNotification('Logged out successfully.', 'success', 2000);
-            setTimeout(() => {
-                window.location.href = 'login.html';
-            }, 1000);
+    console.log('Dashboard script loaded');
+    const sidebarPlaceholder = document.getElementById('sidebar-placeholder');
+
+    if (sidebarPlaceholder) {
+        // If the sidebar placeholder exists, wait for the component to load
+        sidebarPlaceholder.addEventListener('componentLoaded', (event) => {
+            if (event.detail.path === '/components/sidebar.html') {
+                console.log('Sidebar component loaded, initializing dashboard.');
+                initializeDashboard();
+            }
         });
+    } else {
+        // If there's no sidebar placeholder, initialize immediately (e.g., for login page)
+        // Although this script is dashboard.js, this handles edge cases.
+        console.warn('Sidebar placeholder not found, initializing dashboard immediately.');
+        initializeDashboard();
     }
 });
