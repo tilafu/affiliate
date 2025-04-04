@@ -38,18 +38,21 @@ CREATE TABLE products (
   name VARCHAR(100) NOT NULL,
   price DECIMAL(10, 2) NOT NULL,
   commission_rate DECIMAL(5, 4) NOT NULL, -- e.g., 0.015 for 1.5%
+  image_url VARCHAR(255), -- Added image URL column
   min_balance_required DECIMAL(10, 2) DEFAULT 0, -- Balance needed to interact
   min_tier VARCHAR(10) DEFAULT 'bronze', -- Tier required (optional)
   is_active BOOLEAN DEFAULT true,
   created_at TIMESTAMP DEFAULT NOW()
 );
 
--- Create Combos table (Optional - can be handled via product relations if simple)
+-- Create Combos table
 CREATE TABLE product_combos (
     id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL, -- Added name for the combo itself
     product_ids INTEGER[] NOT NULL, -- Array of product IDs
     combo_price DECIMAL(10, 2) NOT NULL,
     combo_commission_rate DECIMAL(5, 4) NOT NULL,
+    image_url VARCHAR(255), -- Image for the combo (can be one of the product images or a specific one)
     min_balance_required DECIMAL(10, 2) DEFAULT 0,
     min_tier VARCHAR(10) DEFAULT 'bronze',
     is_active BOOLEAN DEFAULT true,
@@ -79,15 +82,37 @@ SELECT id, 'main', 10000 FROM users WHERE username = 'admin';
 INSERT INTO accounts (user_id, type, balance, is_active)
 SELECT id, 'training', 0, false FROM users WHERE username = 'admin';
 
--- Insert sample products
-INSERT INTO products (name, price, commission_rate) VALUES
-('Basic Data Drive', 10.00, 0.01); -- 1% commission
-INSERT INTO products (name, price, commission_rate) VALUES
-('Standard Data Drive', 25.00, 0.015); -- 1.5% commission
-INSERT INTO products (name, price, commission_rate) VALUES
-('Premium Data Drive', 50.00, 0.02);  -- 2% commission
-INSERT INTO products (name, price, commission_rate, min_balance_required, min_tier) VALUES
-('Enterprise Data Drive', 100.00, 0.025, 50.00, 'silver'); -- 2.5% commission, higher price, balance/tier requirements
+-- Insert sample products based on image filenames
+-- Assuming base path is 'assets/uploads/products/'
+INSERT INTO products (name, price, commission_rate, image_url) VALUES
+('Stylish Bag', 45.50, 0.015, 'assets/uploads/products/bag.jpeg'),
+('Comfort Bra', 22.00, 0.012, 'assets/uploads/products/bra.PNG'),
+('Wooden Closet', 180.00, 0.025, 'assets/uploads/products/closet.jpeg'),
+('Gaming Controller', 59.99, 0.018, 'assets/uploads/products/controller.jpeg'),
+('Water Jug', 15.00, 0.010, 'assets/uploads/products/jug.jpeg'),
+('Khaki Trousers', 35.00, 0.014, 'assets/uploads/products/khaki.jpg'),
+('Makeup Set', 65.00, 0.020, 'assets/uploads/products/makeup.jpg'),
+('Smartphone', 399.00, 0.030, 'assets/uploads/products/phone.jpeg'),
+('Monitor Screen', 250.00, 0.022, 'assets/uploads/products/screen.jpeg'),
+('Running Shoe', 75.00, 0.016, 'assets/uploads/products/shoe.jpeg'),
+('Bluetooth Speaker', 89.90, 0.019, 'assets/uploads/products/sound.jpg'),
+('Elegant Watch', 120.00, 0.021, 'assets/uploads/products/watch.jpeg');
+
+-- Insert sample product combos (one combo per product for simplicity)
+-- Assuming product IDs 1-12 correspond to the inserts above
+INSERT INTO product_combos (name, product_ids, combo_price, combo_commission_rate, image_url, min_balance_required, min_tier, is_active) VALUES
+('Stylish Bag Drive', '{1}', 45.50, 0.015, 'assets/uploads/products/bag.jpeg', 0, 'bronze', true),
+('Comfort Bra Drive', '{2}', 22.00, 0.012, 'assets/uploads/products/bra.PNG', 0, 'bronze', true),
+('Wooden Closet Drive', '{3}', 180.00, 0.025, 'assets/uploads/products/closet.jpeg', 50, 'bronze', true), -- Example higher balance
+('Gaming Controller Drive', '{4}', 59.99, 0.018, 'assets/uploads/products/controller.jpeg', 0, 'bronze', true),
+('Water Jug Drive', '{5}', 15.00, 0.010, 'assets/uploads/products/jug.jpeg', 0, 'bronze', true),
+('Khaki Trousers Drive', '{6}', 35.00, 0.014, 'assets/uploads/products/khaki.jpg', 0, 'bronze', true),
+('Makeup Set Drive', '{7}', 65.00, 0.020, 'assets/uploads/products/makeup.jpg', 20, 'bronze', true), -- Example balance req
+('Smartphone Drive', '{8}', 399.00, 0.030, 'assets/uploads/products/phone.jpeg', 100, 'silver', true), -- Example tier req
+('Monitor Screen Drive', '{9}', 250.00, 0.022, 'assets/uploads/products/screen.jpeg', 75, 'bronze', true),
+('Running Shoe Drive', '{10}', 75.00, 0.016, 'assets/uploads/products/shoe.jpeg', 0, 'bronze', true),
+('Bluetooth Speaker Drive', '{11}', 89.90, 0.019, 'assets/uploads/products/sound.jpg', 0, 'bronze', true),
+('Elegant Watch Drive', '{12}', 120.00, 0.021, 'assets/uploads/products/watch.jpeg', 30, 'bronze', true);
 
 -- Table for Drive Sessions
 CREATE TABLE drive_sessions (
