@@ -37,15 +37,44 @@ const register = async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(password, salt);
 
-    // 4. Generate unique referral code for the new user
-    const newUserReferralCode = generateReferralCode(); // Assuming this function exists
+    // 4. Generate unique referral code and insert user, handling collisions
+    let newUser;
+    let userInserted = false;
+    let attempts = 0;
+    const MAX_ATTEMPTS = 5; // Prevent infinite loops
 
-    // 5. Create new user
-    const newUserResult = await client.query(
-      'INSERT INTO users (username, email, password_hash, referral_code, upliner_id, revenue_source) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, username, referral_code, tier',
-      [username, email, passwordHash, newUserReferralCode, uplinerId, revenueSource]
-    );
-    const newUser = newUserResult.rows[0];
+    while (!userInserted && attempts < MAX_ATTEMPTS) {
+      attempts++;
+      const newUserReferralCode = generateReferralCode(); // Generate code
+
+      try {
+        // 5. Attempt to insert the user with the generated code
+        const newUserResult = await client.query(
+          'INSERT INTO users (username, email, password_hash, referral_code, upliner_id, revenue_source) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, username, referral_code, tier',
+          [username, email, passwordHash, newUserReferralCode, uplinerId, revenueSource]
+        );
+        newUser = newUserResult.rows[0]; // Assign user data
+        userInserted = true; // Mark as successful
+      } catch (insertError) {
+        // Check if it's a unique constraint violation on referral_code (PostgreSQL code '23505')
+        if (insertError.code === '23505' && insertError.constraint && insertError.constraint.includes('referral_code')) {
+           // Collision detected, loop will continue to generate a new code
+           console.warn(`Referral code collision detected (${newUserReferralCode}). Retrying... Attempt ${attempts}`);
+           if (attempts >= MAX_ATTEMPTS) {
+             throw new Error('Failed to generate a unique referral code after multiple attempts.');
+           }
+        } else {
+          // Different error, re-throw to be caught by the outer catch block
+          throw insertError;
+        }
+      }
+    }
+
+    // Ensure user was inserted before proceeding
+    if (!newUser) {
+        // This should technically be caught by the MAX_ATTEMPTS error, but as a safeguard:
+        throw new Error('User creation failed unexpectedly after referral code generation attempts.');
+    }
 
     // 6. Create accounts (main and training)
     await client.query(

@@ -1,5 +1,46 @@
 const pool = require('../config/db');
 
+// Define commission rates based on the level (20%, 10%, 5%)
+const UPLINE_COMMISSION_RATES = [0.20, 0.10, 0.05]; // Level 1, Level 2, Level 3
+
+/**
+ * Helper function to find the upline chain for a given user.
+ * Should be executed within a transaction using the provided client.
+ * @param {number} userId - The ID of the user whose upline chain is needed.
+ * @param {number} maxLevels - The maximum number of upline levels to retrieve.
+ * @param {object} client - The database client for transaction consistency.
+ * @returns {Promise<Array<{id: number, level: number}>>} - An array of upline objects with their level.
+ */
+async function _getUplineChain(userId, maxLevels, client) {
+  const uplines = [];
+  let currentUserId = userId;
+  let level = 1;
+
+  while (level <= maxLevels) {
+    const result = await client.query(
+      'SELECT upliner_id FROM users WHERE id = $1',
+      [currentUserId]
+    );
+
+    if (result.rows.length === 0 || !result.rows[0].upliner_id) {
+      break; // No more uplines
+    }
+
+    const uplinerId = result.rows[0].upliner_id;
+    // Prevent self-referral loops just in case data is inconsistent
+    if (uplinerId === userId) {
+        console.error(`Self-referral loop detected for user ${userId}. Stopping upline chain.`);
+        break;
+    }
+    uplines.push({ id: uplinerId, level: level });
+    currentUserId = uplinerId;
+    level++;
+  }
+
+  return uplines;
+}
+
+
 class CommissionService {
   /**
    * Calculates and logs direct data drive commission for a user.
@@ -10,58 +51,125 @@ class CommissionService {
    * @returns {Promise<void>}
    */
   static async calculateDirectDriveCommission(userId, productId, productPrice, commissionRate) {
-    // 1. Calculate commission amount
-    const commissionAmount = productPrice * commissionRate;
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
 
-    // 2. Log the commission in commission_logs table
-    await pool.query(
-      'INSERT INTO commission_logs (user_id, source_action_id, account_type, commission_amount, commission_type, description) VALUES ($1, $2, $3, $4, $5, $6)',
-      [userId, productId, 'main', commissionAmount, 'direct_drive', `Direct commission from data drive interaction (product ID: ${productId})`]
-    );
+      // 1. Calculate commission amount
+      const commissionAmount = productPrice * commissionRate;
+      const commissionDescription = `Direct commission from data drive interaction (product ID: ${productId})`;
 
-    // 3. Credit the commission to the user's main account balance
-    await pool.query(
-      'UPDATE accounts SET balance = balance + $1, commission = commission + $1 WHERE user_id = $2 AND type = \'main\'',
-      [commissionAmount, userId]
-    );
+      if (commissionAmount <= 0) {
+        console.log(`Skipping zero or negative direct commission for user ${userId}, product ${productId}`);
+        await client.query('COMMIT'); // Commit even if commission is zero
+        return;
+      }
 
-    console.log(`Direct commission of $${commissionAmount} credited to user ${userId} for product ${productId}`);
-
-    // 4. [NEXT STEP] Calculate and credit upline commission (if applicable) - to be implemented in next steps
-  }
-
-  /**
-   * Calculates and credits upline commission for a user's upliner.
-   * @param {number} userId - ID of the user who earned the original commission (downliner).
-   * @param {number} directCommissionAmount - The direct commission amount earned by the downliner.
-   * @returns {Promise<void>}
-   */
-  static async calculateUplineCommission(userId, directCommissionAmount) {
-    // 1. Get the upliner ID for the user
-    const uplinerResult = await pool.query('SELECT upliner_id FROM users WHERE id = $1', [userId]);
-    const uplinerId = uplinerResult.rows[0]?.upliner_id;
-
-    if (uplinerId) {
-      // 2. Calculate upline commission (20% of direct commission)
-      const uplineCommissionAmount = directCommissionAmount * 0.20;
-
-      // 3. Log the upline commission
-      await pool.query(
-        'INSERT INTO commission_logs (user_id, source_user_id, account_type, commission_amount, commission_type, description) VALUES ($1, $2, $3, $4, $5, $6)',
-        [uplinerId, userId, 'main', uplineCommissionAmount, 'upline_bonus', `Upline bonus (20% of downliner ${userId}'s direct commission)`]
+      // 2. Log the commission in commission_logs table
+      await client.query(
+        'INSERT INTO commission_logs (user_id, source_action_id, account_type, commission_amount, commission_type, description) VALUES ($1, $2, $3, $4, $5, $6)',
+        [userId, productId, 'main', commissionAmount, 'direct_drive', commissionDescription]
       );
 
-      // 4. Credit the upline commission to the upliner's main account
-      await pool.query(
+      // 3. Credit the commission to the user's main account balance
+      await client.query(
         'UPDATE accounts SET balance = balance + $1, commission = commission + $1 WHERE user_id = $2 AND type = \'main\'',
-        [uplineCommissionAmount, uplinerId]
+        [commissionAmount, userId]
       );
 
-      console.log(`Upline commission of $${uplineCommissionAmount} credited to upliner ${uplinerId} based on user ${userId}'s commission.`);
-    } else {
-      console.log(`User ${userId} has no upliner, skipping upline commission.`);
+      console.log(`Direct commission of $${commissionAmount.toFixed(2)} credited to user ${userId} for product ${productId}`);
+
+      // 4. Calculate and distribute multi-level upline commissions
+      await CommissionService.distributeMultiLevelCommission(
+          userId,
+          commissionAmount, // Base amount for upline calculation is the direct commission earned
+          'upline_bonus',
+          `Upline bonus based on user ${userId}'s direct drive commission (product ID: ${productId})`,
+          productId,
+          client // Pass the client for transaction consistency
+      );
+
+      await client.query('COMMIT');
+
+    } catch (error) {
+      await client.query('ROLLBACK');
+      console.error(`Error calculating direct drive commission for user ${userId}, product ${productId}:`, error);
+      throw error; // Re-throw the error to be handled by the caller
+    } finally {
+      client.release();
     }
   }
+
+
+  /**
+   * Calculates and distributes commissions up the referral chain based on defined rates.
+   * Should be called within an existing database transaction.
+   * @param {number} sourceUserId - The ID of the user whose action triggered the commission.
+   * @param {number} baseAmount - The amount on which upline commission is calculated (typically the direct commission earned by sourceUserId).
+   * @param {string} commissionType - Type of commission (e.g., 'upline_bonus').
+   * @param {string} description - A description for the commission log.
+   * @param {number} sourceActionId - ID of the source event (e.g., drive ID).
+   * @param {object} client - The database client for transaction consistency.
+   * @returns {Promise<void>}
+   */
+  static async distributeMultiLevelCommission(sourceUserId, baseAmount, commissionType, description, sourceActionId, client) {
+    try {
+      // Get the upline chain (up to 3 levels for 20-10-5 structure)
+      const uplines = await _getUplineChain(sourceUserId, UPLINE_COMMISSION_RATES.length, client);
+
+      if (uplines.length === 0) {
+        console.log(`User ${sourceUserId} has no uplines. No ${commissionType} distributed.`);
+        return;
+      }
+
+      console.log(`Distributing ${commissionType} for user ${sourceUserId} based on amount ${baseAmount.toFixed(2)}. Uplines found:`, uplines.map(u => `L${u.level}:${u.id}`));
+
+      // Distribute commission to each upline
+      for (const upline of uplines) {
+        const commissionRate = UPLINE_COMMISSION_RATES[upline.level - 1];
+        if (!commissionRate) continue; // Safety check
+
+        const commissionAmount = baseAmount * commissionRate;
+
+        if (commissionAmount <= 0) {
+            console.log(` - Skipping zero/negative commission for Level ${upline.level} Upline ${upline.id}`);
+            continue;
+        }
+
+        console.log(` - Level ${upline.level} Upline ${upline.id}: Rate ${commissionRate * 100}%, Amount ${commissionAmount.toFixed(2)}`);
+
+        // 1. Update the upline's main account balance and total commission
+        const updateResult = await client.query(
+          `UPDATE accounts
+           SET balance = balance + $1, commission = commission + $1
+           WHERE user_id = $2 AND type = 'main'`,
+          [commissionAmount, upline.id]
+        );
+
+        if (updateResult.rowCount === 0) {
+           console.warn(`Could not find main account for upline user ${upline.id}. Skipping commission.`);
+           continue; // Skip if account doesn't exist
+        }
+
+        // 2. Log the commission transaction
+        await client.query(
+          `INSERT INTO commission_logs
+           (user_id, source_user_id, source_action_id, account_type, commission_amount, commission_type, description)
+           VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+          [upline.id, sourceUserId, sourceActionId, 'main', commissionAmount, commissionType, `${description} (Level ${upline.level})`]
+        );
+         console.log(`   Logged ${commissionType} for user ${upline.id}`);
+      }
+
+      console.log(`${commissionType} distributed successfully for user ${sourceUserId}.`);
+
+    } catch (error) {
+      console.error(`Error distributing multi-level commissions for source user ${sourceUserId}:`, error);
+      // Re-throw the error so the calling transaction can be rolled back
+      throw error;
+    }
+  }
+
 
   /**
    * Processes commission earned in the training account.

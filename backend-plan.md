@@ -62,7 +62,7 @@ D --> D2[Indirect Commission]
    - *Verification*: Downline users appear in upline's record
 
 3. **Commission Calculation**
-   - Implement multi-level commission (5-3-1%)
+   - Implement multi-level commission (20-10-5%)
    - *Verification*: Test with 3-level referral chain
 
 ---

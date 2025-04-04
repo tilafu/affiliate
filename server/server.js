@@ -54,11 +54,7 @@ async function testCommissionService() {
       testProduct.commission_rate
     );
 
-    console.log('--- Testing Upline Commission ---');
-    await CommissionService.calculateUplineCommission(
-      testUser.id,
-      testProduct.price * testProduct.commission_rate
-    );
+    // Upline commission is handled within calculateDirectDriveCommission
 
     console.log('--- Testing Training Account Commission ---');
     await CommissionService.calculateTrainingCommission(
