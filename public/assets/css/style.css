@@ -1,6 +1,6 @@
 :root {
     --color1: #fafafa;
-    --color2: #80DBFF;
+    --color2: #80DBFF; 
     --color3: #EAECEF;
     --color4: #1E2329;
     --color5: #fff;
@@ -184,7 +184,7 @@ select.form-select {
     -moz-appearance: none;
     appearance: none;
     -webkit-print-color-adjust: exact;
-    color-adjust: exact;
+    print-color-adjust: exact;
 }
 .form-check-input:checked {
     background-color: #F0B90A;

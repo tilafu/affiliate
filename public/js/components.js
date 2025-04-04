@@ -45,31 +45,30 @@ async function loadComponent(componentPath, targetElementId) {
 // You might need to move sidebar-specific JS initializations here from other files
 function initializeSidebarScripts() {
     console.log('Initializing sidebar scripts...');
-    // Add event listeners or run functions needed for the sidebar here
 
-    // Logout functionality: listen to click event on #logout-btn (inside sidebar)
-    const logoutBtn = document.getElementById('logout-btn');
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', (event) => {
-            event.preventDefault();
-            console.log('Logging out via #logout-btn (from components.js)...');
-            // Assuming clearAuthData and redirectToLogin are globally available (e.g., from main.js or auth.js)
-            if (typeof clearAuthData === 'function') {
-                clearAuthData(); // Clears token and user data from localStorage
-            } else {
-                console.warn('clearAuthData function not found. Manually clearing storage.');
-                localStorage.removeItem('auth_token');
-                localStorage.removeItem('user_data');
-            }
-            if (typeof redirectToLogin === 'function') {
-                redirectToLogin(); // Redirects to login page
-            } else {
-                console.warn('redirectToLogin function not found. Manually redirecting.');
-                window.location.href = 'login.html';
-            }
+    // Attach logout handlers defined in auth.js to any .logout elements within the sidebar
+    if (typeof window.attachLogoutHandlers === 'function') {
+        console.log('Attaching logout handlers from auth.js...');
+        window.attachLogoutHandlers();
+    } else {
+        console.error('attachLogoutHandlers function from auth.js is not available globally.');
+    }
+
+    // Explicitly add close button functionality after sidebar loads
+    const closeButton = document.getElementById('sidebar-close-button');
+    const sidebarElement = document.querySelector('.main-sidebar');
+    const overlayElement = document.querySelector('.bg-overlay');
+
+    if (closeButton && sidebarElement && overlayElement) {
+        closeButton.addEventListener('click', (event) => {
+            event.preventDefault(); // Prevent default anchor behavior
+            event.stopPropagation(); // Stop the event from bubbling up to the document handler
+            console.log('Sidebar close button clicked (handler in components.js)');
+            sidebarElement.classList.remove('active');
+            overlayElement.classList.remove('active');
         });
     } else {
-        console.warn('Sidebar logout button (#logout-btn) not found during initialization.');
+        console.warn('Could not find sidebar close button, sidebar element, or overlay element during initialization.');
     }
 
     // Add any other sidebar-specific initializations below
