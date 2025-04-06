@@ -1,6 +1,6 @@
 const express = require('express');
-const { getUserProfile, updateUserProfile } = require('../controllers/user'); // Import updateUserProfile
-const { protect } = require('../middlewares/auth'); // Import the auth middleware
+const { getUserProfile, updateUserProfile, getAccountInfo } = require('../controllers/user');
+const { protect } = require('../middlewares/auth');
 
 const router = express.Router();
 
@@ -39,5 +39,10 @@ router.put('/profile', protect, async (req, res) => {
     res.status(500).json({ message: 'Could not update profile' });
   }
 });
+
+// @route   GET /api/user/account
+// @desc    Get user account details and balance information
+// @access  Private (requires token)
+router.get('/account', protect, getAccountInfo);
 
 module.exports = router;

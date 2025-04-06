@@ -79,6 +79,14 @@ function initializeSidebarScripts() {
 document.addEventListener('DOMContentLoaded', () => {
     if (document.getElementById('sidebar-placeholder')) {
         loadComponent('/components/sidebar.html', 'sidebar-placeholder')
+            .then(() => {
+                document.dispatchEvent(new CustomEvent('componentLoaded', {
+                    detail: {
+                        component: 'sidebar',
+                        path: '/components/sidebar.html'
+                    }
+                }));
+            })
             .catch(err => console.error("Sidebar loading failed:", err));
     }
     // Add similar checks for other components like header or footer if needed

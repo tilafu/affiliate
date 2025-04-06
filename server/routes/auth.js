@@ -1,5 +1,5 @@
 const express = require('express');
-const { register, login } = require('../controllers/auth');
+const { register, login, adminLogin } = require('../controllers/auth');
 
 const router = express.Router();
 
@@ -12,5 +12,8 @@ router.post('/register', register);
 // @desc    Authenticate user & get token
 // @access  Public
 router.post('/login', login);
+
+// Now you can uncomment this line after implementing the function
+router.post('/admin-login', adminLogin);
 
 module.exports = router;

@@ -102,7 +102,9 @@ async function fetchWithAuth(url, options = {}) {
     }
 
     try {
-        const response = await fetch(`${API_BASE_URL}${url}`, {
+        // Make sure we're using the API prefix
+        const apiUrl = url.startsWith('/api/') ? url : `/api${url}`;
+        const response = await fetch(`${API_BASE_URL}${apiUrl}`, {
             ...options,
             headers,
         });
@@ -117,23 +119,13 @@ async function fetchWithAuth(url, options = {}) {
 
         // Handle other errors
         if (!response.ok) {
-            let errorData = {};
-            try {
-                errorData = await response.json();
-            } catch (parseErr) {
-                // If parsing fails, keep it empty
-            }
-            const errorMsg = errorData.message || `Error status ${response.status}`;
-            throw new Error(errorMsg);
+            const errorData = await response.json();
+            throw new Error(errorData.message || `Error ${response.status}`);
         }
 
         return await response.json();
     } catch (error) {
         console.error('API request error:', error);
-        // Only show notification for non-401 errors (avoid duplicate notifications)
-        if (error.message !== 'Unauthorized') {
-            showNotification('Network error or server issue. Please try again.', 'error');
-        }
         throw error;
     }
 }

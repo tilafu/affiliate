@@ -3,9 +3,13 @@ const express = require('express');
 const cors = require('cors');
 const pool = require('./config/db');
 const path = require('path');
+const http = require('http');
+const socketIo = require('socket.io');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const server = http.createServer(app);
+const io = socketIo(server);
 
 // Middleware
 app.use(cors());
@@ -49,12 +53,14 @@ async function testCommissionService() {
     }
 
     console.log('--- Testing Direct Drive Commission ---');
-    await CommissionService.calculateDirectDriveCommission(
-      testUser.id,
-      testProduct.id,
-      testProduct.price,
-      testProduct.commission_rate
-    );
+await CommissionService.calculateDirectDriveCommission(
+  testUser.id,
+  testProduct.id,
+  testProduct.price,
+  testProduct.commission_rate,
+  pool, // Pass the pool object as the client
+  1 // Assuming 1 as a placeholder for sourceActionId
+);
 
     // Upline commission is handled within calculateDirectDriveCommission
 
@@ -74,8 +80,23 @@ async function testCommissionService() {
 }
 // --- END COMMISSION SERVICE TESTING ---
 
+// Socket.io connection
+io.on('connection', (socket) => {
+  console.log('New client connected');
+  
+  // When database updates occur:
+  socket.emit('account-update', {
+    balance: 1000.00,
+    profit: 25.50
+  });
+  
+  socket.on('disconnect', () => {
+    console.log('Client disconnected');
+  });
+});
+
 // Start server
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   pool.query('SELECT NOW()', (err, res) => {
     if (err) {

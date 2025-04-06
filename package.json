@@ -1,0 +1,15 @@
+{
+  "name": "affiliate-site",
+  "version": "1.0.0",
+  "description": "Affiliate Site",
+  "main": "server/server.js",
+  "scripts": {
+    "dev": "node server/server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "socket.io": "^4.8.1"
+  },
+  "author": "Your Name",
+  "license": "MIT"
+}

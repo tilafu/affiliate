@@ -4,54 +4,47 @@ const pool = require('../config/db');
 // @route   GET /api/user/profile
 // @access  Private
 const getUserProfile = async (req, res) => {
-  // req.user is attached by the 'protect' middleware
-  if (!req.user || !req.user.id) {
-    return res.status(401).json({ success: false, message: 'Not authorized' });
-  }
-
-  const userId = req.user.id;
-
   try {
-    // Fetch full user details including registration date and mobile
-    const userResult = await pool.query(
-      'SELECT id, username, email, referral_code, tier, mobile_number, created_at FROM users WHERE id = $1',
-      [userId]
-    );
-
-    if (userResult.rows.length === 0) {
+    const userId = req.user.id;
+    
+    // Get user details with a JOIN to accounts table
+    const userResult = await pool.query(`
+      SELECT 
+        u.id, 
+        u.username, 
+        u.email, 
+        u.referral_code,
+        u.tier,
+        u.created_at,
+        COALESCE(ma.balance, 0) as main_balance,
+        COALESCE(ma.commission, 0) as main_commission,
+        COALESCE(ta.balance, 0) as training_balance,
+        COALESCE(ta.commission, 0) as training_commission
+      FROM users u
+      LEFT JOIN accounts ma ON u.id = ma.user_id AND ma.type = 'main'
+      LEFT JOIN accounts ta ON u.id = ta.user_id AND ta.type = 'training'
+      WHERE u.id = $1
+    `, [userId]);
+    
+    if (userResult.rowCount === 0) {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
+    
+    // Add total profits calculation
+    const profitsResult = await pool.query(`
+      SELECT SUM(commission_amount) as total_profits
+      FROM commission_logs
+      WHERE user_id = $1
+    `, [userId]);
+    
     const user = userResult.rows[0];
-
-    // Fetch associated account details
-    const accountsResult = await pool.query(
-      'SELECT type, balance, commission, frozen, cap, is_active FROM accounts WHERE user_id = $1',
-      [userId]
-    );
-
-    // Structure the accounts data
-    const accounts = accountsResult.rows.reduce((acc, row) => {
-      acc[row.type] = {
-        balance: parseFloat(row.balance),
-        commission: parseFloat(row.commission),
-        frozen: parseFloat(row.frozen),
-        cap: row.cap ? parseFloat(row.cap) : null,
-        isActive: row.is_active,
-      };
-      return acc;
-    }, {});
-
-    // Combine user and account data
-    const userProfile = {
-      ...user, // Spread full user details (id, username, email, referral_code, tier, mobile_number, created_at)
-      accounts: accounts, // Add structured account details
-    };
-
-    res.status(200).json({ success: true, user: userProfile });
-
+    user.total_profits = profitsResult.rows[0].total_profits || 0;
+    
+    res.json({ success: true, user });
+    
   } catch (error) {
-    console.error('Get profile error:', error);
-    res.status(500).json({ success: false, message: 'Server error fetching profile' });
+    console.error('Error fetching user profile:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -113,8 +106,66 @@ const updateUserProfile = async (req, res) => {
   }
 };
 
+// Add this function to your existing user.js controller
+/**
+ * @desc    Get user account information
+ * @route   GET /api/user/account
+ * @access  Private
+ */
+const getAccountInfo = async (req, res) => {
+  try {
+    const userId = req.user.id;
 
+    // Get user account details including username and referral code
+    const userResult = await pool.query(`
+      SELECT 
+        username, 
+        referral_code
+      FROM users 
+      WHERE id = $1
+    `, [userId]);
+
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    // Get account balances
+    const accountResult = await pool.query(`
+      SELECT 
+        COALESCE(main.balance, 0) as main_balance,
+        COALESCE(main.frozen_balance, 0) as frozen_balance
+      FROM users u
+      LEFT JOIN accounts main ON u.id = main.user_id AND main.type = 'main'
+      WHERE u.id = $1
+    `, [userId]);
+
+    // Calculate daily profits (last 24 hours)
+    const dailyProfitsResult = await pool.query(`
+      SELECT COALESCE(SUM(commission_amount), 0) as daily_profits
+      FROM commission_logs
+      WHERE user_id = $1 
+      AND created_at >= NOW() - INTERVAL '24 HOURS'
+    `, [userId]);
+
+    // Combine all data
+    res.json({
+      success: true,
+      account: {
+        ...userResult.rows[0],
+        ...accountResult.rows[0],
+        daily_profits: dailyProfitsResult.rows[0].daily_profits
+      }
+    });
+    
+  } catch (error) {
+    console.error('Error fetching account info:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+// Remember to export the new function
 module.exports = {
   getUserProfile,
-  updateUserProfile, // Export the new function
+  updateUserProfile,
+  getAccountInfo
 };

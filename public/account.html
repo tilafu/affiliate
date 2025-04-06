@@ -5195,10 +5195,30 @@ body::after {
         </div>
     </div>
 </footer>
- <script> let baseurl = 'http://127.0.0.1:5500/index.html'; </script>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const socket = io(); // Automatically connects to the host that served the page
+    
+    socket.on('connect', () => {
+      console.log('Connected to socket server!');
+    });
+    
+    socket.on('account-update', (data) => {
+      console.log('Received update:', data);
+      
+      // Update your UI elements
+      const mainBalanceEl = document.getElementById('account-main-balance');
+      if (mainBalanceEl) {
+        mainBalanceEl.textContent = '$' + parseFloat(data.balance).toFixed(2);
+      }
+    });
+  });
+</script>
+ <script> let baseurl = window.location.origin; </script>
 
 <script src="./assets/frontend/js/bootstrap.bundle.min.js"></script>
 <script src="./assets/frontend/js/owl.carousel.min.js"></script>
-<script src="./assets/frontend/js/script.js"></script>
+<script src="https://cdn.socket.io/4.7.1/socket.io.min.js"></script><!-- Add this before your own scripts -->
+<script src="./js/account.js"></script>
 </body>
 </html>

@@ -181,7 +181,62 @@ const login = async (req, res) => {
   }
 };
 
+const adminLogin = async (req, res) => {
+  const { username, password } = req.body;
+
+  // Basic validation
+  if (!username || !password) {
+    return res.status(400).json({ success: false, message: 'Missing required fields' });
+  }
+
+  try {
+    // Check if the user exists and is an admin
+    const result = await pool.query(
+      'SELECT id, username, password_hash FROM users WHERE username = $1 AND revenue_source = $2',
+      [username, 'admin']
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(401).json({ success: false, message: 'Invalid credentials' });
+    }
+
+    const admin = result.rows[0];
+
+    // Compare passwords
+    const isPasswordValid = await bcrypt.compare(password, admin.password_hash);
+    if (!isPasswordValid) {
+      return res.status(401).json({ success: false, message: 'Invalid credentials' });
+    }
+
+    // Generate token
+    const token = jwt.sign(
+      { 
+        id: admin.id, 
+        username: admin.username,
+        isAdmin: true
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: process.env.JWT_EXPIRES_IN || '8h' }
+    );
+
+    // Return token and admin info
+    res.json({
+      success: true,
+      token,
+      admin: {
+        id: admin.id,
+        username: admin.username
+      }
+    });
+
+  } catch (error) {
+    console.error('Admin login error:', error);
+    res.status(500).json({ success: false, message: 'Server error during login' });
+  }
+};
+
 module.exports = {
   register,
   login,
+  adminLogin,
 };
