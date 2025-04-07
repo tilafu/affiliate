@@ -111,13 +111,14 @@ async function handleRegisterSubmit(event) {
     submitButton.textContent = 'Creating account...';
     submitButton.disabled = true;
 
-    const formData = {
-        username: document.getElementById('username').value.trim(),
-        email: document.getElementById('email').value.trim(),
-        password: document.getElementById('password').value,
-        referralCode: document.getElementById('referralCode').value.trim(),
-        revenueSource: form.querySelector('input[name="revenue_source"]:checked').value
-    };
+const formData = {
+    username: document.getElementById('username').value.trim(),
+    email: document.getElementById('email').value.trim(),
+    password: document.getElementById('password').value,
+    repeatPassword: document.getElementById('repeat-password').value.trim(),
+    referralCode: document.getElementById('referralCode').value.trim(),
+    revenueSource: form.querySelector('input[name="revenue_source"]:checked').value
+};
 
     try {
         const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
