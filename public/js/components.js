@@ -85,7 +85,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         component: 'sidebar',
                         path: '/components/sidebar.html'
                     }
-                }));
+                })); 
             })
             .catch(err => console.error("Sidebar loading failed:", err));
     }
@@ -94,3 +94,4 @@ document.addEventListener('DOMContentLoaded', () => {
     //     loadComponent('/components/header.html', 'header-placeholder');
     // }
 });
+ 

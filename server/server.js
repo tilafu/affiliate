@@ -18,6 +18,11 @@ app.use(express.json());
 // Serve static files from the public directory
 app.use(express.static(path.join(__dirname, '../public')));
 
+// Serve admin.html from /admin endpoint
+app.get('/admin', (req, res) => {
+  res.sendFile(path.join(__dirname, '../admin_views/admin.html'));
+});
+
 // Basic health check route
 app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'Server is running' });
@@ -27,9 +32,11 @@ app.get('/api/health', (req, res) => {
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/user');
 const driveRoutes = require('./routes/drive'); // Add drive routes
+const adminRoutes = require('./routes/admin'); // Add admin routes
 app.use('/api/auth', authRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/drive', driveRoutes); // Mount drive routes
+app.use('/api/admin', adminRoutes); // Mount admin routes
 
 // --- COMMISSION SERVICE TESTING ---
 async function testCommissionService() {

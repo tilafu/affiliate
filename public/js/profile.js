@@ -10,7 +10,7 @@ function formatDate(dateString) {
         return 'Invalid Date';
     }
 }
-
+ 
 // Format money values with 2 decimal places and $ sign
 function formatMoney(amount) {
     if (amount === null || amount === undefined) return '$0.00';

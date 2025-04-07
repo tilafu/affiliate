@@ -226,7 +226,7 @@ function updateSidebarReferralCode(referralCode) {
             // Try again after a short delay in case the sidebar is still loading
             setTimeout(() => updateSidebarReferralCode(referralCode), 500);
         }
-    }
+    } 
 }
 
 // Add this function to handle logout

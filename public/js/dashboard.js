@@ -111,7 +111,7 @@ async function initializeDashboard() {
              localStorage.removeItem('user_data');
              showNotification('Logged out successfully.', 'success', 2000);
              window.location.href = 'login.html';
-         });
+         }); 
      }
 }
 

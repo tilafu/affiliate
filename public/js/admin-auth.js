@@ -1,3 +1,5 @@
+/* Admin Login Functionality Disabled */
+/*
 document.addEventListener('DOMContentLoaded', function() {
     const loginForm = document.getElementById('admin-login-form');
     const loginError = document.getElementById('admin-login-error');
@@ -14,6 +16,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 loginError.style.display = 'none';
                 loginError.textContent = '';
                 
+                console.log('Sending admin login request with credentials:', { username, password });
+                
                 const response = await fetch(`${API_BASE_URL}/api/auth/admin-login`, {
                     method: 'POST',
                     headers: {
@@ -21,6 +25,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     },
                     body: JSON.stringify({ username, password })
                 });
+                
+                console.log('Admin login response:', response);
                 
                 const data = await response.json();
                 
@@ -49,3 +55,4 @@ document.addEventListener('DOMContentLoaded', function() {
         window.location.href = 'admin.html';
     }
 });
+*/

@@ -6,7 +6,7 @@ const { generateReferralCode } = require('./utils/helpers');
 const ADMIN_USERNAME = 'Mash';
 const ADMIN_PASSWORD = 'machariamuchai';
 const ADMIN_EMAIL = 'eli@admin.local'; // Placeholder email
-
+ 
 async function addAdmin() {
   const client = await pool.connect();
   try {
