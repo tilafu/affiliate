@@ -5,7 +5,7 @@ const adminController = require('../controllers/adminController');
 
 // Apply admin middleware to all routes in this file except login
 router.use((req, res, next) => {
-  if (req.path === '/auth/admin-login') {
+if (req.path === '/admin/login') {
     return next();
   }
   adminMiddleware(req, res, next);
@@ -14,7 +14,7 @@ router.use((req, res, next) => {
 // @route   POST /api/auth/admin-login
 // @desc    Admin login route (DISABLED)
 // @access  Public
-// router.post('/auth/admin-login', adminController.adminLogin); 
+router.post('/admin/login', adminController.adminLogin);
 // @route   GET /api/admin/dashboard
 // @desc    Admin dashboard route (protected)
 // @access  Private (Admin only)

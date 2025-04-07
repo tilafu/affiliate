@@ -1,5 +1,3 @@
-/* Admin Login Functionality Disabled */
-/*
 document.addEventListener('DOMContentLoaded', function() {
     const loginForm = document.getElementById('admin-login-form');
     const loginError = document.getElementById('admin-login-error');
@@ -18,7 +16,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 console.log('Sending admin login request with credentials:', { username, password });
                 
-                const response = await fetch(`${API_BASE_URL}/api/auth/admin-login`, {
+                const response = await fetch('/admin/login', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -39,7 +37,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 localStorage.setItem('admin_data', JSON.stringify(data.admin));
                 
                 // Redirect to admin panel
-                window.location.href = 'admin.html';
+                window.location.href = '/admin/admin.html'; // Updated path
                 
             } catch (error) {
                 console.error('Admin login error:', error);
@@ -52,7 +50,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // Check if already logged in as admin
     const adminToken = localStorage.getItem('admin_token');
     if (adminToken && window.location.pathname.includes('admin-login.html')) {
-        window.location.href = 'admin.html';
+        window.location.href = '/admin/admin.html'; // Updated path
     }
 });
-*/

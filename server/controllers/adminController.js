@@ -3,7 +3,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
 // @desc    Admin login route
-// @route   POST /api/auth/admin-login
+// @route   POST /admin/login
 // @access  Public
 exports.adminLogin = async (req, res) => {
   const { username, password } = req.body;
