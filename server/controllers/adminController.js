@@ -116,7 +116,6 @@ const updateProduct = async (req, res) => {
   }
   if (is_active !== undefined && typeof is_active !== 'boolean') return res.status(400).json({ message: 'is_active must be a boolean' });
 
-
   try {
     // Check if product exists
      const productCheck = await pool.query('SELECT id FROM products WHERE id = $1', [productId]);
@@ -205,9 +204,11 @@ const manualTransaction = async (req, res) => {
   const client = await pool.connect(); // Get client for transaction
 
   try {
+    console.log('Starting transaction');
     await client.query('BEGIN'); // Start transaction
 
     // 1. Check if user exists
+    console.log(`Checking if user ${userId} exists`);
     const userCheck = await client.query('SELECT id FROM users WHERE id = $1', [userId]);
     if (userCheck.rows.length === 0) {
       await client.query('ROLLBACK');
@@ -216,6 +217,7 @@ const manualTransaction = async (req, res) => {
     }
 
     // 2. Get user's main account
+    console.log(`Getting main account for user ${userId}`);
     const accountResult = await client.query(
       'SELECT id, balance FROM accounts WHERE user_id = $1 AND type = \'main\' FOR UPDATE', // Lock row for update
       [userId]
@@ -231,6 +233,7 @@ const manualTransaction = async (req, res) => {
     let newBalance;
 
     // 3. Perform transaction logic
+    console.log(`Performing ${type} of ${transactionAmount}`);
     if (type === 'deposit') {
       newBalance = parseFloat(account.balance) + transactionAmount;
     } else { // withdrawal
@@ -243,6 +246,7 @@ const manualTransaction = async (req, res) => {
     }
 
     // 4. Update account balance
+    console.log(`Updating account balance to ${newBalance.toFixed(2)}`);
     await client.query(
       'UPDATE accounts SET balance = $1 WHERE id = $2',
       [newBalance.toFixed(2), account.id] // Ensure 2 decimal places
@@ -252,22 +256,23 @@ const manualTransaction = async (req, res) => {
     // Ideally, create a separate manual_transactions table.
     const logType = type === 'deposit' ? 'admin_deposit' : 'admin_withdrawal';
     const logDescription = `Admin manual ${type}: ${description || '(No description)'}`;
+    console.log(`Logging transaction type: ${logType}, description: ${logDescription}`);
     await client.query(
-        `INSERT INTO commission_logs
-         (user_id, source_user_id, account_type, commission_amount, commission_type, description)
-         VALUES ($1, $2, $3, $4, $5, $6)`,
-        [userId, req.user.id, 'main', transactionAmount, logType, logDescription] // Log admin ID as source
+      `INSERT INTO commission_logs
+       (user_id, source_user_id, account_type, commission_amount, commission_type, description)
+       VALUES ($1, $2, $3, $4, $5, $6)`,
+      [userId, req.user.id, 'main', transactionAmount, logType, logDescription] // Log admin ID as source
     );
 
-
+    console.log('Committing transaction');
     await client.query('COMMIT'); // Commit transaction
 
     console.log(`Admin ${req.user.id} performed manual ${type} of ${transactionAmount} for user ${userId}`);
     res.json({ success: true, message: `Manual ${type} successful. New balance: ${newBalance.toFixed(2)}` });
 
   } catch (error) {
-    await client.query('ROLLBACK'); // Rollback on error
     console.error(`Error performing manual transaction for user ${userId}:`, error);
+    await client.query('ROLLBACK'); // Rollback on error
     res.status(500).json({ message: 'Server error performing manual transaction' });
   } finally {
     client.release(); // Release client back to pool
@@ -309,7 +314,6 @@ const getUsers = async (req, res) => {
     res.status(500).json({ message: 'Server error fetching users' });
   }
 };
-
 
 module.exports = {
   updateUserTier,
