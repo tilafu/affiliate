@@ -50,9 +50,9 @@ async function handleLoginSubmit(event) {
 
             showNotification('Login successful! Redirecting...', 'success');
             setTimeout(() => {
-                // Redirect based on role (if available in response) or default
-                const redirectPath = data.user?.isAdmin ? 'admin/dashboard.html' : 'dashboard.html';
-                window.location.href = redirectPath;
+                // Redirect based on the role received from the backend
+                const redirectPath = data.user?.role === 'admin' ? 'admin.html' : 'dashboard.html';
+                window.location.href = redirectPath; // Use root paths as they are served from public
             }, 1000);
         } else {
             // Use server's error message or a default

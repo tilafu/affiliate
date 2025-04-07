@@ -6,7 +6,8 @@ CREATE TABLE users (
   password_hash VARCHAR(100) NOT NULL,
   referral_code VARCHAR(10) UNIQUE NOT NULL,
   upliner_id INTEGER REFERENCES users(id),
-  tier VARCHAR(10) DEFAULT 'bronze',
+  tier VARCHAR(10) DEFAULT 'bronze', -- Tier for regular users
+  role VARCHAR(10) DEFAULT 'user' CHECK (role IN ('user', 'admin')), -- Added role column
   revenue_source VARCHAR(20),
   created_at TIMESTAMP DEFAULT NOW()
 );
@@ -52,9 +53,9 @@ CREATE TABLE commission_logs (
   created_at TIMESTAMP DEFAULT NOW()
 );
 
--- Add initial admin user (optional)
-INSERT INTO users (username, email, password_hash, referral_code, tier, revenue_source)
-VALUES ('admin', 'admin@example.com', '$2b$10$placeholderhash', 'SETYJWFC', 'platinum', 'admin');
+-- Add initial admin user (optional) - Set role to 'admin' and tier can be null or default
+INSERT INTO users (username, email, password_hash, referral_code, tier, role, revenue_source)
+VALUES ('admin', 'admin@example.com', '$2b$10$placeholderhash', 'SETYJWFC', null, 'admin', 'admin');
 
 -- Add admin accounts
 INSERT INTO accounts (user_id, type, balance)

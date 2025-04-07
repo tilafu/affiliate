@@ -15,10 +15,9 @@ const protect = async (req, res, next) => {
       // Verify token
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-      // Get user from the token (excluding password)
-      // You might want to select more/less user data depending on needs
+      // Get user from the token (including the new role column)
       const userResult = await pool.query(
-          'SELECT id, username, email, referral_code, tier FROM users WHERE id = $1', 
+          'SELECT id, username, email, referral_code, tier, role FROM users WHERE id = $1',
           [decoded.userId]
       );
 
@@ -39,4 +38,14 @@ const protect = async (req, res, next) => {
   }
 };
 
-module.exports = { protect };
+// Middleware to check if the user is an admin based on role
+const admin = (req, res, next) => {
+  // This middleware should run AFTER protect, so req.user should be populated
+  if (req.user && req.user.role === 'admin') {
+    next(); // User is admin, proceed to the next middleware/route handler
+  } else {
+    res.status(403).json({ success: false, message: 'Not authorized as an admin' }); // Forbidden
+  }
+};
+
+module.exports = { protect, admin };

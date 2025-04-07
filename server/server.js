@@ -22,8 +22,10 @@ app.get('/api/health', (req, res) => {
 // Define Routes
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/user');
+const adminRoutes = require('./routes/admin'); // Import admin routes
 app.use('/api/auth', authRoutes);
 app.use('/api/user', userRoutes); // This is good
+app.use('/api/admin', adminRoutes); // Use admin routes
 
 // --- COMMISSION SERVICE TESTING ---
 async function testCommissionService() {

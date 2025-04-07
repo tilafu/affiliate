@@ -125,9 +125,9 @@ const login = async (req, res) => {
   }
 
   try {
-    // Find user by username or email
+    // Find user by username or email, include role
     const userResult = await pool.query(
-      'SELECT id, username, email, password_hash, referral_code, tier FROM users WHERE username = $1 OR email = $1',
+      'SELECT id, username, email, password_hash, referral_code, tier, role FROM users WHERE username = $1 OR email = $1',
       [username]
     );
 
@@ -170,6 +170,7 @@ const login = async (req, res) => {
         email: user.email,
         referralCode: user.referral_code,
         tier: user.tier,
+        role: user.role, // Add role to the response
         accounts: accounts,
       },
       message: 'Login successful!'

@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel</title>
+    <!-- Include necessary CSS (e.g., Bootstrap, custom styles) -->
+    <link rel="stylesheet" href="./assets/css/bootstrap.min.css">
+    <link rel="stylesheet" href="./assets/css/style.css"> <!-- Assuming a shared style -->
+    <style>
+        /* Basic Admin Panel Styling */
+        body { padding-top: 20px; }
+        .container { max-width: 1200px; }
+        .section { margin-bottom: 40px; padding: 20px; border: 1px solid #ddd; border-radius: 5px; }
+        .section h2 { margin-bottom: 20px; }
+        #user-details, #product-details { margin-top: 20px; padding: 15px; background-color: #f9f9f9; border-radius: 4px; }
+        table { margin-top: 15px; }
+        .action-buttons button, .action-buttons select { margin-right: 5px; margin-bottom: 5px; }
+        .form-inline label { margin-right: 5px;}
+        .form-inline input, .form-inline select { margin-right: 10px; margin-bottom: 10px;}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Admin Panel</h1>
+        <button id="logout-button" class="btn btn-danger float-end">Logout</button>
+        <hr>
+
+        <!-- User Management Section -->
+        <div class="section" id="user-management">
+            <h2>User Management</h2>
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Username</th>
+                            <th>Email</th>
+                            <th>Tier</th>
+                            <th>Role</th>
+                            <th>Balance</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="user-list">
+                        <!-- User rows will be populated by JS -->
+                        <tr><td colspan="7">Loading users...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div id="user-details" style="display: none;">
+                <h4>Manage User: <span id="manage-username"></span> (ID: <span id="manage-user-id"></span>)</h4>
+                <div class="action-buttons">
+                    <label for="user-tier-select">Change Tier:</label>
+                    <select id="user-tier-select" class="form-select d-inline-block w-auto">
+                        <option value="bronze">Bronze</option>
+                        <option value="silver">Silver</option>
+                        <option value="gold">Gold</option>
+                        <option value="platinum">Platinum</option>
+                    </select>
+                    <button id="update-tier-button" class="btn btn-primary btn-sm">Update Tier</button>
+                </div>
+                <hr>
+                <div class="action-buttons form-inline">
+                     <label for="transaction-type">Manual Transaction:</label>
+                    <select id="transaction-type" class="form-select d-inline-block w-auto">
+                        <option value="deposit">Deposit</option>
+                        <option value="withdrawal">Withdrawal</option>
+                    </select>
+                    <label for="transaction-amount">Amount:</label>
+                    <input type="number" id="transaction-amount" class="form-control d-inline-block w-auto" placeholder="Amount" step="0.01">
+                     <label for="transaction-description">Description (Optional):</label>
+                    <input type="text" id="transaction-description" class="form-control d-inline-block w-auto" placeholder="Description">
+                    <button id="submit-transaction-button" class="btn btn-success btn-sm">Submit Transaction</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Product Management Section -->
+        <div class="section" id="product-management">
+            <h2>Product Management</h2>
+
+            <!-- Create Product Form -->
+            <div id="create-product-form">
+                <h4>Create New Product</h4>
+                <form id="add-product-form" class="row g-3 align-items-end">
+                    <div class="col-md-3">
+                        <label for="product-name" class="form-label">Name</label>
+                        <input type="text" class="form-control" id="product-name" required>
+                    </div>
+                    <div class="col-md-2">
+                        <label for="product-price" class="form-label">Price</label>
+                        <input type="number" class="form-control" id="product-price" step="0.01" required>
+                    </div>
+                    <div class="col-md-2">
+                        <label for="product-commission" class="form-label">Commission Rate (e.g., 0.015)</label>
+                        <input type="number" class="form-control" id="product-commission" step="0.001" required>
+                    </div>
+                     <div class="col-md-2">
+                        <label for="product-min-balance" class="form-label">Min Balance Req.</label>
+                        <input type="number" class="form-control" id="product-min-balance" step="0.01" value="0">
+                    </div>
+                     <div class="col-md-2">
+                        <label for="product-min-tier" class="form-label">Min Tier Req.</label>
+                        <select id="product-min-tier" class="form-select">
+                            <option value="bronze">Bronze</option>
+                            <option value="silver">Silver</option>
+                            <option value="gold">Gold</option>
+                            <option value="platinum">Platinum</option>
+                        </select>
+                    </div>
+                    <div class="col-12">
+                        <button type="submit" class="btn btn-success">Add Product</button>
+                    </div>
+                </form>
+                 <hr>
+            </div>
+
+
+            <h4>Existing Products</h4>
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Price</th>
+                            <th>Commission Rate</th>
+                            <th>Min Balance</th>
+                            <th>Min Tier</th>
+                            <th>Active</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="product-list">
+                        <!-- Product rows will be populated by JS -->
+                         <tr><td colspan="8">Loading products...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+             <!-- Placeholder for editing products if needed later -->
+             <div id="product-details" style="display: none;"></div>
+        </div>
+
+    </div>
+
+    <!-- Include necessary JS -->
+    <script src="./assets/js/jquery.min.js"></script>
+    <script src="./assets/js/bootstrap.bundle.min.js"></script>
+    <!-- Include shared helper functions if needed (e.g., API_BASE_URL, showNotification) -->
+    <script src="./js/main.js"></script> <!-- Assuming API_BASE_URL and showNotification are here -->
+    <script src="./js/admin.js"></script> <!-- Admin panel specific logic -->
+     <script>
+        // Basic logout functionality
+        document.getElementById('logout-button')?.addEventListener('click', () => {
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('user_data');
+            showNotification('Logged out successfully.', 'success');
+            window.location.href = 'login.html';
+        });
+    </script>
+</body>
+</html>
