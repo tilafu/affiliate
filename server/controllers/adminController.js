@@ -234,8 +234,10 @@ const manualTransaction = async (req, res) => {
 
     // 3. Perform transaction logic
     console.log(`Performing ${type} of ${transactionAmount}`);
+    console.log(`Current balance: ${account.balance}`);
     if (type === 'deposit') {
       newBalance = parseFloat(account.balance) + transactionAmount;
+      console.log(`New balance after deposit: ${newBalance}`);
     } else { // withdrawal
       if (parseFloat(account.balance) < transactionAmount) {
         await client.query('ROLLBACK');
@@ -243,6 +245,7 @@ const manualTransaction = async (req, res) => {
         return res.status(400).json({ message: 'Insufficient balance for withdrawal' });
       }
       newBalance = parseFloat(account.balance) - transactionAmount;
+      console.log(`New balance after withdrawal: ${newBalance}`);
     }
 
     // 4. Update account balance

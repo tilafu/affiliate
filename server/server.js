@@ -1,4 +1,5 @@
 require('dotenv').config();
+const logger = require('./logger'); // Import logger
 const express = require('express');
 const cors = require('cors');
 const pool = require('./config/db');
@@ -35,20 +36,20 @@ async function testCommissionService() {
     // 1. Get test user (admin)
     const userResult = await pool.query('SELECT id, upliner_id FROM users WHERE username = $1', ['admin']);
     const testUser = userResult.rows[0];
-    if (!testUser) {
-      console.error('Admin user not found for commission testing.');
-      return;
-    }
+if (!testUser) {
+  logger.error('Admin user not found for commission testing.');
+  return;
+}
 
     // 2. Get test product (Basic Data Drive)
     const productResult = await pool.query('SELECT id, price, commission_rate FROM products WHERE name = $1', ['Basic Data Drive']);
     const testProduct = productResult.rows[0];
-    if (!testProduct) {
-      console.error('Basic Data Drive product not found for commission testing.');
-      return;
-    }
+if (!testProduct) {
+  logger.error('Basic Data Drive product not found for commission testing.');
+  return;
+}
 
-    console.log('--- Testing Direct Drive Commission ---');
+logger.info('--- Testing Direct Drive Commission ---');
     await CommissionService.calculateDirectDriveCommission(
       testUser.id,
       testProduct.id,
@@ -58,7 +59,7 @@ async function testCommissionService() {
 
     // Upline commission is handled within calculateDirectDriveCommission
 
-    console.log('--- Testing Training Account Commission ---');
+logger.info('--- Testing Training Account Commission ---');
     await CommissionService.calculateTrainingCommission(
       testUser.id,
       testProduct.id,
@@ -66,22 +67,22 @@ async function testCommissionService() {
       0.25
     );
 
-    console.log('--- Testing Training Cap Check & Transfer ---');
+logger.info('--- Testing Training Cap Check & Transfer ---');
     await CommissionService.checkAndTransferTrainingCap(testUser.id);
   } catch (error) {
-    console.error('Commission service testing error:', error);
+    logger.error('Commission service testing error:', error);
   }
 }
 // --- END COMMISSION SERVICE TESTING ---
 
 // Start server
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  logger.info(`Server running on port ${PORT}`);
   pool.query('SELECT NOW()', (err, res) => {
     if (err) {
-      console.error('Database connection error:', err);
+      logger.error('Database connection error:', err);
     } else {
-      console.log('Database connected:', res.rows[0].now);
+      logger.info('Database connected:', res.rows[0].now);
     }
   });
 
