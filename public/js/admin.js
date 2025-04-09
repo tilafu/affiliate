@@ -226,6 +226,27 @@ async function handleManualTransaction() {
     }
 }
 
+function loadUserWithdrawals(userId) {
+  fetch(`/api/user/withdrawals?userId=${userId}`, {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+      'Content-Type': 'application/json',
+    },
+  })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        const withdrawElement = document.getElementById(`user-${userId}-withdrawn-amount`);
+        withdrawElement.textContent = `${data.totalWithdrawals.toFixed(2)} USDT`;
+      } else {
+        console.error('Failed to fetch withdrawals for user:', data.message);
+      }
+    })
+    .catch(error => {
+      console.error('Error fetching withdrawals for user:', error);
+    });
+}
 
 // --- Product Management ---
 async function loadProducts() {

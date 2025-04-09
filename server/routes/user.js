@@ -1,6 +1,7 @@
 const express = require('express');
 const { getUserProfile, updateUserProfile } = require('../controllers/user'); // Import updateUserProfile
 const { protect } = require('../middlewares/auth'); // Import the auth middleware
+const { getUserDeposits, getUserWithdrawals, getWithdrawableBalance, getWithdrawHistory } = require('../controllers/userController'); // Import getUserDeposits, getUserWithdrawals, getWithdrawableBalance, and getWithdrawHistory
 
 const router = express.Router();
 
@@ -39,5 +40,25 @@ router.put('/profile', protect, async (req, res) => {
     res.status(500).json({ message: 'Could not update profile' });
   }
 });
+
+// @route   GET /api/user/deposits
+// @desc    Get user's deposited amount
+// @access  Private (requires token)
+router.get('/deposits', protect, getUserDeposits);
+
+// @route   GET /api/user/withdrawals
+// @desc    Get user's withdrawn amount
+// @access  Private (requires token)
+router.get('/withdrawals', protect, getUserWithdrawals);
+
+// @route   GET /api/user/withdrawable-balance
+// @desc    Get user's withdrawable balance
+// @access  Private (requires token)
+router.get('/withdrawable-balance', protect, getWithdrawableBalance);
+
+// @route   GET /api/user/withdraw-history
+// @desc    Get user's withdraw history
+// @access  Private (requires token)
+router.get('/withdraw-history', protect, getWithdrawHistory);
 
 module.exports = router;
