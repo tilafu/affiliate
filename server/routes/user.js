@@ -1,7 +1,7 @@
 const express = require('express');
 const { getUserProfile, updateUserProfile } = require('../controllers/user'); // Import updateUserProfile
 const { protect } = require('../middlewares/auth'); // Import the auth middleware
-const { getUserDeposits, getUserWithdrawals, getWithdrawableBalance, getWithdrawHistory } = require('../controllers/userController'); // Import getUserDeposits, getUserWithdrawals, getWithdrawableBalance, and getWithdrawHistory
+const { getUserDeposits, getUserWithdrawals, getWithdrawableBalance, getWithdrawHistory, getUserBalances, getUserBalance } = require('../controllers/userController'); // Import getUserDeposits, getUserWithdrawals, getWithdrawableBalance, getWithdrawHistory, getUserBalances, and getUserBalance
 
 const router = express.Router();
 
@@ -60,5 +60,11 @@ router.get('/withdrawable-balance', protect, getWithdrawableBalance);
 // @desc    Get user's withdraw history
 // @access  Private (requires token)
 router.get('/withdraw-history', protect, getWithdrawHistory);
+
+// Unified route to get all balances for a user
+router.get('/balances', protect, getUserBalances);
+
+// Route to get user's balance
+router.get('/balance', protect, getUserBalance);
 
 module.exports = router;

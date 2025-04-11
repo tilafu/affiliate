@@ -185,22 +185,50 @@
                <div class="card mb-3">
                   <div class="card-body">
                      <div class="item-card">
-                        <div class="d-flex mt-1">
-                           
-                              <div class="withdraw-info">
-                                 <span>Withdrawable Balance:</span>
-                                 <h2 class="main1"></h2>
-                                 <p id="withdrawable-balance"><strong>Loading...</strong></p>
-                              </div>
 
-                              <div class="withdraw-info">
-                                 <span>Total Withdrawals</span>
-                                 <h2 class="main1">
-                                    <p id="user-withdrawn-amount">
-                                       <strong>Loading...<small style="font-size:14px"> USDT</small></strong></h2>
-                                    </p>
-                              </div>
+                        <style>
+                        .w-s {
+                           display: flex;
+                           flex-wrap: wrap;
+                           gap: 20px;
+                           width: 100%;
+                        }
+
+                        .w-s .withdraw-info {
+                           flex: 1;
+                           min-width: 200px;
+                           padding: 15px;
+                           background: #f8f9fa;
+                           border-radius: 8px;
+                        }
+
+                        @media (max-width: 768px) {
+                           .w-s {
+                              flex-direction: column;
+                           }
+
+                           .w-s .withdraw-info {
+                              width: 100%;
+                           }
+                        }
+                        </style>
+
+                        <div class="w-s">
+                           <div class="withdraw-info">
+                              <span>Total Withdrawals</span>
+                              <h2 class="main1">
+                                 <p id="user-withdrawn-amount">
+                                    <strong>Loading...<small style="font-size:14px"> USDT</small></strong>
+                                 </p>
+                              </h2>
                            </div>
+
+                           <div class="withdraw-info">
+                              <span>Withdrawable Balance:</span>
+                              <h2 class="main1"></h2>
+                              <p id="withdrawable-balance"><strong>Loading...</strong></p>
+                           </div>
+                        </div>
                      </div>
                   </div>
                </div>
@@ -284,6 +312,7 @@
 <script src="./assets/frontend/js/owl.carousel.min.js"></script>
 <script src="./assets/frontend/js/script.js"></script>
 <script src="./js/withdraw.js"></script>
+<script src="./js/components.js"></script>
 <script type="text/javascript">
     "use-strict";
 

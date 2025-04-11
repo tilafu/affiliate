@@ -57,4 +57,25 @@ document.addEventListener('DOMContentLoaded', () => {
       )
       .join('');
   });
+
+  // Fetch and display the user's balance
+  fetch('/api/user/balance', {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+  })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        const withdrawableBalanceElement = document.getElementById('withdrawable-balance');
+        withdrawableBalanceElement.innerHTML = `<strong>${data.balance.toFixed(2)}<small style="font-size:14px"> USDT</small></strong>`;
+      } else {
+        console.error('Failed to fetch balance:', data.message);
+      }
+    })
+    .catch(error => {
+      console.error('Error fetching balance:', error);
+    });
 });

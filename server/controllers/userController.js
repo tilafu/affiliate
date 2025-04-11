@@ -85,10 +85,73 @@ const getWithdrawHistory = async (req, res) => {
   }
 };
 
+const getUserBalances = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    // Query to fetch balances
+    const result = await pool.query(
+      `SELECT 
+         COALESCE(main_balance, 0) AS withdrawable_balance,
+         COALESCE(deposited_amount, 0) AS deposited_amount,
+         COALESCE(data_drive_balance, 0) AS data_drive_balance
+       FROM accounts
+       WHERE user_id = $1`,
+      [userId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    const { withdrawable_balance, deposited_amount, data_drive_balance } = result.rows[0];
+
+    res.json({
+      success: true,
+      balances: {
+        withdrawableBalance: parseFloat(withdrawable_balance),
+        depositedAmount: parseFloat(deposited_amount),
+        dataDriveBalance: parseFloat(data_drive_balance),
+      },
+    });
+  } catch (error) {
+    console.error('Error fetching user balances:', error);
+    res.status(500).json({ success: false, message: 'Server error fetching balances' });
+  }
+};
+
+const getUserBalance = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    // Fetch balance directly from users table
+    const result = await pool.query(
+      'SELECT balance FROM users WHERE id = $1',
+      [userId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    const balance = parseFloat(result.rows[0].balance) || 0;
+
+    res.json({
+      success: true,
+      balance: balance
+    });
+  } catch (error) {
+    console.error('Error fetching user balance:', error);
+    res.status(500).json({ success: false, message: 'Server error fetching balance' });
+  }
+};
+
 module.exports = {
   getUserDeposits,
   getUserWithdrawals,
   getWithdrawableBalance,
   getWithdrawHistory,
+  getUserBalances,
+  getUserBalance,
   // Other user-related functions
 };
