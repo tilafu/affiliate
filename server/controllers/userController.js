@@ -124,17 +124,15 @@ const getUserBalance = async (req, res) => {
   try {
     const userId = req.user.id;
 
-    // Fetch balance directly from users table
+    // Fetch balance from the 'main' account in the accounts table
     const result = await pool.query(
-      'SELECT balance FROM users WHERE id = $1',
+      'SELECT balance FROM accounts WHERE user_id = $1 AND type = \'main\'',
       [userId]
     );
 
-    if (result.rows.length === 0) {
-      return res.status(404).json({ success: false, message: 'User not found' });
-    }
-
-    const balance = parseFloat(result.rows[0].balance) || 0;
+    // If user exists but has no main account row yet, balance is 0
+    // No need to check users table here as protect middleware should ensure user exists
+    const balance = result.rows.length > 0 ? parseFloat(result.rows[0].balance) : 0;
 
     res.json({
       success: true,

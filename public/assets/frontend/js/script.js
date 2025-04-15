@@ -13,19 +13,30 @@
         $('.bg-overlay').toggleClass("active");
     });
 
-    //===== Main Slider =====//
+    //===== Main Slider (Commented out as owl.carousel.min.js is missing) =====//
+    /*
     var owl = $('.main-slider');
-    owl.owlCarousel({
-        margin: 10,
-        items: 1,
-        loop: true,
-        autoplay: false,
-        dots: true,
-        center: true,
-    })
+    if (owl.length && typeof owl.owlCarousel === 'function') { // Check if element and function exist
+        owl.owlCarousel({
+            margin: 10,
+            items: 1,
+            loop: true,
+            autoplay: false,
+            dots: true,
+            center: true,
+        });
+    } else {
+        console.warn('Owl Carousel element or function not found. Slider not initialized.');
+    }
+    */
 
 //===== Value Market Item =====//
-    $('.value-market-ticker').jConveyorTicker();
+    // Check if the function exists before calling
+    if (typeof $.fn.jConveyorTicker === 'function') {
+        $('.value-market-ticker').jConveyorTicker();
+    } else {
+        console.warn('jConveyorTicker function not found.');
+    }
 
 //===== Clipboard  =====//
     if ($('.clipboard-icon').length) {
@@ -69,5 +80,3 @@
     });
 
 })(jQuery);
-
-
