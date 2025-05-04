@@ -1,7 +1,23 @@
 const express = require('express');
-const { getUserProfile, updateUserProfile } = require('../controllers/user'); // Import updateUserProfile
+// Import updateUserProfile from correct controller if it exists, otherwise remove
+// const { getUserProfile, updateUserProfile } = require('../controllers/user'); 
 const { protect } = require('../middlewares/auth'); // Import the auth middleware
-const { getUserDeposits, getUserWithdrawals, getWithdrawableBalance, getWithdrawHistory, getUserBalances, getUserBalance } = require('../controllers/userController'); // Import getUserDeposits, getUserWithdrawals, getWithdrawableBalance, getWithdrawHistory, getUserBalances, and getUserBalance
+const {
+    getUserDeposits,
+    getUserWithdrawals,
+    getWithdrawableBalance,
+    getWithdrawHistory,
+    getUserBalances,
+    getUserBalance,
+    changeLoginPassword,
+    changeWithdrawPassword,
+    getWithdrawalAddress,
+    updateWithdrawalAddress,
+    createSupportMessage,    // Import new function
+    getUserSupportMessages, // Import new function
+    getUserNotifications, // Import new function
+    markNotificationAsRead // Import new function
+} = require('../controllers/userController');
 
 const router = express.Router();
 
@@ -66,5 +82,49 @@ router.get('/balances', protect, getUserBalances);
 
 // Route to get user's balance
 router.get('/balance', protect, getUserBalance);
+
+// @route   PUT /api/user/password/login
+// @desc    Change user's login password
+// @access  Private
+router.put('/password/login', protect, changeLoginPassword);
+
+// @route   PUT /api/user/password/withdraw
+// @desc    Change user's withdrawal password
+// @access  Private
+router.put('/password/withdraw', protect, changeWithdrawPassword);
+
+// @route   GET /api/user/withdrawal-address
+// @desc    Get user's withdrawal address
+// @access  Private
+router.get('/withdrawal-address', protect, getWithdrawalAddress);
+
+// @route   PUT /api/user/withdrawal-address
+// @desc    Update user's withdrawal address
+// @access  Private
+router.put('/withdrawal-address', protect, updateWithdrawalAddress);
+
+// --- Support Messages ---
+
+// @route   POST /api/user/support/messages
+// @desc    Create a new support message
+// @access  Private
+router.post('/support/messages', protect, createSupportMessage);
+
+// @route   GET /api/user/support/messages
+// @desc    Get messages sent by the user
+// @access  Private
+router.get('/support/messages', protect, getUserSupportMessages);
+
+// --- Notifications ---
+// @route   GET /api/user/notifications
+// @desc    Get notifications for the logged-in user
+// @access  Private
+router.get('/notifications', protect, getUserNotifications);
+
+// @route   PUT /api/user/notifications/:id/read
+// @desc    Mark a specific notification as read
+// @access  Private
+router.put('/notifications/:id/read', protect, markNotificationAsRead); // Added this line
+
 
 module.exports = router;

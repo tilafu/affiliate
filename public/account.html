@@ -4982,11 +4982,11 @@ body::after {
                   </uni-image>
                </uni-view>
                <uni-view data-v-9f90816a="" class="u-flex-y font-size-24 u-flex-center p-l-30" style="text-align: left;">
-                  <uni-view data-v-9f90816a="" class="font-bold font-size-14" style="color: #000">Isabella27</uni-view>
+                  <uni-view data-v-9f90816a="" class="font-bold font-size-14" style="color: #000" id="account-username">Loading...</uni-view>
                   <uni-view data-v-9f90816a="" class=" u-flex u-flex-items-center  font-bold" style="color: #000;">
                      <uni-view data-v-9f90816a="" class="u-flex u-flex-items-center ">
                         <uni-view data-v-9f90816a="" class="font-size-14">Referral Code: </uni-view>
-                        <uni-view data-v-9f90816a="" class="font-bold  font-size-14 "> 17GAHG</uni-view>
+                        <uni-view data-v-9f90816a="" class="font-bold  font-size-14 " id="account-referral-code">Loading...</uni-view>
                      </uni-view>
                      <uni-view data-v-9f90816a="">
                         <uni-image data-v-9f90816a="" class="width-30 m-l-20" style="height: 14px;">
@@ -5008,10 +5008,7 @@ body::after {
                   <uni-image data-v-9f90816a="" class="width-80 height-80 u-flex-self-center radius-full  " style="height: 40px;">
                
                      
-               
-                              <div style="background-image: url(./assets/uploads/v2.PNG); background-size: 100% 100%; background-repeat: no-repeat;"></div>
-               
-                               
+                              <div id="account-tier-image" style="background-image: url(./assets/uploads/v2.PNG); background-size: 100% 100%; background-repeat: no-repeat;"></div>
                 <uni-resize-sensor>
                         <div>
                            <div></div>
@@ -5048,15 +5045,15 @@ body::after {
             <uni-view data-v-9f90816a="" class="u-flex-y u-flex-items-center height-120 text-center u-flex-around" style="padding-left: 20px;">
                <uni-view data-v-9f90816a="" class="u-flex  u-flex-between width-full">
                   <uni-view data-v-9f90816a="" class="font-white width-280 text-left">Daily Profits :</uni-view>
-                  <uni-view data-v-9f90816a="">0.00<small style="font-size:14px"> USDT</small></uni-view>
+                  <uni-view data-v-9f90816a="" id="account-daily-profits">0.00<small style="font-size:14px"> USDT</small></uni-view>
                </uni-view>
                <uni-view data-v-9f90816a="" class="u-flex  u-flex-between width-full">
                   <uni-view data-v-9f90816a="" class="font-white width-280 text-left">Total Balance:</uni-view>
-                  <uni-view data-v-9f90816a="">38,354.56<small style="font-size:14px"> USDT</small></uni-view>
+                  <uni-view data-v-9f90816a="" id="account-total-balance">0.00<small style="font-size:14px"> USDT</small></uni-view>
                </uni-view>
                <uni-view data-v-9f90816a="" class="u-flex  u-flex-between width-full">
                   <uni-view data-v-9f90816a="" class="font-white width-280 text-left">Frozen Balance:</uni-view>
-                  <uni-view data-v-9f90816a="">0.00<small style="font-size:14px"> USDT</small></uni-view>
+                  <uni-view data-v-9f90816a="" id="account-frozen-balance">0.00<small style="font-size:14px"> USDT</small></uni-view>
                </uni-view>
             </uni-view>
          </uni-view>
@@ -5200,5 +5197,12 @@ body::after {
 <script src="./assets/frontend/js/bootstrap.bundle.min.js"></script>
 <script src="./assets/frontend/js/owl.carousel.min.js"></script>
 <script src="./assets/frontend/js/script.js"></script>
+<!-- Load Component Loader -->
+<script src="./js/components.js"></script>
+<!-- Load Helper/Auth Scripts -->
+<script src="./js/main.js"></script>
+<script src="./js/auth.js"></script>
+<!-- Load Page Specific Script -->
+<script src="./js/account.js"></script>
 </body>
 </html>

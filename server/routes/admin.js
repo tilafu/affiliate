@@ -8,9 +8,12 @@ const {
   updateProduct,
   deleteProduct,
   manualTransaction,
-  getUsers // Add controller for getting users
+  getUsers, // Add controller for getting users
+  resetDrive, // Import the new resetDrive function
+  getAllSupportMessages, // Import the new getAllSupportMessages function
+  sendNotification // Import the new sendNotification function
   /* other admin controllers */
-} = require('../controllers/adminController'); // Assuming controller exists or will be created
+} = require('../controllers/adminController');
 
 // --- User Management ---
 
@@ -52,6 +55,26 @@ router.delete('/products/:productId', protect, admin, deleteProduct);
 // @desc    Manually add a deposit or withdrawal for a user
 // @access  Private/Admin
 router.post('/users/:userId/transactions', protect, admin, manualTransaction);
+
+
+// --- Drive Management ---
+// @route   POST /api/admin/users/:userId/reset-drive
+// @desc    Reset a user's completed/frozen drive session
+// @access  Private/Admin
+router.post('/users/:userId/reset-drive', protect, admin, resetDrive);
+
+
+// --- Support Management ---
+// @route   GET /api/admin/support/messages
+// @desc    Get all support messages
+// @access  Private/Admin
+router.get('/support/messages', protect, admin, getAllSupportMessages);
+
+// --- Notification Management ---
+// @route   POST /api/admin/notifications
+// @desc    Send a notification
+// @access  Private/Admin
+router.post('/notifications', protect, admin, sendNotification);
 
 
 module.exports = router;

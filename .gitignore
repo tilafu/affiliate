@@ -55,3 +55,10 @@ coverage/
 .vercel
 .netlify
 .history
+
+# Images
+images/
+
+# Browser-use / Web UI
+browser-use/
+web-ui/

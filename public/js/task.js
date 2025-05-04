@@ -1,13 +1,24 @@
 // Ensure API_BASE_URL and showNotification are available (assuming from main.js)
 // If not, define them here or ensure main.js is loaded first.
 
-// --- Global Variables (from embedded script) ---
-var has_member_address = "0"; // Keep? Purpose unclear from context.
-var cid = "1"; // Keep? Purpose unclear.
+// --- Global Variables ---
 var oid = null; // Will be set by startDrive response if needed (using session ID?)
-var add_id = ''; // Keep? Purpose unclear.
-var m = 0; // Keep? Purpose unclear.
-// var audio = document.getElementById("audio"); // Audio element commented out in HTML
+let totalTasksRequired = 0; // Variable to store the total number of tasks required
+let isStartingDrive = false; // Flag to prevent unintentional start drive calls
+
+// --- UI Element References ---
+let autoStartButton;
+let productCardContainer; // New container for the dynamic product card
+let walletBalanceElement;
+let tasksProgressElement; // Element to display tasks completed/required
+let orderLoadingOverlay; // Reference to the new loading overlay
+
+// --- Drive State Variables ---
+let currentProductData = null; // Store data of the currently displayed product
+
+// --- Drive Animation/Start Logic ---
+let countDown = 5; // Reset countdown for each start attempt
+let animationTimeout = null; // To store the timeout ID for animation
 
 // --- Initialization ---
 function initializeTaskPage() {
@@ -24,45 +35,56 @@ function initializeTaskPage() {
     return false; // Indicate initialization failed
   }
 
-  // Fetch user balance initially
-  fetchBalance(token);
+  // Get references to key elements
+  autoStartButton = document.getElementById('autoStart');
+  productCardContainer = document.getElementById('product-card-container'); // Get reference to the new container
+  walletBalanceElement = document.querySelector('.datadrive-balance strong'); // Element displaying balance
+  tasksProgressElement = document.querySelector('.item-card h5'); // Element displaying tasks completed/required
+  orderLoadingOverlay = document.getElementById('order-loading-overlay'); // Get reference to the loading overlay
+
+  // Initial UI state: Show start button, hide product card container and loading overlay
+  if (autoStartButton) autoStartButton.style.display = 'block';
+  if (productCardContainer) productCardContainer.style.display = 'none';
+  if (orderLoadingOverlay) orderLoadingOverlay.style.display = 'none';
 
   // --- Event Listeners ---
   // Attach listener for the Start button
-  const autoStartButton = document.getElementById('autoStart');
   if (autoStartButton) {
       console.log("Found #autoStart button, attaching listener.");
       autoStartButton.addEventListener('click', () => {
           console.log("#autoStart button clicked.");
-          // Check if button is already processing? Maybe add a state check.
-          autoStartButton.querySelector('span').textContent = 'Data Drive'; // Update button text more specifically
-          startDriveProcess(token); // Start the drive process
+          if (!isStartingDrive) { // Only start if not already in the process
+              isStartingDrive = true; // Set flag
+              startDriveProcess(token);
+          } else {
+              console.log("Start Drive button clicked, but process is already starting.");
+          }
       });
   } else {
       console.error('Could not find #autoStart button to attach listener.');
   }
 
-  // Event delegation for dynamically added submit buttons in popups
-  // Using document.body ensures the listener works even if #order2 is populated later
-  document.body.addEventListener('click', function(event) {
-      if (event.target && event.target.id === 'submitOrder') {
-          console.log("#submitOrder button clicked.");
-          submitSingleOrder(token);
-      }
-      if (event.target && event.target.id === 'submitCombo') {
-          console.log("#submitCombo button clicked.");
-          submitComboOrder(token);
-      }
-  });
+  // Check drive status on page load for persistence - Moved below event listeners
+  checkDriveStatus(token);
 
-  // TODO: Add logic for the p_pp interval if still needed? Its purpose was unclear.
-  /*
-  setInterval(function () {
-      $('.p_pp').each(function (i) {
-         // ... original interval logic ...
+  // Event delegation for dynamically added Purchase button
+  // Using productCardContainer ensures listener is within the relevant area
+  if (productCardContainer) {
+      productCardContainer.addEventListener('click', function(event) {
+          if (event.target && event.target.id === 'purchase-button') {
+              console.log("#purchase-button clicked.");
+              if (currentProductData) {
+                  handlePurchase(token, currentProductData); // Pass token and current product data
+              } else {
+                  console.error("Purchase button clicked but no current product data available.");
+                  if (typeof showNotification === 'function') {
+                      showNotification('Error: No product data to purchase.', 'error');
+                  } else { alert('Error: No product data to purchase.'); }
+              }
+          }
       });
-   }, 2500);
-   */
+  }
+
    return true; // Indicate successful initialization
 }
 
@@ -70,48 +92,12 @@ function initializeTaskPage() {
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initializeTaskPage);
 } else {
-    // DOM is already ready, initialize now
     initializeTaskPage();
 }
 
-// Optional: If sidebar loading might interfere, wait for it specifically.
-// Commented out for now as DOMContentLoaded should usually suffice.
-/*
-let sidebarLoaded = false;
-const sidebarPlaceholder = document.getElementById('sidebar-placeholder');
-
-if (sidebarPlaceholder) {
-    sidebarPlaceholder.addEventListener('componentLoaded', (event) => {
-        if (event.detail.path === '/components/sidebar.html') {
-            console.log('Sidebar component loaded event received by task.js.');
-            sidebarLoaded = true;
-            // Ensure initialization happens only once and if DOM is ready
-            if (document.readyState !== 'loading' && typeof taskPageInitialized === 'undefined') {
-                 window.taskPageInitialized = initializeTaskPage();
-            }
-        }
-    });
-} else {
-    // No sidebar placeholder, assume it's not needed or loaded differently
-    sidebarLoaded = true;
-}
-
-// Initialize after DOM ready AND sidebar loaded (if applicable)
-document.addEventListener('DOMContentLoaded', () => {
-    if (sidebarLoaded && typeof taskPageInitialized === 'undefined') {
-         window.taskPageInitialized = initializeTaskPage();
-    }
-});
-
-// Fallback if DOM ready but sidebar event hasn't fired (e.g., if component loads instantly)
-if (document.readyState !== 'loading' && sidebarLoaded && typeof taskPageInitialized === 'undefined') {
-     window.taskPageInitialized = initializeTaskPage();
-}
-*/
-
 // --- Balance Fetch Function ---
 function fetchBalance(token) {
-    fetch(`${API_BASE_URL}/api/user/balance`, { // Use API_BASE_URL from main.js
+    fetch(`${API_BASE_URL}/api/user/balance`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -126,16 +112,15 @@ function fetchBalance(token) {
         })
         .then(data => {
           if (data.success) {
-            // Update the data drive balance
-            const balanceElements = document.querySelectorAll('.datadrive-balance');
-            balanceElements.forEach(elem => {
-              elem.textContent = `${data.balance.toFixed(2)}`;
-            });
+            if (walletBalanceElement) {
+                 walletBalanceElement.textContent = `${data.balance.toFixed(2)}`;
+            }
           } else {
             console.error('Failed to fetch balance:', data.message);
             if (typeof showNotification === 'function') {
                 showNotification(`Failed to fetch balance: ${data.message}`, 'error');
             }
+             if (walletBalanceElement) walletBalanceElement.textContent = 'Error';
           }
         })
         .catch(error => {
@@ -143,560 +128,467 @@ function fetchBalance(token) {
            if (typeof showNotification === 'function') {
                 showNotification(`Error fetching balance: ${error.message}`, 'error');
             }
+             if (walletBalanceElement) walletBalanceElement.textContent = 'Error';
         });
 }
 
-// --- Audio Functions (from embedded script, if needed) ---
-/*
-function palySong(wi) {
-  // ... original audio logic ...
+// --- Helper to safely update wallet balance everywhere ---
+function refreshWalletBalance() {
+    const token = localStorage.getItem('auth_token');
+    if (token) {
+        fetchBalance(token);
+    } else {
+        if (walletBalanceElement) walletBalanceElement.textContent = 'N/A';
+    }
 }
-function stopSong() {
-  // ... original audio logic ...
-}
-*/
 
-// --- Random Sum Helper (from embedded script) ---
+// --- Random Sum Helper ---
 function randomSum(min, max) {
   var num = Math.floor(Math.random()*(max - min) + min);
   return num;
 }
 
-// --- Drive Animation/Start Logic (from embedded script) ---
-let countDown = 5; // Reset countdown for each start attempt
-let pictureItemNum = $(".p_picture-item").length; // Requires jQuery
-let pictureItemNumEveryList = pictureItemNum > 0 ? pictureItemNum / 3 : 0; // Avoid division by zero
-let pictureItemHeight = pictureItemNum > 0 ? $('.p_picture-item').eq(0).height() : 0; // Requires jQuery
-let pictureItemMaxOffset = pictureItemNumEveryList > 1 ? (pictureItemNumEveryList - 1) * pictureItemHeight : 0;
-
 function startDriveProcess(token) {
+    if (!isStartingDrive) {
+        console.log("startDriveProcess called but isStartingDrive is false. Aborting.");
+        return;
+    }
+    console.log("startDriveProcess called.");
+
     countDown = 5; // Reset countdown
-    pictureItemNum = $(".p_picture-item").length; // Recalculate in case DOM changed
-    pictureItemNumEveryList = pictureItemNum > 0 ? pictureItemNum / 3 : 0;
-    pictureItemHeight = pictureItemNum > 0 ? $('.p_picture-item').eq(0).height() : 0;
-    pictureItemMaxOffset = pictureItemNumEveryList > 1 ? (pictureItemNumEveryList - 1) * pictureItemHeight : 0;
-    animateAndStart(token); // Start the animation loop
+    
+    $('.product-carousel').trigger('stop.owl.autoplay');
+    $('.product-carousel').trigger('play.owl.autoplay', [500]);
+    
+    if (autoStartButton) autoStartButton.querySelector('span').textContent = 'Starting...';
+    
+    animationTimeout = setTimeout(() => animateAndStart(token), 1000);
 }
 
 function animateAndStart(token) {
-    if (countDown <= 0) {
-        // Animation finished, call the backend to start the drive
+    console.log("animateAndStart called with countdown: " + countDown);
+    if (autoStartButton) autoStartButton.querySelector('span').textContent = 'Starting in ' + countDown + '...';
+    $('.product-carousel .item img').css({
+        'transform': 'scale(' + (1 + Math.random() * 0.2) + ')',
+        'transition': 'transform 0.5s ease'
+    });
+    $('.product-carousel').trigger('next.owl.carousel', [300]);
+    if (countDown <= 1) {
+        console.log("Countdown complete, calling API");
+        $('.product-carousel').trigger('stop.owl.autoplay');
+        $('.product-carousel').trigger('play.owl.autoplay', [3000]);
         callStartDriveAPI(token);
-        // Reset animation transforms
-        $('.p_picture-list').eq(0).css('transform', `translate(0px, 0px)`);
-        $('.p_picture-list').eq(1).css('transform', `translate(0px, 0px)`);
-        $('.p_picture-list').eq(2).css('transform', `translate(0px, 0px)`);
-    } else {
-        // Animate
-        if (pictureItemMaxOffset > 0) {
-            let tt1 = randomSum(1, pictureItemMaxOffset) * -1;
-            $('.p_picture-list').eq(0).css('transform', 'translate(0px, '+tt1+'px)');
-            let tt2 = randomSum(1, pictureItemMaxOffset) * -1;
-            $('.p_picture-list').eq(1).css('transform', 'translate(0px, '+tt2+'px)');
-            let tt3 = randomSum(1, pictureItemMaxOffset) * -1;
-            $('.p_picture-list').eq(2).css('transform', 'translate(0px, '+tt3+'px)');
-        }
-        countDown--;
-        setTimeout(() => animateAndStart(token), 1000); // Continue animation
+        return;
     }
+    countDown--;
+    animationTimeout = setTimeout(() => animateAndStart(token), 1000);
 }
 
 function callStartDriveAPI(token) {
-    // Use the layer/dialog library for loading indicator
-    let loading;
-    if (typeof layer !== 'undefined') {
-        loading = layer.load(2); // Show loading icon type 2
-    } else if (typeof $(document).dialog === 'function') {
-         loading = $(document).dialog({ // Fallback to jQuery dialog if layer not present
-            type: 'notice',
-            // infoIcon: baseurl + '/assets/frontend/shopva/img/loading.gif', // baseurl not defined
-            infoText: 'Starting Data Drive...',
-            autoClose: 0
-         });
-    } else {
-        console.log("Starting Data Drive..."); // Console fallback
+    console.log("callStartDriveAPI called");
+    let loadingIndicator = null;
+    let loadingMethod = null;
+    try {
+        if (typeof layer !== 'undefined' && typeof layer.load === 'function') {
+            loadingIndicator = layer.load(2);
+            loadingMethod = 'layer';
+            console.log("Using layer.load for loading indicator. Index:", loadingIndicator);
+        } else if (typeof $(document).dialog === 'function') {
+            loadingIndicator = $(document).dialog({
+                type: 'notice',
+                infoText: 'Starting Data Drive...',
+                autoClose: 0
+            });
+            loadingMethod = 'dialog';
+            console.log("Using jQuery dialog for loading indicator.");
+        } else {
+            console.log("No loading indicator available, using console fallback");
+            loadingMethod = 'none';
+        }
+    } catch (e) {
+        console.error("Error showing loading indicator:", e);
+        loadingMethod = 'error';
     }
 
-
-    fetch(`${API_BASE_URL}/api/drive/start`, { // Use local API endpoint
-        method: 'POST',
-        headers: {
-            'Authorization': `Bearer ${token}`, // Use JWT token
-            'Content-Type': 'application/json'
-        },
-        // No body needed for start based on controller
-    })
-    .then(response => response.json())
-    .then(data => {
-        // Close loading indicator
-        if (typeof layer !== 'undefined') {
-            layer.close(loading);
-        } else if (loading && typeof loading.close === 'function') {
-            loading.close();
-        }
-
-        $('#autoStart').text('Start'); // Reset button text
-
-        if (data.code === 0) { // Success code from backend
-             if (typeof $(document).dialog === 'function') {
-                $(document).dialog({infoText: data.info || 'Drive started!', autoClose: 2000});
-             } else {
-                alert(data.info || 'Drive started!');
-             }
-            // sessionStorage.setItem('oid', data.oid); // Store session ID if backend provides it
-            fetchNextOrder(token); // Fetch the first order
-            // oid = data.oid; // Store session ID if needed globally
-            // add_id = data.add_id; // Store if needed globally
-        } else {
-            // Handle error (code 1 or other)
-             if (typeof $(document).dialog === 'function') {
-                $(document).dialog({infoText: data.info || 'Failed to start drive.', autoClose: 4000});
-             } else {
-                 alert(data.info || 'Failed to start drive.');
-             }
-        }
-    })
-    .catch(error => {
-        console.error('Error starting drive:', error);
-         if (typeof layer !== 'undefined') {
-            layer.close(loading);
-        } else if (loading && typeof loading.close === 'function') {
-            loading.close();
-        }
-        $('#autoStart').text('Start'); // Reset button text
-         if (typeof $(document).dialog === 'function') {
-            $(document).dialog({infoText: `Error starting drive: ${error.message}`, autoClose: 4000});
-         } else {
-             alert(`Error starting drive: ${error.message}`);
-         }
+    $('.product-carousel').addClass('starting-drive');
+    $('.product-carousel').css({
+        'animation': 'pulse 1s infinite',
+        'box-shadow': '0 0 15px rgba(0,123,255,0.7)'
     });
+    if (orderLoadingOverlay) orderLoadingOverlay.style.display = 'flex';
+
+    setTimeout(() => {
+        fetch(`${API_BASE_URL}/api/drive/start`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log("API response received:", data);
+            try {
+                if (loadingMethod === 'layer' && loadingIndicator !== null) {
+                    console.log("Closing layer indicator with index:", loadingIndicator);
+                    layer.close(loadingIndicator);
+                } else if (loadingMethod === 'dialog' && loadingIndicator && typeof loadingIndicator.close === 'function') {
+                    console.log("Closing jQuery dialog indicator.");
+                    loadingIndicator.close();
+                } else {
+                     console.log("No specific loading indicator to close or method unknown.");
+                }
+            } catch (e) {
+                console.error("Error closing loading indicator:", e);
+            }
+            if (orderLoadingOverlay) orderLoadingOverlay.style.display = 'none';
+            if (autoStartButton) autoStartButton.querySelector('span').textContent = 'Start';
+            $('.product-carousel').removeClass('starting-drive');
+            $('.product-carousel').css({
+                'animation': '',
+                'box-shadow': ''
+            });
+
+            if (data.code === 0) {
+                try {
+                    if (typeof showNotification === 'function') {
+                        showNotification(data.info || 'Drive started!', 'success');
+                    } else if (typeof $(document).dialog === 'function') {
+                        $(document).dialog({infoText: data.info || 'Drive started!', autoClose: 2000});
+                    } else {
+                        alert(data.info || 'Drive started!');
+                    }
+                } catch (e) {
+                    console.error("Error showing success dialog:", e);
+                    alert(data.info || 'Drive started!');
+                }
+                $('.product-carousel').css('border', '2px solid green');
+                setTimeout(() => {
+                    $('.product-carousel').css('border', '');
+                }, 3000);
+                if (autoStartButton) autoStartButton.style.display = 'none';
+                if (productCardContainer) productCardContainer.style.display = 'block';
+                fetchNextOrder(token);
+            } else {
+                try {
+                    if (typeof showNotification === 'function') {
+                        showNotification(data.info || 'Failed to start drive.', 'error');
+                    } else if (typeof $(document).dialog === 'function') {
+                        $(document).dialog({infoText: data.info || 'Failed to start drive.', autoClose: 4000});
+                    } else {
+                        alert(data.info || 'Failed to start drive.');
+                    }
+                } catch (e) {
+                    console.error("Error showing error dialog:", e);
+                    alert(data.info || 'Failed to start drive.');
+                }
+                $('.product-carousel').css('border', '2px solid red');
+                setTimeout(() => {
+                    $('.product-carousel').css('border', '');
+                }, 3000);
+            }
+            isStartingDrive = false;
+        })
+        .catch(error => {
+            console.error('Error starting drive:', error);
+            try {
+                 if (loadingMethod === 'layer' && loadingIndicator !== null) {
+                    console.log("Closing layer indicator with index:", loadingIndicator);
+                    layer.close(loadingIndicator);
+                } else if (loadingMethod === 'dialog' && loadingIndicator && typeof loadingIndicator.close === 'function') {
+                    console.log("Closing jQuery dialog indicator.");
+                    loadingIndicator.close();
+                } else {
+                     console.log("No specific loading indicator to close or method unknown.");
+                }
+            } catch (e) {
+                console.error("Error closing loading indicator on catch:", e);
+            }
+            if (orderLoadingOverlay) orderLoadingOverlay.style.display = 'none';
+            if (autoStartButton) autoStartButton.querySelector('span').textContent = 'Start';
+            $('.product-carousel').removeClass('starting-drive');
+            $('.product-carousel').css({
+                'animation': '',
+                'box-shadow': ''
+            });
+            $('.product-carousel').css('border', '2px solid red');
+            setTimeout(() => {
+                $('.product-carousel').css('border', '');
+            }, 3000);
+            try {
+                if (typeof showNotification === 'function') {
+                    showNotification(`Error starting drive: ${error.message}`, 'error');
+                } else if (typeof $(document).dialog === 'function') {
+                    $(document).dialog({infoText: `Error starting drive: ${error.message}`, autoClose: 4000});
+                } else {
+                    alert(`Error starting drive: ${error.message}`);
+                }
+            } catch (e) {
+                console.error("Error showing error dialog:", e);
+                alert(`Error starting drive: ${error.message}`);
+            }
+            isStartingDrive = false;
+        });
+    }, 500);
 }
 
-
-// --- Fetching Order/Combo Logic (from embedded script) ---
 function fetchNextOrder(token) {
-    // Show loading indicator?
     console.log("Fetching next order...");
-    fetch(`${API_BASE_URL}/api/drive/getorder`, { // Use local API endpoint
-        method: 'POST', // Changed to POST as per route definition
+    if (orderLoadingOverlay) orderLoadingOverlay.style.display = 'flex';
+    $('.product-carousel').trigger('stop.owl.autoplay');
+    fetch(`${API_BASE_URL}/api/drive/getorder`, {
+        method: 'POST',
         headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
         },
-        // No body needed for getorder based on controller
     })
     .then(response => response.json())
     .then(data => {
-        if (data.success) {
-            if (data.premium_status == 0) { // Single product order
-                updateOrderBox(data); // Populate the single order dialog
+        $('.product-carousel').trigger('play.owl.autoplay', [3000]);
+        if (orderLoadingOverlay) orderLoadingOverlay.style.display = 'none';
+        if (data.code === 2) {
+            console.log("Drive complete message received from backend.");
+            displayDriveComplete(data.info || 'Data drive complete for today.');
+            refreshWalletBalance();
+        } else if (data.code === 3) {
+             console.warn("Drive Frozen message received from backend.");
+             displayFrozenState(data.info || "Session frozen due to insufficient balance.", data.frozen_amount_needed);
+             refreshWalletBalance();
+        }
+        else if (data.success) {
+             currentProductData = data;
+             if (data.premium_status == 0 && data.product_image) {
+                 $('.product-carousel .item img').each(function() {
+                     if ($(this).attr('src') === data.product_image) {
+                         $(this).parent().addClass('highlighted-product');
+                         let itemIndex = $(this).parent().index();
+                         $('.product-carousel').trigger('to.owl.carousel', [itemIndex, 300]);
+                     }
+                 });
+                 setTimeout(() => {
+                     $('.product-carousel .item').removeClass('highlighted-product');
+                 }, 3000);
+             }
+            if (data.premium_status == 0) {
+                renderProductCard(data);
                 console.log("Single product order received", data);
-            } else if (data.premium_status == 1) { // Combo order
-                updateComboBox(data); // Populate the combo order dialog
-                console.log("Combo order received", data);
+            } else if (data.premium_status == 1) {
+                console.log("Combo order received, rendering not yet implemented for card.", data);
+                 if (typeof showNotification === 'function') {
+                    showNotification('Combo order received, rendering not yet implemented.', 'info');
+                 } else { alert('Combo order received, rendering not yet implemented.'); }
+                 displayDriveError('Combo order received. Combo rendering not yet implemented.');
             } else {
                  console.error('Unknown premium_status:', data.premium_status);
-                 if (typeof $(document).dialog === 'function') {
-                    $(document).dialog({infoText: 'Received unknown order type.', autoClose: 3000});
-                 }
+                 displayDriveError('Received unknown order type.');
             }
+             refreshWalletBalance();
         } else {
-            console.error('Error fetching next order:', data.message);
-             if (typeof $(document).dialog === 'function') {
-                $(document).dialog({infoText: `Error fetching order: ${data.message || 'Unknown error'}`, autoClose: 3000});
-             }
+            console.error('Error fetching next order:', data.info || data.message);
+             displayDriveError(`Error fetching order: ${data.info || data.message || 'Unknown error'}`);
         }
     })
     .catch(error => {
+        if (orderLoadingOverlay) orderLoadingOverlay.style.display = 'none';
+        $('.product-carousel').trigger('play.owl.autoplay', [3000]);
         console.error('Error fetching next order:', error);
-         if (typeof $(document).dialog === 'function') {
-            $(document).dialog({infoText: `Network error fetching order: ${error.message}`, autoClose: 3000});
-         }
+        displayDriveError(`Network error fetching order: ${error.message}`);
     });
 }
 
-// --- UI Update Functions (from embedded script) ---
-function updateOrderBox(orderData) {
-    // This function generates HTML for the single order popup.
-    // It uses jQuery selectors $('#order1'), $('#order2').
-    // Keep the original logic but ensure IDs match the HTML.
-    $('#order1').show(); // Show overlay
-    $('#order2').show(); // Show dialog popup
-
-    // Ensure all data properties exist before accessing
-    const productId = orderData.product_id ?? 'N/A';
-    const productName = orderData.product_name ?? 'Unknown Product';
-    const productPrice = orderData.product_price !== undefined ? parseFloat(orderData.product_price).toFixed(2) : '0.00';
-    const fundAmount = orderData.fund_amount !== undefined ? parseFloat(orderData.fund_amount).toFixed(2) : '0.00'; // Usually same as price
-    const productNumber = orderData.product_number ?? 'N/A';
-    const orderCommission = orderData.order_commission !== undefined ? parseFloat(orderData.order_commission).toFixed(2) : '0.00';
-    const grabbedDate = orderData.grabbed_date ? new Date(orderData.grabbed_date).toLocaleString() : 'N/A';
-    const productImage = orderData.product_image || './assets/uploads/products/newegg-1.jpg'; // Default image
-
-    var orderBoxContent = `
-       <div class="van-dialog__header">
-          <div data-v-e38e2d82="" class="text-lg">Order Task Submission</div>
-          <p id="product-id" hidden>${productId}</p>
-          <p id="product-price" hidden>${productPrice}</p>
-          <p id="fund-amount" hidden>${fundAmount}</p>
-          <p id="product-number" hidden>${productNumber}</p>
-          <p id="order-commission" hidden>${orderCommission}</p>
-       </div>
-       <div class="van-dialog__content">
-         <div data-v-e38e2d82="" class="flex flex-col p-3 box-border mt-3">
-           <div data-v-e38e2d82="" class="flex border-b-[1px] border-[#e5e7eb] pb-2">
-             <div data-v-e38e2d82="" class="mr-4" style="width: 6rem;">
-               <div data-v-e38e2d82="" class="van-image" style="width: 6rem; height: 6rem; overflow: hidden; border-radius: 0.4rem;">
-                 <img class="van-image__img" src="${productImage}" lazy="loaded" style="object-fit: cover;">
-               </div>
-             </div>
-             <div data-v-e38e2d82="" class="flex flex-col h-[6rem] justify-between">
-               <div data-v-e38e2d82="" class="flex flex-col">
-                 <div data-v-e38e2d82="" class="text-[#666] w-44 whitespace-nowrap overflow-hidden text-ellipsis text-sm font-semibold">${productName}</div>
-                 <div data-v-e38e2d82="" class="text-[#666] text-sm mt-2 font-semibold">${productPrice} USDT</div>
-               </div>
-               <div data-v-e38e2d82="" role="radiogroup" class="van-rate van-rate--readonly" tabindex="0" aria-disabled="false" aria-readonly="true">
-                 </div>
-             </div>
-           </div>
-           <div data-v-e38e2d82="" class="flex items-center pt-2 pb-2 box-border border-b-[1px] border-[#e5e7eb]">
-             <div data-v-e38e2d82="" class="w-[50%] flex flex-col border-r-[1px] border-[#e5e7eb] justify-center items-center">
-               <div data-v-e38e2d82="" class="text-[#333] font-semibold">Total Amount</div>
-               <div data-v-e38e2d82="" class="text-xs text-[#999] mt-1">USDT <span data-v-e38e2d82="" class="text-sm text-[var(--main-color)] font-semibold">${productPrice}</span></div>
-             </div>
-             <div data-v-e38e2d82="" class="w-[50%] flex flex-col justify-center items-center">
-               <div data-v-e38e2d82="" class="text-[#333] font-semibold">Profit</div>
-               <div data-v-e38e2d82="" class="text-xs text-[#999] mt-1">USDT <span data-v-e38e2d82="" class="text-sm text-[var(--main-color)] font-semibold">${orderCommission}</span></div>
-             </div>
-           </div>
-           <div data-v-e38e2d82="" class="flex justify-between items-center pt-3 pb-2 box-border border-b-[1px] border-[#e5e7eb]">
-             <div data-v-e38e2d82="" class="text-[#666] text-sm">Created At</div>
-             <div data-v-e38e2d82="" class="text-[#333] text-sm font-bold">${grabbedDate}</div>
-           </div>
-           <div data-v-e38e2d82="" class="flex justify-between items-center pt-3 pb-2 box-border border-b-[1px] border-[#e5e7eb]">
-             <div data-v-e38e2d82="" class="whitespace-nowrap text-[#666] text-sm">Task Code</div>
-             <div data-v-e38e2d82="" class="text-[var(--main-color)] text-xs font-bold">${productNumber}</div>
-           </div>
-           <div data-v-e38e2d82="" class="w-full mt-4">
-             <button data-v-e38e2d82="" type="button" class="van-button van-button--default van-button--large van-button--round" id="submitOrder" style="color: white; background: var(--btn-color); border-color: var(--btn-color);">
-               <div class="van-button__content">
-                 <span class="van-button__text"><span data-v-e38e2d82="" class="font-semibold text-white">Submit</span></span>
-               </div>
-             </button>
-           </div>
-         </div>
-       </div>
-       <div class="van-hairline--top van-dialog__footer">
-       </div>
+function renderProductCard(productData) {
+    if (!productCardContainer) return;
+    productCardContainer.innerHTML = `
+        <div class="card">
+            <div class="card-body text-center">
+                <h4>${productData.product_name || 'Product'}</h4>
+                <img src="${productData.product_image || './assets/uploads/images/ph.png'}" alt="${productData.product_name || 'Product Image'}" style="max-width: 150px; margin: 10px auto; display: block;">
+                <p>Price: <strong>${parseFloat(productData.product_price).toFixed(2)}</strong> USDT</p>
+                <p>Commission: <strong>${parseFloat(productData.order_commission).toFixed(2)}</strong> USDT</p>
+                <button id="purchase-button" class="btn btn-primary mt-3">Purchase</button>
+            </div>
+        </div>
     `;
-    $('#order2').html(orderBoxContent); // Set the dialog content
-
-    // Note: The click handler for #submitOrder is now delegated in DOMContentLoaded
 }
 
-function updateComboBox(comboData) {
-    // This function generates HTML for the combo order popup.
-    // It uses jQuery selectors $('#order1'), $('#order2').
-    // Keep the original logic but ensure IDs match the HTML.
-    $('#order1').show();
-    $('#order2').show();
-
-    const productNumber = comboData.product_number ?? 'N/A';
-    const totalCombos = comboData.total_combos ?? 0;
-    const totalPrice = comboData.total_price !== undefined ? parseFloat(comboData.total_price).toFixed(2) : '0.00';
-    const totalCommission = comboData.total_commission !== undefined ? parseFloat(comboData.total_commission).toFixed(2) : '0.00';
-    const grabbedDate = comboData.grabbed_date ? new Date(comboData.grabbed_date).toLocaleString() : 'N/A';
-
-    var comboBoxContent = `
-    <div class="van-dialog__header">
-        <div data-v-e38e2d82="" class="text-lg">Order Task Submission</div>
-        <p id="order-amount" hidden>${totalPrice}</p>
-        <p id="product-number" hidden>${productNumber}</p>
-        <p id="order-commission" hidden>${totalCommission}</p>
-        <p id="total-combos" hidden>${totalCombos}</p>
-        `;
-        // Add hidden fields for each product in the combo
-        (comboData.products || []).forEach(function(product, index) {
-            comboBoxContent += `
-                <p id="combo-id-${index}" hidden>${product.combo_id ?? 'N/A'}</p>
-                <p id="product-id-${index}" hidden>${product.product_id ?? 'N/A'}</p>
-                <p id="product-price-${index}" hidden>${product.product_price !== undefined ? parseFloat(product.product_price).toFixed(2) : '0.00'}</p>
-                <p id="product-commission-${index}" hidden>${product.product_commission !== undefined ? parseFloat(product.product_commission).toFixed(2) : '0.00'}</p>
-            `;
+async function handlePurchase(token, productData) {
+    console.log('Purchase button clicked for product:', productData);
+    const purchaseButton = document.getElementById('purchase-button');
+    if (purchaseButton) {
+        purchaseButton.disabled = true;
+        purchaseButton.textContent = 'Processing...';
+    }
+    if (orderLoadingOverlay) orderLoadingOverlay.style.display = 'flex';
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/drive/saveorder`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                order_id: productData.order_id,
+                product_id: productData.product_id,
+                order_amount: productData.product_price,
+                earning_commission: productData.order_commission,
+                product_number: productData.product_number
+            })
         });
-    comboBoxContent += `</div>
-    <div class="van-dialog__content">
-        <div data-v-e38e2d82="" class="flex flex-col p-3 box-border mt-3">
-    `;
-    (comboData.products || []).forEach(function(product) {
-        const productName = product.product_name ?? 'Unknown Product';
-        const productPrice = product.product_price !== undefined ? parseFloat(product.product_price).toFixed(2) : '0.00';
-        const productImage = product.product_image || './assets/uploads/products/newegg-1.jpg'; // Default image
+        const data = await response.json();
+        if (orderLoadingOverlay) orderLoadingOverlay.style.display = 'none';
+        if (response.ok && data.code === 0) {
+            console.log('Order saved successfully:', data.info);
+            if (typeof showNotification === 'function') {
+                showNotification(data.info || "Order Sent successfully!", 'success');
+            } else { alert(data.info || "Order Sent successfully!"); }
+            if (tasksProgressElement && data.tasks_completed !== undefined && totalTasksRequired > 0) {
+                tasksProgressElement.textContent = `(${data.tasks_completed} / ${totalTasksRequired})`;
+            } else if (tasksProgressElement && data.tasks_completed !== undefined) {
+                 tasksProgressElement.textContent = `(${data.tasks_completed} / --)`;
+            }
+            refreshWalletBalance();
+            fetchNextOrder(token);
+        } else if (data.code === 3) {
+             if (typeof showNotification === 'function') {
+                showNotification(data.info || "Session frozen due to insufficient balance.", 'warning');
+             } else { alert(data.info || "Session frozen due to insufficient balance."); }
+             displayFrozenState(data.info || "Session frozen due to insufficient balance.", data.frozen_amount_needed);
+             refreshWalletBalance();
+        }
+        else {
+            if (typeof showNotification === 'function') {
+                showNotification(`Failed to save order: ${data.info || data.message || 'Unknown error'}`, 'error');
+            } else { alert(`Failed to save order: ${data.info || data.message || 'Unknown error'}`); }
+            if (purchaseButton) {
+                 purchaseButton.disabled = false;
+                 purchaseButton.textContent = 'Processing...';
+            }
+        }
+    } catch (error) {
+        if (typeof showNotification === 'function') {
+            showNotification(`Error saving order: ${error.message}`, 'error');
+        } else { alert(`Error saving order: ${error.message}`); }
+        if (purchaseButton) {
+            purchaseButton.disabled = false;
+            purchaseButton.textContent = 'Purchase';
+        }
+    }
+}
 
-        comboBoxContent += `
-            <div data-v-e38e2d82="" class="flex border-b-[1px] border-[#e5e7eb] pb-2 mb-2">
-                <div data-v-e38e2d82="" class="mr-4" style="width: 6rem;">
-                    <div data-v-e38e2d82="" class="van-image" style="width: 6rem; height: 6rem; overflow: hidden; border-radius: 0.4rem;">
-                        <img class="van-image__img" src="${productImage}" lazy="loaded" style="object-fit: cover;">
-                    </div>
-                </div>
-                <div data-v-e38e2d82="" class="flex flex-col h-[6rem] justify-between">
-                    <div data-v-e38e2d82="" class="flex flex-col">
-                        <div data-v-e38e2d82="" class="text-[#666] w-44 whitespace-nowrap overflow-hidden text-ellipsis text-sm font-semibold">${productName}</div>
-                        <div data-v-e38e2d82="" class="text-[#666] text-sm mt-2 font-semibold">${productPrice} USDT</div>
-                    </div>
-                    <div data-v-e38e2d82="" role="radiogroup" class="van-rate van-rate--readonly" tabindex="0" aria-disabled="false" aria-readonly="true">
-                        </div>
-                </div>
+function displayDriveComplete(message) {
+    if (!productCardContainer) return;
+    productCardContainer.innerHTML = `
+        <div class="card">
+            <div class="card-body text-center">
+                <h4>Drive Complete!</h4>
+                <p>${message}</p>
+                <button id="start-new-drive-button" class="btn btn-primary mt-3">Start New Drive</button>
             </div>
-        `;
+        </div>
+    `;
+     document.getElementById('start-new-drive-button').addEventListener('click', () => {
+         if (productCardContainer) productCardContainer.innerHTML = '';
+         if (autoStartButton) {
+             autoStartButton.style.display = 'block';
+             autoStartButton.disabled = false;
+             autoStartButton.querySelector('span').textContent = 'Start';
+         }
+         refreshWalletBalance();
+     });
+}
+
+function displayFrozenState(message, amountNeeded) {
+     if (!productCardContainer) return;
+     productCardContainer.innerHTML = `
+        <div class="card">
+            <div class="card-body text-center">
+                <h4>Drive Frozen</h4>
+                <p>${message}</p>
+                ${amountNeeded ? `<p>Amount needed to unfreeze: <strong>${parseFloat(amountNeeded).toFixed(2)}</strong> USDT</p>` : ''}
+                <p>Please deposit funds to continue or contact support.</p>
+                 <button id="contact-support-button" class="btn btn-secondary mt-3">Contact Support</button>
+            </div>
+        </div>
+    `;
+     if (autoStartButton) autoStartButton.style.display = 'none';
+     refreshWalletBalance();
+}
+
+function displayDriveError(message) {
+     if (!productCardContainer) return;
+     productCardContainer.innerHTML = `
+        <div class="card">
+            <div class="card-body text-center">
+                <h4>Error</h4>
+                <p>${message}</p>
+                 <button id="start-new-drive-button" class="btn btn-primary mt-3">Try Starting New Drive</button>
+            </div>
+        </div>
+    `;
+     document.getElementById('start-new-drive-button').addEventListener('click', () => {
+         if (productCardContainer) productCardContainer.innerHTML = '';
+         if (autoStartButton) {
+             autoStartButton.style.display = 'block';
+             autoStartButton.disabled = false;
+             autoStartButton.querySelector('span').textContent = 'Start';
+         }
+         refreshWalletBalance();
+     });
+}
+
+// --- Drive Status Check for Persistence ---
+function checkDriveStatus(token) {
+    console.log('checkDriveStatus function called.');
+    if (animationTimeout) {
+        clearTimeout(animationTimeout);
+        animationTimeout = null;
+        console.log('Cleared pending animation timeout.');
+    }
+    if (!token) {
+        console.log('checkDriveStatus: No token found, returning.');
+        return;
+    }
+    console.log('Checking drive status with token...');
+    fetch(`${API_BASE_URL}/api/drive/status`, {
+        method: 'GET',
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(res => res.json())
+    .then(data => {
+        console.log('Drive status response received:', data);
+        console.log('Drive status:', data.status);
+        if (data.status === 'active' && data.current_order) {
+            console.log('checkDriveStatus: Active session with current order found. Resuming drive.');
+            if (autoStartButton) autoStartButton.style.display = 'none';
+            if (productCardContainer) productCardContainer.style.display = 'block';
+            renderProductCard(data.current_order);
+            currentProductData = data.current_order;
+            if (tasksProgressElement && data.tasks_completed !== undefined && data.tasks_required !== undefined) {
+                tasksProgressElement.textContent = `(${data.tasks_completed} / ${data.tasks_required})`;
+                totalTasksRequired = data.tasks_required;
+            }
+        } else if (data.status === 'frozen') {
+             console.log('checkDriveStatus: Frozen session found. Displaying frozen state.');
+            displayFrozenState(data.info || "Session frozen due to insufficient balance.", data.frozen_amount_needed);
+            if (autoStartButton) autoStartButton.style.display = 'none';
+        } else if (data.status === 'complete' || data.status === 'no_session') {
+             console.log('checkDriveStatus: Drive complete or no session found.');
+            if (autoStartButton) autoStartButton.style.display = 'block';
+            if (productCardContainer) productCardContainer.style.display = 'none';
+        }
+         else {
+             console.warn('checkDriveStatus: Received unexpected status:', data.status, 'with data:', data);
+             if (autoStartButton) autoStartButton.style.display = 'block';
+             if (productCardContainer) productCardContainer.style.display = 'none';
+        }
+    })
+    .catch(error => {
+        console.error('checkDriveStatus: Error checking drive status:', error);
+         if (autoStartButton) autoStartButton.style.display = 'block';
+         if (productCardContainer) productCardContainer.style.display = 'none';
     });
-    comboBoxContent += `
-        <div data-v-e38e2d82="" class="flex items-center pt-2 pb-2 box-border border-b-[1px] border-[#e5e7eb]">
-            <div data-v-e38e2d82="" class="w-[50%] flex flex-col border-r-[1px] border-[#e5e7eb] justify-center items-center">
-                <div data-v-e38e2d82="" class="text-[#333] font-semibold">Total Amount</div>
-                <div data-v-e38e2d82="" class="text-xs text-[#999] mt-1">USDT <span data-v-e38e2d82="" class="text-sm text-[var(--main-color)] font-semibold">${totalPrice}</span></div>
-            </div>
-            <div data-v-e38e2d82="" class="w-[50%] flex flex-col justify-center items-center">
-                <div data-v-e38e2d82="" class="text-[#333] font-semibold">Profit</div>
-                <div data-v-e38e2d82="" class="text-xs text-[#999] mt-1">USDT <span data-v-e38e2d82="" class="text-sm text-[var(--main-color)] font-semibold">${totalCommission}</span></div>
-            </div>
-        </div>
-        <div data-v-e38e2d82="" class="flex justify-between items-center pt-3 pb-2 box-border border-b-[1px] border-[#e5e7eb]">
-            <div data-v-e38e2d82="" class="text-[#666] text-sm">Created At</div>
-            <div data-v-e38e2d82="" class="text-[#333] text-sm font-bold">${grabbedDate}</div>
-        </div>
-        <div data-v-e38e2d82="" class="flex justify-between items-center pt-3 pb-2 box-border border-b-[1px] border-[#e5e7eb]">
-            <div data-v-e38e2d82="" class="whitespace-nowrap text-[#666] text-sm">Task Code</div>
-            <div data-v-e38e2d82="" class="text-[var(--main-color)] text-xs font-bold">${productNumber}</div>
-        </div>
-        <div data-v-e38e2d82="" class="w-full mt-4">
-            <button data-v-e38e2d82="" type="button" class="van-button van-button--default van-button--large van-button--round" id="submitCombo" style="color: white; background: var(--btn-color); border-color: var(--btn-color);">
-                <div class="van-button__content">
-                    <span class="van-button__text"><span data-v-e38e2d82="" class="font-semibold text-white">Submit</span></span>
-                </div>
-            </button>
-        </div>
-    </div>
-    </div>
-    <div class="van-hairline--top van-dialog__footer">
-    </div>
-    `;
-
-    $('#order2').html(comboBoxContent);
-    // Note: The click handler for #submitCombo is now delegated in DOMContentLoaded
-}
-
-
-// --- Submit Order/Combo Logic (from embedded script, adapted) ---
-
-function submitSingleOrder(token) {
-    // Uses layer library for notifications
-    var zhujiTime = 1000; // 1 second
-    var shopTime = 1000; // 1 second
-
-    var i = 0;
-    if (typeof layer !== 'undefined') {
-        layer.open({ type: 2, content: 'Order is being sent', time: zhujiTime, shadeClose: false });
-    } else { console.log('Sending order...'); }
-
-    var timer = setInterval(function() {
-        i++;
-        if (i == 1) {
-            if (typeof layer !== 'undefined') {
-                layer.open({ type: 2, content: 'The remote host is assigning', time: zhujiTime, shadeClose: false });
-            } else { console.log('Assigning host...'); }
-        } else if (i == 2) {
-            clearInterval(timer); // Stop interval after second step
-            var ajaxT = setTimeout(function() {
-                // Extract data from the dialog popup
-                var product_id = $('#product-id').text();
-                // var product_price = $('#product-price').text(); // Not sent in original call
-                var order_amount = $('#fund-amount').text(); // Use fund-amount as order_amount
-                var earning_commission = $('#order-commission').text();
-                var product_number = $('#product-number').text();
-
-                // Basic validation
-                if (!product_id || !order_amount || !earning_commission || !product_number) {
-                    console.error("Missing data in order dialog for submission.");
-                     if (typeof $(document).dialog === 'function') {
-                        $(document).dialog({ infoText: "Error: Missing order data.", autoClose: 3000 });
-                     } else { alert("Error: Missing order data."); }
-                    return;
-                }
-
-                fetch(`${API_BASE_URL}/api/drive/saveorder`, { // Use local API endpoint
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        product_id: product_id,
-                        order_amount: order_amount,
-                        earning_commission: earning_commission,
-                        product_number: product_number
-                    })
-                })
-                .then(response => response.json())
-                .then(res => {
-                    if (typeof layer !== 'undefined') layer.closeAll(); // Close any layer popups
-
-                    if (res.code == 0) { // Success code from backend
-                         if (typeof $(document).dialog === 'function') {
-                            $(document).dialog({ infoText: res.info || "Order Sent successfully!", autoClose: 2000 });
-                         } else { alert(res.info || "Order Sent successfully!"); }
-
-                        // Hide the dialog
-                        $('#order1').hide();
-                        $('#order2').hide().html(''); // Clear content
-
-                        fetchBalance(token); // Refresh balance display
-
-                        // Optionally fetch next order automatically or wait for user action
-                        // fetchNextOrder(token);
-
-                        // Original code reloaded the page, might not be ideal UX
-                        // var linkTime = setTimeout(function() { location.reload() }, 1800);
-                    } else {
-                         if (typeof $(document).dialog === 'function') {
-                            $(document).dialog({ infoText: res.info || "Failed to save order.", autoClose: 3000 });
-                         } else { alert(res.info || "Failed to save order."); }
-                    }
-                })
-                .catch(err => {
-                    console.error('Error saving order:', err);
-                    if (typeof layer !== 'undefined') layer.closeAll();
-                     if (typeof $(document).dialog === 'function') {
-                        $(document).dialog({ infoText: `Error saving order: ${err.message}`, autoClose: 3000 });
-                     } else { alert(`Error saving order: ${err.message}`); }
-                });
-
-            }, shopTime);
-        }
-    }, zhujiTime);
-}
-
-
-function submitComboOrder(token) {
-    // This function handles submitting a combo order.
-    // It iterates through products stored in the dialog and calls saveComboProduct for each,
-    // then calls saveComboOrder for the summary.
-    var zhujiTime = 1000;
-    var shopTime = 1000;
-
-    var i = 0;
-     if (typeof layer !== 'undefined') {
-        layer.open({ type: 2, content: 'Combo order is being sent', time: zhujiTime, shadeClose: false });
-    } else { console.log('Sending combo order...'); }
-
-
-    var timer = setInterval(function() {
-        i++;
-        if (i == 1) {
-             if (typeof layer !== 'undefined') {
-                layer.open({ type: 2, content: 'The remote host is assigning combo', time: zhujiTime, shadeClose: false });
-            } else { console.log('Assigning combo host...'); }
-        } else if (i == 2) {
-            clearInterval(timer); // Stop interval
-
-            var total_combos = parseInt($('#total-combos').text() || '0');
-            var order_amount = $('#order-amount').text();
-            var order_commission = $('#order-commission').text();
-            var product_number = $('#product-number').text(); // This is the overall combo task code
-
-            if (total_combos === 0) {
-                console.error("No combo products found in dialog.");
-                 if (typeof $(document).dialog === 'function') {
-                    $(document).dialog({ infoText: "Error: No combo products found.", autoClose: 3000 });
-                 }
-                return;
-            }
-
-            // Use Promises to handle sequential saving of combo products
-            let savePromises = [];
-            for (let idx = 0; idx < total_combos; idx++) {
-                let combo_id = $(`#combo-id-${idx}`).text(); // Assuming combo_id is same for all products in combo? Or unique per item? Needs clarification.
-                let product_id = $(`#product-id-${idx}`).text();
-                let product_price = $(`#product-price-${idx}`).text();
-                let product_commission = $(`#product-commission-${idx}`).text();
-
-                if (!combo_id || !product_id || !product_price || !product_commission) {
-                    console.error(`Missing data for combo product index ${idx}`);
-                    continue; // Skip this product if data is missing
-                }
-
-                savePromises.push(
-                    fetch(`${API_BASE_URL}/api/drive/savecomboproduct`, { // Use local API
-                        method: 'POST',
-                        headers: {
-                            'Authorization': `Bearer ${token}`,
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            combo_id: combo_id,
-                            product_id: product_id,
-                            product_price: product_price,
-                            product_commission: product_commission
-                        })
-                    }).then(response => response.json())
-                );
-            }
-
-            // Wait for all individual product saves to complete
-            Promise.all(savePromises)
-                .then(results => {
-                    // Check if all individual saves were successful (code 0)
-                    const allSucceeded = results.every(res => res.code === 0);
-
-                    if (allSucceeded) {
-                        // Now call the summary endpoint (if necessary)
-                        return fetch(`${API_BASE_URL}/api/drive/savecomboorder`, { // Use local API
-                            method: 'POST',
-                            headers: {
-                                'Authorization': `Bearer ${token}`,
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify({
-                                order_amount: order_amount,
-                                order_commission: order_commission,
-                                product_number: product_number,
-                                total_combos: total_combos
-                            })
-                        }).then(response => response.json());
-                    } else {
-                        // Find the first error message
-                        const firstError = results.find(res => res.code !== 0);
-                        throw new Error(firstError?.info || 'Failed to save one or more combo products.');
-                    }
-                })
-                .then(summaryResult => {
-                     if (typeof layer !== 'undefined') layer.closeAll();
-
-                    if (summaryResult.success) { // Check success from savecomboorder endpoint
-                         if (typeof $(document).dialog === 'function') {
-                            $(document).dialog({ infoText: "Combo Order Sent successfully!", autoClose: 2000 });
-                         } else { alert("Combo Order Sent successfully!"); }
-
-                        // Hide dialog, refresh balance
-                        $('#order1').hide();
-                        $('#order2').hide().html('');
-                        fetchBalance(token);
-
-                        // Optionally fetch next order
-                        // fetchNextOrder(token);
-                    } else {
-                        throw new Error(summaryResult.message || 'Failed to save combo order summary.');
-                    }
-                })
-                .catch(err => {
-                    console.error('Error saving combo order:', err);
-                    if (typeof layer !== 'undefined') layer.closeAll();
-                     if (typeof $(document).dialog === 'function') {
-                        $(document).dialog({ infoText: `Error saving combo: ${err.message}`, autoClose: 3000 });
-                     } else { alert(`Error saving combo: ${err.message}`); }
-                });
-
-        }
-    }, zhujiTime);
 }

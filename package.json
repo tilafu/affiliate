@@ -1,5 +1,14 @@
 {
   "dependencies": {
+    "dotenv": "^16.5.0",
+    "jquery": "^3.7.1",
+    "owl.carousel": "^2.3.4",
+    "pg": "^8.15.5",
+    "puppeteer": "^24.6.1",
     "winston": "^3.17.0"
+  },
+  "scripts": {
+    "start": "node server/server.js",
+    "dev": "nodemon server/server.js"
   }
 }

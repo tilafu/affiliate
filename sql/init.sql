@@ -18,7 +18,6 @@ CREATE TABLE accounts (
   user_id INTEGER NOT NULL REFERENCES users(id),
   type VARCHAR(10) CHECK (type IN ('main', 'training')),
   balance DECIMAL(12,2) DEFAULT 0,
-  commission DECIMAL(12,2) DEFAULT 0,
   frozen DECIMAL(12,2) DEFAULT 0,
   cap DECIMAL(12,2),
   is_active BOOLEAN DEFAULT true,
@@ -30,9 +29,7 @@ CREATE TABLE products (
   id SERIAL PRIMARY KEY,
   name VARCHAR(100) NOT NULL,
   price DECIMAL(10, 2) NOT NULL,
-  commission_rate DECIMAL(5, 4) NOT NULL, -- e.g., 0.015 for 1.5%
   min_balance_required DECIMAL(10, 2) DEFAULT 0, -- Balance needed to interact
-  min_tier VARCHAR(10) DEFAULT 'bronze', -- Tier required (optional)
   is_active BOOLEAN DEFAULT true,
   created_at TIMESTAMP DEFAULT NOW()
 );
@@ -52,6 +49,72 @@ CREATE TABLE commission_logs (
   description TEXT,
   created_at TIMESTAMP DEFAULT NOW()
 );
+
+-- Create Drive Sessions table
+CREATE TABLE IF NOT EXISTS drive_sessions (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    drive_type VARCHAR(50),
+    status VARCHAR(20) DEFAULT 'active',
+    tasks_completed INTEGER DEFAULT 0,
+    tasks_required INTEGER NOT NULL,
+    started_at TIMESTAMPTZ DEFAULT NOW(),
+    completed_at TIMESTAMPTZ,
+    session_uuid UUID UNIQUE,
+    frozen_amount_needed DECIMAL,
+    last_product_id INTEGER,
+    last_combo_id VARCHAR(100),
+    combo_progress JSONB
+);
+
+-- Create Withdrawal Addresses table
+CREATE TABLE IF NOT EXISTS withdrawal_addresses (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    address_type VARCHAR(10) NOT NULL DEFAULT 'TRC20', -- Assuming TRC20 for now
+    address VARCHAR(100) NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(user_id, address_type) -- Allow one address per type per user
+);
+
+-- Add withdrawal_password_hash column to users table if it doesn't exist
+-- Note: Running this multiple times is safe if the column already exists.
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_schema = 'public' 
+        AND table_name = 'users' 
+        AND column_name = 'withdrawal_password_hash'
+    ) THEN
+        ALTER TABLE users ADD COLUMN withdrawal_password_hash VARCHAR(100) NULL;
+    END IF;
+END $$;
+
+-- Create Admin Notifications table
+CREATE TABLE IF NOT EXISTS admin_notifications (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id), -- User who triggered the event (optional, can be null for system events)
+    type VARCHAR(50) NOT NULL, -- e.g., 'profile_update', 'address_update', 'new_support_message'
+    message TEXT NOT NULL,
+    is_read BOOLEAN DEFAULT false,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Create Support Messages table (Simple Version)
+CREATE TABLE IF NOT EXISTS support_messages (
+    id SERIAL PRIMARY KEY,
+    sender_id INTEGER NOT NULL REFERENCES users(id),
+    sender_role VARCHAR(10) NOT NULL CHECK (sender_role IN ('user', 'admin')),
+    recipient_id INTEGER REFERENCES users(id), -- NULL means message is for general support/all admins
+    subject VARCHAR(255), -- Optional subject line
+    message TEXT NOT NULL,
+    thread_id INTEGER REFERENCES support_messages(id), -- Optional: Link replies to original message
+    is_read BOOLEAN DEFAULT false, -- Read by recipient (admin for user messages, user for admin replies)
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 
 -- Add initial admin user (optional) - Set role to 'admin' and tier can be null or default
 INSERT INTO users (username, email, password_hash, referral_code, tier, role, revenue_source)

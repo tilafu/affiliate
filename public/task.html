@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -9,18 +10,25 @@
     <link rel="shortcut icon" href="./assets/uploads/generals/favicon-665b8c8a863b91717275786.png">
     <link rel="stylesheet" href="./assets/frontend/shopva/public.css">
       <!-- <script charset="utf-8" src="./assets/frontend/shopva/jquery.min.js"></script> -->
-      <script src="./assets/frontend/js/jquery.min.js"></script>
-      <script charset="utf-8" src="./assets/frontend/shopva/dialog.min.js"></script>
-      <script charset="utf-8" src="./assets/frontend/shopva/common.js"></script>
-      <!-- <link rel="stylesheet" href="./assets/frontend/shopva/layer.css"> --> <!-- Temporarily commented out due to MIME type error -->
-      <script src="./assets/frontend/shopva/layer.js"></script>
-      <link rel="stylesheet" href="./assets/frontend/shopva/tye.css">
-    <link href="https://fonts.googleapis.com/css?family=Nunito:300,400,600,700,900" rel="stylesheet">
-    <link rel="stylesheet" href="./assets/frontend/css/bootstrap.min.css" type="text/css" media="all"/>
-    <link rel="stylesheet" type="text/css" href="./assets/frontend/css/fontawesome-all.min.css">
-    <link rel="stylesheet" href="./assets/frontend/css/animate.min.css" type="text/css" media="all"/>
-    <link rel="stylesheet" href="./assets/frontend/css/owl.carousel.min.css" type="text/css" media="all"/>
-    <link rel="stylesheet" href="./assets/frontend/css/style.css" type="text/css" media="all"/>
+<script src="./assets/frontend/js/jquery.min.js"></script>
+<script charset="utf-8" src="./assets/frontend/shopva/dialog.min.js"></script>
+<script charset="utf-8" src="./assets/frontend/shopva/common.js"></script>
+<!-- <link rel="stylesheet" href="./assets/frontend/shopva/layer.css"> --> <!-- Temporarily commented out due to MIME type error -->
+<!-- <link rel="stylesheet" href="./assets/frontend/shopva/layer.css"> -->
+<script src="./assets/frontend/shopva/layer.js"></script>
+<link rel="stylesheet" href="./assets/frontend/shopva/tye.css">
+<link href="https://fonts.googleapis.com/css?family=Nunito:300,400,600,700,900" rel="stylesheet">
+<link rel="stylesheet" href="./assets/frontend/css/bootstrap.min.css" type="text/css" media="all"/>
+<!-- <link rel="stylesheet" type="text/css" href="./assets/frontend/css/fontawesome-all.min.css"> -->
+<link rel="stylesheet" href="./assets/frontend/css/animate.min.css" type="text/css" media="all"/>
+
+<!-- Owl Carousel CSS - Using both CDN and local fallback -->
+<!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/OwlCarousel2/2.3.4/owl.carousel.min.js"></script> -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/OwlCarousel2/2.3.4/assets/owl.carousel.min.css" type="text/css" media="all"/>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/OwlCarousel2/2.3.4/assets/owl.theme.default.min.css" type="text/css" media="all"/>
+<link rel="stylesheet" href="./assets/frontend/css/owl.carousel.min.css" type="text/css" media="all"/>
+
+<link rel="stylesheet" href="./assets/frontend/css/style.css" type="text/css" media="all"/>
         
    <style type="text/css">
      .cardd {
@@ -93,16 +101,8 @@
                      </span>
                   </h4>
                   <div class="item-card">
-                     <div class="">
-                        <span>Wallet balance</span>
-                        <h2 class="main1">
-                           <p class="datadrive-balance">
-                             Loading...
-                           </p>
-                           <small style="font-size:14px"> USDT</small>
-                        </h2>
-                        <p style="font-size: 12px">Reflects both the deposit amount and commissions</p>
-                     </div>
+                     <span>Wallet balance</span>
+                     <p class="datadrive-balance">Loading...</p>
                   </div>
                </div>
             </div>
@@ -110,116 +110,44 @@
       </div>
    </div>
    
-   <div class="row justify-content-center">
-      <div class="col-md-5 mx-auto" style="margin-bottom: 70px">
-         <div class="card carddd bg-ssuccess"> <!-- Corrected 'casrd' to 'card' -->
+   <div class="row justify-content-center" style="display:none;">
+      <div class="col-md-5 mx-auto" style="margin-bottom: 70px;">
+         <div class="card carddd bg-ssuccess">
             <div class="p_machine">
-               <div class="p_picture-wrapper cardd">
-                  <div class="p_picture-list">
-                     <div class="p_picture-item" style="margin-bottom: 75px; margin-top: 35px;">
-                        <img src="./assets/uploads/ph.png">
-                     </div>
-                                          <div class="p_picture-item">
-                        <img src="./assets/uploads/products/newegg-1.jpg">
-                     </div>
-                                          <div class="p_picture-item">
-                        <img src="./assets/uploads/products/newegg-2.jpg">
-                     </div>
-                                          <div class="p_picture-item">
-                        <img src="./assets/uploads/products/newegg-3.jpeg">
-                     </div>
-                                          <div class="p_picture-item">
-                        <img src="./assets/uploads/products/newegg-4.jpeg">
-                     </div>
-                                          <div class="p_picture-item">
-                        <img src="./assets/uploads/products/newegg-5.jpeg">
-                     </div>
-                                          <div class="p_picture-item">
-                        <img src="./assets/uploads/products/newegg-6.jpeg">
-                     </div>
-                                          <div class="p_picture-item">
-                        <img src="./assets/uploads/products/newegg-7.jpeg">
-                     </div>
-                                          <div class="p_picture-item">
-                        <img src="./assets/uploads/products/newegg-8.jpeg">
-                     </div>
-                                          <div class="p_picture-item">
-                        <img src="./assets/uploads/products/newegg-9.jpeg">
-                     </div>
-                                          <div class="p_picture-item">
-                        <img src="./assets/uploads/products/newegg-10.jpeg">
-                     </div>
-                                       </div>
-                  <div class="p_picture-list">
-                     <div class="p_picture-item" style="margin-bottom: 75px; margin-top: 35px;">
-                        <img src="./assets/uploads/ph.png">
-                     </div>
-                                          <div class="p_picture-item">
-                        <img src="./assets/uploads/products/newegg-1.jpg">
-                     </div>
-                                          <div class="p_picture-item">
-                        <img src="./assets/uploads/products/newegg-2.jpg">
-                     </div>
-                                          <div class="p_picture-item">
-                        <img src="./assets/uploads/products/newegg-3.jpeg">
-                     </div>
-                                          <div class="p_picture-item">
-                        <img src="./assets/uploads/products/newegg-4.jpeg">
-                     </div>
-                                          <div class="p_picture-item">
-                        <img src="./assets/uploads/products/newegg-5.jpeg">
-                     </div>
-                                          <div class="p_picture-item">
-                        <img src="./assets/uploads/products/newegg-6.jpeg">
-                     </div>
-                                          <div class="p_picture-item">
-                        <img src="./assets/uploads/products/newegg-7.jpeg">
-                     </div>
-                                          <div class="p_picture-item">
-                        <img src="./assets/uploads/products/newegg-8.jpeg">
-                     </div>
-                                          <div class="p_picture-item">
-                        <img src="./assets/uploads/products/newegg-9.jpeg">
-                     </div>
-                                          <div class="p_picture-item">
-                        <img src="./assets/uploads/products/newegg-10.jpeg">
-                     </div>
-                                       </div>
-                  <div class="p_picture-list">
-                     <div class="p_picture-item" style="margin-bottom: 75px; margin-top: 35px;">
-                        <img src="./assets/uploads/ph.png">
-                     </div>
-                                          <div class="p_picture-item">
-                        <img src="./assets/uploads/products/newegg-1.jpg">
-                     </div>
-                                          <div class="p_picture-item">
-                        <img src="./assets/uploads/products/newegg-2.jpg">
-                     </div>
-                                          <div class="p_picture-item">
-                        <img src="./assets/uploads/products/newegg-3.jpeg">
-                     </div>
-                                          <div class="p_picture-item">
-                        <img src="./assets/uploads/products/newegg-4.jpeg">
-                     </div>
-                                          <div class="p_picture-item">
-                        <img src="./assets/uploads/products/newegg-5.jpeg">
-                     </div>
-                                          <div class="p_picture-item">
-                        <img src="./assets/uploads/products/newegg-6.jpeg">
-                     </div>
-                                          <div class="p_picture-item">
-                        <img src="./assets/uploads/products/newegg-7.jpeg">
-                     </div>
-                                          <div class="p_picture-item">
-                        <img src="./assets/uploads/products/newegg-8.jpeg">
-                     </div>
-                                          <div class="p_picture-item">
-                        <img src="./assets/uploads/products/newegg-9.jpeg">
-                     </div>
-                                          <div class="p_picture-item">
-                        <img src="./assets/uploads/products/newegg-10.jpeg">
-                     </div>
-                                       </div>
+               <div class="owl-carousel product-carousel">
+                  <div class="item">
+                     <img src="./assets/uploads/ph.png" alt="Placeholder">
+                  </div>
+                  <div class="item">
+                     <img src="./assets/uploads/products/newegg-1.jpg" alt="Product 1">
+                  </div>
+                  <div class="item">
+                     <img src="./assets/uploads/products/newegg-2.jpg" alt="Product 2">
+                  </div>
+                  <div class="item">
+                     <img src="./assets/uploads/products/newegg-3.jpeg" alt="Product 3">
+                  </div>
+                  <div class="item">
+                     <img src="./assets/uploads/products/newegg-4.jpeg" alt="Product 4">
+                  </div>
+                  <div class="item">
+                     <img src="./assets/uploads/products/newegg-5.jpeg" alt="Product 5">
+                  </div>
+                  <div class="item">
+                     <img src="./assets/uploads/products/newegg-6.jpeg" alt="Product 6">
+                  </div>
+                  <div class="item">
+                     <img src="./assets/uploads/products/newegg-7.jpeg" alt="Product 7">
+                  </div>
+                  <div class="item">
+                     <img src="./assets/uploads/products/newegg-8.jpeg" alt="Product 8">
+                  </div>
+                  <div class="item">
+                     <img src="./assets/uploads/products/newegg-9.jpeg" alt="Product 9">
+                  </div>
+                  <div class="item">
+                     <img src="./assets/uploads/products/newegg-10.jpeg" alt="Product 10">
+                  </div>
                </div>
             </div>
 
@@ -230,6 +158,25 @@
             <!--<span style="display: none;">-->
             <!--    <audio id="audio" src=" ./assets/frontend/shopva/img/hongbao.mp3" controls="controls"></audio>-->
             <!--</span>-->
+         </div>
+      </div>
+   </div>
+
+   <div class="row mb-3">
+      <div class="col-md-5 mx-auto" id="product-card-container" style="display: none;">
+         <!-- Dynamic product card will be loaded here -->
+         <div class="card">
+            <div class="card-body text-center">
+               <div id="order-loading-overlay" class="order-loading-overlay" style="display: none;">
+                  <div class="spinner"></div>
+                  <div class="loading-text">Fetching Product...</div>
+               </div>
+               <img id="product-image" src="" alt="Product Image" class="img-fluid mb-3" style="max-height: 200px;">
+               <h5 id="product-name" class="card-title">Product Name</h5>
+               <p id="product-commission" class="card-text">Commission: </p>
+               <p id="product-price" class="card-text">Price: </p>
+               <button id="purchase-button" class="btn btn-main mt-3">Purchase</button>
+            </div>
          </div>
       </div>
    </div>
@@ -259,7 +206,7 @@
                <p style="font-size: 13px">- During non-operating hours, the system will cease to distribute product</p>
             </div>
             <div class="text-center">
-                <p  style="font-size: 13px"><small>Copyright @ 2024 Brainslab Data. All Rights Reserved</small></p>
+                <p  style="font-size: 13px"><small>Copyright @ 2025 Digistore. All Rights Reserved</small></p>
             </div>
          </div>
       </div>
@@ -313,7 +260,17 @@
  <!-- <script> let baseurl = 'http://127.0.0.1:5500/'; </script> -->
 
 <script src="./assets/frontend/js/bootstrap.bundle.min.js"></script>
-<script src="./assets/frontend/js/owl.carousel.min.js"></script>
+
+<!-- Owl Carousel JS - Using both CDN and local fallback -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/OwlCarousel2/2.3.4/owl.carousel.min.js"></script>
+<script>
+    // If CDN fails, load from node_modules
+    if (typeof $.fn.owlCarousel === 'undefined') {
+        document.write('<script src="../node_modules/owl.carousel/dist/owl.carousel.min.js"><\/script>');
+    }
+</script>
+<!-- <script src="./assets/frontend/js/owl.carousel.min.js"></script> -->
+
 <!-- Load general site script (uses jQuery) -->
 <script src="./assets/frontend/js/script.js"></script>
 <!-- Load Component Loader -->
@@ -323,11 +280,152 @@
 <!-- Withdrawable balance -->
 <script src="./js/task.js"></script>
 
-
 <!-- Load Helper/Auth Scripts -->
 <script src="./js/main.js"></script>
 <script src="./js/auth.js"></script>
-<!-- Load Page Specific Scripts -->
-<!-- Embedded script removed, logic moved to public/js/task.js -->
+
+<!-- Initialize Owl Carousel -->
+<script>
+$(document).ready(function(){
+  // Initialize the product carousel
+  $('.product-carousel').owlCarousel({
+    loop: true,
+    margin: 10,
+    nav: true,
+    dots: true,
+    autoplay: true,
+    autoplayTimeout: 3000,
+    autoplayHoverPause: true,
+    responsive: {
+      0: {
+        items: 1
+      },
+      600: {
+        items: 1
+      },
+      1000: {
+        items: 1
+      }
+    }
+  });
+  
+  // Add custom styling to carousel navigation
+  $('.owl-prev, .owl-next').css({
+    'position': 'absolute',
+    'top': '50%',
+    'transform': 'translateY(-50%)',
+    'background': 'rgba(0,0,0,0.5)',
+    'color': '#fff',
+    'padding': '5px 10px',
+    'border-radius': '50%'
+  });
+  
+  $('.owl-prev').css('left', '10px');
+  $('.owl-next').css('right', '10px');
+});
+</script>
+
+<!-- Add custom styles for the carousel and animations -->
+<style>
+.product-carousel .item {
+  padding: 20px;
+  text-align: center;
+}
+
+.product-carousel .item img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  transition: transform 0.3s ease;
+}
+
+.product-carousel .item img:hover {
+  transform: scale(1.05);
+}
+
+.owl-nav button {
+  font-size: 24px !important;
+}
+
+.owl-dots {
+  margin-top: 15px;
+}
+
+/* Highlighted product in carousel */
+.highlighted-product {
+  border: 3px solid #28a745;
+  border-radius: 10px;
+  animation: pulse 1.5s infinite;
+}
+
+/* Loading overlay for order fetching */
+.order-loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  border-radius: 8px;
+}
+
+.order-loading-overlay .spinner {
+  width: 50px;
+  height: 50px;
+  border: 5px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: #fff;
+  animation: spin 1s ease-in-out infinite;
+  margin-bottom: 15px;
+}
+
+.order-loading-overlay .loading-text {
+  color: white;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+/* Animation for the starting drive effect */
+.starting-drive {
+  position: relative;
+}
+
+.starting-drive::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(45deg, rgba(0,123,255,0.2), rgba(40,167,69,0.2));
+  border-radius: 8px;
+  z-index: 5;
+}
+
+/* Animations */
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(40, 167, 69, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(40, 167, 69, 0);
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+</style>
 </body>
 </html>

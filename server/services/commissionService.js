@@ -73,7 +73,7 @@ class CommissionService {
 
       // 3. Credit the commission to the user's main account balance
       await client.query(
-        'UPDATE accounts SET balance = balance + $1, commission = commission + $1 WHERE user_id = $2 AND type = \'main\'',
+        'UPDATE accounts SET balance = balance + $1 WHERE user_id = $2 AND type = \'main\'',
         [commissionAmount, userId]
       );
 
@@ -138,10 +138,10 @@ class CommissionService {
 
         console.log(` - Level ${upline.level} Upline ${upline.id}: Rate ${commissionRate * 100}%, Amount ${commissionAmount.toFixed(2)}`);
 
-        // 1. Update the upline's main account balance and total commission
+        // 1. Update the upline's main account balance
         const updateResult = await client.query(
           `UPDATE accounts
-           SET balance = balance + $1, commission = commission + $1
+           SET balance = balance + $1
            WHERE user_id = $2 AND type = 'main'`,
           [commissionAmount, upline.id]
         );
@@ -189,15 +189,16 @@ class CommissionService {
       [userId, productId, 'training', commissionAmount, 'training_bonus', `Training account commission from data drive interaction (product ID: ${productId})`]
     );
 
-    // 3. Credit to training account's commission balance (NOT direct balance)
+    // 3. Credit to training account's balance
     await pool.query(
-      'UPDATE accounts SET commission = commission + $1 WHERE user_id = $2 AND type = \'training\'',
+      'UPDATE accounts SET balance = balance + $1 WHERE user_id = $2 AND type = \'training\'',
       [commissionAmount, userId]
     );
 
-    console.log(`Training account commission of $${commissionAmount} recorded for user ${userId} for product ${productId}`);
+    console.log(`Training account balance of $${commissionAmount} recorded for user ${userId} for product ${productId}`);
 
-    // 4. [NEXT STEP] Check if training cap is reached and handle transfer - to be implemented next
+    // 4. Check if training cap is reached and handle transfer
+    await CommissionService.checkAndTransferTrainingCap(userId); // Call the next step method
   }
 
   /**
@@ -206,44 +207,70 @@ class CommissionService {
    * @returns {Promise<void>}
    */
   static async checkAndTransferTrainingCap(userId) {
-    // 1. Get training account balance and commission earned
-    const trainingAccountResult = await pool.query(
-      'SELECT balance, commission, cap FROM accounts WHERE user_id = $1 AND type = \'training\'',
-      [userId]
-    );
-    const trainingAccount = trainingAccountResult.rows[0];
+    const client = await pool.connect(); // Use a client for transaction
+    try {
+      // 1. Get training account details (balance, cap)
+      const trainingAccountResult = await client.query(
+        'SELECT id, balance, cap, is_active FROM accounts WHERE user_id = $1 AND type = \'training\'',
+        [userId]
+      );
 
-    if (trainingAccount) {
-      const currentCommission = trainingAccount.commission;
-      const balance = trainingAccount.balance;
+      if (trainingAccountResult.rows.length === 0 || !trainingAccountResult.rows[0].is_active) {
+        console.log(`Training account not found or inactive for user ${userId}.`);
+        // Removed client.release() here to prevent double release
+        return;
+      }
+      const trainingAccount = trainingAccountResult.rows[0];
+      const balance = trainingAccount.balance; // Current balance (might include previous commissions)
       const cap = trainingAccount.cap || 200; // Default cap to $200 if not set
 
+      // 2. Calculate total commission earned in training account from logs
+      const commissionLogResult = await client.query(
+        `SELECT COALESCE(SUM(commission_amount), 0) as total_commission
+         FROM commission_logs
+         WHERE user_id = $1 AND account_type = 'training'`,
+        [userId]
+      );
+      const currentCommission = parseFloat(commissionLogResult.rows[0].total_commission);
+
+      console.log(`User ${userId} Training Check - Current Commission Log Sum: $${currentCommission.toFixed(2)}, Cap: $${cap}`);
+
       if (currentCommission >= cap) {
-        // 2. Calculate transfer amount (capped at $50) -  and reset training commission to 0
+        console.log(`Training cap reached for user ${userId}.`);
+        // 3. Calculate transfer amount (capped at $50)
         const transferAmount = Math.min(50, cap); // Transfer up to $50, or less if cap is lower
-        const remainingTrainingCommission = currentCommission - transferAmount;
 
-        // 3. Transfer $50 to main account balance, reset training account commission and balance, freeze training account
-        await pool.query('BEGIN'); // Start transaction for atomicity
+        // 4. Perform transfer within a transaction
+        await client.query('BEGIN');
 
-        await pool.query(
+        // Update main account balance
+        await client.query(
           'UPDATE accounts SET balance = balance + $1 WHERE user_id = $2 AND type = \'main\'',
           [transferAmount, userId]
         );
-        await pool.query(
-          'UPDATE accounts SET balance = 0, commission = 0, frozen = frozen + $1, is_active = false WHERE user_id = $2 AND type = \'training\'',
-          [remainingTrainingCommission, userId]
+
+        // Deactivate training account and potentially adjust its balance if needed (e.g., set to 0)
+        // We don't need to track remaining commission here as it's logged.
+        // Setting balance to 0 and is_active to false.
+        await client.query(
+          'UPDATE accounts SET balance = 0, is_active = false WHERE id = $1',
+          [trainingAccount.id]
         );
 
+        // Optionally: Log the transfer event itself? (e.g., in a separate transfers table or specific commission_log entry)
 
-        await pool.query('COMMIT'); // Commit transaction
+        await client.query('COMMIT'); // Commit transaction
 
-        console.log(`Training cap reached for user ${userId}. Transferred $${transferAmount} to main account. Training account frozen.`);
+        console.log(`Training cap reached for user ${userId}. Transferred $${transferAmount.toFixed(2)} to main account. Training account deactivated.`);
       } else {
-        console.log(`Training account for user ${userId} is below cap. Current commission: $${currentCommission}, Cap: $${cap}`);
+        console.log(`Training account for user ${userId} is below cap.`);
       }
-    } else {
-      console.log(`Training account not found for user ${userId}.`);
+    } catch (error) {
+        console.error(`Error checking/transferring training cap for user ${userId}:`, error);
+        await client.query('ROLLBACK'); // Rollback on error
+        throw error; // Re-throw error
+    } finally {
+        client.release(); // Release client
     }
   }
 }

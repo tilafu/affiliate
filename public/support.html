@@ -5,10 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <meta http-equiv="X-UA-Compatible" content="IE=Edge"/>
     <title>Customer Support</title>
-    <meta name="csrf-token" content="t9EtiRskFKx5XpnOFvbrimp5ZgsKIg3UU1Ea1iDM">
+    <meta name="csrf-token" content="t9EtiRskFKx5XpnOFvbrimp5ZgsKIg3UU1Ea1iDM"> <!-- Note: CSRF token might not be needed if using JWT Bearer token -->
     <link rel="shortcut icon" href="./assets/uploads/generals/favicon-665b8c8a863b91717275786.png">
     <link rel="stylesheet" href="./assets/frontend/shopva/public.css">
-      <!-- <script charset="utf-8" src="./assets/frontend/shopva/jquery.min.js"></script> -->
       <script src="./assets/frontend/js/jquery.min.js"></script>
       <script charset="utf-8" src="./assets/frontend/shopva/dialog.min.js"></script>
       <script charset="utf-8" src="./assets/frontend/shopva/common.js"></script>
@@ -34,36 +33,13 @@
     overflow: hidden
 }
 
-.image-upload .thumb .file-upload {
-    font-size: 0;
-    opacity: 0;
-}
-
-.image-upload .thumb .upload-file label {
-    color: #ffffff;
-    font-size: 15px;
-    cursor: pointer;
-    padding: 2px 15px;
-    border-radius: 5px;
-    transition: all 0.3s;
-}
-
-.image-upload .thumb .upload-file label:hover {
-    transform: translateY(-3px);
-}
-
- .image-uploadx {
-    display: flex;
-    justify-content: space-between;
-}
-
-.thumbx {
-    display: flex;
-    align-items: center;
-}
+/* Removed styles related to file upload */
 
 .chats {
-    padding: 30px 15px
+    padding: 30px 15px;
+    /* Add height and overflow for scrolling */
+    max-height: calc(100vh - 300px); /* Adjust based on header/footer/form height */
+    overflow-y: auto;
 }
 
 .chat-avatar {
@@ -90,31 +66,37 @@
     position: relative;
     display: block;
     float: right;
-    padding: 2px 9px;
-    margin: 0 20px 10px 0;
+    padding: 8px 12px; /* Adjusted padding */
+    margin: 0 0 10px 0; /* Adjusted margin */
     clear: both;
     color: #fff;
-    background-color: #62a8ea;
-    border-radius: 4px;
+    background-color: #007bff; /* Example color */
+    border-radius: 15px; /* More rounded */
+    max-width: 75%; /* Limit width */
+    word-wrap: break-word; /* Ensure long words wrap */
 }
 
 .chat-content>p {
-  font-size: 13px;
+  font-size: 14px; /* Slightly larger font */
+  margin: 0; /* Remove default paragraph margin */
+  line-height: 1.4;
 }
 
 .chat-content>p:last-child {
     margin-bottom: 0
 }
 
-.chat-content+.chat-content:before {
+/* Removed pseudo-element for chat bubble tail */
+/* .chat-content+.chat-content:before {
     border-color: transparent
-}
+} */
 
 .chat-time {
     display: block;
     font-size: 10px;
-    margin-top: 2px;
-    color: rgba(255, 255, 255, .6)
+    margin-top: 4px; /* Adjusted spacing */
+    color: rgba(255, 255, 255, .7); /* Slightly more visible time */
+    text-align: right;
 }
 
 .chat-left .chat-avatar {
@@ -128,12 +110,14 @@
 
 .chat-left .chat-content {
     float: left;
-    margin: 0 0 10px 20px;
-    color: #76838f;
-    background-color: #dfe9ef
+    margin: 0 0 10px 0; /* Adjusted margin */
+    color: #333; /* Darker text */
+    background-color: #f1f0f0; /* Lighter grey */
+    border-radius: 15px; /* More rounded */
 }
 
-.chat-left .chat-content:before {
+/* Removed pseudo-element for chat bubble tail */
+/* .chat-left .chat-content:before {
     right: auto;
     left: -10px;
     border-right-color: #dfe9ef;
@@ -142,18 +126,17 @@
 
 .chat-left .chat-content+.chat-content:before {
     border-color: transparent
-}
+} */
 
 .chat-left .chat-time {
-    color: #a3afb7
+    color: #999; /* Darker time */
+    text-align: left;
 }
 
 .panel-footer {
-    padding: 0 30px 15px;
-    background-color: transparent;
-    border-top: 1px solid transparent;
-    border-bottom-right-radius: 3px;
-    border-bottom-left-radius: 3px;
+    padding: 15px; /* Adjusted padding */
+    background-color: #f8f8f8; /* Footer background */
+    border-top: 1px solid #eee; /* Separator line */
 }
 .avatar img {
     width: 100%;
@@ -180,105 +163,10 @@
 <body>
 
 <div class="bg-overlay navbar-btn"></div>
-<div class="main-sidebar">
-   <div class="sidebar-close-toggler navbar-btn">
-      <a href="#">
-         <svg version="1.1" width="16" height="16" fill="currentColor" xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" viewBox="0 0 492 492"  xml:space="preserve">
-            <path d="M300.188,246L484.14,62.04c5.06-5.064,7.852-11.82,7.86-19.024c0-7.208-2.792-13.972-7.86-19.028L468.02,7.872
-         c-5.068-5.076-11.824-7.856-19.036-7.856c-7.2,0-13.956,2.78-19.024,7.856L246.008,191.82L62.048,7.872
-         c-5.06-5.076-11.82-7.856-19.028-7.856c-7.2,0-13.96,2.78-19.02,7.856L7.872,23.988c-10.496,10.496-10.496,27.568,0,38.052
-         L191.828,246L7.872,429.952c-5.064,5.072-7.852,11.828-7.852,19.032c0,7.204,2.788,13.96,7.852,19.028l16.124,16.116
-         c5.06,5.072,11.824,7.856,19.02,7.856c7.208,0,13.968-2.784,19.028-7.856l183.96-183.952l183.952,183.952
-         c5.068,5.072,11.824,7.856,19.024,7.856h0.008c7.204,0,13.96-2.784,19.028-7.856l16.12-16.116
-         c5.06-5.064,7.852-11.824,7.852-19.028c0-7.204-2.792-13.96-7.852-19.028L300.188,246z"/>
-            </svg>
-        </a>
-   </div>
-   <div class="my-544">
-      <div class="row align-items-center">
-         <div class="col-auto">
-            <div class="profile-img-item">
-               <img src="./assets/uploads/user.jpg" class="rounded-circle" alt="profile">
-            </div>
-         </div>
-         <div class="col ps-1">
-            <div class="profile-details">
-               <h4 class="mb-2">Isabella27</h4>
-               <p class="mb-0 text-grsay">REFERRAL CODE: 17GAHG</p>
-            </div>
-         </div>
-      </div>
-   </div>
-   <hr>
-    
-   <div class="menu-sidebar">
-      <ul>
-         <li class="bottom-border">
-                <a href="./account.html"> 
-                   <img src="./assets/uploads/img/4.png" style="margin-right: 5px;" width="20px">
-                PROFILE </a>
-            </li>
-         <li class="bottom-border">
-            <a href="./deposits.html">
-               <img src="./assets/uploads/img/4.png" style="margin-right: 5px;" width="20px">
-               DEPOSIT
-            </a>
-         </li>
-         <li class="bottom-border">
-            <a href="./withdraws.html">
-               <img src="./assets/uploads/img/3.png"  style="margin-right: 5px;" width="20px">
-               WITHDRAWAL
-            </a>
-         </li>
-         <li class="bottom-border">
-            <a href="./certificates.html">
-               <img src="./assets/uploads/img/2.png"  style="margin-right: 5px;" width="20px">
-               CERTIFICATES
-            </a>
-         </li>
-         <li class="bottom-border">
-            <a href="./events.html">
-               <img src="./assets/uploads/img/6.png"  style="margin-right: 5px;" width="20px">
-               LATEST EVENTS
-            </a>
-         </li>
-         <li class="bottom-border">
-            <a href="./memberships.html">
-               <img src="./assets/uploads/img/6.png"  style="margin-right: 5px;" width="20px">
-               MEMBERSHIPS
-            </a>
-         </li>
-         <li class="bottom-border">
-            <a href="./terms.html">
-               <img src="./assets/uploads/img/5.png"  style="margin-right: 5px;" width="20px">
-               TERMS & CONDITIONS
-            </a>
-         </li>
-         <li class="bottom-border">
-            <a href="./faqs.html">
-               <img src="./assets/uploads/img/7.png"  style="margin-right: 5px;" width="20px">
-               FAQs
-            </a>
-         </li>
-         <li class="bottom-border">
-            <a href="./company.html">
-               <img src="./assets/uploads/img/8.png"  style="margin-right: 5px;" width="20px">
-               ABOUT US
-            </a>
-         </li>
-         <li class="bottom-border">
-                <a href="http://127.0.0.1:5500/index">
-                  <img src="./assets/uploads/img/8.png"  style="margin-right: 5px;" width="20px">
-                    LOGOUT
-                </a>
-            </li>
-
-      </ul>
-   </div>
-    <!-- <div class="copyright-item">
-        <p class="fs-14">Copyright © All Right Reserved</p>
-    </div> -->
-</div><header class="header-main">
+<!-- Sidebar Placeholder -->
+<div id="sidebar-placeholder"></div>
+<!-- End Sidebar Placeholder -->
+<header class="header-main">
     <div class="container">
         <div class="content-header d-flex align-items-center justify-content-between">
                          <a href="javascript:history.back()">
@@ -299,61 +187,31 @@
     </div>
 </header><main class="main-content">
     <div class="container">
-         <div class="contdainer">
+         <div class="container">
 			<div class="row">
 		      <div class="col-xl-12">
 		         <div class="contact-item">
-		            <div class="panel" id="cfhat">
+		            <div class="panel" id="chat-container"> <!-- Changed ID -->
 					      <div class="panel-body">
-						      <div class="chats">
-						         						            <div class="chat chat-left">
-							            <div class="chat-body">
-							               <div class="chat-content">
-							                  							                  <p><strong> Hello Isabella27, Welcome to our Customer Support Center, How can we help you!! </strong></p>
-							                  <time class="chat-time" datetime="27 Jul, 2024"> <small>09:04 PM</small>
-							                  </time>
-							                  							                  							               </div>
-							            </div>
-						        		</div>
-						    								            <div class="chat ">
-							            <div class="chat-body">
-							               <div class="chat-content">
-							                  							                  <p><strong> Terminei o treinamento </strong></p>
-							                  <time class="chat-time" datetime="27 Jul, 2024"> <small>05:52 AM</small>
-							                  </time>
-							                  							                  							               </div>
-							            </div>
-						        		</div>
-						    								            <div class="chat chat-left">
-							            <div class="chat-body">
-							               <div class="chat-content">
-							                  							                  <p><strong> <p><br></p><p><span style="color: rgb(0, 0, 0); font-family: Roboto, -apple-system, BlinkMacSystemFont, &quot;Apple Color Emoji&quot;, &quot;Segoe UI&quot;, Oxygen, Ubuntu, Cantarell, &quot;Fira Sans&quot;, &quot;Droid Sans&quot;, &quot;Helvetica Neue&quot;, sans-serif; white-space-collapse: preserve;">Dear User,</span><br style="color: rgb(0, 0, 0); font-family: Roboto, -apple-system, BlinkMacSystemFont, &quot;Apple Color Emoji&quot;, &quot;Segoe UI&quot;, Oxygen, Ubuntu, Cantarell, &quot;Fira Sans&quot;, &quot;Droid Sans&quot;, &quot;Helvetica Neue&quot;, sans-serif; white-space-collapse: preserve;"><br style="color: rgb(0, 0, 0); font-family: Roboto, -apple-system, BlinkMacSystemFont, &quot;Apple Color Emoji&quot;, &quot;Segoe UI&quot;, Oxygen, Ubuntu, Cantarell, &quot;Fira Sans&quot;, &quot;Droid Sans&quot;, &quot;Helvetica Neue&quot;, sans-serif; white-space-collapse: preserve;"><span style="color: rgb(0, 0, 0); font-family: Roboto, -apple-system, BlinkMacSystemFont, &quot;Apple Color Emoji&quot;, &quot;Segoe UI&quot;, Oxygen, Ubuntu, Cantarell, &quot;Fira Sans&quot;, &quot;Droid Sans&quot;, &quot;Helvetica Neue&quot;, sans-serif; white-space-collapse: preserve;">Thank you for completing the data submission. We kindly ask you to proceed to your main account, as the commissions earned have been successfully credited to your username.</span><br style="color: rgb(0, 0, 0); font-family: Roboto, -apple-system, BlinkMacSystemFont, &quot;Apple Color Emoji&quot;, &quot;Segoe UI&quot;, Oxygen, Ubuntu, Cantarell, &quot;Fira Sans&quot;, &quot;Droid Sans&quot;, &quot;Helvetica Neue&quot;, sans-serif; white-space-collapse: preserve;"><br style="color: rgb(0, 0, 0); font-family: Roboto, -apple-system, BlinkMacSystemFont, &quot;Apple Color Emoji&quot;, &quot;Segoe UI&quot;, Oxygen, Ubuntu, Cantarell, &quot;Fira Sans&quot;, &quot;Droid Sans&quot;, &quot;Helvetica Neue&quot;, sans-serif; white-space-collapse: preserve;"><span style="color: rgb(0, 0, 0); font-family: Roboto, -apple-system, BlinkMacSystemFont, &quot;Apple Color Emoji&quot;, &quot;Segoe UI&quot;, Oxygen, Ubuntu, Cantarell, &quot;Fira Sans&quot;, &quot;Droid Sans&quot;, &quot;Helvetica Neue&quot;, sans-serif; white-space-collapse: preserve;"><b>Best regards,  
-Brain-Labs Work</b></span></p><p><br></p> </strong></p>
-							                  <time class="chat-time" datetime="27 Jul, 2024"> <small>09:56 PM</small>
-							                  </time>
-							                  							                  							               </div>
-							            </div>
-						        		</div>
-						    								      </div>
+                              <!-- Message list container -->
+						      <div class="chats" id="support-message-list"> 
+						         <!-- Messages will be loaded here by JS -->
+                                 <p class="text-center text-muted">Loading messages...</p> 
+						      </div>
 					      </div>
+                          <!-- Message Input Form -->
 						   <div class="panel-footer">
-						   	<div class="form-group">
-						   		<div class="image-upload image-uploadx">
-                        <div class="thumb thumbx">
-                           <div class="upload-file">
-                              <input type="file" name="photo" class="form-control file-upload" id="photo">
-                              <label for="photo" class="btn btn-dark">upload photo</label>
-                              <span class="invalid-feedback"></span>
-                           </div>
-                        </div>
-                     </div>
-						   	</div>
-						      <div class="form-group">
-						         <textarea type="text" class="form-control" name="usermessage" id="usermessage"  placeholder="write your message" ></textarea>
-						      </div>
-						      <div class="form-group">
-						         <button type="submit" class="btn btn-info btn-block" id="userchat">Send Message</button>
-						      </div>
+                              <form id="support-form">
+                                  <div class="form-group mb-2">
+                                      <input type="text" class="form-control" id="support-subject-input" placeholder="Subject (Optional)">
+                                  </div>
+                                  <div class="form-group mb-2">
+                                      <textarea class="form-control" name="usermessage" id="usermessage" rows="3" placeholder="Write your message here..." required></textarea>
+                                  </div>
+                                  <div class="form-group">
+                                      <button type="submit" class="btn btn-info btn-block w-100" id="userchat">Send Message</button>
+                                  </div>
+                              </form>
 						   </div>
 						</div>
 					</div>
@@ -404,97 +262,96 @@ Brain-Labs Work</b></span></p><p><br></p> </strong></p>
         </div>
     </div>
 </footer>
- <script> let baseurl = 'http://127.0.0.1:5500/'; </script>
+ <script> let baseurl = '.'; </script> <!-- Use relative base URL -->
 
 <script src="./assets/frontend/js/bootstrap.bundle.min.js"></script>
 <script src="./assets/frontend/js/owl.carousel.min.js"></script>
 <script src="./assets/frontend/js/script.js"></script>
-  <script>
-  	  $("#photo").change(function(e) {
-      const file = e.target.files[0];
-      //let url = window.URL.createObjectURL(file);
-      //$("#image_preview").attr('src', url);
-      let form_data = new FormData();
-      form_data.append('photo', file);
-      //form_data.append('id', $("#webmaster_id").val());
-      form_data.append('_token', 't9EtiRskFKx5XpnOFvbrimp5ZgsKIg3UU1Ea1iDM');
-      $.ajax({
-         url: './support/image', // point to server-side PHP script
-         method: 'post',
-         data: form_data,
-         cache: false,
-         processData: false,
-         contentType: false, 
-         dataType: 'json',
-         success: function(response) {
-          $("#photo").val('');
-          window.location.reload();
-         }
-      });
-  });
+<!-- Load Component Loader -->
+<script src="./js/components.js"></script>
+<!-- Load Helper/Auth Scripts -->
+<script src="./js/main.js"></script> <!-- Contains fetchWithAuth, etc. -->
+<!-- Load Page Specific Script -->
+<script src="./js/support.js"></script> <!-- Script for this page -->
 
-     $("#userchat").click(function(e) {
-      e.preventDefault();
-         var loading = null;
-
-         var usermessage   = $("textarea[name=usermessage]").val();
-         var csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-
-         if(usermessage == ''){
-         	//loading.close();
-            $(document).dialog({
-               infoText: 'please write the message'
-            });
-         }else{
-
-         $.ajax({
-            url:'./support/store',
-            type: 'post',
-            headers: {
-                'X-CSRF-TOKEN': csrfToken
-            },
-            data: {
-            	'usermessage' : usermessage
-            },
-            dataType: 'json',
-            beforeSend:function(){
-               loading = $(document).dialog({
-                  type : 'notice',
-                  infoIcon: baseurl + '/assets/frontend/loader/loading.gif',
-                  infoText: 'validating data......',
-                  autoClose: 0
-               });
-            },
-            success:function(data){
-
-                if(data.success) {
-                    $(document).dialog({
-                     infoText: data.message
-                  });
-                  setTimeout(function(){
-                     window.location.reload();
-                  },2000);
-                }
-                if(data.error) {
-                    loading.close();
-                   $(document).dialog({
-                        infoText: data.usermessage
-                     });
-                }/*else{
-                     $(document).dialog({
-                        infoText: "error",autoClose:2000
-                     });
-                  }*/
-            },
-            error:function (data) {
-               loading.close();
-            }
-         });
-
-        }
-
-    });
- 
-  </script> 
 </body>
 </html>
+
+</final_file_content>
+
+Now that you have the latest state of the file, try the operation again with fewer, more precise SEARCH blocks. For large files especially, it may be prudent to try to limit yourself to <5 SEARCH/REPLACE blocks at a time, then wait for the user to respond with the result of the operation before following up with another replace_in_file call to make additional edits.
+(If you run into this error 3 times in a row, you may use the write_to_file tool as a fallback.)
+</error><environment_details>
+# VSCode Visible Files
+../../../../response_51e46213-458f-4a78-8c87-91edb171d7d7/0
+../../../../response_51e46213-458f-4a78-8c87-91edb171d7d7/1
+../../../../response_51e46213-458f-4a78-8c87-91edb171d7d7/2
+../../../../response_cedd5dd8-d4fe-4a7d-a3bd-c476c916d707/0
+../../../../response_cedd5dd8-d4fe-4a7d-a3bd-c476c916d707/0
+../../../../response_cedd5dd8-d4fe-4a7d-a3bd-c476c916d707/1
+../../../../response_cedd5dd8-d4fe-4a7d-a3bd-c476c916d707/1
+../../../../response_cedd5dd8-d4fe-4a7d-a3bd-c476c916d707/2
+../../../../response_cedd5dd8-d4fe-4a7d-a3bd-c476c916d707/2
+public/support.html
+
+# VSCode Open Tabs
+server/config/db.js
+PRD.md
+public/js/main.js
+public/assets/js/script.js
+server/utils/helpers.js
+server/middlewares/auth.js
+server/controllers/auth.js
+public/js/auth.js
+public/admin.html
+public/js/admin.js
+server/routes/drive.js
+server/server.js
+public/assets/frontend/js/script.js
+drive.md
+.env
+public/drive.html
+server/controllers/driveController.js
+server/controllers/adminController.js
+server/routes/admin.js
+public/js/task.js
+public/js/blue.md
+scraper.js
+web-ui/.env
+product_scraper.py
+public/profile.html
+public/js/profile.js
+server/controllers/userController.js
+server/routes/user.js
+public/bindaddress.html
+public/js/bindaddress.js
+sql/init.sql
+public/support.html
+products.json
+products_backup.json
+public/account.html
+public/js/account.js
+../../Downloads/OwlCarousel2-2.3.4 (1)/OwlCarousel2-2.3.4/README.md
+package.json
+public/task.html
+public/js/withdraw.js
+public/withdraws.html
+public/js/deposit.js
+public/deposits.html
+server/logger.js
+public/js/components.js
+public/js/dashboard.js
+
+# Recently Modified Files
+These files have been modified since you last accessed them (file was just edited so you may need to re-read it before editing):
+public/support.html
+
+# Current Time
+4/21/2025, 10:54:00 PM (Africa/Nairobi, UTC+3:00)
+
+# Context Window Usage
+630,434 / 1,000K tokens used (63%)
+
+# Current Mode
+ACT MODE
+</environment_details>

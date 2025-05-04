@@ -60,6 +60,7 @@
                         <option value="platinum">Platinum</option>
                     </select>
                     <button id="update-tier-button" class="btn btn-primary btn-sm">Update Tier</button>
+                    <button id="reset-drive-button" class="btn btn-warning btn-sm ml-2">Reset Drive</button> <!-- Added Reset Button -->
                 </div>
                 <hr>
                 <div class="action-buttons form-inline">
@@ -74,6 +75,18 @@
                     <input type="text" id="transaction-description" class="form-control d-inline-block w-auto" placeholder="Description">
                     <button id="submit-transaction-button" class="btn btn-success btn-sm">Submit Transaction</button>
                 </div>
+                <hr>
+                <form id="admin-notification-form">
+                    <h3>Send Notification to User</h3>
+                    <label for="notify-user-id">User ID:</label>
+                    <input type="number" id="notify-user-id" name="user_id" required>
+                    <br>
+                    <label for="notify-message">Message:</label>
+                    <textarea id="notify-message" name="message" required></textarea>
+                    <br>
+                    <button type="submit">Send Notification</button>
+                    <div id="notify-status"></div>
+                </form>
             </div>
         </div>
 

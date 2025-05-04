@@ -4,9 +4,12 @@ const express = require('express');
 const cors = require('cors');
 const pool = require('./config/db');
 const path = require('path');
+const { v4: uuidv4 } = require('uuid');
+
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const { calculateCommission } = require('./utils/commission'); // Import commission helper
 
 // Middleware
 app.use(cors());
@@ -41,25 +44,31 @@ async function testCommissionService() {
 if (!testUser) {
   logger.error('Admin user not found for commission testing.');
   return;
-}
+    }
+    const userTier = userResult.rows[0].tier || 'bronze'; // Get user tier
 
-    // 2. Get test product (Basic Data Drive)
-    const productResult = await pool.query('SELECT id, price, commission_rate FROM products WHERE name = $1', ['Basic Data Drive']);
+    // 2. Get test product (Basic Data Drive) - Remove commission_rate
+    const productResult = await pool.query('SELECT id, price FROM products WHERE name = $1', ['Basic Data Drive']);
     const testProduct = productResult.rows[0];
 if (!testProduct) {
   logger.error('Basic Data Drive product not found for commission testing.');
   return;
 }
 
+    // Calculate commission based on tier for testing
+    const testCommission = calculateCommission(testProduct.price, userTier);
+
 logger.info('--- Testing Direct Drive Commission ---');
+    // Pass calculated commission or let the service calculate it internally if it fetches tier
+    // Assuming CommissionService.calculateDirectDriveCommission now fetches tier internally or accepts it
     await CommissionService.calculateDirectDriveCommission(
       testUser.id,
       testProduct.id,
-      testProduct.price,
-      testProduct.commission_rate
+      testProduct.price
+      // testCommission // Pass calculated commission if needed by the service
     );
 
-    // Upline commission is handled within calculateDirectDriveCommission
+    // Upline commission should also be handled internally by the service based on tiers
 
 logger.info('--- Testing Training Account Commission ---');
     await CommissionService.calculateTrainingCommission(

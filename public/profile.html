@@ -105,23 +105,26 @@
                </li>
             </a>
             <!-- End Registration Date -->
-            <a href="./withdraw/password.html" style="text-decoration:none;">
-               <li class="list-group-item">
-                  <div class="row">
-                     <div class="col align-self-center">
-                        <p class=""><b>Withdraw Password</b></p>
+            <!-- Withdraw Password - Changed to button trigger -->
+            <li class="list-group-item">
+               <div class="row">
+                  <div class="col align-self-center">
+                     <button type="button" class="btn btn-link text-start p-0 text-decoration-none text-dark" data-bs-toggle="modal" data-bs-target="#changeWithdrawPasswordModal">
+                        <p class="mb-0"><b>Withdraw Password</b></p>
+                     </button>
                      </div>
                      <div class="col align-self-center text-end">
                         <i class="fas fa-angle-right" style="font-size: 15px"></i>
-                     </div>
                   </div>
-               </li>
-            </a>
-            <a href="./login/password.html" style="text-decoration:none;">
-               <li class="list-group-item">
-                  <div class="row">
-                     <div class="col align-self-center">
-                        <p class=""><b>Login password</b></p>
+               </div>
+            </li>
+            <!-- Login Password - Changed to button trigger -->
+            <li class="list-group-item">
+               <div class="row">
+                  <div class="col align-self-center">
+                     <button type="button" class="btn btn-link text-start p-0 text-decoration-none text-dark" data-bs-toggle="modal" data-bs-target="#changeLoginPasswordModal">
+                        <p class="mb-0"><b>Login password</b></p>
+                     </button>
                      </div>
                      <div class="col align-self-center text-end">
                         <i class="fas fa-angle-right" style="font-size: 15px"></i>
@@ -133,6 +136,77 @@
       </div>
    </div>
    </div>
+
+    <!-- Modals for Password Change -->
+    <!-- Login Password Modal -->
+    <div class="modal fade" id="changeLoginPasswordModal" tabindex="-1" aria-labelledby="changeLoginPasswordModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="changeLoginPasswordModalLabel">Change Login Password</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <form id="loginPasswordForm">
+              <div class="mb-3">
+                <label for="currentLoginPassword" class="form-label">Current Password</label>
+                <input type="password" class="form-control" id="currentLoginPassword" required>
+              </div>
+              <div class="mb-3">
+                <label for="newLoginPassword" class="form-label">New Password</label>
+                <input type="password" class="form-control" id="newLoginPassword" required>
+              </div>
+              <div class="mb-3">
+                <label for="confirmNewLoginPassword" class="form-label">Confirm New Password</label>
+                <input type="password" class="form-control" id="confirmNewLoginPassword" required>
+              </div>
+              <div id="loginPasswordError" class="text-danger mb-2" style="display: none;"></div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            <button type="button" class="btn btn-primary" id="submitLoginPasswordChange">Save Changes</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Withdraw Password Modal -->
+    <div class="modal fade" id="changeWithdrawPasswordModal" tabindex="-1" aria-labelledby="changeWithdrawPasswordModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="changeWithdrawPasswordModalLabel">Change Withdraw Password</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+             <p class="text-muted small">If not set, the withdrawal password defaults to your login password.</p>
+            <form id="withdrawPasswordForm">
+              <div class="mb-3">
+                <label for="currentWithdrawPassword" class="form-label">Current Password (Login Password)</label>
+                <input type="password" class="form-control" id="currentWithdrawPassword" required>
+                <small class="text-muted">Enter your current login password to verify.</small>
+              </div>
+              <div class="mb-3">
+                <label for="newWithdrawPassword" class="form-label">New Withdraw Password</label>
+                <input type="password" class="form-control" id="newWithdrawPassword" required>
+              </div>
+              <div class="mb-3">
+                <label for="confirmNewWithdrawPassword" class="form-label">Confirm New Withdraw Password</label>
+                <input type="password" class="form-control" id="confirmNewWithdrawPassword" required>
+              </div>
+               <div id="withdrawPasswordError" class="text-danger mb-2" style="display: none;"></div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            <button type="button" class="btn btn-primary" id="submitWithdrawPasswordChange">Save Changes</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- End Modals -->
+
     </div>
 </main>
 <footer>

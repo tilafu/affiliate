@@ -26,6 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Add event listeners
     document.getElementById('add-product-form').addEventListener('submit', handleAddProduct);
     document.getElementById('update-tier-button').addEventListener('click', handleUpdateTier);
+    document.getElementById('reset-drive-button').addEventListener('click', handleResetDrive); // Added listener for reset button
     document.getElementById('submit-transaction-button').addEventListener('click', handleManualTransaction);
 
     // Event delegation for manage buttons in user list
@@ -50,6 +51,39 @@ document.addEventListener('DOMContentLoaded', () => {
         // Add similar logic for an 'edit-product-btn' if needed later
     });
 
+    const form = document.getElementById('admin-notification-form');
+    const statusDiv = document.getElementById('notify-status');
+    // const adminToken = localStorage.getItem('admin_token'); // INCORRECT - Use the standard auth token
+
+    if (form) {
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            statusDiv.textContent = 'Sending...';
+
+            const user_id = document.getElementById('notify-user-id').value;
+            const message = document.getElementById('notify-message').value;
+
+            try {
+                const res = await fetch('/api/admin/notifications', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${getAuthToken()}` // CORRECTED - Use standard auth token
+                    },
+                    body: JSON.stringify({ user_id, message })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    statusDiv.textContent = 'Notification sent!';
+                    form.reset();
+                } else {
+                    statusDiv.textContent = 'Failed: ' + (data.message || 'Unknown error');
+                }
+            } catch (err) {
+                statusDiv.textContent = 'Error sending notification.';
+            }
+        });
+    }
 });
 
 // --- Helper: Get Auth Token ---
@@ -248,6 +282,49 @@ function loadUserWithdrawals(userId) {
     });
 }
 
+async function handleResetDrive() {
+    if (!selectedUserId) {
+        showNotification('Please select a user first.', 'warning');
+        return;
+    }
+
+    if (!confirm(`Are you sure you want to reset the drive session for user ${selectedUserId}? This allows them to start a new drive.`)) {
+        return;
+    }
+
+    const token = getAuthToken();
+    const button = document.getElementById('reset-drive-button');
+    button.disabled = true;
+    button.textContent = 'Resetting...';
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/admin/users/${selectedUserId}/reset-drive`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`
+                // No Content-Type or body needed for this request
+            }
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+            showNotification(data.message || `Drive reset successfully for user ${selectedUserId}.`, 'success');
+            // Optionally hide the management section again
+            document.getElementById('user-details').style.display = 'none';
+            selectedUserId = null;
+        } else {
+            throw new Error(data.message || `Failed to reset drive (${response.status})`);
+        }
+    } catch (error) {
+        console.error('Error resetting drive:', error);
+        showNotification(`Error resetting drive: ${error.message}`, 'error');
+    } finally {
+        button.disabled = false;
+        button.textContent = 'Reset Drive';
+    }
+}
+
 // --- Product Management ---
 async function loadProducts() {
     const productListBody = document.getElementById('product-list');
@@ -397,4 +474,12 @@ async function handleDeleteProduct(productId) {
     } finally {
         // Re-enable button if it was disabled
     }
+}
+
+async function loadSupportMessages() {
+  const res = await fetch('/api/admin/support/messages', { headers: { Authorization: `Bearer ${adminToken}` } });
+  const data = await res.json();
+  if (data.success) {
+    // Render messages in a table or list
+  }
 }
