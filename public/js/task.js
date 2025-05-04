@@ -549,8 +549,8 @@ function checkDriveStatus(token) {
         console.log('checkDriveStatus: No token found, returning.');
         return;
     }
-    console.log('Checking drive status with token...');
-    fetch(`${API_BASE_URL}/api/drive/status`, {
+
+    return fetch(`${API_BASE_URL}/api/drive/status`, {
         method: 'GET',
         headers: {
             'Authorization': `Bearer ${token}`,
@@ -561,34 +561,47 @@ function checkDriveStatus(token) {
     .then(data => {
         console.log('Drive status response received:', data);
         console.log('Drive status:', data.status);
-        if (data.status === 'active' && data.current_order) {
-            console.log('checkDriveStatus: Active session with current order found. Resuming drive.');
-            if (autoStartButton) autoStartButton.style.display = 'none';
-            if (productCardContainer) productCardContainer.style.display = 'block';
-            renderProductCard(data.current_order);
-            currentProductData = data.current_order;
-            if (tasksProgressElement && data.tasks_completed !== undefined && data.tasks_required !== undefined) {
-                tasksProgressElement.textContent = `(${data.tasks_completed} / ${data.tasks_required})`;
-                totalTasksRequired = data.tasks_required;
+
+        if (data.code === 0) {
+            if (data.status === 'active' && data.current_order) {
+                console.log('checkDriveStatus: Active session with current order found. Resuming drive.');
+                if (autoStartButton) autoStartButton.style.display = 'none';
+                if (productCardContainer) {
+                    productCardContainer.style.display = 'block';
+                    renderProductCard(data.current_order);
+                    currentProductData = data.current_order;
+                }
+                if (tasksProgressElement && data.tasks_completed !== undefined && data.tasks_required !== undefined) {
+                    tasksProgressElement.textContent = `(${data.tasks_completed} / ${data.tasks_required})`;
+                    totalTasksRequired = data.tasks_required;
+                }
+                return true;
+            } else if (data.status === 'frozen') {
+                console.log('checkDriveStatus: Frozen session found. Displaying frozen state.');
+                displayFrozenState(data.info || "Session frozen due to insufficient balance.", data.frozen_amount_needed);
+                if (autoStartButton) autoStartButton.style.display = 'none';
+                return true;
+            } else if (data.status === 'complete') {
+                console.log('checkDriveStatus: Drive complete.');
+                displayDriveComplete(data.info || 'Drive completed successfully.');
+                if (autoStartButton) autoStartButton.style.display = 'none';
+                return true;
+            } else if (data.status === 'no_session') {
+                console.log('checkDriveStatus: No active session found.');
+                if (autoStartButton) autoStartButton.style.display = 'block';
+                if (productCardContainer) productCardContainer.style.display = 'none';
+                return false;
             }
-        } else if (data.status === 'frozen') {
-             console.log('checkDriveStatus: Frozen session found. Displaying frozen state.');
-            displayFrozenState(data.info || "Session frozen due to insufficient balance.", data.frozen_amount_needed);
-            if (autoStartButton) autoStartButton.style.display = 'none';
-        } else if (data.status === 'complete' || data.status === 'no_session') {
-             console.log('checkDriveStatus: Drive complete or no session found.');
-            if (autoStartButton) autoStartButton.style.display = 'block';
-            if (productCardContainer) productCardContainer.style.display = 'none';
         }
-         else {
-             console.warn('checkDriveStatus: Received unexpected status:', data.status, 'with data:', data);
-             if (autoStartButton) autoStartButton.style.display = 'block';
-             if (productCardContainer) productCardContainer.style.display = 'none';
-        }
+        console.warn('checkDriveStatus: Received unexpected status:', data.status, 'with data:', data);
+        if (autoStartButton) autoStartButton.style.display = 'block';
+        if (productCardContainer) productCardContainer.style.display = 'none';
+        return false;
     })
     .catch(error => {
         console.error('checkDriveStatus: Error checking drive status:', error);
-         if (autoStartButton) autoStartButton.style.display = 'block';
-         if (productCardContainer) productCardContainer.style.display = 'none';
+        if (autoStartButton) autoStartButton.style.display = 'block';
+        if (productCardContainer) productCardContainer.style.display = 'none';
+        return false;
     });
 }

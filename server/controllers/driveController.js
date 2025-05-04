@@ -92,21 +92,33 @@ const startDrive = async (req, res) => {
 
 const getDriveStatus = async (req, res) => {
   const userId = req.user.id;
-  console.log(`getDriveStatus called for user: ${userId}`); // Log start of function
+  console.log(`getDriveStatus called for user: ${userId}`);
   try {
+    // First check for ANY active, pending_reset, or frozen session
     const sessionResult = await pool.query(
-      `SELECT id, tasks_completed, tasks_required, status, frozen_amount_needed
+      `SELECT id, status, tasks_completed, tasks_required, frozen_amount_needed
        FROM drive_sessions
-       WHERE user_id = $1 AND status IN ('active', 'frozen')
+       WHERE user_id = $1 AND status IN ('active', 'pending_reset', 'frozen')
        ORDER BY started_at DESC LIMIT 1`,
       [userId]
     );
+    
     if (sessionResult.rows.length === 0) {
       return res.json({ code: 0, status: 'no_session' });
     }
 
     const session = sessionResult.rows[0];
     const sessionId = session.id;
+    
+    if (session.status === 'pending_reset') {
+      return res.json({ 
+        code: 0, 
+        status: 'complete',
+        tasks_completed: session.tasks_completed,
+        tasks_required: session.tasks_required,
+        info: 'Drive is complete. Please wait for admin reset.' 
+      });
+    }
 
     if (session.status === 'frozen') {
        return res.json({
@@ -114,83 +126,77 @@ const getDriveStatus = async (req, res) => {
          status: 'frozen',
          tasks_completed: session.tasks_completed,
          tasks_required: session.tasks_required,
-         frozen_amount_needed: session.frozen_amount_needed
+         frozen_amount_needed: session.frozen_amount_needed,
+         info: `Session frozen. Please deposit at least ${session.frozen_amount_needed} USDT to continue.`
        });
     }
 
-    // Find the current order if it exists
-    const currentOrderResult = await pool.query(
-      `SELECT do.id AS order_id, p.id AS product_id, p.name AS product_name, p.image_url AS product_image, p.price AS product_price
-       FROM drive_orders do
-       JOIN products p ON do.product_id = p.id
-       WHERE do.session_id = $1 AND do.status = 'current' LIMIT 1`,
+    // Look for ANY incomplete order (either current or pending)
+    const incompleteOrderResult = await pool.query(
+      `SELECT drv_ord.id AS order_id, drv_ord.status AS order_status, 
+              p.id AS product_id, p.name AS product_name, 
+              p.image_url AS product_image, p.price AS product_price
+       FROM drive_orders drv_ord
+       JOIN products p ON drv_ord.product_id = p.id
+       WHERE drv_ord.session_id = $1 
+       AND drv_ord.status IN ('current', 'pending')
+       ORDER BY CASE 
+         WHEN drv_ord.status = 'current' THEN 0 
+         WHEN drv_ord.status = 'pending' THEN 1 
+       END, drv_ord.id ASC
+       LIMIT 1`,
       [sessionId]
     );
 
-    if (currentOrderResult.rows.length > 0) {
-      const currentOrder = currentOrderResult.rows[0];
+    if (incompleteOrderResult.rows.length > 0) {
+      const incompleteOrder = incompleteOrderResult.rows[0];
       const { tier } = await getUserDriveInfo(userId);
-      const commission = calculateCommission(parseFloat(currentOrder.product_price), tier, 'single');
+      const commission = calculateCommission(parseFloat(incompleteOrder.product_price), tier, 'single');
+
+      // If order was pending, set it to current
+      if (incompleteOrder.order_status === 'pending') {
+        await pool.query(
+          `UPDATE drive_orders SET status = 'current' WHERE id = $1`,
+          [incompleteOrder.order_id]
+        );
+        incompleteOrder.order_status = 'current';
+      }
+
       return res.json({
         code: 0,
         status: 'active',
         tasks_completed: session.tasks_completed,
         tasks_required: session.tasks_required,
         current_order: {
-          order_id: currentOrder.order_id,
-          product_id: currentOrder.product_id,
-          product_name: currentOrder.product_name,
-          product_image: currentOrder.product_image || './assets/uploads/products/newegg-1.jpg',
-          product_price: parseFloat(currentOrder.product_price),
+          order_id: incompleteOrder.order_id,
+          product_id: incompleteOrder.product_id,
+          product_name: incompleteOrder.product_name,
+          product_image: incompleteOrder.product_image || './assets/uploads/products/newegg-1.jpg',
+          product_price: parseFloat(incompleteOrder.product_price),
           order_commission: commission,
-          fund_amount: parseFloat(currentOrder.product_price),
-          premium_status: 0, // Assuming single products are not premium in this context
-          product_number: uuidv4().substring(0, 18) // Add product_number for consistency
+          fund_amount: parseFloat(incompleteOrder.product_price),
+          premium_status: 0,
+          product_number: uuidv4().substring(0, 18)
         }
       });
     }
 
-    // If no current order, find the next pending one and set it to current
-    const nextPendingOrderResult = await pool.query(
-      `SELECT do.id AS order_id, p.id AS product_id, p.name AS product_name, p.image_url AS product_image, p.price AS product_price
-       FROM drive_orders do
-       JOIN products p ON do.product_id = p.id
-       WHERE do.session_id = $1 AND do.status = 'pending'
-       ORDER BY do.id ASC LIMIT 1`,
+    // If no incomplete orders, mark the drive as complete
+    await pool.query(
+      `UPDATE drive_sessions SET status = 'pending_reset', completed_at = NOW() WHERE id = $1`,
       [sessionId]
     );
 
-    if (nextPendingOrderResult.rows.length > 0) {
-      const nextPendingOrder = nextPendingOrderResult.rows[0];
-      await pool.query(
-        `UPDATE drive_orders SET status = 'current' WHERE id = $1`,
-        [nextPendingOrder.order_id]
-      );
-      const { tier } = await getUserDriveInfo(userId);
-      const commission = calculateCommission(parseFloat(nextPendingOrder.product_price), tier, 'single');
-       return res.json({
-        code: 0,
-        status: 'active',
-        tasks_completed: session.tasks_completed,
-        tasks_required: session.tasks_required,
-        current_order: {
-          order_id: nextPendingOrder.order_id,
-          product_id: nextPendingOrder.product_id,
-          product_name: nextPendingOrder.product_name,
-          product_image: nextPendingOrder.product_image || './assets/uploads/products/newegg-1.jpg',
-          product_price: parseFloat(nextPendingOrder.product_price),
-          order_commission: commission,
-          fund_amount: parseFloat(nextPendingOrder.product_price),
-          premium_status: 0,
-          product_number: uuidv4().substring(0, 18) // Add product_number for consistency
-        }
-      });
-    }
-
-    // If no pending or current orders, the drive is complete
-    return res.json({ code: 0, status: 'complete', tasks_completed: session.tasks_completed, tasks_required: session.tasks_required });
+    return res.json({ 
+      code: 0, 
+      status: 'complete', 
+      tasks_completed: session.tasks_completed,
+      tasks_required: session.tasks_required,
+      info: 'Drive completed successfully. Please wait for admin reset.'
+    });
 
   } catch (error) {
+    logger.error('Error getting drive status:', error);
     res.status(500).json({ code: 1, info: 'Server error getting drive status: ' + error.message });
   }
 };

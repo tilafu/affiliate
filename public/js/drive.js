@@ -336,3 +336,70 @@ async function checkDriveStatus(token) {
          driveContentArea.style.display = 'none';
     }
 }
+
+async function checkDriveStatus() {
+    try {
+        const response = await fetch('/api/drive/status', {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+            }
+        });
+        const data = await response.json();
+        
+        if (data.code === 0) {
+            if (data.status === 'active' && data.current_order) {
+                // Resume existing drive with current order
+                renderCurrentOrder(data.current_order);
+                updateProgressBar(data.tasks_completed, data.tasks_required);
+                return true;
+            } else if (data.status === 'frozen') {
+                showFrozenDialog(data.frozen_amount_needed);
+                return true;
+            } else if (data.status === 'no_session') {
+                return false;
+            }
+        }
+        return false;
+    } catch (error) {
+        console.error('Error checking drive status:', error);
+        return false;
+    }
+}
+
+// Modify the document ready handler
+$(document).ready(async function() {
+    // Check for existing drive session first
+    const hasActiveSession = await checkDriveStatus();
+    if (!hasActiveSession) {
+        // Only show start drive button if no active session
+        $('#startDriveBtn').show();
+    }
+    
+    // ... rest of the existing document ready code ...
+});
+
+// Update the startDrive function
+async function startDrive() {
+    try {
+        // First check if there's an existing session
+        const hasActiveSession = await checkDriveStatus();
+        if (hasActiveSession) {
+            return; // Session already exists and has been restored
+        }
+
+        // ... rest of the existing startDrive code ...
+    } catch (error) {
+        console.error('Error starting drive:', error);
+        showError('Failed to start drive. Please try again.');
+    }
+}
+
+// Add function to show frozen dialog
+function showFrozenDialog(amountNeeded) {
+    const message = `Your drive session is frozen. Please deposit at least ${amountNeeded} USDT to continue.`;
+    // Use your preferred dialog/notification system
+    alert(message); // Replace with your UI component
+    // Optionally redirect to deposit page
+    // window.location.href = '/deposits.html';
+}
