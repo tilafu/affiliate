@@ -447,37 +447,41 @@ const getDriveOrders = async (req, res) => {
     );
     if (sessionResult.rows.length === 0)
       return res.status(400).json({ code: 1, info: 'No active or frozen drive session found.' });
+    
     const session = sessionResult.rows[0];
     const sessionId = session.id;
     const sessionStatus = session.status;
+    
     let query = `
       SELECT
-        do.id AS order_id,
-        do.status AS order_status,
+        drv_orders.id AS order_id,
+        drv_orders.status AS order_status,
         p.id AS product_id,
         p.name AS product_name,
         p.image_url AS product_image,
         p.price AS product_price
-      FROM drive_orders do
-      JOIN products p ON do.product_id = p.id
-      WHERE do.session_id = $1
+      FROM drive_orders drv_orders
+      JOIN products p ON drv_orders.product_id = p.id
+      WHERE drv_orders.session_id = $1
     `;
+    
     const queryParams = [sessionId];
+    
     if (statusFilter && statusFilter !== 'all') {
       if (statusFilter === 'frozen') {
         if (sessionStatus !== 'frozen') return res.json({ code: 0, orders: [] });
       } else if (statusFilter === 'pending') {
-         query += ` AND do.status = 'current'`;
-      }
-      else {
-        query += ` AND do.status = $2`;
+         query += ` AND drv_orders.status = 'current'`; // Changed from 'pending' to 'current'
+      } else {
+        query += ` AND drv_orders.status = $2`;
         queryParams.push(statusFilter);
       }
     } else if (statusFilter === 'all') {
-        query += ` AND do.status IN ('current', 'completed')`;
+        query += ` AND drv_orders.status IN ('pending', 'completed')`; // Changed order of statuses
     }
 
-    query += ` ORDER BY do.id ASC`;
+    query += ` ORDER BY drv_orders.id ASC`;
+    
     const ordersResult = await pool.query(query, queryParams);
     const orders = ordersResult.rows.map(order => ({
       order_id: order.order_id,
@@ -487,6 +491,7 @@ const getDriveOrders = async (req, res) => {
       product_price: parseFloat(order.product_price).toFixed(2),
       order_status: sessionStatus === 'frozen' ? 'frozen' : order.order_status
     }));
+
     res.json({ code: 0, orders });
   } catch (error) {
     res.status(500).json({ code: 1, info: 'Server error getting drive orders: ' + error.message });
