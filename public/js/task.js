@@ -38,7 +38,7 @@ function initializeTaskPage() {
   // Get references to key elements
   autoStartButton = document.getElementById('autoStart');
   productCardContainer = document.getElementById('product-card-container'); // Get reference to the new container
-  walletBalanceElement = document.querySelector('.datadrive-balance strong'); // Element displaying balance
+  walletBalanceElement = document.querySelector('.datadrive-balance strong');  // Select the strong element directly
   tasksProgressElement = document.querySelector('.item-card h5'); // Element displaying tasks completed/required
   orderLoadingOverlay = document.getElementById('order-loading-overlay'); // Get reference to the loading overlay
 
@@ -46,6 +46,9 @@ function initializeTaskPage() {
   if (autoStartButton) autoStartButton.style.display = 'block';
   if (productCardContainer) productCardContainer.style.display = 'none';
   if (orderLoadingOverlay) orderLoadingOverlay.style.display = 'none';
+
+  // Initial balance fetch
+  refreshWalletBalance();
 
   // --- Event Listeners ---
   // Attach listener for the Start button
@@ -97,39 +100,43 @@ if (document.readyState === 'loading') {
 
 // --- Balance Fetch Function ---
 function fetchBalance(token) {
-    fetch(`${API_BASE_URL}/api/user/balance`, {
+    if (!token) return;
+
+    const balanceElement = document.querySelector('.datadrive-balance');
+    if (!balanceElement) return;
+
+    fetch(`${API_BASE_URL}/api/user/balances`, {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
         },
-      })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            return response.json();
-        })
-        .then(data => {
-          if (data.success) {
-            if (walletBalanceElement) {
-                 walletBalanceElement.textContent = `${data.balance.toFixed(2)}`;
-            }
-          } else {
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success && data.balances) {
+            const mainBalance = parseFloat(data.balances.main_balance || 0);
+            balanceElement.innerHTML = `<strong>${mainBalance.toFixed(2)}<small style="font-size:14px"> USDT</small></strong>`;
+        } else {
             console.error('Failed to fetch balance:', data.message);
             if (typeof showNotification === 'function') {
                 showNotification(`Failed to fetch balance: ${data.message}`, 'error');
             }
-             if (walletBalanceElement) walletBalanceElement.textContent = 'Error';
-          }
-        })
-        .catch(error => {
-          console.error('Error fetching balance:', error);
-           if (typeof showNotification === 'function') {
-                showNotification(`Error fetching balance: ${error.message}`, 'error');
-            }
-             if (walletBalanceElement) walletBalanceElement.textContent = 'Error';
-        });
+            balanceElement.innerHTML = '<strong>Error</strong>';
+        }
+    })
+    .catch(error => {
+        console.error('Error fetching balance:', error);
+        if (typeof showNotification === 'function') {
+            showNotification(`Error fetching balance: ${error.message}`, 'error');
+        }
+        balanceElement.innerHTML = '<strong>Error</strong>';
+    });
 }
 
 // --- Helper to safely update wallet balance everywhere ---
@@ -137,15 +144,7 @@ function refreshWalletBalance() {
     const token = localStorage.getItem('auth_token');
     if (token) {
         fetchBalance(token);
-    } else {
-        if (walletBalanceElement) walletBalanceElement.textContent = 'N/A';
     }
-}
-
-// --- Random Sum Helper ---
-function randomSum(min, max) {
-  var num = Math.floor(Math.random()*(max - min) + min);
-  return num;
 }
 
 function startDriveProcess(token) {
@@ -347,46 +346,54 @@ function fetchNextOrder(token) {
     .then(data => {
         $('.product-carousel').trigger('play.owl.autoplay', [3000]);
         if (orderLoadingOverlay) orderLoadingOverlay.style.display = 'none';
+        
         if (data.code === 2) {
             console.log("Drive complete message received from backend.");
-            displayDriveComplete(data.info || 'Data drive complete for today.');
+            displayDriveComplete(data.info || 'Congratulations! Your data drive is complete. Please contact your administrator to reset the drive for your next session.');
+            if (autoStartButton) autoStartButton.style.display = 'none';
             refreshWalletBalance();
         } else if (data.code === 3) {
-             console.warn("Drive Frozen message received from backend.");
-             displayFrozenState(data.info || "Session frozen due to insufficient balance.", data.frozen_amount_needed);
-             refreshWalletBalance();
+            console.warn("Drive Frozen message received from backend.");
+            displayFrozenState(data.info || "Session frozen due to insufficient balance.", data.frozen_amount_needed);
+            refreshWalletBalance();
         }
         else if (data.success) {
-             currentProductData = data;
-             if (data.premium_status == 0 && data.product_image) {
-                 $('.product-carousel .item img').each(function() {
-                     if ($(this).attr('src') === data.product_image) {
-                         $(this).parent().addClass('highlighted-product');
-                         let itemIndex = $(this).parent().index();
-                         $('.product-carousel').trigger('to.owl.carousel', [itemIndex, 300]);
-                     }
-                 });
-                 setTimeout(() => {
-                     $('.product-carousel .item').removeClass('highlighted-product');
-                 }, 3000);
-             }
+            currentProductData = data;
+            if (data.premium_status == 0 && data.product_image) {
+                $('.product-carousel .item img').each(function() {
+                    if ($(this).attr('src') === data.product_image) {
+                        $(this).parent().addClass('highlighted-product');
+                        let itemIndex = $(this).parent().index();
+                        $('.product-carousel').trigger('to.owl.carousel', [itemIndex, 300]);
+                    }
+                });
+                setTimeout(() => {
+                    $('.product-carousel .item').removeClass('highlighted-product');
+                }, 3000);
+            }
             if (data.premium_status == 0) {
                 renderProductCard(data);
                 console.log("Single product order received", data);
             } else if (data.premium_status == 1) {
                 console.log("Combo order received, rendering not yet implemented for card.", data);
-                 if (typeof showNotification === 'function') {
+                if (typeof showNotification === 'function') {
                     showNotification('Combo order received, rendering not yet implemented.', 'info');
-                 } else { alert('Combo order received, rendering not yet implemented.'); }
-                 displayDriveError('Combo order received. Combo rendering not yet implemented.');
+                } else { alert('Combo order received, rendering not yet implemented.'); }
+                displayDriveError('Combo order received. Combo rendering not yet implemented.');
             } else {
-                 console.error('Unknown premium_status:', data.premium_status);
-                 displayDriveError('Received unknown order type.');
+                console.error('Unknown premium_status:', data.premium_status);
+                displayDriveError('Received unknown order type.');
             }
-             refreshWalletBalance();
+            refreshWalletBalance();
         } else {
             console.error('Error fetching next order:', data.info || data.message);
-             displayDriveError(`Error fetching order: ${data.info || data.message || 'Unknown error'}`);
+            if (data.code === 1) {
+                // Handle specific error for no active session
+                displayDriveComplete(data.info || 'Your drive session is complete. Please contact your administrator to reset the drive.');
+                if (autoStartButton) autoStartButton.style.display = 'none';
+            } else {
+                displayDriveError(`Error fetching order: ${data.info || data.message || 'Unknown error'}`);
+            }
         }
     })
     .catch(error => {
@@ -605,3 +612,10 @@ function checkDriveStatus(token) {
         return false;
     });
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+    const token = localStorage.getItem('auth_token');
+    if (token) {
+        refreshWalletBalance();
+    }
+});

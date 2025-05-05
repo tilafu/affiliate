@@ -207,13 +207,29 @@ const getOrder = async (req, res) => {
     const sessionResult = await pool.query(
       `SELECT id, tasks_completed, tasks_required, status
        FROM drive_sessions
-       WHERE user_id = $1 AND status = 'active'
+       WHERE user_id = $1 AND (status = 'active' OR status = 'pending_reset')
        ORDER BY started_at DESC LIMIT 1`,
       [userId]
     );
-    if (sessionResult.rows.length === 0) return res.status(400).json({ success: false, code: 1, info: 'No active drive session found. Please start a drive.' });
+    
+    if (sessionResult.rows.length === 0) {
+      return res.status(400).json({ 
+        success: false, 
+        code: 1, 
+        info: 'No active drive session found. Please start a drive.' 
+      });
+    }
+
     const session = sessionResult.rows[0];
-    if (session.tasks_completed >= session.tasks_required) return res.json({ success: true, code: 2, info: 'Data drive complete for today.' });
+
+    if (session.status === 'pending_reset') {
+      return res.json({ 
+        success: true, 
+        code: 2, 
+        info: 'Congratulations! You have completed your drive session. Please contact your administrator to reset the drive for your next session.' 
+      });
+    }
+
     const { tier, balance } = await getUserDriveInfo(userId);
 
     // Check if there's a current order already
@@ -447,12 +463,12 @@ const getDriveOrders = async (req, res) => {
     const sessionResult = await pool.query(
       `SELECT id, status
        FROM drive_sessions
-       WHERE user_id = $1 AND status IN ('active', 'frozen')
+       WHERE user_id = $1 AND status IN ('active', 'frozen', 'pending_reset')
        ORDER BY started_at DESC LIMIT 1`,
       [userId]
     );
     if (sessionResult.rows.length === 0)
-      return res.status(400).json({ code: 1, info: 'No active or frozen drive session found.' });
+      return res.status(400).json({ code: 1, info: 'No active or completed drive session found.' });
     
     const session = sessionResult.rows[0];
     const sessionId = session.id;
@@ -477,16 +493,27 @@ const getDriveOrders = async (req, res) => {
       if (statusFilter === 'frozen') {
         if (sessionStatus !== 'frozen') return res.json({ code: 0, orders: [] });
       } else if (statusFilter === 'pending') {
-         query += ` AND drv_orders.status = 'current'`; // Changed from 'pending' to 'current'
+         query += ` AND drv_orders.status = 'current'`; // Show current order in pending tab
       } else {
         query += ` AND drv_orders.status = $2`;
         queryParams.push(statusFilter);
       }
     } else if (statusFilter === 'all') {
-        query += ` AND drv_orders.status IN ('pending', 'completed')`; // Changed order of statuses
+        // For completed drive (pending_reset), show all completed orders
+        if (sessionStatus === 'pending_reset') {
+            query += ` AND drv_orders.status = 'completed'`;
+        } else {
+            // For active drive, show completed orders plus current order
+            query += ` AND drv_orders.status IN ('current', 'completed')`;
+        }
     }
 
-    query += ` ORDER BY drv_orders.id ASC`;
+    query += ` ORDER BY 
+      CASE 
+        WHEN drv_orders.status = 'current' THEN 0
+        ELSE 1
+      END,
+      drv_orders.id ASC`;
     
     const ordersResult = await pool.query(query, queryParams);
     const orders = ordersResult.rows.map(order => ({

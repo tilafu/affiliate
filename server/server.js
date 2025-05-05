@@ -28,8 +28,10 @@ const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/user');
 const adminRoutes = require('./routes/admin'); // Import admin routes
 const driveRoutes = require('./routes/drive'); // Import drive routes
+
+// Apply routes
 app.use('/api/auth', authRoutes);
-app.use('/api/user', userRoutes); // This is good
+app.use('/api/user', userRoutes); // This will include the support message routes
 app.use('/api/admin', adminRoutes); // Use admin routes
 app.use('/api/drive', driveRoutes); // Use drive routes
 

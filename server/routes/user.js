@@ -104,7 +104,6 @@ router.get('/withdrawal-address', protect, getWithdrawalAddress);
 router.put('/withdrawal-address', protect, updateWithdrawalAddress);
 
 // --- Support Messages ---
-
 // @route   POST /api/user/support/messages
 // @desc    Create a new support message
 // @access  Private

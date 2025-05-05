@@ -93,43 +93,51 @@ const getUserBalances = async (req, res) => {
   try {
     const userId = req.user.id;
 
-    // Query to fetch main account balance details
+    // Query to fetch main account balance details using correct column names
     const mainResult = await pool.query(
-      `SELECT
-         COALESCE(balance, 0) AS main_balance,
-         COALESCE(commission, 0) AS commission_balance, -- Assuming 'commission' column exists for commission balance
-         COALESCE(frozen, 0) AS frozen_balance -- Assuming 'frozen' column exists for frozen balance
-       FROM accounts
+      `SELECT 
+         balance AS main_balance,
+         frozen AS frozen_balance
+       FROM accounts 
        WHERE user_id = $1 AND type = 'main'`,
       [userId]
     );
 
-     // If no main account, return default zero balances
-     let balances = {
-        main_balance: 0,
-        commission_balance: 0,
-        frozen_balance: 0
-     };
+    // Calculate commission from commission_logs for today
+    const commissionResult = await pool.query(
+      `SELECT COALESCE(SUM(commission_amount), 0) as commission_balance
+       FROM commission_logs
+       WHERE user_id = $1 
+       AND account_type = 'main'
+       AND commission_type IN ('direct_drive', 'upline_bonus')
+       AND DATE(created_at) = CURRENT_DATE`,
+      [userId]
+    );
 
-     if (mainResult.rows.length > 0) {
-        const mainAccount = mainResult.rows[0];
-        balances = {
-            main_balance: parseFloat(mainAccount.main_balance),
-            commission_balance: parseFloat(mainAccount.commission_balance),
-            frozen_balance: parseFloat(mainAccount.frozen_balance)
-        };
-     } else {
-         logger.warn(`Main account not found for user ${userId} when fetching balances.`);
-     }
+    // If no main account, return default zero balances
+    let balances = {
+      main_balance: 0,
+      commission_balance: 0,
+      frozen_balance: 0
+    };
 
-    // TODO: Add logic to fetch/calculate daily/total profits if stored differently
+    if (mainResult.rows.length > 0) {
+      const mainAccount = mainResult.rows[0];
+      balances = {
+        main_balance: parseFloat(mainAccount.main_balance) || 0,
+        commission_balance: parseFloat(commissionResult.rows[0].commission_balance) || 0,
+        frozen_balance: parseFloat(mainAccount.frozen_balance) || 0
+      };
+    } else {
+      logger.warn(`Main account not found for user ${userId} when fetching balances.`);
+    }
 
     res.json({
       success: true,
       balances: balances
     });
   } catch (error) {
-    logger.error('Error fetching user balances:', { userId, error: error.message, stack: error.stack });
+    logger.error('Error fetching user balances:', { userId: req.user.id, error: error.message, stack: error.stack });
     res.status(500).json({ success: false, message: 'Server error fetching balances' });
   }
 };
@@ -384,30 +392,35 @@ const createSupportMessage = async (req, res) => {
 };
 
 /**
- * @desc    Get support messages sent by the current user
- * @route   GET /api/support/messages
+ * @desc    Get support messages for the current user
+ * @route   GET /api/user/support/messages
  * @access  Private
  */
 const getUserSupportMessages = async (req, res) => {
     const userId = req.user.id;
 
     try {
-        // Fetch messages sent by the user, ordered by creation date
-        // Fetch messages where the user is the sender OR the recipient
-        // Also include sender_role to differentiate in the frontend if needed
+        // Simple query without joins since we don't need sender_name
         const result = await pool.query(
             `SELECT id, subject, message, created_at, is_read, sender_id, sender_role, recipient_id 
              FROM support_messages 
-             WHERE sender_id = $1 OR recipient_id = $1 
+             WHERE sender_id = $1 OR recipient_id = $1 OR recipient_id IS NULL 
              ORDER BY created_at DESC`,
-            [userId] // Use userId for both sender and recipient check
+            [userId]
         );
 
-        res.json({ success: true, messages: result.rows });
+        logger.info(`User ${userId} fetched their support messages`);
+        return res.json({ 
+            success: true, 
+            messages: result.rows 
+        });
 
     } catch (error) {
         logger.error('Error fetching user support messages:', { userId, error: error.message, stack: error.stack });
-        res.status(500).json({ success: false, message: 'Server error fetching support messages.' });
+        return res.status(500).json({ 
+            success: false, 
+            message: 'Server error fetching support messages' 
+        });
     }
 };
 

@@ -189,19 +189,36 @@ document.addEventListener('DOMContentLoaded', () => {
     async function updateWalletBalance() {
         console.log('Updating wallet balance...');
         try {
-            const response = await fetch('/api/user/balance', { // Assuming this endpoint exists
-                headers: { 'Authorization': `Bearer ${token}` }
+            const token = localStorage.getItem('auth_token');
+            if (!token) {
+                console.error('No auth token found');
+                return;
+            }
+            
+            const response = await fetch(`${API_BASE_URL}/api/user/balances`, {
+                headers: { 
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
             });
             const data = await response.json();
-            if (data.success) {
-                walletBalanceElement.textContent = data.balance.toFixed(2);
+            
+            if (data.success && data.balances) {
+                const mainBalance = parseFloat(data.balances.main_balance || 0);
+                if (walletBalanceElement) {
+                    walletBalanceElement.textContent = mainBalance.toFixed(2);
+                }
             } else {
                 console.error('Failed to fetch updated balance:', data.message);
-                walletBalanceElement.textContent = 'Error'; // Indicate error
+                if (walletBalanceElement) {
+                    walletBalanceElement.textContent = 'Error';
+                }
             }
         } catch (error) {
             console.error('Error fetching updated balance:', error);
-            walletBalanceElement.textContent = 'Error'; // Indicate error
+            if (walletBalanceElement) {
+                walletBalanceElement.textContent = 'Error';
+            }
         }
     }
 

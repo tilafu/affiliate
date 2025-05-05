@@ -3,8 +3,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (!token) {
         console.error('Authentication token not found. Redirecting to login.');
-        // Optional: Use a notification function if available from main.js
-        // showNotification('Authentication token not found. Redirecting to login.', 'error');
+        if (typeof showNotification === 'function') {
+            showNotification('Authentication token not found. Redirecting to login.', 'error');
+        }
         window.location.href = 'login.html';
         return;
     }
@@ -21,29 +22,55 @@ document.addEventListener('DOMContentLoaded', () => {
     const totalBalanceElem = document.getElementById('account-total-balance');
     const frozenBalanceElem = document.getElementById('account-frozen-balance');
 
-    // Tier Image Mapping (adjust paths as needed)
+    // Tier Image Mapping
     const tierImagePaths = {
-        bronze: './assets/uploads/packages/bronze_665c04ea981d91717306602.PNG', // Example path
-        silver: './assets/uploads/packages/silver_665c0568227141717306728.PNG', // Example path
-        gold: './assets/uploads/packages/gold_665c05eea02a21717306862.PNG',   // Example path
-        platinum: './assets/uploads/packages/platinum_665c064b7faf81717306955.PNG', // Example path
-        default: './assets/uploads/v2.PNG' // Fallback image
+        bronze: './assets/uploads/packages/bronze_665c04ea981d91717306602.PNG',
+        silver: './assets/uploads/packages/silver_665c0568227141717306728.PNG',
+        gold: './assets/uploads/packages/gold_665c05eea02a21717306862.PNG',
+        platinum: './assets/uploads/packages/platinum_665c064b7faf81717306955.PNG',
+        default: './assets/uploads/v2.PNG'
     };
 
-    // Fetch data from both endpoints
+    // Helper function to format balance display
+    const formatBalance = (value) => {
+        const amount = parseFloat(value || 0).toFixed(2);
+        return `${amount}<small style="font-size:14px"> USDT</small>`;
+    };
+
+    // Helper function to update DOM with error state
+    const setErrorState = (message = 'Error loading data') => {
+        if (usernameElem) usernameElem.textContent = 'Error';
+        if (referralCodeElem) referralCodeElem.textContent = 'Error';
+        if (dailyProfitsElem) dailyProfitsElem.innerHTML = formatBalance(0);
+        if (totalBalanceElem) totalBalanceElem.innerHTML = formatBalance(0);
+        if (frozenBalanceElem) frozenBalanceElem.innerHTML = formatBalance(0);
+        if (tierImageElem) tierImageElem.style.backgroundImage = `url(${tierImagePaths.default})`;
+        
+        if (typeof showNotification === 'function') {
+            showNotification(message, 'error');
+        }
+    };
+
+    // Fetch both profile and balances data
     Promise.all([
         fetch(profileUrl, {
             headers: { 'Authorization': `Bearer ${token}` }
-        }).then(res => res.ok ? res.json() : Promise.reject(`Profile fetch failed: ${res.status}`)),
+        }).then(res => {
+            if (!res.ok) throw new Error(`Profile fetch failed: ${res.status}`);
+            return res.json();
+        }),
         fetch(balancesUrl, {
             headers: { 'Authorization': `Bearer ${token}` }
-        }).then(res => res.ok ? res.json() : Promise.reject(`Balances fetch failed: ${res.status}`))
+        }).then(res => {
+            if (!res.ok) throw new Error(`Balances fetch failed: ${res.status}`);
+            return res.json();
+        })
     ])
     .then(([profileData, balancesData]) => {
         console.log("Profile Data:", profileData);
         console.log("Balances Data:", balancesData);
 
-        // --- Update Profile Info ---
+        // Update Profile Info
         if (profileData.success && profileData.user) {
             const user = profileData.user;
             if (usernameElem) usernameElem.textContent = user.username || 'N/A';
@@ -58,41 +85,22 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } else {
             console.error('Failed to get profile data:', profileData.message);
-            if (usernameElem) usernameElem.textContent = 'Error';
-            if (referralCodeElem) referralCodeElem.textContent = 'Error';
+            throw new Error(profileData.message || 'Failed to load profile data');
         }
 
-        // --- Update Balances ---
+        // Update Balances
         if (balancesData.success && balancesData.balances) {
             const balances = balancesData.balances;
-            const mainBalance = parseFloat(balances.main_balance || 0).toFixed(2);
-            const commissionBalance = parseFloat(balances.commission_balance || 0).toFixed(2);
-            const frozenBalance = parseFloat(balances.frozen_balance || 0).toFixed(2);
-
-            // Assuming "Daily Profits" corresponds to the commission balance
-            if (dailyProfitsElem) dailyProfitsElem.innerHTML = `${commissionBalance}<small style="font-size:14px"> USDT</small>`;
-            if (totalBalanceElem) totalBalanceElem.innerHTML = `${mainBalance}<small style="font-size:14px"> USDT</small>`;
-            if (frozenBalanceElem) frozenBalanceElem.innerHTML = `${frozenBalance}<small style="font-size:14px"> USDT</small>`;
-
+            if (dailyProfitsElem) dailyProfitsElem.innerHTML = formatBalance(balances.commission_balance);
+            if (totalBalanceElem) totalBalanceElem.innerHTML = formatBalance(balances.main_balance);
+            if (frozenBalanceElem) frozenBalanceElem.innerHTML = formatBalance(balances.frozen_balance);
         } else {
             console.error('Failed to get balances data:', balancesData.message);
-            if (dailyProfitsElem) dailyProfitsElem.textContent = 'Error';
-            if (totalBalanceElem) totalBalanceElem.textContent = 'Error';
-            if (frozenBalanceElem) frozenBalanceElem.textContent = 'Error';
+            throw new Error(balancesData.message || 'Failed to load balance data');
         }
-
     })
     .catch(error => {
         console.error('Error fetching account data:', error);
-        // Update UI to show errors
-        if (usernameElem) usernameElem.textContent = 'Error';
-        if (referralCodeElem) referralCodeElem.textContent = 'Error';
-        if (dailyProfitsElem) dailyProfitsElem.textContent = 'Error';
-        if (totalBalanceElem) totalBalanceElem.textContent = 'Error';
-        if (frozenBalanceElem) frozenBalanceElem.textContent = 'Error';
-        if (tierImageElem) tierImageElem.style.backgroundImage = `url(${tierImagePaths.default})`; // Fallback image on error
-
-        // Optional: Use a notification function
-        // showNotification(`Error loading account data: ${error}`, 'error');
+        setErrorState(`Error loading account data: ${error.message}`);
     });
 });

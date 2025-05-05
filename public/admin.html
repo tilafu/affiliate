@@ -156,7 +156,43 @@
              <div id="product-details" style="display: none;"></div>
         </div>
 
-    </div>
+        <!-- Support Messages Section -->
+        <div class="section" id="support-management">
+            <h2>Support Messages</h2>
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>From</th>
+                            <th>Subject</th>
+                            <th>Message</th>
+                            <th>Date</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="support-list">
+                        <tr><td colspan="7">Loading messages...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Reply Form -->
+            <div id="reply-form" style="display: none;" class="mt-4 p-3 border rounded">
+                <h4>Reply to Message</h4>
+                <form id="support-reply-form">
+                    <input type="hidden" id="reply-to-user-id">
+                    <div class="mb-3">
+                        <label for="reply-message" class="form-label">Your Reply</label>
+                        <textarea class="form-control" id="reply-message" rows="3" required></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Send Reply</button>
+                    <button type="button" class="btn btn-secondary" onclick="document.getElementById('reply-form').style.display='none'">Cancel</button>
+                </form>
+            </div>
+        </div>
+    </div> <!-- End container -->
 
     <!-- Include necessary JS -->
     <script src="./assets/js/jquery.min.js"></script>
