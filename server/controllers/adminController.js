@@ -371,10 +371,17 @@ const resetDrive = async (req, res) => {
 const getAllSupportMessages = async (req, res) => {
   try {
     const result = await pool.query(
-      'SELECT * FROM support_messages ORDER BY created_at DESC'
+      `SELECT 
+         sm.*, 
+         u.username AS sender_username,
+         u.email AS sender_email
+       FROM support_messages sm
+       JOIN users u ON sm.sender_id = u.id
+       ORDER BY sm.created_at DESC`
     );
     res.json({ success: true, messages: result.rows });
   } catch (error) {
+    logger.error('Error fetching support messages for admin:', { error: error.message, stack: error.stack });
     res.status(500).json({ success: false, message: 'Error fetching messages' });
   }
 };
@@ -397,15 +404,331 @@ const sendNotification = async (req, res) => {
   }
 };
 
+// Dashboard Statistics
+const getDashboardStats = async (req, res) => {
+    try {
+        // Get stats in parallel for better performance
+        const [
+            usersResult,
+            depositsResult,
+            withdrawalsResult,
+            drivesResult
+        ] = await Promise.all([
+            pool.query('SELECT COUNT(*) FROM users'),
+            pool.query('SELECT COALESCE(SUM(amount), 0) FROM deposits WHERE status = $1', ['APPROVED']),
+            pool.query('SELECT COALESCE(SUM(amount), 0) FROM withdrawals WHERE status = $1', ['APPROVED']),
+            pool.query('SELECT COUNT(*) FROM drives WHERE status = $1', ['ACTIVE'])
+        ]);
+
+        res.json({
+            success: true,
+            stats: {
+                totalUsers: parseInt(usersResult.rows[0].count),
+                totalDeposits: parseFloat(depositsResult.rows[0].coalesce),
+                totalWithdrawals: parseFloat(withdrawalsResult.rows[0].coalesce),
+                activeDrives: parseInt(drivesResult.rows[0].count)
+            }
+        });
+    } catch (error) {
+        console.error('Error fetching admin stats:', error);
+        res.status(500).json({ success: false, message: 'Error fetching dashboard statistics' });
+    }
+};
+
+// Deposit Management
+const getDeposits = async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT d.*, u.username 
+            FROM deposits d
+            JOIN users u ON d.user_id = u.id
+            ORDER BY d.created_at DESC
+        `);
+        
+        res.json({ success: true, deposits: result.rows });
+    } catch (error) {
+        console.error('Error fetching deposits:', error);
+        res.status(500).json({ success: false, message: 'Error fetching deposits' });
+    }
+};
+
+const approveDeposit = async (req, res) => {
+    const { id } = req.params;
+    const client = await pool.connect();
+    
+    try {
+        await client.query('BEGIN');
+        
+        // Get deposit details
+        const depositResult = await client.query(
+            'SELECT * FROM deposits WHERE id = $1 FOR UPDATE',
+            [id]
+        );
+        
+        if (depositResult.rows.length === 0) {
+            await client.query('ROLLBACK');
+            return res.status(404).json({ success: false, message: 'Deposit not found' });
+        }
+        
+        const deposit = depositResult.rows[0];
+        if (deposit.status !== 'PENDING') {
+            await client.query('ROLLBACK');
+            return res.status(400).json({ success: false, message: 'Deposit is not in pending state' });
+        }
+        
+        // Update deposit status
+        await client.query(
+            'UPDATE deposits SET status = $1, updated_at = NOW() WHERE id = $2',
+            ['APPROVED', id]
+        );
+        
+        // Update user's balance
+        await client.query(
+            'UPDATE accounts SET balance = balance + $1 WHERE user_id = $2 AND type = $3',
+            [deposit.amount, deposit.user_id, 'main']
+        );
+        
+        await client.query('COMMIT');
+        res.json({ success: true, message: 'Deposit approved successfully' });
+    } catch (error) {
+        await client.query('ROLLBACK');
+        console.error('Error approving deposit:', error);
+        res.status(500).json({ success: false, message: 'Error approving deposit' });
+    } finally {
+        client.release();
+    }
+};
+
+const rejectDeposit = async (req, res) => {
+    const { id } = req.params;
+    
+    try {
+        const result = await pool.query(
+            'UPDATE deposits SET status = $1, updated_at = NOW() WHERE id = $2 AND status = $3',
+            ['REJECTED', id, 'PENDING']
+        );
+        
+        if (result.rowCount === 0) {
+            return res.status(400).json({ success: false, message: 'Deposit not found or not in pending state' });
+        }
+        
+        res.json({ success: true, message: 'Deposit rejected successfully' });
+    } catch (error) {
+        console.error('Error rejecting deposit:', error);
+        res.status(500).json({ success: false, message: 'Error rejecting deposit' });
+    }
+};
+
+// Withdrawal Management
+const getWithdrawals = async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT w.*, u.username 
+            FROM withdrawals w
+            JOIN users u ON w.user_id = u.id
+            ORDER BY w.created_at DESC
+        `);
+        
+        res.json({ success: true, withdrawals: result.rows });
+    } catch (error) {
+        console.error('Error fetching withdrawals:', error);
+        res.status(500).json({ success: false, message: 'Error fetching withdrawals' });
+    }
+};
+
+const approveWithdrawal = async (req, res) => {
+    const { id } = req.params;
+    const client = await pool.connect();
+    
+    try {
+        await client.query('BEGIN');
+        
+        // Get withdrawal details
+        const withdrawalResult = await client.query(
+            'SELECT * FROM withdrawals WHERE id = $1 FOR UPDATE',
+            [id]
+        );
+        
+        if (withdrawalResult.rows.length === 0) {
+            await client.query('ROLLBACK');
+            return res.status(404).json({ success: false, message: 'Withdrawal not found' });
+        }
+        
+        const withdrawal = withdrawalResult.rows[0];
+        if (withdrawal.status !== 'PENDING') {
+            await client.query('ROLLBACK');
+            return res.status(400).json({ success: false, message: 'Withdrawal is not in pending state' });
+        }
+        
+        // Update withdrawal status
+        await client.query(
+            'UPDATE withdrawals SET status = $1, updated_at = NOW() WHERE id = $2',
+            ['APPROVED', id]
+        );
+        
+        await client.query('COMMIT');
+        res.json({ success: true, message: 'Withdrawal approved successfully' });
+    } catch (error) {
+        await client.query('ROLLBACK');
+        console.error('Error approving withdrawal:', error);
+        res.status(500).json({ success: false, message: 'Error approving withdrawal' });
+    } finally {
+        client.release();
+    }
+};
+
+const rejectWithdrawal = async (req, res) => {
+    const { id } = req.params;
+    const client = await pool.connect();
+    
+    try {
+        await client.query('BEGIN');
+        
+        // Get withdrawal details
+        const withdrawalResult = await client.query(
+            'SELECT * FROM withdrawals WHERE id = $1 FOR UPDATE',
+            [id]
+        );
+        
+        if (withdrawalResult.rows.length === 0) {
+            await client.query('ROLLBACK');
+            return res.status(404).json({ success: false, message: 'Withdrawal not found' });
+        }
+        
+        const withdrawal = withdrawalResult.rows[0];
+        if (withdrawal.status !== 'PENDING') {
+            await client.query('ROLLBACK');
+            return res.status(400).json({ success: false, message: 'Withdrawal is not in pending state' });
+        }
+        
+        // Update withdrawal status
+        await client.query(
+            'UPDATE withdrawals SET status = $1, updated_at = NOW() WHERE id = $2',
+            ['REJECTED', id]
+        );
+        
+        // Refund the amount back to user's account
+        await client.query(
+            'UPDATE accounts SET balance = balance + $1 WHERE user_id = $2 AND type = $3',
+            [withdrawal.amount, withdrawal.user_id, 'main']
+        );
+        
+        await client.query('COMMIT');
+        res.json({ success: true, message: 'Withdrawal rejected and amount refunded' });
+    } catch (error) {
+        await client.query('ROLLBACK');
+        console.error('Error rejecting withdrawal:', error);
+        res.status(500).json({ success: false, message: 'Error rejecting withdrawal' });
+    } finally {
+        client.release();
+    }
+};
+
+// Drive Management
+const getDrives = async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT 
+                u.id as user_id,
+                u.username,
+                COUNT(d.id) as total_drives,
+                COALESCE(SUM(d.commission), 0) as total_commission,
+                MAX(d.created_at) as last_drive,
+                CASE WHEN COUNT(CASE WHEN d.status = 'ACTIVE' THEN 1 END) > 0 
+                     THEN 'ACTIVE' ELSE 'INACTIVE' END as status
+            FROM users u
+            LEFT JOIN drives d ON u.id = d.user_id
+            GROUP BY u.id, u.username
+            ORDER BY total_drives DESC
+        `);
+        
+        res.json({ success: true, drives: result.rows });
+    } catch (error) {
+        console.error('Error fetching drives:', error);
+        res.status(500).json({ success: false, message: 'Error fetching drives data' });
+    }
+};
+
+// Support Messages Management
+const replyToSupportMessage = async (req, res) => {
+    const { message_id, user_id, message } = req.body;
+    const adminId = req.user.id;
+    
+    logger.debug(`replyToSupportMessage called with: adminId=${adminId}, user_id=${user_id}, message_id=${message_id}, message=${message}`);
+
+    try {
+        // Mark original message as read
+        await pool.query(
+            'UPDATE support_messages SET is_read = true WHERE id = $1',
+            [message_id]
+        );
+        
+        // Create reply message
+        await pool.query(
+            'INSERT INTO support_messages (sender_id, sender_role, recipient_id, message, thread_id) VALUES ($1, $2, $3, $4, $5)',
+            [adminId, 'admin', user_id, message, message_id]
+        );
+        
+        // Create notification for user
+        await pool.query(
+            'INSERT INTO admin_notifications (user_id, type, message) VALUES ($1, $2, $3)',
+            [user_id, 'SUPPORT_REPLY', 'You have received a reply to your support message']
+        );
+        
+        res.json({ success: true, message: 'Reply sent successfully' });
+    } catch (error) {
+        console.error('Error sending support message reply:', error);
+        res.status(500).json({ success: false, message: 'Error sending reply' });
+    }
+};
+
+// Placeholder for endDrive function
+const endDrive = async (req, res) => {
+    const { driveId } = req.params;
+    const adminUserId = req.user.id;
+    logger.info(`Admin ${adminUserId} attempting to end drive ${driveId}`);
+    // TODO: Implement logic to end a drive session
+    // For example, update drive_sessions table, calculate final earnings, etc.
+    res.status(501).json({ success: false, message: `Drive ending for ${driveId} not yet implemented.` });
+};
+
+console.log({
+  approveDeposit: typeof approveDeposit,
+  rejectDeposit: typeof rejectDeposit,
+  approveWithdrawal: typeof approveWithdrawal,
+  rejectWithdrawal: typeof rejectWithdrawal
+});
+
 module.exports = {
-  updateUserTier,
-  createProduct,
-  getProducts,
-  updateProduct,
-  deleteProduct,
-  manualTransaction,
-  getUsers,
-  resetDrive, // Export the new function
-  getAllSupportMessages, // Export the new function
-  sendNotification // Export the new function
+    // User Management
+    getUsers,
+    updateUserTier,
+    manualTransaction,
+    
+    // Product Management
+    getProducts,
+    createProduct,
+    updateProduct,
+    deleteProduct,
+    
+    // Drive Management
+    getDrives,
+    resetDrive,
+    endDrive, // Added endDrive
+    
+    // Financial Management
+    getDeposits,
+    approveDeposit,
+    rejectDeposit,
+    getWithdrawals,
+    approveWithdrawal,
+    rejectWithdrawal,
+    
+    // Support System
+    getAllSupportMessages,
+    replyToSupportMessage,
+    sendNotification,
+    
+    // Dashboard
+    getDashboardStats
 };

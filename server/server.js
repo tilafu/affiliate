@@ -35,6 +35,9 @@ app.use('/api/user', userRoutes); // This will include the support message route
 app.use('/api/admin', adminRoutes); // Use admin routes
 app.use('/api/drive', driveRoutes); // Use drive routes
 
+// Routes
+app.use('/api/admin', require('./routes/admin'));
+
 // --- COMMISSION SERVICE TESTING ---
 async function testCommissionService() {
   const CommissionService = require('./services/commissionService');
