@@ -276,20 +276,12 @@
                             <div class="col-md-3">
                                 <div class="form-group">
                                     <label for="product-commission">Commission Rate (%)</label>
-                                    <input type="number" id="product-commission" class="form-control" step="0.01" required>
+                                    <input type="number" id="product-commission" name="commission_rate" class="form-control" step="0.01" required>
                                 </div>
                             </div>
-                            <div class="col-md-3">
-                                <div class="form-group">
-                                    <label for="product-tier">Minimum Tier</label>
-                                    <select id="product-tier" class="form-control" required>
-                                        <option value="bronze">Bronze</option>
-                                        <option value="silver">Silver</option>
-                                        <option value="gold">Gold</option>
-                                        <option value="platinum">Platinum</option>
-                                    </select>
-                                </div>
-                            </div>
+                            
+                            <!-- /* Removed Minimum Tier input */ -->
+
                         </div>
                         <button type="submit" class="btn btn-primary mt-3">Add Product</button>
                     </form>
@@ -299,16 +291,58 @@
                 <table class="table">
                     <thead>
                         <tr>
+                            <th>ID</th> 
                             <th>Name</th>
                             <th>Price</th>
                             <th>Commission Rate</th>
-                            <th>Min Tier</th>
+                            <!-- {/* Removed Min Tier and Status columns */} -->
                             <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody id="products-list"></tbody>
                 </table>
             </div>
+
+            <!-- Edit Product Modal -->
+            <div class="modal fade" id="edit-product-modal" tabindex="-1" aria-labelledby="editProductModalLabel" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="editProductModalLabel">Edit Product</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <form id="edit-product-form">
+                                <input type="hidden" id="edit-product-id" name="product_id">
+                                <div class="mb-3">
+                                    <label for="edit-product-name" class="form-label">Name</label>
+                                    <input type="text" class="form-control" id="edit-product-name" name="name" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="edit-product-price" class="form-label">Price</label>
+                                    <input type="number" class="form-control" id="edit-product-price" name="price" step="0.01" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="edit-commission-rate" class="form-label">Commission Rate (%)</label>
+                                    <input type="number" class="form-control" id="edit-commission-rate" name="commission_rate" step="0.01" required>
+                                </div>
+                                 {/* Add other editable fields here if needed, e.g., min_balance_required, image_url */}
+                                 {/* <div class="mb-3">
+                                     <label for="edit-min-balance" class="form-label">Min Balance Required</label>
+                                     <input type="number" class="form-control" id="edit-min-balance" name="min_balance_required" step="0.01">
+                                 </div>
+                                 <div class="mb-3">
+                                     <label for="edit-image-url" class="form-label">Image URL</label>
+                                     <input type="text" class="form-control" id="edit-image-url" name="image_url">
+                                 </div> */}
+                                <button type="submit" class="btn btn-primary">Save Changes</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- End Edit Product Modal -->
+
         </section>
 
         <!-- Support Section -->

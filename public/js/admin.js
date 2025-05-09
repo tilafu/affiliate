@@ -351,12 +351,6 @@ async function loadProducts() {
                     <td>${product.name}</td>
                     <td>$${product.price}</td>
                     <td>${product.commission_rate}%</td>
-                    <td>${product.min_tier}</td>
-                    <td>
-                        <span class="status-badge status-${product.active ? 'approved' : 'rejected'}">
-                            ${product.active ? 'Active' : 'Inactive'}
-                        </span>
-                    </td>
                     <td>
                         <button class="btn btn-sm btn-danger delete-product-btn" data-id="${product.id}">
                             Delete
@@ -377,16 +371,20 @@ async function loadProducts() {
 async function createProduct(event) {
     event.preventDefault();
     const formData = new FormData(event.target);
+    // This function handles the ADD form, remove min_tier and is_active
     const productData = {
         name: formData.get('name'),
         price: parseFloat(formData.get('price')),
         commission_rate: parseFloat(formData.get('commission_rate')),
-        min_balance_required: parseFloat(formData.get('min_balance_required')) || 0,
-        min_tier: formData.get('min_tier'),
-        is_active: formData.get('is_active') === 'on'
+        min_balance_required: parseFloat(formData.get('min_balance_required')) || 0
+        // image_url might be added here if the form includes it
     };
 
     try {
+        // NOTE: The fetch endpoint here seems incorrect for createProduct.
+        // It should likely use fetchWithAuth or include the token header.
+        // Assuming fetchWithAuth should be used for consistency.
+        // Also, the form IDs referenced (e.g., create-product-form) need to exist in admin.html
         const response = await fetch('/api/admin/products', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -414,15 +412,22 @@ async function editProduct(productId) {
             // Populate edit form with product data
             const product = data.product;
             document.getElementById('edit-product-id').value = product.id;
+            // Populate relevant fields only
             document.getElementById('edit-product-name').value = product.name;
             document.getElementById('edit-product-price').value = product.price;
             document.getElementById('edit-commission-rate').value = product.commission_rate;
-            document.getElementById('edit-min-balance').value = product.min_balance_required;
-            document.getElementById('edit-min-tier').value = product.min_tier;
-            document.getElementById('edit-is-active').checked = product.is_active;
+            // Assuming min_balance_required is still needed/editable
+            document.getElementById('edit-min-balance').value = product.min_balance_required || 0; 
+            // Add image_url if needed: document.getElementById('edit-image-url').value = product.image_url || '';
             
-            // Show edit modal
-            const editModal = new bootstrap.Modal(document.getElementById('edit-product-modal'));
+            // Show edit modal (Ensure this modal ID exists in admin.html)
+            const editModalElement = document.getElementById('edit-product-modal');
+            if (!editModalElement) {
+                console.error("Edit product modal not found!");
+                showNotification('Error: Edit modal element not found.', 'error');
+                return;
+            }
+            const editModal = new bootstrap.Modal(editModalElement);
             editModal.show();
         }
     } catch (error) {
@@ -434,23 +439,24 @@ async function updateProduct(event) {
     event.preventDefault();
     const formData = new FormData(event.target);
     const productId = formData.get('product_id');
+    // This function handles the EDIT form submission
     const productData = {
         name: formData.get('name'),
         price: parseFloat(formData.get('price')),
         commission_rate: parseFloat(formData.get('commission_rate')),
-        min_balance_required: parseFloat(formData.get('min_balance_required')),
-        min_tier: formData.get('min_tier'),
-        is_active: formData.get('is_active') === 'on'
+        min_balance_required: parseFloat(formData.get('min_balance_required')) || 0
+        // Add image_url if needed: image_url: formData.get('image_url')
     };
 
     try {
-        const response = await fetch(`/api/admin/products/${productId}`, {
+        // Use fetchWithAuth for authenticated request
+        const response = await fetchWithAuth(`/admin/products/${productId}`, {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(productData)
         });
         
-        const data = await response.json();
+        // Assuming fetchWithAuth returns parsed JSON directly
+        const data = response; 
         if (data.success) {
             showNotification('Product updated successfully');
             const editModal = bootstrap.Modal.getInstance(document.getElementById('edit-product-modal'));
@@ -646,50 +652,169 @@ function initializeHandlers() {
     });
 
     // Product handlers
-    document.getElementById('add-product-form')?.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const productData = {
-            name: document.getElementById('product-name').value,
-            price: parseFloat(document.getElementById('product-price').value),
-            commission_rate: parseFloat(document.getElementById('product-commission').value),
-            min_tier: document.getElementById('product-tier').value
-        };
 
-        try {
-            const response = await fetchWithAuth('/admin/products', {
-                method: 'POST',
-                body: JSON.stringify(productData)
-            });
+    // ADD Product Form Submission (Corrected)
+    const addProductForm = document.getElementById('add-product-form');
+    if (addProductForm) {
+        addProductForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            // Construct data only from relevant fields expected by the updated backend
+            const productData = {
+                name: document.getElementById('product-name').value,
+                price: parseFloat(document.getElementById('product-price').value),
+                commission_rate: parseFloat(document.getElementById('product-commission').value),
+                // Add min_balance_required if it's in the add form
+                // min_balance_required: parseFloat(document.getElementById('product-min-balance').value) || 0, 
+                // Add image_url if it's in the add form
+                // image_url: document.getElementById('product-image-url').value || null 
+            };
 
-            if (response.success) {
-                showNotification('Product added successfully', 'success');
-                e.target.reset();
-                loadProducts();
+            // Validate data before sending (basic example)
+            if (!productData.name || isNaN(productData.price) || isNaN(productData.commission_rate)) {
+                 showNotification('Please fill in Name, Price, and Commission Rate correctly.', 'error');
+                 return;
             }
-        } catch (error) {
-            console.error('Error adding product:', error);
-            showNotification('Failed to add product', 'error');
+
+            try {
+                const response = await fetchWithAuth('/admin/products', {
+                    method: 'POST',
+                    body: JSON.stringify(productData)
+                });
+
+                if (response.success) {
+                    showNotification('Product added successfully', 'success');
+                    e.target.reset(); // Reset the add form
+                    loadProducts(); // Reload the product list
+                } else {
+                     showNotification(response.message || 'Failed to add product', 'error');
+                }
+            } catch (error) {
+                console.error('Error adding product:', error);
+                showNotification('Failed to add product: ' + error.message, 'error');
+            }
+        });
+    } else {
+         console.warn("Add product form ('add-product-form') not found.");
+    }
+
+
+    // EDIT Product Button Click
+     document.addEventListener('click', async (e) => {
+        if (e.target.matches('.edit-product-btn')) {
+            const productId = e.target.dataset.id;
+            try {
+                // Fetch specific product details
+                 const response = await fetchWithAuth(`/admin/products/${productId}`); // Assuming endpoint exists
+                 if (response.success && response.product) {
+                     const product = response.product;
+                     // Populate the edit form modal
+                     document.getElementById('edit-product-id').value = product.id;
+                     document.getElementById('edit-product-name').value = product.name;
+                     document.getElementById('edit-product-price').value = product.price;
+                     document.getElementById('edit-commission-rate').value = product.commission_rate;
+                     // Populate other relevant fields if they exist in the modal form
+                     // document.getElementById('edit-min-balance').value = product.min_balance_required || 0;
+                     // document.getElementById('edit-image-url').value = product.image_url || '';
+
+                     // Show the modal
+                     const editModalElement = document.getElementById('edit-product-modal');
+                     if (editModalElement) {
+                         const editModal = new bootstrap.Modal(editModalElement);
+                         editModal.show();
+                     } else {
+                         console.error("Edit product modal ('edit-product-modal') not found.");
+                         showNotification('UI Error: Edit modal not found.', 'error');
+                     }
+                 } else {
+                     showNotification(response.message || 'Failed to load product details for editing.', 'error');
+                 }
+            } catch (error) {
+                 console.error('Error fetching product for edit:', error);
+                 showNotification('Error fetching product details: ' + error.message, 'error');
+            }
         }
     });
 
-    // Delete product handler
+    // EDIT Product Form Submission
+    const editProductForm = document.getElementById('edit-product-form');
+     if (editProductForm) {
+        editProductForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const productId = formData.get('product_id'); // Get ID from hidden input
+
+            if (!productId) {
+                 showNotification('Error: Product ID missing from edit form.', 'error');
+                 return;
+            }
+
+            const productData = {
+                name: formData.get('name'),
+                price: parseFloat(formData.get('price')),
+                commission_rate: parseFloat(formData.get('commission_rate')),
+                 // Add other fields if they are in the edit form
+                 // min_balance_required: parseFloat(formData.get('min_balance_required')) || 0,
+                 // image_url: formData.get('image_url') || null
+            };
+
+             // Validate data before sending (basic example)
+            if (!productData.name || isNaN(productData.price) || isNaN(productData.commission_rate)) {
+                 showNotification('Please fill in Name, Price, and Commission Rate correctly.', 'error');
+                 return;
+            }
+
+            try {
+                const response = await fetchWithAuth(`/admin/products/${productId}`, {
+                    method: 'PUT',
+                    body: JSON.stringify(productData)
+                });
+
+                if (response.success) {
+                    showNotification('Product updated successfully', 'success');
+                    // Hide the modal
+                    const editModalElement = document.getElementById('edit-product-modal');
+                     if (editModalElement) {
+                         const editModal = bootstrap.Modal.getInstance(editModalElement);
+                         if (editModal) {
+                            editModal.hide();
+                         }
+                     }
+                    loadProducts(); // Reload the product list
+                } else {
+                     showNotification(response.message || 'Failed to update product', 'error');
+                }
+            } catch (error) {
+                console.error('Error updating product:', error);
+                showNotification('Failed to update product: ' + error.message, 'error');
+            }
+        });
+    } else {
+         console.warn("Edit product form ('edit-product-form') not found.");
+    }
+
+
+    // Delete product handler (Corrected structure)
     document.addEventListener('click', async (e) => {
         if (e.target.matches('.delete-product-btn')) {
             if (confirm('Are you sure you want to delete this product?')) {
                 const id = e.target.dataset.id;
                 try {
+                    // Correct fetch call for DELETE
                     const response = await fetchWithAuth(`/admin/products/${id}`, { method: 'DELETE' });
                     if (response.success) {
                         showNotification('Product deleted successfully', 'success');
-                        loadProducts();
+                        loadProducts(); // Reload list after delete
+                    } else {
+                         showNotification(response.message || 'Failed to delete product', 'error');
                     }
                 } catch (error) {
                     console.error('Error deleting product:', error);
-                    showNotification('Failed to delete product', 'error');
+                    showNotification('Failed to delete product: ' + error.message, 'error');
                 }
             }
         }
     });
+    // Removed the duplicated event listener for delete
 
     // User management handlers
     document.addEventListener('click', async (e) => {

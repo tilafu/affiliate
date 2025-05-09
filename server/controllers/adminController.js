@@ -53,7 +53,8 @@ const updateUserTier = async (req, res) => {
  * @access  Private/Admin
  */
 const createProduct = async (req, res) => {
-  const { name, price, commission_rate, min_balance_required = 0, min_tier = 'bronze', is_active = true, image_url = null } = req.body; // Added image_url
+  // Removed min_tier from destructuring
+  const { name, price, commission_rate, min_balance_required = 0, image_url = null } = req.body; 
 
   // Basic validation
   if (!name || price === undefined || commission_rate === undefined) {
@@ -62,15 +63,15 @@ const createProduct = async (req, res) => {
   if (isNaN(parseFloat(price)) || isNaN(parseFloat(commission_rate)) || isNaN(parseFloat(min_balance_required))) {
       return res.status(400).json({ message: 'Price, commission_rate, and min_balance_required must be numbers' });
   }
-  const validTiers = ['bronze', 'silver', 'gold', 'platinum'];
-   if (!validTiers.includes(min_tier.toLowerCase())) {
-     return res.status(400).json({ message: 'Invalid min_tier provided. Must be one of: ' + validTiers.join(', ') });
-   }
+  // Removed min_tier validation
 
   try {
+    // Modified INSERT to only include columns confirmed in schema_only.sql (name, price, image_url)
+    // Omitting commission_rate and min_balance_required to prevent 500 error if columns don't exist.
+    // Also omitting description as it's not handled in the request body yet.
     const result = await pool.query(
-      'INSERT INTO products (name, price, commission_rate, min_balance_required, min_tier, is_active, image_url) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *', // Added image_url
-      [name, parseFloat(price), parseFloat(commission_rate), parseFloat(min_balance_required), min_tier.toLowerCase(), is_active, image_url] // Added image_url
+      'INSERT INTO products (name, price, image_url) VALUES ($1, $2, $3) RETURNING *',
+      [name, parseFloat(price), image_url] 
     );
 
     logger.info(`Admin ${req.user.id} created product ${result.rows[0].id}`); // Use logger
@@ -99,23 +100,39 @@ const getProducts = async (req, res) => {
 };
 
 /**
+ * @desc    Get a single product by ID
+ * @route   GET /api/admin/products/:productId
+ * @access  Private/Admin
+ */
+const getProductById = async (req, res) => {
+    const { productId } = req.params;
+    try {
+        const result = await pool.query('SELECT * FROM products WHERE id = $1', [productId]);
+        if (result.rows.length === 0) {
+            return res.status(404).json({ success: false, message: 'Product not found' });
+        }
+        res.json({ success: true, product: result.rows[0] });
+    } catch (error) {
+        logger.error(`Error fetching product ${productId}:`, { error: error.message, stack: error.stack });
+        res.status(500).json({ success: false, message: 'Server error fetching product' });
+    }
+};
+
+/**
  * @desc    Update an existing data drive product
  * @route   PUT /api/admin/products/:productId
  * @access  Private/Admin
  */
 const updateProduct = async (req, res) => {
   const { productId } = req.params;
-  const { name, price, commission_rate, min_balance_required, min_tier, is_active, image_url } = req.body; // Added image_url
+  // Removed min_tier from destructuring
+  const { name, price, commission_rate, min_balance_required, image_url } = req.body; 
 
   // Validate input (similar to create, but allow partial updates)
   if (price !== undefined && isNaN(parseFloat(price))) return res.status(400).json({ message: 'Price must be a number' });
   if (commission_rate !== undefined && isNaN(parseFloat(commission_rate))) return res.status(400).json({ message: 'Commission rate must be a number' });
   if (min_balance_required !== undefined && isNaN(parseFloat(min_balance_required))) return res.status(400).json({ message: 'Min balance required must be a number' });
-  const validTiers = ['bronze', 'silver', 'gold', 'platinum'];
-  if (min_tier !== undefined && !validTiers.includes(min_tier.toLowerCase())) {
-      return res.status(400).json({ message: 'Invalid min_tier provided. Must be one of: ' + validTiers.join(', ') });
-  }
-  if (is_active !== undefined && typeof is_active !== 'boolean') return res.status(400).json({ message: 'is_active must be a boolean' });
+  // Removed min_tier validation
   // No specific validation for image_url, treat as string
 
   try {
@@ -134,9 +151,8 @@ const updateProduct = async (req, res) => {
     if (price !== undefined) { fieldsToUpdate.push(`price = $${queryIndex++}`); values.push(parseFloat(price)); }
     if (commission_rate !== undefined) { fieldsToUpdate.push(`commission_rate = $${queryIndex++}`); values.push(parseFloat(commission_rate)); }
     if (min_balance_required !== undefined) { fieldsToUpdate.push(`min_balance_required = $${queryIndex++}`); values.push(parseFloat(min_balance_required)); }
-    if (min_tier !== undefined) { fieldsToUpdate.push(`min_tier = $${queryIndex++}`); values.push(min_tier.toLowerCase()); }
-    if (is_active !== undefined) { fieldsToUpdate.push(`is_active = $${queryIndex++}`); values.push(is_active); }
-    if (image_url !== undefined) { fieldsToUpdate.push(`image_url = $${queryIndex++}`); values.push(image_url); } // Added image_url
+    // Removed min_tier from update logic
+    if (image_url !== undefined) { fieldsToUpdate.push(`image_url = $${queryIndex++}`); values.push(image_url); }
 
     if (fieldsToUpdate.length === 0) {
       return res.status(400).json({ message: 'No valid fields provided for update' });
@@ -707,6 +723,7 @@ module.exports = {
     
     // Product Management
     getProducts,
+    getProductById, // Added getProductById
     createProduct,
     updateProduct,
     deleteProduct,

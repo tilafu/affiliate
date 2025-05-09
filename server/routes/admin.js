@@ -13,6 +13,7 @@ router.post('/users/:userId/transactions', protect, admin, adminController.manua
 
 // Product Management
 router.get('/products', protect, admin, adminController.getProducts);
+router.get('/products/:productId', protect, admin, adminController.getProductById); // Added route to get single product
 router.post('/products', protect, admin, adminController.createProduct);
 router.put('/products/:productId', protect, admin, adminController.updateProduct);
 router.delete('/products/:productId', protect, admin, adminController.deleteProduct);
