@@ -3,6 +3,7 @@ const { v4: uuidv4 } = require('uuid');
 const logger = require('../logger');
 const { calculateCommission } = require('../utils/commission');
 const { logDriveOperation } = require('../utils/driveLogger');
+const driveProgressService = require('../services/driveProgressService');
 
 // --- Helper Functions ---
 async function getUserDriveInfo(userId) {
@@ -480,8 +481,7 @@ const saveOrder = async (req, res) => {
     await client.query(
       `UPDATE drive_orders SET status = 'completed' WHERE id = $1`,
       [order_id]
-    );
-    const newTasksCompleted = session.tasks_completed + 1;
+    );    const newTasksCompleted = session.tasks_completed + 1;
     let newSessionStatus = session.status;
     if (newTasksCompleted >= session.tasks_required) {
       newSessionStatus = 'pending_reset';
@@ -495,6 +495,16 @@ const saveOrder = async (req, res) => {
         [newTasksCompleted, session.id]
       );
     }
+    
+    // Update the user's drive progress for daily tracking
+    try {
+      const progressResult = await driveProgressService.updateDriveCompletion(userId);
+      logger.info(`Updated drive progress for user ${userId}: ${JSON.stringify(progressResult)}`);
+    } catch (progressError) {
+      // Don't fail the transaction if progress tracking fails
+      logger.error(`Error updating drive progress: ${progressError.message}`);
+    }
+    
     await client.query('COMMIT');
     res.json({ code: 0, info: 'Order Sent successfully!', tasks_completed: newTasksCompleted });
   } catch (error) {
@@ -590,6 +600,40 @@ const getDriveOrders = async (req, res) => {
   }
 };
 
+/**
+ * Get user's drive progress for dashboard display
+ */
+const getDriveProgress = async (req, res) => {
+  const userId = req.user.id;
+  try {
+    // Check and potentially reset weekly progress
+    await driveProgressService.checkAndResetWeeklyProgress(userId);
+    
+    // Get the user's drive progress data
+    const progressData = await driveProgressService.getUserDriveProgress(userId);
+    
+    // Format the response
+    res.json({
+      code: 0,
+      today: {
+        drives_completed: progressData.today.drives_completed || 0,
+        is_working_day: progressData.today.is_working_day || false
+      },
+      weekly: {
+        progress: progressData.overall.weekly_progress || 0,
+        total: 7 // Always 7 days in a week
+      },
+      total_working_days: progressData.overall.total_working_days || 0
+    });
+  } catch (error) {
+    logger.error(`Error getting drive progress: ${error.message}`, { userId, error });
+    res.status(500).json({ 
+      code: 1, 
+      info: 'Error retrieving drive progress data: ' + error.message 
+    });
+  }
+};
+
 module.exports = {
   startDrive,
   getOrder,
@@ -597,5 +641,6 @@ module.exports = {
   saveComboOrder,
   saveComboProduct,
   getDriveOrders,
-  getDriveStatus
+  getDriveStatus,
+  getDriveProgress
 };

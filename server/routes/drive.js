@@ -8,7 +8,8 @@ const {
   saveComboOrder,
   getDriveOrders,
   saveComboProduct, // Added based on task.html logic
-  getDriveStatus // Added new function
+  getDriveStatus, // Added new function
+  getDriveProgress // Added for tracking progress
 } = require('../controllers/driveController'); // Controller to be created
 
 // Route to start a new drive session (mimics task/suborder)
@@ -16,6 +17,9 @@ router.post('/start', protect, startDrive);
 
 // Route to get the current drive status and potentially the next order
 router.get('/status', protect, getDriveStatus); // New route
+
+// Route to get user's drive progress (for dashboard)
+router.get('/progress', protect, getDriveProgress);
 
 // Route to get the next order/product details (mimics task/getorder)
 router.post('/getorder', protect, getOrder); // Changed to POST based on task.html usage
