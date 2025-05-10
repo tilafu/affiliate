@@ -5,12 +5,14 @@
 var oid = null; // Will be set by startDrive response if needed (using session ID?)
 let totalTasksRequired = 0; // Variable to store the total number of tasks required
 let tasksCompleted = 0; // Track the number of completed tasks
+let totalDriveCommission = 0; // Track total commission earned in this drive
 let isStartingDrive = false; // Flag to prevent unintentional start drive calls
 
 // --- UI Element References ---
 let autoStartButton;
 let productCardContainer; // New container for the dynamic product card
 let walletBalanceElement;
+let driveCommissionElement; // Element to display commission earned in this drive
 let tasksProgressElement; // Element to display tasks completed/required
 let driveProgressBar; // Main progress bar at the top
 let progressTextElement; // Text showing progress count
@@ -41,6 +43,7 @@ function initializeTaskPage() {
   autoStartButton = document.getElementById('autoStart');
   productCardContainer = document.getElementById('product-card-container'); // Get reference to the new container
   walletBalanceElement = document.querySelector('.datadrive-balance strong');  // Select the strong element directly
+  driveCommissionElement = document.querySelector('.datadrive-commission strong'); // Element for drive commission
   tasksProgressElement = document.getElementById('tasks-count'); // Element displaying tasks completed/required
   tasksProgressBar = document.getElementById('tasks-progress-bar'); // Progress bar element for tasks card
   driveProgressBar = document.getElementById('drive-progress-bar'); // Main progress bar at the top
@@ -261,22 +264,35 @@ function callStartDriveAPI(token) {
                     if (typeof showNotification === 'function') {
                         showNotification(data.info || 'Drive started!', 'success');
                     } else if (typeof $(document).dialog === 'function') {
-                        $(document).dialog({infoText: data.info || 'Drive started!', autoClose: 2000});
-                    } else {
+                        $(document).dialog({infoText: data.info || 'Drive started!', autoClose: 2000});                    } else {
                         alert(data.info || 'Drive started!');
                     }
                 } catch (e) {
                     console.error("Error showing success dialog:", e);
                     alert(data.info || 'Drive started!');
-                }                $('.product-carousel').css('border', '2px solid green');
+                }
+                $('.product-carousel').css('border', '2px solid green');
                 setTimeout(() => {
-                    $('.product-carousel').css('border', '');
-                }, 3000);
-                
+                    $('.product-carousel').css('border', '');                }, 3000);
                 // Reset and update progress bar when starting a new drive
                 if (data.tasks_required) {
                     totalTasksRequired = data.tasks_required;
                     tasksCompleted = data.tasks_completed || 0;
+                    
+                    // Reset commission counter and clear previous session data
+                    totalDriveCommission = 0; 
+                    clearSessionData();
+                    
+                    // Initialize new session data
+                    saveCurrentSessionData({
+                      totalCommission: 0,
+                      sessionTimestamp: new Date().getTime()
+                    });
+                    
+                    // Update commission display
+                    updateDriveCommission(); 
+                    
+                    // Update progress bar
                     updateProgressBar(tasksCompleted, totalTasksRequired);
                 }
                 
@@ -320,8 +336,7 @@ function callStartDriveAPI(token) {
             }
             if (orderLoadingOverlay) orderLoadingOverlay.style.display = 'none';
             if (autoStartButton) autoStartButton.querySelector('span').textContent = 'Start';
-            $('.product-carousel').removeClass('starting-drive');
-            $('.product-carousel').css({
+            $('.product-carousel').removeClass('starting-drive');            $('.product-carousel').css({
                 'animation': '',
                 'box-shadow': ''
             });
@@ -442,27 +457,36 @@ async function handlePurchase(token, productData) {
         purchaseButton.textContent = 'Processing...';
     }
     if (orderLoadingOverlay) orderLoadingOverlay.style.display = 'flex';
-    try {
+    
+    // Create the request payload and log it for debugging
+    const payload = {
+        order_id: productData.order_id,
+        product_id: productData.product_id,
+        order_amount: productData.product_price,
+        earning_commission: productData.order_commission,
+        product_number: productData.product_number || '1' // Ensure product_number is not undefined
+    };
+    console.log('Sending payload to saveorder:', payload);
+      try {
         const response = await fetch(`${API_BASE_URL}/api/drive/saveorder`, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({
-                order_id: productData.order_id,
-                product_id: productData.product_id,
-                order_amount: productData.product_price,
-                earning_commission: productData.order_commission,
-                product_number: productData.product_number
-            })
-        });
-        const data = await response.json();
+            body: JSON.stringify(payload)
+        });        const data = await response.json();
         if (orderLoadingOverlay) orderLoadingOverlay.style.display = 'none';
+        
         if (response.ok && data.code === 0) {
-            console.log('Order saved successfully:', data.info);            if (typeof showNotification === 'function') {
+            console.log('Order saved successfully:', data.info);            
+            if (typeof showNotification === 'function') {
                 showNotification(data.info || "Order Sent successfully!", 'success');
             } else { alert(data.info || "Order Sent successfully!"); }
+            
+            // Update commission earned display
+            updateDriveCommission(productData.order_commission);
+            
             if (data.tasks_completed !== undefined) {
                 tasksCompleted = data.tasks_completed;
                 updateProgressBar(data.tasks_completed, totalTasksRequired);
@@ -476,13 +500,12 @@ async function handlePurchase(token, productData) {
              displayFrozenState(data.info || "Session frozen due to insufficient balance.", data.frozen_amount_needed);
              refreshWalletBalance();
         }
-        else {
-            if (typeof showNotification === 'function') {
+        else {            if (typeof showNotification === 'function') {
                 showNotification(`Failed to save order: ${data.info || data.message || 'Unknown error'}`, 'error');
             } else { alert(`Failed to save order: ${data.info || data.message || 'Unknown error'}`); }
             if (purchaseButton) {
                  purchaseButton.disabled = false;
-                 purchaseButton.textContent = 'Processing...';
+                 purchaseButton.textContent = 'Purchase';
             }
         }
     } catch (error) {
@@ -514,6 +537,23 @@ function displayDriveComplete(message) {
              autoStartButton.disabled = false;
              autoStartButton.querySelector('span').textContent = 'Start';
          }
+         // Save the commission data from this drive in case we want to display a history
+         const commissionData = getCurrentSessionData();
+         if (commissionData) {
+             const driveHistory = JSON.parse(localStorage.getItem('drive_history') || '[]');
+             driveHistory.push({
+                 completedAt: new Date().toISOString(),
+                 totalCommission: commissionData.totalCommission,
+                 sessionTimestamp: commissionData.sessionTimestamp
+             });
+             localStorage.setItem('drive_history', JSON.stringify(driveHistory));
+         }
+         
+         // Clear session data for the next drive
+         clearSessionData();
+         totalDriveCommission = 0;
+         updateDriveCommission();
+         
          refreshWalletBalance();
      });
 }
@@ -583,6 +623,9 @@ function checkDriveStatus(token) {
         console.log('Drive status:', data.status);
 
         if (data.code === 0) {
+            // First load any stored commission data from localStorage for the current session
+            const sessionData = getCurrentSessionData();
+            
             if (data.status === 'active' && data.current_order) {
                 console.log('checkDriveStatus: Active session with current order found. Resuming drive.');
                 if (autoStartButton) autoStartButton.style.display = 'none';
@@ -590,26 +633,55 @@ function checkDriveStatus(token) {
                     productCardContainer.style.display = 'block';
                     renderProductCard(data.current_order);
                     currentProductData = data.current_order;
-                }                if (tasksProgressElement && data.tasks_completed !== undefined && data.tasks_required !== undefined) {
+                }
+                
+                if (tasksProgressElement && data.tasks_completed !== undefined && data.tasks_required !== undefined) {
                     totalTasksRequired = data.tasks_required;
                     tasksCompleted = data.tasks_completed;
                     updateProgressBar(data.tasks_completed, data.tasks_required);
                 }
+                
+                // If we have stored commission data, use it
+                if (sessionData && sessionData.totalCommission !== undefined) {
+                    totalDriveCommission = parseFloat(sessionData.totalCommission);
+                    updateDriveCommission(); // Update the display without adding more commission
+                }
+                
                 return true;
             } else if (data.status === 'frozen') {
                 console.log('checkDriveStatus: Frozen session found. Displaying frozen state.');
                 displayFrozenState(data.info || "Session frozen due to insufficient balance.", data.frozen_amount_needed);
                 if (autoStartButton) autoStartButton.style.display = 'none';
+                
+                // If we have stored commission data, display it
+                if (sessionData && sessionData.totalCommission !== undefined) {
+                    totalDriveCommission = parseFloat(sessionData.totalCommission);
+                    updateDriveCommission(); // Update the display without adding more commission
+                }
+                
                 return true;
             } else if (data.status === 'complete') {
                 console.log('checkDriveStatus: Drive complete.');
                 displayDriveComplete(data.info || 'Drive completed successfully.');
                 if (autoStartButton) autoStartButton.style.display = 'none';
+                
+                // If we have stored commission data, display it
+                if (sessionData && sessionData.totalCommission !== undefined) {
+                    totalDriveCommission = parseFloat(sessionData.totalCommission);
+                    updateDriveCommission(); // Update the display without adding more commission
+                }
+                
                 return true;
             } else if (data.status === 'no_session') {
                 console.log('checkDriveStatus: No active session found.');
                 if (autoStartButton) autoStartButton.style.display = 'block';
                 if (productCardContainer) productCardContainer.style.display = 'none';
+                
+                // Clear session data when no active session
+                clearSessionData();
+                totalDriveCommission = 0;
+                updateDriveCommission();
+                
                 return false;
             }
         }
@@ -665,6 +737,41 @@ function updateProgressBar(completed, total) {
     tasksProgressBar.style.width = percentage + '%';
     tasksProgressBar.setAttribute('aria-valuenow', percentage);
     tasksProgressBar.textContent = percentage + '%';
+  }
+}
+
+// --- Commission Tracking ---
+/**
+ * Updates the displayed commission earned in the current drive
+ * @param {number} commission - Commission amount to add (if not provided, just updates display)
+ */
+function updateDriveCommission(commission) {
+  // Load the stored commission first if available
+  const sessionData = getCurrentSessionData();
+  
+  // If we have existing data for this session, use it
+  if (sessionData && sessionData.totalCommission !== undefined) {
+    totalDriveCommission = parseFloat(sessionData.totalCommission);
+  }
+  
+  // If we're adding new commission
+  if (commission) {
+    totalDriveCommission += parseFloat(commission);
+    
+    // Store the updated commission in localStorage
+    saveCurrentSessionData({
+      totalCommission: totalDriveCommission,
+      sessionTimestamp: new Date().getTime()
+    });  }
+  
+  if (driveCommissionElement) {
+    driveCommissionElement.innerHTML = `${totalDriveCommission.toFixed(2)}<small style="font-size:14px"> USDT</small>`;
+    
+    // Add a brief highlight effect
+    driveCommissionElement.classList.add('highlight-green');
+    setTimeout(() => {
+      driveCommissionElement.classList.remove('highlight-green');
+    }, 1500);
   }
 }
 

@@ -101,15 +101,13 @@ const getUserBalances = async (req, res) => {
        FROM accounts 
        WHERE user_id = $1 AND type = 'main'`,
       [userId]
-    );
-
-    // Calculate commission from commission_logs for today
+    );    // Calculate commission from commission_logs for today
     const commissionResult = await pool.query(
       `SELECT COALESCE(SUM(commission_amount), 0) as commission_balance
        FROM commission_logs
        WHERE user_id = $1 
        AND account_type = 'main'
-       AND commission_type IN ('direct_drive', 'upline_bonus')
+       AND commission_type IN ('direct_drive', 'upline_bonus', 'data_drive')
        AND DATE(created_at) = CURRENT_DATE`,
       [userId]
     );

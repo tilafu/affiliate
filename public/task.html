@@ -54,10 +54,29 @@
   }
 }
 
-@keyframes spin {
-  to {
+@keyframes spin {  to {
     transform: rotate(360deg);
   }
+}
+
+/* Commission highlight effect */
+@keyframes highlight-green-flash {
+  0% {
+    color: #28a745;
+    transform: scale(1);
+  }
+  50% {
+    color: #28a745;
+    transform: scale(1.1);
+  }
+  100% {
+    color: inherit;
+    transform: scale(1);
+  }
+}
+
+.highlight-green {
+  animation: highlight-green-flash 1.5s ease;
 }
 
 /* Progress bar styles */
@@ -163,8 +182,7 @@
       <div class="col-md-5 mx-auto">
          <div class="card"> <!-- Corrected 'carsd' to 'card' -->
             <div class="card-body"> <!-- Corrected 'card-bsody' to 'card-body' -->
-               <div data-v-c26261c6="" class="col-span-1 flex flex-col p-3 bg-[#F6F5F7] mr-3">
-                  <h4 class="mb-3">Data Drive 
+               <div data-v-c26261c6="" class="col-span-1 flex flex-col p-3 bg-[#F6F5F7] mr-3">                  <h4 class="mb-3">Data Drive 
                      <span style="float: right; font-size: 15px"><a href="./orders.html">
                         <img src="./assets/uploads/img/4.png" style="margin-right: 2px;" width="20px"> Records <i class="fas fa-angle-right"></i></a>
                      </span>
@@ -174,6 +192,12 @@
                      <h2 class="main1">
                         <p class="datadrive-balance"><strong>Loading...</strong></p>
                      </h2>
+                  </div>
+                  <div class="item-card mt-3">
+                     <span>Commission earned (this drive)</span>
+                     <h3 class="main1">
+                        <p class="datadrive-commission"><strong>0.00<small style="font-size:14px"> USDT</small></strong></p>
+                     </h3>
                   </div>
                </div>
             </div>
@@ -380,6 +404,9 @@
 <!-- Load Component Loader -->
 <script src="./js/components.js"></script>
 <script src="./js/dashboard.js"></script>
+
+<!-- Session data management -->
+<script src="./js/session-data.js"></script>
 
 <!-- Withdrawable balance -->
 <script src="./js/task.js"></script>

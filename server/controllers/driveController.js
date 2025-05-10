@@ -143,25 +143,43 @@ const getDriveStatus = async (req, res) => {
     const session = sessionResult.rows[0];
     const sessionId = session.id;
     
+    // Calculate total commission earned in this drive
+    const commissionResult = await pool.query(
+      `SELECT COALESCE(SUM(commission_amount), 0) as total_commission
+       FROM commission_logs
+       WHERE user_id = $1 
+       AND commission_type = 'data_drive'
+       AND reference_id IN (
+         SELECT DISTINCT reference_id FROM commission_logs 
+         WHERE source_action_id IN (
+           SELECT product_id FROM drive_orders WHERE session_id = $2
+         )
+       )`,
+      [userId, sessionId]
+    );
+    
+    const totalCommission = parseFloat(commissionResult.rows[0]?.total_commission || 0);
+    
     if (session.status === 'pending_reset') {
       return res.json({ 
         code: 0, 
         status: 'complete',
         tasks_completed: session.tasks_completed,
         tasks_required: session.tasks_required,
-        info: 'Drive is complete. Please wait for admin reset.' 
+        total_commission: totalCommission.toFixed(2),
+        info: 'Drive completed. Pending admin reset.'
       });
     }
-
-    if (session.status === 'frozen') {
-       return res.json({
-         code: 0,
-         status: 'frozen',
-         tasks_completed: session.tasks_completed,
-         tasks_required: session.tasks_required,
-         frozen_amount_needed: session.frozen_amount_needed,
-         info: `Session frozen. Please deposit at least ${session.frozen_amount_needed} USDT to continue.`
-       });
+      if (session.status === 'frozen') {
+      return res.json({ 
+        code: 0, 
+        status: 'frozen',
+        tasks_completed: session.tasks_completed,
+        tasks_required: session.tasks_required,
+        total_commission: totalCommission.toFixed(2),
+        frozen_amount_needed: session.frozen_amount_needed,
+        info: 'Drive frozen due to insufficient balance. Please deposit funds.'
+      });
     }
 
     // Look for ANY incomplete order (either current or pending)
@@ -179,14 +197,22 @@ const getDriveStatus = async (req, res) => {
        END, drv_ord.id ASC
        LIMIT 1`,
       [sessionId]
-    );
-
-    if (incompleteOrderResult.rows.length > 0) {
+    );    if (incompleteOrderResult.rows.length > 0) {
       const incompleteOrder = incompleteOrderResult.rows[0];
       const { tier } = await getUserDriveInfo(userId);
       const commission = calculateCommission(parseFloat(incompleteOrder.product_price), tier, 'single');
 
-      // If order was pending, set it to current
+      // Calculate total commission earned in this drive
+      const commissionResult = await pool.query(
+        `SELECT COALESCE(SUM(commission_amount), 0) as total_commission
+         FROM commission_logs
+         WHERE user_id = $1 
+         AND commission_type = 'data_drive'
+         AND drive_session_id = $2`,
+        [userId, sessionId]
+      );
+      
+      const totalCommission = parseFloat(commissionResult.rows[0]?.total_commission || 0);      // If order was pending, set it to current
       if (incompleteOrder.order_status === 'pending') {
         await pool.query(
           `UPDATE drive_orders SET status = 'current' WHERE id = $1`,
@@ -200,6 +226,7 @@ const getDriveStatus = async (req, res) => {
         status: 'active',
         tasks_completed: session.tasks_completed,
         tasks_required: session.tasks_required,
+        total_commission: totalCommission.toFixed(2),
         current_order: {
           order_id: incompleteOrder.order_id,
           product_id: incompleteOrder.product_id,
@@ -444,12 +471,11 @@ const saveOrder = async (req, res) => {
     await client.query(
       'UPDATE accounts SET balance = $1 WHERE id = $2',
       [newBalance.toFixed(2), account.id]
-    );
-    await client.query(
+    );    await client.query(
       `INSERT INTO commission_logs
-       (user_id, source_user_id, account_type, commission_amount, commission_type, description, reference_id, source_action_id)
-       VALUES ($1, $1, $2, $3, $4, $5, $6, $7)`,
-      [userId, 'main', calculatedCommission.toFixed(2), 'data_drive', `Commission for product #${product_id} (Task ${product_number})`, product_number, product_id]
+       (user_id, source_user_id, account_type, commission_amount, commission_type, description, reference_id, source_action_id, drive_session_id)
+       VALUES ($1, $1, $2, $3, $4, $5, $6, $7, $8)`,
+      [userId, 'main', calculatedCommission.toFixed(2), 'data_drive', `Commission for product #${product_id} (Task ${product_number})`, product_number, product_id, session.id]
     );
     await client.query(
       `UPDATE drive_orders SET status = 'completed' WHERE id = $1`,
