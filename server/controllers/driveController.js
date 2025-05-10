@@ -87,8 +87,7 @@ const startDrive = async (req, res) => {
           'INSERT INTO drive_orders (session_id, product_id, status, tasks_required) VALUES ($1, $2, $3, $4)',
           [newSessionDbId, product.id, 'pending', 1]
         )
-      );      await Promise.all(driveOrderInserts);
-      await client.query('COMMIT');
+      );      await Promise.all(driveOrderInserts);      await client.query('COMMIT');
       logger.info(`Drive session created for user ${userId} with ${tasksRequired} tasks`);
       
       // Log successful drive start
@@ -98,7 +97,12 @@ const startDrive = async (req, res) => {
         tier: tier
       });
       
-      return res.json({ code: 0, info: 'Data Drive initiated successfully.' });
+      return res.json({ 
+        code: 0, 
+        info: 'Data Drive initiated successfully.',
+        tasks_required: tasksRequired,
+        tasks_completed: 0
+      });
     } catch (dbError) {
       await client.query('ROLLBACK');
       logger.error(`Database error creating drive session: ${dbError.message}`, { userId, error: dbError });

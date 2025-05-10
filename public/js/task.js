@@ -4,6 +4,7 @@
 // --- Global Variables ---
 var oid = null; // Will be set by startDrive response if needed (using session ID?)
 let totalTasksRequired = 0; // Variable to store the total number of tasks required
+let tasksCompleted = 0; // Track the number of completed tasks
 let isStartingDrive = false; // Flag to prevent unintentional start drive calls
 
 // --- UI Element References ---
@@ -11,6 +12,9 @@ let autoStartButton;
 let productCardContainer; // New container for the dynamic product card
 let walletBalanceElement;
 let tasksProgressElement; // Element to display tasks completed/required
+let driveProgressBar; // Main progress bar at the top
+let progressTextElement; // Text showing progress count
+let tasksProgressBar; // Small progress bar in tasks card
 let orderLoadingOverlay; // Reference to the new loading overlay
 
 // --- Drive State Variables ---
@@ -33,19 +37,23 @@ function initializeTaskPage() {
     }
     window.location.href = 'login.html';
     return false; // Indicate initialization failed
-  }
-
-  // Get references to key elements
+  }  // Get references to key elements
   autoStartButton = document.getElementById('autoStart');
   productCardContainer = document.getElementById('product-card-container'); // Get reference to the new container
   walletBalanceElement = document.querySelector('.datadrive-balance strong');  // Select the strong element directly
-  tasksProgressElement = document.querySelector('.item-card h5'); // Element displaying tasks completed/required
+  tasksProgressElement = document.getElementById('tasks-count'); // Element displaying tasks completed/required
+  tasksProgressBar = document.getElementById('tasks-progress-bar'); // Progress bar element for tasks card
+  driveProgressBar = document.getElementById('drive-progress-bar'); // Main progress bar at the top
+  progressTextElement = document.getElementById('progress-text'); // Text element for progress 
   orderLoadingOverlay = document.getElementById('order-loading-overlay'); // Get reference to the loading overlay
 
   // Initial UI state: Show start button, hide product card container and loading overlay
   if (autoStartButton) autoStartButton.style.display = 'block';
   if (productCardContainer) productCardContainer.style.display = 'none';
   if (orderLoadingOverlay) orderLoadingOverlay.style.display = 'none';
+
+  // Initialize progress bars with default values (will be updated by checkDriveStatus)
+  updateProgressBar(0, 45); // Default to 0/45
 
   // Initial balance fetch
   refreshWalletBalance();
@@ -260,11 +268,18 @@ function callStartDriveAPI(token) {
                 } catch (e) {
                     console.error("Error showing success dialog:", e);
                     alert(data.info || 'Drive started!');
-                }
-                $('.product-carousel').css('border', '2px solid green');
+                }                $('.product-carousel').css('border', '2px solid green');
                 setTimeout(() => {
                     $('.product-carousel').css('border', '');
                 }, 3000);
+                
+                // Reset and update progress bar when starting a new drive
+                if (data.tasks_required) {
+                    totalTasksRequired = data.tasks_required;
+                    tasksCompleted = data.tasks_completed || 0;
+                    updateProgressBar(tasksCompleted, totalTasksRequired);
+                }
+                
                 if (autoStartButton) autoStartButton.style.display = 'none';
                 if (productCardContainer) productCardContainer.style.display = 'block';
                 fetchNextOrder(token);
@@ -445,14 +460,12 @@ async function handlePurchase(token, productData) {
         const data = await response.json();
         if (orderLoadingOverlay) orderLoadingOverlay.style.display = 'none';
         if (response.ok && data.code === 0) {
-            console.log('Order saved successfully:', data.info);
-            if (typeof showNotification === 'function') {
+            console.log('Order saved successfully:', data.info);            if (typeof showNotification === 'function') {
                 showNotification(data.info || "Order Sent successfully!", 'success');
             } else { alert(data.info || "Order Sent successfully!"); }
-            if (tasksProgressElement && data.tasks_completed !== undefined && totalTasksRequired > 0) {
-                tasksProgressElement.textContent = `(${data.tasks_completed} / ${totalTasksRequired})`;
-            } else if (tasksProgressElement && data.tasks_completed !== undefined) {
-                 tasksProgressElement.textContent = `(${data.tasks_completed} / --)`;
+            if (data.tasks_completed !== undefined) {
+                tasksCompleted = data.tasks_completed;
+                updateProgressBar(data.tasks_completed, totalTasksRequired);
             }
             refreshWalletBalance();
             fetchNextOrder(token);
@@ -577,10 +590,10 @@ function checkDriveStatus(token) {
                     productCardContainer.style.display = 'block';
                     renderProductCard(data.current_order);
                     currentProductData = data.current_order;
-                }
-                if (tasksProgressElement && data.tasks_completed !== undefined && data.tasks_required !== undefined) {
-                    tasksProgressElement.textContent = `(${data.tasks_completed} / ${data.tasks_required})`;
+                }                if (tasksProgressElement && data.tasks_completed !== undefined && data.tasks_required !== undefined) {
                     totalTasksRequired = data.tasks_required;
+                    tasksCompleted = data.tasks_completed;
+                    updateProgressBar(data.tasks_completed, data.tasks_required);
                 }
                 return true;
             } else if (data.status === 'frozen') {
@@ -611,6 +624,48 @@ function checkDriveStatus(token) {
         if (productCardContainer) productCardContainer.style.display = 'none';
         return false;
     });
+}
+
+// --- Helper to update progress bar ---
+function updateProgressBar(completed, total) {
+  console.log(`Updating progress bars: ${completed}/${total}`);
+  
+  // Store globally for reference
+  tasksCompleted = completed;
+  totalTasksRequired = total;
+  
+  if (!total) total = 1; // Avoid division by zero
+  const percentage = Math.min(Math.round((completed / total) * 100), 100);
+  
+  // Update main progress bar at the top
+  if (driveProgressBar) {
+    driveProgressBar.style.width = percentage + '%';
+    driveProgressBar.setAttribute('aria-valuenow', percentage);
+    driveProgressBar.textContent = percentage + '%';
+    
+    // Add flash animation to highlight the update
+    driveProgressBar.classList.add('progress-flash');
+    setTimeout(() => {
+      driveProgressBar.classList.remove('progress-flash');
+    }, 700);
+  }
+  
+  // Update progress text
+  if (progressTextElement) {
+    progressTextElement.textContent = `${completed} / ${total} tasks completed`;
+  }
+  
+  // Update the tasks count display
+  if (tasksProgressElement) {
+    tasksProgressElement.textContent = `(${completed} / ${total})`;
+  }
+  
+  // Update the small tasks progress bar
+  if (tasksProgressBar) {
+    tasksProgressBar.style.width = percentage + '%';
+    tasksProgressBar.setAttribute('aria-valuenow', percentage);
+    tasksProgressBar.textContent = percentage + '%';
+  }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
