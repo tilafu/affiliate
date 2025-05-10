@@ -3,7 +3,9 @@
 <head> 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Digistore24 Sign-up</title>
+    <title data-i18n-title="signupHeader">Digistore24 Sign-up</title>
+    <script src="https://unpkg.com/i18next/i18next.min.js"></script>
+    <script src="https://unpkg.com/i18next-http-backend/i18nextHttpBackend.min.js"></script>
     <style>
         /* Styles remain the same */
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif; }
@@ -63,7 +65,16 @@
     </style>
 </head>
 <body>
-    <a href="login.html" class="back-link"> <!-- Updated path -->
+    <div style="text-align: right; padding: 0px 20px 10px 20px; position: relative; z-index: 1000; max-width: 600px; margin-left: auto; margin-right: auto;">
+        <label for="language-switcher" style="margin-right: 5px; font-size: 14px;">Language:</label>
+        <select id="language-switcher" style="padding: 5px; border-radius: 4px; font-size: 14px; border: 1px solid #ddd;">
+            <option value="en">English</option>
+            <option value="fr">Français</option>
+            <option value="es">Español</option>
+        </select>
+    </div>
+
+    <a href="login.html" class="back-link" data-i18n="backToHomepage"> <!-- Updated path -->
         ← GO TO HOMEPAGE
     </a>
 
@@ -73,33 +84,35 @@
                 <div class="logo">
                     <img src="assets/uploads/favicon.png" style="height: 100%;" alt=""> <!-- Updated path -->
                 </div>
-                <div class="logo-text">Digistore24 Sign-up</div>
+                <div class="logo-text" data-i18n="signupHeader">Digistore24 Sign-up</div>
             </div>
 
             <form id="signupForm">
                 <!-- Form fields remain the same -->
-                <div class="form-group"> <label for="username">Public username</label> <input type="text" id="username" name="username" required> </div>
-                <div class="form-group"> <label for="email">Email</label> <input type="email" id="email" name="email" required> </div>
-                <div class="form-group"> <label for="password">Password</label> <div class="password-field"> <input type="password" id="password" name="password" required> <span class="toggle-password">👁️</span> <div class="password-strength"> <span>Strength:</span> <span id="strength-indicator">-</span> </div> </div> </div>
-                <div class="form-group"> <label for="repeat-password">Repeat password</label> <div class="password-field"> <input type="password" id="repeat-password" name="repeat-password" required> <span class="toggle-password">👁️</span> </div> </div>
-                <div class="form-group"> <label for="referralCode">Referral Code</label> <input type="text" id="referralCode" name="referralCode" required> </div>
-                <div class="radio-group"> <label>What is your main source of revenue?</label> <div class="radio-option"> <input type="radio" id="vendor" name="revenue_source" value="vendor"> <label for="vendor">I am a vendor / I primarily sell my own products.</label> </div> <div class="radio-option"> <input type="radio" id="affiliate" name="revenue_source" value="affiliate"> <label for="affiliate">I am an affiliate / I primarily promote other people's products.</label> </div> <div class="radio-option"> <input type="radio" id="both" name="revenue_source" value="both"> <label for="both">Both equally.</label> </div> </div>
-                <button type="submit" class="submit-button">Continue</button>
-                <div class="terms-text"> By clicking "Continue", you agree to our <a href="#">Terms and Conditions</a> and confirm that you have read our <a href="#">Privacy Policy</a>. You also agree to receive marketing communications from Digistore24 and understand that you can opt out at any time. </div>
+                <div class="form-group"> <label for="username" data-i18n="publicUsernameLabel">Public username</label> <input type="text" id="username" name="username" required> </div>
+                <div class="form-group"> <label for="email" data-i18n="emailLabel">Email</label> <input type="email" id="email" name="email" required> </div>
+                <div class="form-group"> <label for="password" data-i18n="passwordLabel">Password</label> <div class="password-field"> <input type="password" id="password" name="password" required> <span class="toggle-password">👁️</span> <div class="password-strength"> <span data-i18n="passwordStrength">Strength:</span> <span id="strength-indicator">-</span> </div> </div> </div>
+                <div class="form-group"> <label for="repeat-password" data-i18n="repeatPasswordLabel">Repeat password</label> <div class="password-field"> <input type="password" id="repeat-password" name="repeat-password" required> <span class="toggle-password">👁️</span> </div> </div>
+                <div class="form-group"> <label for="referralCode" data-i18n="referralCodeLabel">Referral Code</label> <input type="text" id="referralCode" name="referralCode" required> </div>
+                <div class="radio-group"> <label data-i18n="revenueSourceLabel">What is your main source of revenue?</label> <div class="radio-option"> <input type="radio" id="vendor" name="revenue_source" value="vendor"> <label for="vendor" data-i18n="vendorOption">I am a vendor / I primarily sell my own products.</label> </div> <div class="radio-option"> <input type="radio" id="affiliate" name="revenue_source" value="affiliate"> <label for="affiliate" data-i18n="affiliateOption">I am an affiliate / I primarily promote other people's products.</label> </div> <div class="radio-option"> <input type="radio" id="both" name="revenue_source" value="both"> <label for="both" data-i18n="bothOption">Both equally.</label> </div> </div>
+                <button type="submit" class="submit-button" data-i18n="continueButton">Continue</button>
+                <div class="terms-text" data-i18n="termsText"> By clicking "Continue", you agree to our <a href="#">Terms and Conditions</a> and confirm that you have read our <a href="#">Privacy Policy</a>. You also agree to receive marketing communications from Digistore24 and understand that you can opt out at any time. </div>
             </form>
         </div>
 
         <div class="stats-section">
             <!-- Stats remain the same -->
-            <div class="stat-item"> <div class="stat-number">2 million</div> <div class="stat-text">global active users</div> </div> <div class="stat-item"> <div class="stat-number">$3+ billion</div> <div class="stat-text">in sales processed</div> </div> <div class="stat-item"> <div class="stat-number">10,000+</</div> <div class="stat-text">affiliates trust Digistore24</div> </div>
+            <div class="stat-item"> <div class="stat-number">2 million</div> <div class="stat-text" data-i18n="globalActiveUsers">global active users</div> </div> <div class="stat-item"> <div class="stat-number">$3+ billion</div> <div class="stat-text" data-i18n="salesProcessed">in sales processed</div> </div> <div class="stat-item"> <div class="stat-number">10,000+</</div> <div class="stat-text" data-i18n="affiliatesTrust">affiliates trust Digistore24</div> </div>
         </div>
     </div>
 
     <div class="cookie-banner">
         <!-- Cookie banner remains the same -->
-        <div class="cookie-content"> <div class="cookie-header"> <div class="cookie-title">This website uses cookies and third-party services</div> </div> <div class="cookie-text"> We use cookies and third-party services (e.g., tracking tools), particularly to personalize content and ads, offer social media features, and analyze our website traffic. We also share information about your use of our website with our social media, advertising, and analytics partners. Our partners may combine this information with other data you have provided to them or that they have collected as part of your use of the services. </div> <div class="cookie-options"> <div class="cookie-option"> <div>Necessary</div> <label class="toggle-switch"> <input type="checkbox" checked disabled> <span class="toggle-slider"></span> </label> </div> <div class="cookie-option"> <div>Preferences</div> <label class="toggle-switch"> <input type="checkbox" id="preferences"> <span class="toggle-slider"></span> </label> </div> <div class="cookie-option"> <div>Statistics</div> <label class="toggle-switch"> <input type="checkbox" id="statistics"> <span class="toggle-slider"></span> </label> </div> <div class="cookie-option"> <div>Marketing</div> <label class="toggle-switch"> <input type="checkbox" id="marketing"> <span class="toggle-slider"></span> </label> </div> </div> <div class="cookie-buttons"> <button class="cookie-btn btn-deny">Deny</button> <button class="cookie-btn btn-allow">Allow selection</button> <button class="cookie-btn btn-allow">Allow all</button> </div> </div>
+        <div class="cookie-content"> <div class="cookie-header"> <div class="cookie-title" data-i18n="cookieTitle">This website uses cookies and third-party services</div> </div> <div class="cookie-text" data-i18n="cookieText"> We use cookies and third-party services (e.g., tracking tools), particularly to personalize content and ads, offer social media features, and analyze our website traffic. We also share information about your use of our website with our social media, advertising, and analytics partners. Our partners may combine this information with other data you have provided to them or that they have collected as part of your use of the services. </div> <div class="cookie-options"> <div class="cookie-option"> <div data-i18n="necessaryCookie">Necessary</div> <label class="toggle-switch"> <input type="checkbox" checked disabled> <span class="toggle-slider"></span> </label> </div> <div class="cookie-option"> <div data-i18n="preferencesCookie">Preferences</div> <label class="toggle-switch"> <input type="checkbox" id="preferences"> <span class="toggle-slider"></span> </label> </div> <div class="cookie-option"> <div data-i18n="statisticsCookie">Statistics</div> <label class="toggle-switch"> <input type="checkbox" id="statistics"> <span class="toggle-slider"></span> </label> </div> <div class="cookie-option"> <div data-i18n="marketingCookie">Marketing</div> <label class="toggle-switch"> <input type="checkbox" id="marketing"> <span class="toggle-slider"></span> </label> </div> </div> <div class="cookie-buttons"> <button class="cookie-btn btn-deny" data-i18n="denyButton">Deny</button> <button class="cookie-btn btn-allow" data-i18n="allowSelectionButton">Allow selection</button> <button class="cookie-btn btn-allow" data-i18n="allowAllButton">Allow all</button> </div> </div>
     </div>
 
+    <!-- i18next and app scripts -->
+    <script src="js/i18n.js"></script>
     <!-- Link to new JS files -->
     <script src="js/main.js"></script>
     <script src="js/auth.js"></script>
@@ -127,14 +140,15 @@
                     if (password.match(/[A-Z]/)) strength++;
                     if (password.match(/[0-9]/)) strength++;
                     if (password.match(/[^a-zA-Z0-9]/)) strength++;
+                    let strengthText = '-';
                     switch (strength) {
-                        case 0: strengthIndicator.textContent = '-'; break;
-                        case 1: strengthIndicator.textContent = 'Very Weak'; break;
-                        case 2: strengthIndicator.textContent = 'Weak'; break;
-                        case 3: strengthIndicator.textContent = 'Medium'; break;
-                        case 4: strengthIndicator.textContent = 'Strong'; break;
-                        case 5: strengthIndicator.textContent = 'Very Strong'; break;
+                        case 1: strengthText = i18next.t('passwordStrengthVeryWeak'); break;
+                        case 2: strengthText = i18next.t('passwordStrengthWeak'); break;
+                        case 3: strengthText = i18next.t('passwordStrengthMedium'); break;
+                        case 4: strengthText = i18next.t('passwordStrengthStrong'); break;
+                        case 5: strengthText = i18next.t('passwordStrengthVeryStrong'); break;
                     }
+                    strengthIndicator.textContent = strengthText;
                 });
             }
 

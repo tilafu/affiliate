@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login to Digistore24</title>
+    <title data-i18n-title="pageTitle">Login to Digistore24</title>
+    <script src="https://unpkg.com/i18next/i18next.min.js"></script>
+    <script src="https://unpkg.com/i18next-http-backend/i18nextHttpBackend.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -171,31 +173,42 @@
        <img src="assets/uploads/favicon.png" style="height: 100%;" alt=""> <!-- Updated path -->
     </div>
 
+    <div style="text-align: right; padding: 0px 20px 10px 20px; position: relative; z-index: 1000; max-width: 480px; margin-left: auto; margin-right: auto;">
+        <label for="language-switcher" style="margin-right: 5px; font-size: 14px;">Language:</label>
+        <select id="language-switcher" style="padding: 5px; border-radius: 4px; font-size: 14px; border: 1px solid #ddd;">
+            <option value="en">English</option>
+            <option value="fr">Français</option>
+            <option value="es">Español</option>
+        </select>
+    </div>
+
     <div class="container">
         <div class="login-form">
-            <h1>Login to Digistore24</h1>
+            <h1 data-i18n="loginHeader">Login to Digistore24</h1>
             <form id="loginForm" onsubmit="return handleSubmit(event)">
                 <div class="form-group">
-                    <label for="username">EMAIL OR USERNAME</label>
-                    <input type="text" id="username" name="username" placeholder="name@example.com or username" required>
-                    <div class="error-text" id="usernameError">Please complete this field.</div>
+                    <label for="username" data-i18n="emailOrUsernameLabel">EMAIL OR USERNAME</label>
+                    <input type="text" id="username" name="username" placeholder="name@example.com or username" required data-i18n="emailOrUsernamePlaceholder">
+                    <div class="error-text" id="usernameError" data-i18n="fieldRequiredError">Please complete this field.</div>
                 </div>
                 <div class="form-group">
-                    <label for="password">PASSWORD</label>
-                    <input type="password" id="password" name="password" placeholder="Password" required>
-                    <div class="error-text" id="passwordError">Please complete this field.</div>
+                    <label for="password" data-i18n="passwordLabel">PASSWORD</label>
+                    <input type="password" id="password" name="password" placeholder="Password" required data-i18n="passwordPlaceholder">
+                    <div class="error-text" id="passwordError" data-i18n="fieldRequiredError">Please complete this field.</div>
                 </div>
-                <button type="submit" class="login-button">Login</button>
+                <button type="submit" class="login-button" data-i18n="loginButton">Login</button>
             </form>
         </div>
 
         <div class="signup-section">
-            <h2>Don't have an account?</h2>
-            <p>Sign up for free.</p>
-            <a href="register.html" class="signup-button">Sign up</a> <!-- Updated path -->
+            <h2 data-i18n="noAccountHeader">Don't have an account?</h2>
+            <p data-i18n="signUpPrompt">Sign up for free.</p>
+            <a href="register.html" class="signup-button" data-i18n="signUpButton">Sign up</a> <!-- Updated path -->
         </div>
     </div>
 
+    <!-- i18next and app scripts -->
+    <script src="js/i18n.js"></script> 
     <!-- Link to new JS files -->
     <script src="js/main.js"></script> 
     <script src="js/auth.js"></script> 
@@ -204,6 +217,7 @@
         // Keep DOMContentLoaded for initial checks, but move handleSubmit logic
         document.addEventListener('DOMContentLoaded', function() { 
             // Check if user is already logged in
+            /*
             const authToken = localStorage.getItem('auth_token');
             if (authToken) {
                 try {
@@ -215,12 +229,23 @@
                     console.error("Auth check error:", error);
                 }
             }
+            */
 
             // Check if user just registered
             const registeredUsername = sessionStorage.getItem('registered_username');
             if (registeredUsername) {
                 document.getElementById('username').value = registeredUsername;
-                showNotification('Registration successful! Please login with your new account.', 'success');
+                // Ensure i18next is initialized before calling t()
+                if (window.i18next && window.i18next.isInitialized) {
+                    showNotification(i18next.t('registrationSuccessNotification'), 'success');
+                } else {
+                    // Fallback or wait for initialization
+                    i18next.on('initialized', () => {
+                         showNotification(i18next.t('registrationSuccessNotification'), 'success');
+                    });
+                    // Fallback if i18next fails or is slow
+                    // setTimeout(() => showNotification(i18next.t('registrationSuccessNotification', 'Registration successful! Please login with your new account.'), 'success'), 500);
+                }
                 sessionStorage.removeItem('registered_username');
             }
             

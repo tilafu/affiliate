@@ -42,6 +42,23 @@ function showNotification(message, type = 'success') {
     alert(message);
 }
 
+// Add this notification function
+function showAdminNotification(message, type = 'info') {
+    const alertsContainer = document.getElementById('alerts-container');
+    const alert = document.createElement('div');
+    alert.className = `alert alert-${type} alert-dismissible fade show`;
+    alert.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    `;
+    alertsContainer.appendChild(alert);
+
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+        alert.remove();
+    }, 5000);
+}
+
 function initializeSidebar() {
     // Handle submenu toggles
     document.querySelectorAll('.has-submenu > .nav-link').forEach(link => {
@@ -267,6 +284,24 @@ async function loadDrives() {
     } catch (error) {
         console.error('Error loading drives:', error);
         showNotification('Failed to load drives data', 'error');
+    }
+}
+
+// Modify the loadDrives function to include username lookup
+async function getDriveStatus(userId) {
+    try {
+        // First get user details
+        const userResponse = await fetchWithAuth(`/admin/users/${userId}`);
+        const username = userResponse.user.username;
+        
+        // Then get drive status
+        const driveResponse = await fetchWithAuth(`/admin/drives/${userId}`);
+        
+        showAdminNotification(`Checking drive status for user: ${username}`, 'info');
+        return driveResponse;
+    } catch (error) {
+        console.error('Error getting drive status:', error);
+        showAdminNotification(`Error checking drive status for user ID ${userId}`, 'danger');
     }
 }
 

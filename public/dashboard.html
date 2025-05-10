@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <meta http-equiv="X-UA-Compatible" content="IE=Edge"/>
-    <title>Home</title>
+    <title data-i18n-title="dashboardPageTitle">Home</title>
     <meta name="csrf-token" content="cMnbgu3d14TqQm9u7lWoeRN4awsdQMKFm6tCJ2zU">
     <link rel="shortcut icon" href="./assets/uploads/generals/favicon-665b8c8a863b91717275786.png">
     <link rel="stylesheet" href="./assets/frontend/shopva/public.css">
@@ -22,6 +22,10 @@
     <link rel="stylesheet" href="./assets/frontend/css/owl.carousel.min.css" type="text/css" media="all"/>
     <link rel="stylesheet" href="./assets/frontend/css/style.css" type="text/css" media="all"/>
     <link rel="stylesheet" href="./assets/frontend/main/css/other1.css">
+    <!-- i18next and app scripts -->
+    <script src="https://unpkg.com/i18next/i18next.min.js"></script>
+    <script src="https://unpkg.com/i18next-http-backend/i18nextHttpBackend.min.js"></script>
+    <script src="./js/i18n.js"></script>
 </head>
 <body>
 
@@ -51,7 +55,7 @@
 
             <div class="item-options">
                                 <div class="item-notification icon-effect me-3">
-                    <a href="./notifications.html">
+                    <a href="./notifications.html" data-i18n="notificationsLink">
                         <svg enable-background="new 0 0 512 512" fill="currentColor"
                              viewBox="0 0 512 512" width="20" height="20"
                              xmlns="http://www.w3.org/2000/svg">
@@ -72,7 +76,7 @@
             <div class="container">
    <div class="row mb-2">
       <div class="col-md-12">
-         <marquee direction="left">
+         <marquee direction="left" data-i18n="marqueeText">
             All the new users will earn 20% of commission during the training as their starting capitalAll the new users will earn 20% of commission during the training as their starting capital
          </marquee>
       </div>
@@ -91,7 +95,7 @@
                                  <img src="./assets/uploads/img/1.png" width="50px">
                               </a>
                            </div>
-                           <p class="mb-0" style="font-size: 12px">Starting</p>
+                           <p class="mb-0" style="font-size: 12px" data-i18n="startingTask">Starting</p>
                         </div>
                      </div>
                      <div class="col-3">
@@ -101,7 +105,7 @@
                                  <img src="./assets/uploads/img/4.png" width="50px">
                               </a>
                            </div>
-                           <p class="mb-0" style="font-size: 12px">Data Drive</p>
+                           <p class="mb-0" style="font-size: 12px" data-i18n="dataDriveTask">Data Drive</p>
                         </div>
                      </div>
                      <div class="col-3">
@@ -111,7 +115,7 @@
                                  <img src="./assets/uploads/img/3.png" width="50px">
                               </a>
                            </div>
-                           <p class="mb-0" style="font-size: 12px">About Us</p>
+                           <p class="mb-0" style="font-size: 12px" data-i18n="aboutUsLink">About Us</p>
                         </div>
                      </div>
                      <div class="col-3">
@@ -121,7 +125,7 @@
                                  <img src="./assets/uploads/img/2.png" width="50px">
                               </a>
                            </div>
-                           <p class="mb-0" style="font-size: 12px">Contact Us</p>
+                           <p class="mb-0" style="font-size: 12px" data-i18n="contactUsLink">Contact Us</p>
                         </div>
                      </div>
                      
@@ -137,20 +141,20 @@
          <div class="card">
             <div class="card-bsody">
                <div data-v-c26261c6="" class="col-span-1 flex flex-col p-4 bg-[#F6F5F7] mr-3">
-                  <h6>Registered Working Days</h6>
+                  <h6 data-i18n="registeredWorkingDaysHeader">Registered Working Days</h6>
                   
                    <div class="item-card mt-3 mb-4">
                         <div class="text-center">
-                            <p class="mb-3"><b>Completed (0)</b></p>
+                            <p class="mb-3" data-i18n="completedWorkingDays" data-i18n-options='{"count": 0}'><b>Completed (0)</b></p>
                         </div>
                                                  <div style="display: flex; align-items: center;">
-                            <p style="margin-right: 10px;">Progress (0/7)</p>
+                            <p style="margin-right: 10px;" data-i18n="progressWorkingDays" data-i18n-options='{"completed": 0, "total": 7}'>Progress (0/7)</p>
                             <div class="progress" style="height: 10px; flex: 1;">
                                 <div class="progress-bar bg-info" role="progressbar" style="width: 0%;"></div>
                             </div>
                         </div>
                     </div>
-                    <p style="font-size: 14px">Once you complete two sets of data in a day, our customer service team will register a working day for you</p>
+                    <p style="font-size: 14px" data-i18n="workingDaysDescription">Once you complete two sets of data in a day, our customer service team will register a working day for you</p>
                </div>
             </div>
          </div>
@@ -162,18 +166,20 @@
          <div class="card">
             <div class="card-bsody">
                <div data-v-c26261c6="" class="col-span-1 flex flex-col p-4 bg-[#F6F5F7] mr-3">
-                  <h6 class="mb-2">Tier Membership <span style="float: right;"><a href="./memberships.html">View more</a></span></h6>
+                  <h6 class="mb-2" data-i18n="tierMembershipHeader">Tier Membership <span style="float: right;"><a href="./memberships.html" data-i18n="viewMoreLink">View more</a></span></h6>
                   <div data-v-c26261c6="" class="flex justify-between items-center">
                      <img data-v-c26261c6="" width="60px" src="./assets/uploads/packages/gold_665c05eea02a21717306862.PNG" alt="">
                   </div>
-                  <h4>Elite Member</h4>
+                  <h4 data-i18n="eliteMemberTitle">Elite Member</h4>
                   <div data-v-c26261c6="" class="text-[#11223E] text-xs mt-2">
-                     <p style="font-size: 13px">● 1.5% commission per data<br />
-● 4.5% commission for merge data<br />
-● Limited to 45 data per set, 2 sets of data everyday<br />
-● withdrawal limit: 50,000 USDT<br />
-● 2 times of withdrawal<br />
-● 0% handling fee</p>
+                     <p style="font-size: 13px">
+                        <span data-i18n="eliteMemberCommissionPerData" data-i18n-options='{"percentage": 1.5}'>● 1.5% commission per data</span><br />
+                        <span data-i18n="eliteMemberCommissionMergeData" data-i18n-options='{"percentage": 4.5}'>● 4.5% commission for merge data</span><br />
+                        <span data-i18n="eliteMemberDataLimit" data-i18n-options='{"dataLimit": 45, "setsPerDay": 2}'></span>● Limited to 45 data per set, 2 sets of data everyday</span><br />
+                        <span data-i18n="eliteMemberWithdrawalLimit" data-i18n-options='{"limit": 50000}'>● withdrawal limit: 50,000 USDT</span><br />
+                        <span data-i18n="eliteMemberWithdrawalTimes" data-i18n-options='{"times": 2}'>● 2 times of withdrawal</span><br />
+                        <span data-i18n="eliteMemberHandlingFee" data-i18n-options='{"percentage": 0}'>● 0% handling fee</span>
+                     </p>
                   </div>
                </div>
             </div>
@@ -187,13 +193,13 @@
 <footer>
     <div class="container">
         <div class="footer-bar">
-            <a href="./dashboard.html" class="active"> <!-- Added .html -->
+            <a href="./dashboard.html" class="active" data-i18n="footerHomeLink"> <!-- Added .html -->
                 <svg viewBox="0 1 511 511.999" width="20" height="20" fill="currentColor"
                      xmlns="http://www.w3.org/2000/svg">
                     <path d="m498.699219 222.695312c-.015625-.011718-.027344-.027343-.039063-.039062l-208.855468-208.847656c-8.902344-8.90625-20.738282-13.808594-33.328126-13.808594-12.589843 0-24.425781 4.902344-33.332031 13.808594l-208.746093 208.742187c-.070313.070313-.144532.144531-.210938.214844-18.28125 18.386719-18.25 48.21875.089844 66.558594 8.378906 8.382812 19.441406 13.234375 31.273437 13.746093.484375.046876.96875.070313 1.457031.070313h8.320313v153.695313c0 30.417968 24.75 55.164062 55.167969 55.164062h81.710937c8.285157 0 15-6.71875 15-15v-120.5c0-13.878906 11.292969-25.167969 25.171875-25.167969h48.195313c13.878906 0 25.167969 11.289063 25.167969 25.167969v120.5c0 8.28125 6.714843 15 15 15h81.710937c30.421875 0 55.167969-24.746094 55.167969-55.164062v-153.695313h7.71875c12.585937 0 24.421875-4.902344 33.332031-13.8125 18.359375-18.367187 18.367187-48.253906.027344-66.632813zm-21.242188 45.421876c-3.238281 3.238281-7.542969 5.023437-12.117187 5.023437h-22.71875c-8.285156 0-15 6.714844-15 15v168.695313c0 13.875-11.289063 25.164062-25.167969 25.164062h-66.710937v-105.5c0-30.417969-24.746094-55.167969-55.167969-55.167969h-48.195313c-30.421875 0-55.171875 24.75-55.171875 55.167969v105.5h-66.710937c-13.875 0-25.167969-11.289062-25.167969-25.164062v-168.695313c0-8.285156-6.714844-15-15-15h-22.328125c-.234375-.015625-.464844-.027344-.703125-.03125-4.46875-.078125-8.660156-1.851563-11.800781-4.996094-6.679688-6.679687-6.679688-17.550781 0-24.234375.003906 0 .003906-.003906.007812-.007812l.011719-.011719 208.847656-208.839844c3.234375-3.238281 7.535157-5.019531 12.113281-5.019531 4.574219 0 8.875 1.78125 12.113282 5.019531l208.800781 208.796875c.03125.03125.066406.0625.097656.09375 6.644531 6.691406 6.632813 17.539063-.03125 24.207032zm0 0"/>
                 </svg> Home
             </a>
-            <a href="./task.html" class=""> <!-- Added .html -->
+            <a href="./task.html" class="" data-i18n="footerStartingLink"> <!-- Added .html -->
                 <svg   fill="currentColor" width="20" height="20"
                      xmlns="http://www.w3.org/2000/svg" x="0px"
                      y="0px"
@@ -214,7 +220,7 @@
         c11.76,0,21.333-9.573,21.333-21.333C384.004,286.914,374.431,277.341,362.67,277.341z"/>
                     </svg> Starting
             </a>
-            <a href="./account.html" class=""> <!-- Added .html -->
+            <a href="./account.html" class="" data-i18n="footerProfileLink"> <!-- Added .html -->
                 <svg viewBox="-42 0 512 512.001" width="20" height="20" fill="currentColor"
                      xmlns="http://www.w3.org/2000/svg">
                     <path d="m210.351562 246.632812c33.882813 0 63.21875-12.152343 87.195313-36.128906 23.96875-23.972656 36.125-53.304687 36.125-87.191406 0-33.875-12.152344-63.210938-36.128906-87.191406-23.976563-23.96875-53.3125-36.121094-87.191407-36.121094-33.886718 0-63.21875 12.152344-87.191406 36.125s-36.128906 53.308594-36.128906 87.1875c0 33.886719 12.15625 63.222656 36.128906 87.195312 23.980469 23.96875 53.316406 36.125 87.191406 36.125zm-65.972656-189.292968c18.394532-18.394532 39.972656-27.335938 65.972656-27.335938 25.996094 0 47.578126 8.941406 65.976563 27.335938 18.394531 18.398437 27.339844 39.980468 27.339844 65.972656 0 26-8.945313 47.578125-27.339844 65.976562-18.398437 18.398438-39.980469 27.339844-65.976563 27.339844-25.992187 0-47.570312-8.945312-65.972656-27.339844-18.398437-18.394531-27.34375-39.976562-27.34375-65.976562 0-25.992188 8.945313-47.574219 27.34375-65.972656zm0 0"/>
