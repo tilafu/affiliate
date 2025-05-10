@@ -10,6 +10,38 @@ document.addEventListener('DOMContentLoaded', () => {
     const startDriveButton = document.getElementById('start-drive-button');
     const driveContentArea = document.getElementById('drive-content-area'); // Container for product card etc.
     const walletBalanceElement = document.querySelector('.datadrive-balance strong'); // Element displaying balance
+    
+    // Debug elements
+    const debugSection = document.getElementById('debug-section');
+    const debugConsole = document.getElementById('debug-console');
+    const clearDebugBtn = document.getElementById('clear-debug-btn');
+    
+    // Press Ctrl+Shift+D to toggle debug console
+    document.addEventListener('keydown', (e) => {
+        if (e.ctrlKey && e.shiftKey && e.key === 'D') {
+            debugSection.style.display = debugSection.style.display === 'none' ? 'block' : 'none';
+        }
+    });
+    
+    // Clear debug console button
+    if (clearDebugBtn) {
+        clearDebugBtn.addEventListener('click', () => {
+            if (debugConsole) debugConsole.innerHTML = '';
+        });
+    }
+    
+    // Debug logging function
+    function logDebug(message, type = 'info') {
+        if (!debugConsole) return;
+        
+        const timestamp = new Date().toISOString().split('T')[1].split('.')[0];
+        const entry = document.createElement('div');
+        entry.className = `debug-${type}`;
+        entry.innerHTML = `<span class="debug-time">${timestamp}</span> <span class="debug-type">[${type}]</span> ${message}`;
+        
+        debugConsole.appendChild(entry);
+        debugConsole.scrollTop = debugConsole.scrollHeight;
+    }
 
     // Event listener for the Start Drive button
     if (startDriveButton) {
@@ -23,10 +55,8 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('Start Drive button clicked');
         // Disable the button and show loading state
         startDriveButton.disabled = true;
-        startDriveButton.textContent = 'Starting...';
-
-        try {
-            const response = await fetch('/api/drive/start', {
+        startDriveButton.textContent = 'Starting...';        try {
+            const response = await fetch(`${API_BASE_URL}/api/drive/start`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -35,7 +65,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 // No body needed for start drive based on backend controller
             });
 
-            const data = await response.json();
+            console.log('Start drive response status:', response.status);
+            
+            // Even if there's a 500 error, try to parse response
+            let data;
+            try {
+                data = await response.json();
+                console.log('Start drive response data:', data);
+            } catch (parseError) {
+                console.error('Error parsing response:', parseError);
+                throw new Error(`Server error (status ${response.status}). Please try again later.`);
+            }
 
             if (response.ok && data.code === 0) { // Assuming code 0 is success
                 console.log('Drive started successfully:', data.info);
@@ -51,23 +91,35 @@ document.addEventListener('DOMContentLoaded', () => {
                  // Re-enable button on failure
                 startDriveButton.disabled = false;
                 startDriveButton.textContent = 'Start Drive';
-            }
-        } catch (error) {
+            }        } catch (error) {
             console.error('Error starting drive:', error);
-            alert('Error starting drive: ' + error.message); // Basic error display
-             // Re-enable button on error
+            
+            // Create a more detailed error message
+            let errorMsg = error.message;
+            if (error.response && error.response.status) {
+                errorMsg += ` (Status: ${error.response.status})`;
+            }
+            
+            // Show error to user and log it
+            alert('Error starting drive: ' + errorMsg);
+            
+            // Add to browser console for debugging
+            console.group('Drive Start Error Details');
+            console.error('Error object:', error);
+            console.error('Stack trace:', error.stack);
+            console.groupEnd();
+            
+            // Re-enable button on error
             startDriveButton.disabled = false;
             startDriveButton.textContent = 'Start Drive';
         }
-    }
-
-    // Function to fetch and display the next order/product
+    }    // Function to fetch and display the next order/product
     async function fetchNextOrder() {
         console.log('Fetching next order...');
         // TODO: Show loading state in the drive content area
-
+        
         try {
-            const response = await fetch('/api/drive/getorder', {
+            const response = await fetch(`${API_BASE_URL}/api/drive/getorder`, {
                 method: 'POST', // Backend getOrder uses POST
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -140,10 +192,8 @@ document.addEventListener('DOMContentLoaded', () => {
         // Disable purchase button
         const purchaseButton = document.getElementById('purchase-button');
         purchaseButton.disabled = true;
-        purchaseButton.textContent = 'Processing...';
-
-        try {
-            const response = await fetch('/api/drive/saveorder', { // Assuming saveOrder for single products
+        purchaseButton.textContent = 'Processing...';        try {
+            const response = await fetch(`${API_BASE_URL}/api/drive/saveorder`, { // Assuming saveOrder for single products
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -301,10 +351,8 @@ async function checkDriveStatus(token) {
         return; // Should be handled by initial check, but good practice
     }
     console.log('Checking drive status with token...');
-
-
     try {
-        const response = await fetch('/api/drive/status', {
+        const response = await fetch(`${API_BASE_URL}/api/drive/status`, {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${token}`
@@ -355,11 +403,14 @@ async function checkDriveStatus(token) {
 }
 
 async function checkDriveStatus() {
+    const token = localStorage.getItem('auth_token');
+    if (!token) return false;
+    
     try {
-        const response = await fetch('/api/drive/status', {
+        const response = await fetch(`${API_BASE_URL}/api/drive/status`, {
             method: 'GET',
             headers: {
-                'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+                'Authorization': `Bearer ${token}`
             }
         });
         const data = await response.json();

@@ -2,6 +2,7 @@ const pool = require('../config/db');
 const { v4: uuidv4 } = require('uuid');
 const logger = require('../logger');
 const { calculateCommission } = require('../utils/commission');
+const { logDriveOperation } = require('../utils/driveLogger');
 
 // --- Helper Functions ---
 async function getUserDriveInfo(userId) {
@@ -25,28 +26,39 @@ async function getAvailableProduct(userId, tier, balance) {
 
 // --- Controller Functions ---
 const startDrive = async (req, res) => {
-  let userId;
-  try {
+  let userId;  try {
     userId = req.user.id;
     const now = new Date();
     const currentHour = now.getHours();
+    
+    // Log the start of the drive attempt
+    logDriveOperation('start_drive_attempt', userId, { timestamp: now });
     
     const existingSessionResult = await pool.query(
       `SELECT id, status FROM drive_sessions
        WHERE user_id = $1 AND status IN ('active', 'pending_reset', 'frozen')
        ORDER BY started_at DESC LIMIT 1`,
       [userId]
-    );
-    if (existingSessionResult.rows.length > 0) {
+    );    if (existingSessionResult.rows.length > 0) {
       const existingStatus = existingSessionResult.rows[0].status;
       let message = 'An active drive session already exists.';
       if (existingStatus === 'pending_reset') message = 'Your previous drive is complete and requires an admin reset.';
       else if (existingStatus === 'frozen') message = 'Your drive session is frozen due to insufficient balance. Please deposit funds.';
+      
+      logDriveOperation('start_drive_failed', userId, { 
+        reason: 'existing_session', 
+        status: existingStatus 
+      });
+      
       return res.status(409).json({ code: 1, info: message });
+    }    const { tier, balance } = await getUserDriveInfo(userId);
+    if (balance < 50.00) {
+      logDriveOperation('start_drive_failed', userId, { 
+        reason: 'insufficient_balance', 
+        balance: balance 
+      });
+      return res.status(400).json({ code: 1, info: 'Insufficient balance. Minimum 50.00 USDT required.' });
     }
-
-    const { tier, balance } = await getUserDriveInfo(userId);
-    if (balance < 50.00) return res.status(400).json({ code: 1, info: 'Insufficient balance. Minimum 50.00 USDT required.' });
 
     const tasksRequiredMap = { bronze: 40, silver: 40, gold: 45, platinum: 50 };
     const tasksRequired = tasksRequiredMap[tier] || 40;
@@ -75,17 +87,34 @@ const startDrive = async (req, res) => {
           'INSERT INTO drive_orders (session_id, product_id, status, tasks_required) VALUES ($1, $2, $3, $4)',
           [newSessionDbId, product.id, 'pending', 1]
         )
-      );
-      await Promise.all(driveOrderInserts);
+      );      await Promise.all(driveOrderInserts);
       await client.query('COMMIT');
+      logger.info(`Drive session created for user ${userId} with ${tasksRequired} tasks`);
+      
+      // Log successful drive start
+      logDriveOperation('start_drive_success', userId, { 
+        session_id: newSessionDbId, 
+        tasks_required: tasksRequired,
+        tier: tier
+      });
+      
       return res.json({ code: 0, info: 'Data Drive initiated successfully.' });
     } catch (dbError) {
       await client.query('ROLLBACK');
+      logger.error(`Database error creating drive session: ${dbError.message}`, { userId, error: dbError });
+      
+      // Log the database error
+      logDriveOperation('start_drive_db_error', userId, { 
+        error: dbError.message,
+        stack: dbError.stack
+      });
+      
       return res.status(500).json({ code: 1, info: 'Database error creating drive session: ' + dbError.message });
-    } finally {
+    }finally {
       client.release();
     }
   } catch (error) {
+    logger.error(`Server error starting drive: ${error.message}`, { userId, error });
     return res.status(500).json({ code: 1, info: 'Server error starting drive: ' + error.message });
   }
 };

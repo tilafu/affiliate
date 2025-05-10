@@ -1,3 +1,19 @@
+// Function to ensure i18n content is updated with correct translations
+function updatePageTranslations() {
+    // Only run if i18next is available and initialized
+    if (window.i18next && window.i18next.isInitialized) {
+        // Call the global updateContent function from i18n.js
+        if (typeof updateContent === 'function') {
+            updateContent();
+            console.log('Updated page translations');
+        } else {
+            console.warn('updateContent function not available');
+        }
+    } else {
+        console.warn('i18next not initialized yet');
+    }
+}
+
 // Function to initialize dashboard logic (fetching data, setting up listeners)
 async function initializeDashboard() {
     const token = localStorage.getItem('auth_token');
@@ -68,6 +84,20 @@ async function initializeDashboard() {
 // Wait for the DOM and then potentially wait for the sidebar component
 document.addEventListener('DOMContentLoaded', () => {
     console.log('Dashboard script loaded');
+    
+    // Initialize i18n if not already initialized
+    if (typeof initI18next === 'function' && window.i18next && !window.i18next.isInitialized) {
+        initI18next().then(() => {
+            console.log('i18next initialized');
+            // After i18next initializes, update translations
+            updatePageTranslations();
+        });
+    } else if (window.i18next && window.i18next.isInitialized) {
+        // If already initialized, just update translations
+        console.log('i18next already initialized, updating translations');
+        updatePageTranslations();
+    }
+    
     const sidebarPlaceholder = document.getElementById('sidebar-placeholder');
 
     if (sidebarPlaceholder) {
@@ -75,13 +105,36 @@ document.addEventListener('DOMContentLoaded', () => {
         sidebarPlaceholder.addEventListener('componentLoaded', (event) => {
             if (event.detail.path === '/components/sidebar.html') {
                 console.log('Sidebar component loaded, initializing dashboard.');
+                
+                // Setup language switcher after sidebar loads
+                const langSwitcher = document.getElementById('language-switcher');
+                if (langSwitcher) {
+                    // Set initial value
+                    langSwitcher.value = i18next.language || 'en';
+                    
+                    // Add change event listener
+                    langSwitcher.addEventListener('change', (e) => {
+                        setLanguage(e.target.value);
+                    });
+                }
+                
+                // Update translations again after sidebar loads
+                updatePageTranslations();
+                
                 initializeDashboard();
             }
         });
     } else {
-        // If there's no sidebar placeholder, initialize immediately (e.g., for login page)
-        // Although this script is dashboard.js, this handles edge cases.
+        // If there's no sidebar placeholder, initialize immediately
         console.warn('Sidebar placeholder not found, initializing dashboard immediately.');
         initializeDashboard();
     }
 });
+
+// Add language change event listener
+if (window.i18next) {
+    window.i18next.on('languageChanged', () => {
+        console.log('Language changed, updating translations');
+        updatePageTranslations();
+    });
+}

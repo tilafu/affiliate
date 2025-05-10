@@ -11,6 +11,22 @@ function formatDate(dateString) {
     }
 }
 
+// Function to ensure i18n content is updated with correct translations
+function updateProfileTranslations() {
+    // Only run if i18next is available and initialized
+    if (window.i18next && window.i18next.isInitialized) {
+        // Call the global updateContent function from i18n.js
+        if (typeof updateContent === 'function') {
+            updateContent();
+            console.log('Updated profile page translations');
+        } else {
+            console.warn('updateContent function not available');
+        }
+    } else {
+        console.warn('i18next not initialized yet for profile page');
+    }
+}
+
 // Function to initialize profile page logic
 async function initializeProfilePage() {
     console.log('Initializing profile page logic...');
@@ -21,6 +37,9 @@ async function initializeProfilePage() {
         window.location.href = 'login.html';
         return;
     }
+
+    // Make sure i18n content is translated
+    updateProfileTranslations();
 
     // Get elements AFTER sidebar is loaded
     const usernameEl = document.getElementById('profile-username');
@@ -255,7 +274,52 @@ async function initializeProfilePage() {
 // Wait for the DOM and then potentially wait for the sidebar component
 document.addEventListener('DOMContentLoaded', () => {
     console.log('Profile page script loaded');
-    const sidebarPlaceholder = document.getElementById('sidebar-placeholder');
+    
+    // Function to initialize the language switcher
+    function initLanguageSwitcher() {
+        const langSwitcher = document.getElementById('language-switcher');
+        if (langSwitcher) {
+            console.log('Found language switcher, initializing...');
+            // Set initial value
+            langSwitcher.value = window.i18next ? (i18next.language || 'en') : 'en';
+            
+            // Remove any existing event listeners (to prevent duplicates)
+            const newLangSwitcher = langSwitcher.cloneNode(true);
+            langSwitcher.parentNode.replaceChild(newLangSwitcher, langSwitcher);
+            
+            // Add change event listener
+            newLangSwitcher.addEventListener('change', (e) => {
+                console.log('Language switcher changed to:', e.target.value);
+                if (typeof setLanguage === 'function') {
+                    setLanguage(e.target.value);
+                } else {
+                    console.error('setLanguage function not available');
+                }
+            });
+        } else {
+            console.warn('Language switcher not found in the DOM');
+        }
+    }
+    
+    // Initialize i18next if not already initialized
+    if (typeof initI18next === 'function') {
+        console.log('Initializing i18next from profile.js');
+        initI18next().then(() => {
+            console.log('i18next initialized in profile page');
+            // After i18next initializes, update translations
+            updateProfileTranslations();
+            // Try to initialize language switcher after i18next is ready
+            initLanguageSwitcher();
+        });
+    } else if (window.i18next && window.i18next.isInitialized) {
+        // If already initialized, just update translations
+        console.log('i18next already initialized, updating profile translations');
+        updateProfileTranslations();
+        initLanguageSwitcher();
+    } else {
+        console.warn('initI18next function not available, translations may not work');
+    }
+      const sidebarPlaceholder = document.getElementById('sidebar-placeholder');
 
     if (sidebarPlaceholder) {
         // If the sidebar placeholder exists, wait for the component to load
@@ -263,17 +327,30 @@ document.addEventListener('DOMContentLoaded', () => {
             if (event.detail.path === '/components/sidebar.html') {
                 console.log('Sidebar component loaded, initializing profile page.');
                 initializeProfilePage();
+                
+                // Re-initialize language switcher after sidebar loads (it might have been replaced)
+                initLanguageSwitcher();
+                
                 // Also initialize sidebar-specific things like logout button if needed
-                  if (typeof initializeSidebarScripts === 'function') {
-                     initializeSidebarScripts(); // Initialize sidebar-specific scripts if needed
-                  }
-                  // Removed redundant call to attachLogoutHandlers() as it's likely handled elsewhere
-                  // and causes errors if not globally available.
-             }
-         });
+                if (typeof initializeSidebarScripts === 'function') {
+                    initializeSidebarScripts();
+                }
+                
+                // Update translations again after sidebar loads
+                updateProfileTranslations();
+            }
+        });
     } else {
         // If there's no sidebar placeholder, initialize immediately (shouldn't happen for profile page)
         console.warn('Sidebar placeholder not found on profile page, initializing immediately.');
         initializeProfilePage();
     }
 });
+
+// Add language change event listener to update translations when language changes
+if (window.i18next) {
+    window.i18next.on('languageChanged', () => {
+        console.log('Language changed, updating profile translations');
+        updateProfileTranslations();
+    });
+}

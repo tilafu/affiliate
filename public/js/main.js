@@ -5,6 +5,11 @@ const API_BASE_URL = 'http://localhost:3000'; // If API is on a different port
 
 // Function to display notifications on the page
 function showNotification(message, type = 'info', duration = 5000) {
+    // If i18next is available and the message is a translation key, translate it
+    if (window.i18next && window.i18next.isInitialized && typeof message === 'string' && i18next.exists(message)) {
+        message = i18next.t(message);
+    }
+    
     let notification = document.getElementById('notification');
     
     // Create notification element if it doesn't exist

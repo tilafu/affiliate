@@ -7,6 +7,15 @@ document.addEventListener('DOMContentLoaded', () => {
     return;
   }
 
+  // Initialize i18next if not already initialized
+  if (typeof initI18next === 'function') {
+    initI18next().then(() => {
+      updateWithdrawalTranslations();
+    });
+  } else {
+    console.warn('i18next initialization function not found');
+  }
+
   // Helper function to fetch data
   const fetchData = async (url, callback) => {
     try {
@@ -74,8 +83,34 @@ document.addEventListener('DOMContentLoaded', () => {
       } else {
         console.error('Failed to fetch balance:', data.message);
       }
-    })
-    .catch(error => {
+    })    .catch(error => {
       console.error('Error fetching balance:', error);
     });
+
+  // Set up the withdraw form submission
+  document.getElementById('withdraw').addEventListener('click', (e) => {
+    // Handle withdraw submission
+    console.log('Withdraw button clicked');
+  });
+});
+
+// Function to update translations on the withdrawal page
+function updateWithdrawalTranslations() {
+  // Only run if i18next is available and initialized
+  if (window.i18next && window.i18next.isInitialized) {
+    // Call the global updateContent function from i18n.js
+    if (typeof updateContent === 'function') {
+      updateContent();
+      console.log('Updated withdrawal page translations');
+    } else {
+      console.warn('updateContent function not available');
+    }
+  } else {
+    console.warn('i18next not initialized yet for withdrawal page');
+  }
+}
+
+// Listen for language changes
+document.addEventListener('languageChanged', () => {
+  updateWithdrawalTranslations();
 });

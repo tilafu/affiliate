@@ -3,11 +3,13 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <meta http-equiv="X-UA-Compatible" content="IE=Edge"/>
-    <title>My Deposits</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge"/>    <title data-i18n-title="depositsPageTitle">My Deposits</title>
     <meta name="csrf-token" content="t9EtiRskFKx5XpnOFvbrimp5ZgsKIg3UU1Ea1iDM">
     <link rel="shortcut icon" href="./assets/uploads/generals/favicon-665b8c8a863b91717275786.png">
     <link rel="stylesheet" href="./assets/frontend/shopva/public.css">
+      <!-- i18next scripts -->
+      <script src="https://unpkg.com/i18next/i18next.min.js"></script>
+      <script src="https://unpkg.com/i18next-http-backend/i18nextHttpBackend.min.js"></script>
       <!-- <script charset="utf-8" src="./assets/frontend/shopva/jquery.min.js"></script> -->
       <script src="./assets/frontend/js/jquery.min.js"></script>
       <script charset="utf-8" src="./assets/frontend/shopva/dialog.min.js"></script>
@@ -86,82 +88,89 @@
    <hr>
     
    <div class="menu-sidebar">
-      <ul>
-         <li class="bottom-border">
+      <ul>         <li class="bottom-border">
                 <a href="./account.html"> 
                    <img src="./assets/uploads/img/4.png" style="margin-right: 5px;" width="20px">
-                PROFILE </a>
+                   <span data-i18n="sidebarProfileLink">PROFILE</span>
+                </a>
             </li>
          <li class="bottom-border">
             <a href="./deposits.html">
                <img src="./assets/uploads/img/4.png" style="margin-right: 5px;" width="20px">
-               DEPOSIT
+               <span data-i18n="sidebarDepositLink">DEPOSIT</span>
             </a>
-         </li>
-         <li class="bottom-border">
+         </li>         <li class="bottom-border">
             <a href="./withdraws.html">
                <img src="./assets/uploads/img/3.png"  style="margin-right: 5px;" width="20px">
-               WITHDRAWAL
+               <span data-i18n="sidebarWithdrawalLink">WITHDRAWAL</span>
             </a>
          </li>
          <li class="bottom-border">
             <a href="./certificates.html">
                <img src="./assets/uploads/img/2.png"  style="margin-right: 5px;" width="20px">
-               CERTIFICATES
+               <span data-i18n="sidebarCertificatesLink">CERTIFICATES</span>
             </a>
          </li>
          <li class="bottom-border">
             <a href="./events.html">
                <img src="./assets/uploads/img/6.png"  style="margin-right: 5px;" width="20px">
-               LATEST EVENTS
+               <span data-i18n="sidebarLatestEventsLink">LATEST EVENTS</span>
             </a>
          </li>
          <li class="bottom-border">
             <a href="./memberships.html">
                <img src="./assets/uploads/img/6.png"  style="margin-right: 5px;" width="20px">
-               MEMBERSHIPS
+               <span data-i18n="sidebarMembershipsLink">MEMBERSHIPS</span>
             </a>
          </li>
          <li class="bottom-border">
             <a href="./terms.html">
                <img src="./assets/uploads/img/5.png"  style="margin-right: 5px;" width="20px">
-               TERMS & CONDITIONS
+               <span data-i18n="sidebarTermsLink">TERMS & CONDITIONS</span>
             </a>
          </li>
          <li class="bottom-border">
             <a href="./faqs.html">
                <img src="./assets/uploads/img/7.png"  style="margin-right: 5px;" width="20px">
-               FAQs
+               <span data-i18n="sidebarFAQsLink">FAQs</span>
             </a>
          </li>
          <li class="bottom-border">
             <a href="./company.html">
                <img src="./assets/uploads/img/8.png"  style="margin-right: 5px;" width="20px">
-               ABOUT US
+               <span data-i18n="sidebarAboutUsLink">ABOUT US</span>
             </a>
          </li>
          <li class="bottom-border">
             <a href="./logout.html">
                <img src="./assets/uploads/img/8.png"  style="margin-right: 5px;" width="20px">
-               LOGOUT
+               <span data-i18n="sidebarLogoutLink">LOGOUT</span>
             </a>
          </li>
 
       </ul>
-   </div>
-    <!-- <div class="copyright-item">
+   </div>    <!-- <div class="copyright-item">
         <p class="fs-14">Copyright © All Right Reserved</p>
     </div> -->
+    
+    <!-- Language Switcher -->
+    <div class="language-switcher mt-4 px-3">
+      <label for="language-switcher" class="form-label mb-2" data-i18n="languageLabel">Language:</label>
+      <select id="language-switcher" class="form-select form-select-sm">
+         <option value="en">English</option>
+         <option value="es">Español</option>
+         <option value="fr">Français</option>
+      </select>
+    </div>
+    <!-- End Language Switcher -->
 </div><header class="header-main">
     <div class="container">
         <div class="content-header d-flex align-items-center justify-content-between">
                          <a href="javascript:history.back()">
                     <i class="fas fa-angle-left" style="font-size: 20px"></i>
                 </a>
-             
-
-            <div class="brookwood-txt d-flex align-items-center">
-                                    <h3 class="main1">My Deposits</h3>
+                 <div class="brookwood-txt d-flex align-items-center">
+                                    <h3 class="main1" data-i18n="depositsPageTitle">My Deposits</h3>
                          
             </div>
 
@@ -174,10 +183,9 @@
 </header><main class="main-content">
     <div class="container">
          <div class="casrd card-style pb-0">
-   <div class="content" id="tab-group-1">
-      <div class="tab-controls" data-highlight="bg-highlight">
-         <a href="#" data-active data-bs-toggle="collapse" data-bs-target="#depositx">Deposit Now</a>
-         <a href="#" data-bs-toggle="collapse" data-bs-target="#deposits">Deposit History</a>
+   <div class="content" id="tab-group-1">      <div class="tab-controls" data-highlight="bg-highlight">
+         <a href="#" data-active data-bs-toggle="collapse" data-bs-target="#depositx" data-i18n="makeDepositTitle">Deposit Now</a>
+         <a href="#" data-bs-toggle="collapse" data-bs-target="#deposits" data-i18n="depositHistoryTitle">Deposit History</a>
       </div>
       <hr>
       <div data-bs-parent="#tab-group-1" class="collapse show" id="depositx">
@@ -192,11 +200,10 @@
                                     <p id="user-deposited-amount">
                                        <strong>
                                           Loading...</p>
-                                          <!-- <small style="font-size:14px"> USDT</small> -->
-                                       </strong>
+                                          <!-- <small style="font-size:14px"> USDT</small> -->                                       </strong>
                                     </p>
                                  </h2>
-                                 <span>Deposited</span>
+                                 <span data-i18n="deposited">Deposited</span>
                               </div>
                            </div>
                      </div>
@@ -210,13 +217,12 @@
                   <button class="btn btn-secondary btn-xl bs-example mb-1" type="button" data-amount="100"> 100.00<small style="font-size:14px"> USDT</small></button>
                   <button class="btn btn-secondary btn-xl bs-example mb-1" type="button" data-amount="200"> 200.00<small style="font-size:14px"> USDT</small> </button>
                   <button class="btn btn-secondary btn-xl bs-example mb-1" type="button" data-amount="500"> 500.00<small style="font-size:14px"> USDT</small> </button>
-               </div>
-               <div class="form-group mb-4">
-                  <label class="mb-2">Enter Deposit Amount</label>
-                  <input type="text" name="deposit_amount" id="deposit_amount" class="form-control"  placeholder="enter amount here">
+               </div>               <div class="form-group mb-4">
+                  <label class="mb-2" data-i18n="depositAmountLabel">Enter Deposit Amount</label>
+                  <input type="text" name="deposit_amount" id="deposit_amount" class="form-control" placeholder="enter amount here">
                </div>
                <div class="form-group text-center">
-                  <a class="btn btn-lg btn-main w-100" id="deposit"> submit </a>
+                  <a class="btn btn-lg btn-main w-100" id="deposit" data-i18n="depositButton">submit</a>
                </div>
             </div>
          </div>
@@ -345,6 +351,9 @@
          });
       });
 </script>
-
+<!-- Import i18n.js script -->
+<script src="./js/i18n.js"></script>
+<!-- Import deposit.js script -->
+<script src="./js/deposit.js"></script>
 </body>
 </html>

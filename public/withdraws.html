@@ -1,13 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="utf-8">
+<head>    <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <meta http-equiv="X-UA-Compatible" content="IE=Edge"/>
-    <title>My Withdraws</title>
+    <title data-i18n-title="withdrawalsPageTitle">My Withdrawals</title>
     <meta name="csrf-token" content="t9EtiRskFKx5XpnOFvbrimp5ZgsKIg3UU1Ea1iDM">
     <link rel="shortcut icon" href="./assets/uploads/generals/favicon-665b8c8a863b91717275786.png">
     <link rel="stylesheet" href="./assets/frontend/shopva/public.css">
+      <!-- i18next scripts -->
+      <script src="https://unpkg.com/i18next/i18next.min.js"></script>
+      <script src="https://unpkg.com/i18next-http-backend/i18nextHttpBackend.min.js"></script>
       <!-- <script charset="utf-8" src="./assets/frontend/shopva/jquery.min.js"></script> -->
       <script src="./assets/frontend/js/jquery.min.js"></script>
       <script charset="utf-8" src="./assets/frontend/shopva/dialog.min.js"></script>
@@ -96,71 +98,78 @@
                <img src="./assets/uploads/img/4.png" style="margin-right: 5px;" width="20px">
                DEPOSIT
             </a>
-         </li>
-         <li class="bottom-border">
+         </li>         <li class="bottom-border">
             <a href="./withdraws.html">
                <img src="./assets/uploads/img/3.png"  style="margin-right: 5px;" width="20px">
-               WITHDRAWAL
+               <span data-i18n="sidebarWithdrawalLink">WITHDRAWAL</span>
             </a>
          </li>
          <li class="bottom-border">
             <a href="./certificates.html">
                <img src="./assets/uploads/img/2.png"  style="margin-right: 5px;" width="20px">
-               CERTIFICATES
+               <span data-i18n="sidebarCertificatesLink">CERTIFICATES</span>
             </a>
          </li>
          <li class="bottom-border">
             <a href="./events.html">
                <img src="./assets/uploads/img/6.png"  style="margin-right: 5px;" width="20px">
-               LATEST EVENTS
+               <span data-i18n="sidebarLatestEventsLink">LATEST EVENTS</span>
             </a>
          </li>
          <li class="bottom-border">
             <a href="./memberships.html">
                <img src="./assets/uploads/img/6.png"  style="margin-right: 5px;" width="20px">
-               MEMBERSHIPS
+               <span data-i18n="sidebarMembershipsLink">MEMBERSHIPS</span>
             </a>
          </li>
          <li class="bottom-border">
             <a href="./terms.html">
                <img src="./assets/uploads/img/5.png"  style="margin-right: 5px;" width="20px">
-               TERMS & CONDITIONS
+               <span data-i18n="sidebarTermsLink">TERMS & CONDITIONS</span>
             </a>
          </li>
          <li class="bottom-border">
             <a href="./faqs.html">
                <img src="./assets/uploads/img/7.png"  style="margin-right: 5px;" width="20px">
-               FAQs
+               <span data-i18n="sidebarFAQsLink">FAQs</span>
             </a>
          </li>
          <li class="bottom-border">
             <a href="./company.html">
                <img src="./assets/uploads/img/8.png"  style="margin-right: 5px;" width="20px">
-               ABOUT US
+               <span data-i18n="sidebarAboutUsLink">ABOUT US</span>
             </a>
          </li>
          <li class="bottom-border">
             <a href="./logout.html">
                   <img src="./assets/uploads/img/8.png"  style="margin-right: 5px;" width="20px">
-                    LOGOUT
+                  <span data-i18n="sidebarLogoutLink">LOGOUT</span>
                 </a>
             </li>
 
       </ul>
-   </div>
-    <!-- <div class="copyright-item">
+   </div>    <!-- <div class="copyright-item">
         <p class="fs-14">Copyright © All Right Reserved</p>
     </div> -->
+    
+    <!-- Language Switcher -->
+    <div class="language-switcher mt-4 px-3">
+      <label for="language-switcher" class="form-label mb-2" data-i18n="languageLabel">Language:</label>
+      <select id="language-switcher" class="form-select form-select-sm">
+         <option value="en">English</option>
+         <option value="es">Español</option>
+         <option value="fr">Français</option>
+      </select>
+    </div>
+    <!-- End Language Switcher -->
 </div><header class="header-main">
     <div class="container">
         <div class="content-header d-flex align-items-center justify-content-between">
                          <a href="javascript:history.back()">
                     <i class="fas fa-angle-left" style="font-size: 20px"></i>
                 </a>
-             
-
-            <div class="brookwood-txt d-flex align-items-center">
-                                    <h3 class="main1">My Withdraws</h3>
+                 <div class="brookwood-txt d-flex align-items-center">
+                                    <h3 class="main1" data-i18n="withdrawalsPageTitle">My Withdrawals</h3>
                          
             </div>
 
@@ -173,10 +182,9 @@
 </header><main class="main-content">
     <div class="container">
          <div class="casrd card-style pb-0">
-   <div class="content" id="tab-group-1">
-      <div class="tab-controls" data-highlight="bg-highlight">
-         <a href="#" data-active data-bs-toggle="collapse" data-bs-target="#withdrawx">Withdraw Now</a>
-         <a href="#" data-bs-toggle="collapse" data-bs-target="#withdraws">Withdraw History</a>
+   <div class="content" id="tab-group-1">      <div class="tab-controls" data-highlight="bg-highlight">
+         <a href="#" data-active data-bs-toggle="collapse" data-bs-target="#withdrawx" data-i18n="makeWithdrawalTitle">Withdraw Now</a>
+         <a href="#" data-bs-toggle="collapse" data-bs-target="#withdraws" data-i18n="withdrawalHistoryTitle">Withdraw History</a>
       </div>
       <hr>
       <div data-bs-parent="#tab-group-1" class="collapse show" id="withdrawx">
@@ -211,11 +219,9 @@
                               width: 100%;
                            }
                         }
-                        </style>
-
-                        <div class="w-s">
+                        </style>                        <div class="w-s">
                            <div class="withdraw-info">
-                              <span>Total Withdrawals</span>
+                              <span data-i18n="totalWithdrawals">Total Withdrawals</span>
                               <h2 class="main1">
                                  <p id="user-withdrawn-amount">
                                     <strong>Loading...<small style="font-size:14px"> USDT</small></strong>
@@ -224,7 +230,7 @@
                            </div>
 
                            <div class="withdraw-info">
-                              <span>Withdrawable Balance:</span>
+                              <span data-i18n="withdrawableBalance">Withdrawable Balance:</span>
                               <h2 class="main1"></h2>
                               <p id="withdrawable-balance"><strong>Loading...</strong></p>
                            </div>
@@ -235,18 +241,15 @@
             </div>
          </div>
          <div class="row mb-4">
-            <div class="col-md-7 mx-auto"> 
-               <div class="form-group mb-3">
-                  <label class="mb-2">Enter Withdraw Amount</label>
+            <div class="col-md-7 mx-auto">               <div class="form-group mb-3">
+                  <label class="mb-2" data-i18n="withdrawalAmountLabel">Enter Withdraw Amount</label>
                   <input type="number" name="withdraw_amount" id="withdraw_amount" class="form-control">
                </div>
                <div class="form-group mb-3">
                   <label class="mb-2">Enter Withdraw Password</label>
                   <input type="password" name="withdraw_password" id="withdraw_password" class="form-control" >
-                </div>
-
-               <div class="form-group mb-3">
-                    <button class="btn btn-main btn-lg w-100" type="submit" id="withdraw">Submit</button>
+                </div>               <div class="form-group mb-3">
+                    <button class="btn btn-main btn-lg w-100" type="submit" id="withdraw" data-i18n="withdrawButton">Submit</button>
                 </div>
             </div>
          </div>
@@ -266,12 +269,11 @@
 </main>
 <footer>
     <div class="container">
-        <div class="footer-bar">
-                <a href="./dashboard.html" class="">
+        <div class="footer-bar">                <a href="./dashboard.html" class="">
                     <svg viewBox="0 1 511 511.999" width="20" height="20"  fill="currentColor"
                          xmlns="http://www.w3.org/2000/svg">
                         <path d="m498.699219 222.695312c-.015625-.011718-.027344-.027343-.039063-.039062l-208.855468-208.847656c-8.902344-8.90625-20.738282-13.808594-33.328126-13.808594-12.589843 0-24.425781 4.902344-33.332031 13.808594l-208.746093 208.742187c-.070313.070313-.144532.144531-.210938.214844-18.28125 18.386719-18.25 48.21875.089844 66.558594 8.378906 8.382812 19.441406 13.234375 31.273437 13.746093.484375.046876.96875.070313 1.457031.070313h8.320313v153.695313c0 30.417968 24.75 55.164062 55.167969 55.164062h81.710937c8.285157 0 15-6.71875 15-15v-120.5c0-13.878906 11.292969-25.167969 25.171875-25.167969h48.195313c13.878906 0 25.167969 11.289063 25.167969 25.167969v120.5c0 8.28125 6.714843 15 15 15h81.710937c30.421875 0 55.167969-24.746094 55.167969-55.164062v-153.695313h7.71875c12.585937 0 24.421875-4.902344 33.332031-13.8125 18.359375-18.367187 18.367187-48.253906.027344-66.632813zm-21.242188 45.421876c-3.238281 3.238281-7.542969 5.023437-12.117187 5.023437h-22.71875c-8.285156 0-15 6.714844-15 15v168.695313c0 13.875-11.289063 25.164062-25.167969 25.164062h-66.710937v-105.5c0-30.417969-24.746094-55.167969-55.167969-55.167969h-48.195313c-30.421875 0-55.171875 24.75-55.171875 55.167969v105.5h-66.710937c-13.875 0-25.167969-11.289062-25.167969-25.164062v-168.695313c0-8.285156-6.714844-15-15-15h-22.328125c-.234375-.015625-.464844-.027344-.703125-.03125-4.46875-.078125-8.660156-1.851563-11.800781-4.996094-6.679688-6.679687-6.679688-17.550781 0-24.234375.003906 0 .003906-.003906.007812-.007812l.011719-.011719 208.847656-208.839844c3.234375-3.238281 7.535157-5.019531 12.113281-5.019531 4.574219 0 8.875 1.78125 12.113282 5.019531l208.800781 208.796875c.03125.03125.066406.0625.097656.09375 6.644531 6.691406 6.632813 17.539063-.03125 24.207032zm0 0"/>
-                    </svg> Home
+                    </svg> <span data-i18n="footerHomeLink">Home</span>
                 </a>
                 <a href="./task.html" class="">
                     <svg   fill="currentColor" width="20" height="20"
@@ -292,7 +294,7 @@
             V330.674z"/>
                         <path d="M362.67,277.341c-11.76,0-21.333,9.573-21.333,21.333c0,11.76,9.573,21.333,21.333,21.333
             c11.76,0,21.333-9.573,21.333-21.333C384.004,286.914,374.431,277.341,362.67,277.341z"/>
-                        </svg> Starting
+                        </svg> <span data-i18n="footerStartingLink">Starting</span>
                 </a>
                 
                 <a href="./account.html" class="">
@@ -434,6 +436,11 @@
     
    });
 </script>
+
+<!-- Import i18n.js script -->
+<script src="./js/i18n.js"></script>
+<!-- Import withdraw.js script -->
+<script src="./js/withdraw.js"></script>
 
 </body>
 </html>

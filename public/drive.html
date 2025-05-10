@@ -2,15 +2,14 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta charset="UTF-8" />  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Data Drive</title>
   <link rel="stylesheet" href="./assets/frontend/css/style.css" />
+  <link rel="stylesheet" href="./css/debug.css" />
 </head>
 <body>
   <div id="sidebar-placeholder"></div>
-  <header class="header-main">…</header>
-  <main class="main-content">
+  <header class="header-main">…</header>  <main class="main-content">
     <div class="container">
       <div class="col-md-5 mx-auto">
         <div class="card">
@@ -26,8 +25,26 @@
           </div>
         </div>
       </div>
-    </div>
-  </main>
+      
+      <!-- Debug info section (hidden by default) -->
+      <div id="debug-section" style="display:none; margin-top: 20px;" class="col-md-7 mx-auto">
+        <div class="card">
+          <div class="card-header d-flex justify-content-between">
+            <h5>Debug Information</h5>
+            <button id="clear-debug-btn" class="btn btn-sm btn-outline-danger">Clear</button>
+          </div>
+          <div class="card-body">
+            <pre id="debug-console" style="height: 200px; overflow-y: auto; font-size: 12px;"></pre>
+          </div>
+        </div>
+      </div>
+    </div></main>
+  <script>
+    // Define API base URL
+    const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+      ? `http://${window.location.hostname}:3000` 
+      : '';
+  </script>
   <script src="./js/sidebar-loader.js"></script>
   <script src="./js/drive.js"></script>
 </body>

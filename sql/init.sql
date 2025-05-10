@@ -29,7 +29,10 @@ CREATE TABLE products (
   id SERIAL PRIMARY KEY,
   name VARCHAR(100) NOT NULL,
   price DECIMAL(10, 2) NOT NULL,
+  image_url VARCHAR(255) DEFAULT '/assets/uploads/product_default.png',
+  commission_rate DECIMAL(5, 3) DEFAULT 0.01,
   min_balance_required DECIMAL(10, 2) DEFAULT 0, -- Balance needed to interact
+  min_tier VARCHAR(10) DEFAULT 'bronze',
   is_active BOOLEAN DEFAULT true,
   created_at TIMESTAMP DEFAULT NOW()
 );
@@ -64,7 +67,19 @@ CREATE TABLE IF NOT EXISTS drive_sessions (
     frozen_amount_needed DECIMAL,
     last_product_id INTEGER,
     last_combo_id VARCHAR(100),
-    combo_progress JSONB
+    combo_progress JSONB,
+    is_active BOOLEAN DEFAULT true
+);
+
+-- Create Drive Orders table
+CREATE TABLE IF NOT EXISTS drive_orders (
+    id SERIAL PRIMARY KEY,
+    session_id INTEGER NOT NULL REFERENCES drive_sessions(id),
+    product_id INTEGER NOT NULL REFERENCES products(id),
+    status VARCHAR(50) NOT NULL DEFAULT 'pending',
+    tasks_required INTEGER NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    completed_at TIMESTAMPTZ
 );
 
 -- Create Withdrawal Addresses table

@@ -1,0 +1,41 @@
+/* Debug console styling */
+#debug-section {
+    margin-top: 20px;
+    font-family: monospace;
+}
+
+#debug-console {
+    height: 200px;
+    overflow-y: auto;
+    font-size: 12px;
+    background-color: #1e1e1e;
+    color: #f8f8f8;
+    padding: 10px;
+    border-radius: 4px;
+}
+
+.debug-info {
+    color: #4fc3f7;
+}
+
+.debug-error {
+    color: #ff5252;
+}
+
+.debug-warn {
+    color: #ffab40;
+}
+
+.debug-response {
+    color: #9ccc65;
+}
+
+.debug-time {
+    color: #999;
+    margin-right: 5px;
+}
+
+.debug-type {
+    font-weight: bold;
+    margin-right: 5px;
+}
