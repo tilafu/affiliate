@@ -198,6 +198,9 @@
                 </div>
                 <button type="submit" class="login-button" data-i18n="loginButton">Login</button>
             </form>
+            <div style="text-align: center; margin-top: 20px;">
+                <a href="forgetpassword.html" data-i18n="forgotPasswordLink">Forgot Password?</a>
+            </div>
         </div>
 
         <div class="signup-section">
@@ -249,7 +252,8 @@
                 sessionStorage.removeItem('registered_username');
             }
             
-            function showNotification(message, type) {
+            function showNotification(messageKey, type, options = {}) { // Modified to accept key and options
+                const message = i18next.t(messageKey, options); // Use i18next.t()
                 let notification = document.getElementById('notification');
                 if (!notification) {
                     notification = document.createElement('div');

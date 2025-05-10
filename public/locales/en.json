@@ -74,5 +74,11 @@
   "sidebarTermsLink": "TERMS & CONDITIONS",
   "sidebarFAQsLink": "FAQs",
   "sidebarAboutUsLink": "ABOUT US",
-  "sidebarLogoutLink": "LOGOUT"
+  "sidebarLogoutLink": "LOGOUT",
+  "logoutSuccessNotification": "Logged out successfully.",
+  "forgotPasswordLink": "Forgot Password?",
+  "forgotPasswordHeader": "Forgot Your Password?",
+  "forgotPasswordText": "Enter your email address below and we'll send you instructions to reset your password.",
+  "resetPasswordButton": "Reset Password",
+  "backToLoginLink": "Back to Login"
 }

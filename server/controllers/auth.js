@@ -182,7 +182,23 @@ const login = async (req, res) => {
   }
 };
 
+const forgotPassword = async (req, res) => {
+  const { email } = req.body;
+
+  if (!email) {
+    return res.status(400).json({ success: false, message: 'Email address is required' });
+  }
+
+  // Placeholder logic: In a real application, you would generate a token,
+  // save it to the database, and send an email to the user with a reset link.
+  console.log(`Received forgot password request for email: ${email}`);
+
+  // Simulate success for now
+  res.status(200).json({ success: true, message: 'If a user with that email exists, a password reset link has been sent.' });
+};
+
 module.exports = {
   register,
   login,
+  forgotPassword,
 };

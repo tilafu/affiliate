@@ -171,7 +171,17 @@ function attachLogoutHandlers() {
       
       // If you have a showNotification function:
       if (typeof showNotification === 'function') {
-        showNotification('Logged out successfully.', 'success');
+        // Ensure i18next is initialized before calling t()
+        if (window.i18next && window.i18next.isInitialized) {
+            showNotification(i18next.t('logoutSuccessNotification'), 'success');
+        } else {
+            // Fallback or wait for initialization
+            i18next.on('initialized', () => {
+                 showNotification(i18next.t('logoutSuccessNotification'), 'success');
+            });
+            // Fallback if i18next fails or is slow
+            // setTimeout(() => showNotification(i18next.t('logoutSuccessNotification', 'Logged out successfully.'), 'success'), 500);
+        }
       }
       
       // Redirect to login page
@@ -182,3 +192,59 @@ function attachLogoutHandlers() {
 
 // Make the function available globally
 window.attachLogoutHandlers = attachLogoutHandlers;
+
+// --- Forgot Password Form Handling ---
+async function handleForgotPasswordSubmit(event) {
+    event.preventDefault();
+    const form = event.target;
+    // Assuming clearErrors and showNotification are available globally from main.js
+    clearErrors(form); 
+    console.log('Forgot password form submitted via auth.js');
+
+    const emailInput = document.getElementById('email');
+    const resetButton = form.querySelector('button[type="submit"]');
+    const originalButtonText = resetButton.textContent;
+
+    const email = emailInput.value.trim();
+
+    // Basic Client-Side Validation
+    if (!email) {
+        showError(emailInput, i18next.t('emailRequiredError'));
+        return;
+    }
+
+    resetButton.textContent = 'Sending...';
+    resetButton.disabled = true;
+
+    try {
+        // Assuming a server endpoint for forgot password requests
+        const response = await fetch(`${API_BASE_URL}/api/auth/forgot-password`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ email }),
+        });
+
+        const data = await response.json();
+        console.log('Forgot password API response:', data);
+
+        if (response.ok && data.success) {
+            showNotification(data.message || i18next.t('passwordResetSuccessNotification'), 'success');
+            // Optionally redirect to a confirmation page or back to login
+            // setTimeout(() => {
+            //     window.location.href = 'login.html';
+            // }, 3000);
+        } else {
+            const message = data.message || i18next.t('passwordResetFailedNotification', { status: response.status });
+            showNotification(message, 'error');
+            console.error('Forgot password request failed:', message);
+        }
+    } catch (error) {
+        console.error('Forgot password fetch error:', error);
+        showNotification(i18next.t('passwordResetNetworkError'), 'error');
+    } finally {
+        resetButton.textContent = originalButtonText;
+        resetButton.disabled = false;
+    }
+}
