@@ -37,9 +37,22 @@ async function fetchWithAuth(endpoint, options = {}) {
     return await response.json();
 }
 
-function showNotification(message, type = 'success') {
-    // Simple alert implementation - can be enhanced with a toast system later
-    alert(message);
+function showNotification(message, type = 'success') { // type can be 'success', 'error', 'notice', 'confirm' for dialog
+    // Use $(document).dialog for notifications
+    let dialogType = 'notice'; // Default dialog type
+    if (type === 'success') {
+        dialogType = 'success'; // Or map to a specific dialog type if available, e.g., 'tips'
+    } else if (type === 'error') {
+        dialogType = 'error'; // Or map to a specific dialog type
+    }
+    // Assuming the dialog plugin handles different types or icons based on 'type'
+    // For simplicity, using infoText for the message and a default autoClose.
+    // The dialog plugin might have specific options for success/error icons.
+    $(document).dialog({ 
+        type: dialogType, 
+        infoText: message, 
+        autoClose: 2500 // Auto close after 2.5 seconds
+    });
 }
 
 // Add this notification function
@@ -185,32 +198,37 @@ async function loadUsers() {
 // Deposits Management
 async function loadDeposits() {
     try {
+        // Fetch only pending deposits for the admin view
         const response = await fetchWithAuth('/admin/deposits');
         if (response.success) {
             const depositsList = document.getElementById('deposits-list');
-            depositsList.innerHTML = response.deposits.map(deposit => `
-                <tr>
-                    <td>${deposit.id}</td>
-                    <td>${deposit.username}</td>
-                    <td>$${deposit.amount}</td>
-                    <td>${new Date(deposit.created_at).toLocaleDateString()}</td>
-                    <td>
-                        <span class="status-badge status-${deposit.status.toLowerCase()}">
-                            ${deposit.status}
-                        </span>
-                    </td>
-                    <td>
-                        ${deposit.status === 'PENDING' ? `
-                            <button class="btn btn-sm btn-success approve-deposit-btn" data-id="${deposit.id}">
-                                Approve
-                            </button>
-                            <button class="btn btn-sm btn-danger reject-deposit-btn" data-id="${deposit.id}">
-                                Reject
-                            </button>
-                        ` : ''}
-                    </td>
-                </tr>
-            `).join('');
+            if (depositsList) {
+                depositsList.innerHTML = response.deposits.map(deposit => `
+                    <tr>
+                        <td>${deposit.id}</td>
+                        <td>${deposit.username}</td>
+                        <td>$${deposit.amount}</td>
+                        <td>${new Date(deposit.created_at).toLocaleDateString()}</td>
+                        <td>
+                            <span class="status-badge status-${deposit.status.toLowerCase()}">
+                                ${deposit.status}
+                            </span>
+                        </td>
+                        <td>
+                            ${deposit.status === 'PENDING' ? `
+                                <button class="btn btn-sm btn-success approve-deposit-btn" data-id="${deposit.id}">
+                                    Approve
+                                </button>
+                                <button class="btn btn-sm btn-danger reject-deposit-btn" data-id="${deposit.id}">
+                                    Reject
+                                </button>
+                            ` : ''}
+                        </td>
+                    </tr>
+                `).join('');
+            } else {
+                console.warn("Deposits list element ('deposits-list') not found.");
+            }
         }
     } catch (error) {
         console.error('Error loading deposits:', error);
@@ -221,33 +239,38 @@ async function loadDeposits() {
 // Withdrawals Management
 async function loadWithdrawals() {
     try {
+        // Fetch only pending withdrawals for the admin view
         const response = await fetchWithAuth('/admin/withdrawals');
         if (response.success) {
             const withdrawalsList = document.getElementById('withdrawals-list');
-            withdrawalsList.innerHTML = response.withdrawals.map(withdrawal => `
-                <tr>
-                    <td>${withdrawal.id}</td>
-                    <td>${withdrawal.username}</td>
-                    <td>$${withdrawal.amount}</td>
-                    <td>${withdrawal.address}</td>
-                    <td>${new Date(withdrawal.created_at).toLocaleDateString()}</td>
-                    <td>
-                        <span class="status-badge status-${withdrawal.status.toLowerCase()}">
-                            ${withdrawal.status}
-                        </span>
-                    </td>
-                    <td>
-                        ${withdrawal.status === 'PENDING' ? `
-                            <button class="btn btn-sm btn-success approve-withdrawal-btn" data-id="${withdrawal.id}">
-                                Approve
-                            </button>
-                            <button class="btn btn-sm btn-danger reject-withdrawal-btn" data-id="${withdrawal.id}">
-                                Reject
-                            </button>
-                        ` : ''}
-                    </td>
-                </tr>
-            `).join('');
+            if (withdrawalsList) {
+                withdrawalsList.innerHTML = response.withdrawals.map(withdrawal => `
+                    <tr>
+                        <td>${withdrawal.id}</td>
+                        <td>${withdrawal.username}</td>
+                        <td>$${withdrawal.amount}</td>
+                        <td>${withdrawal.address}</td>
+                        <td>${new Date(withdrawal.created_at).toLocaleDateString()}</td>
+                        <td>
+                            <span class="status-badge status-${withdrawal.status.toLowerCase()}">
+                                ${withdrawal.status}
+                            </span>
+                        </td>
+                        <td>
+                            ${withdrawal.status === 'PENDING' ? `
+                                <button class="btn btn-sm btn-success approve-withdrawal-btn" data-id="${withdrawal.id}">
+                                    Approve
+                                </button>
+                                <button class="btn btn-sm btn-danger reject-withdrawal-btn" data-id="${withdrawal.id}">
+                                    Reject
+                                </button>
+                            ` : ''}
+                        </td>
+                    </tr>
+                `).join('');
+            } else {
+                console.warn("Withdrawals list element ('withdrawals-list') not found.");
+            }
         }
     } catch (error) {
         console.error('Error loading withdrawals:', error);

@@ -452,58 +452,72 @@ const getDashboardStats = async (req, res) => {
 };
 
 // Deposit Management
+/**
+ * @desc    Get all pending deposit requests for admin
+ * @route   GET /api/admin/deposits
+ * @access  Private/Admin
+ */
 const getDeposits = async (req, res) => {
     try {
         const result = await pool.query(`
-            SELECT d.*, u.username 
+            SELECT d.*, u.username
             FROM deposits d
             JOIN users u ON d.user_id = u.id
+            WHERE d.status = 'PENDING'
             ORDER BY d.created_at DESC
         `);
-        
+
         res.json({ success: true, deposits: result.rows });
     } catch (error) {
-        console.error('Error fetching deposits:', error);
-        res.status(500).json({ success: false, message: 'Error fetching deposits' });
+        console.error('Error fetching pending deposits:', error);
+        res.status(500).json({ success: false, message: 'Error fetching pending deposits' });
     }
 };
 
+/**
+ * @desc    Approve a deposit request
+ * @route   POST /api/admin/deposits/:id/approve
+ * @access  Private/Admin
+ */
 const approveDeposit = async (req, res) => {
     const { id } = req.params;
     const client = await pool.connect();
-    
+
     try {
         await client.query('BEGIN');
-        
+
         // Get deposit details
         const depositResult = await client.query(
             'SELECT * FROM deposits WHERE id = $1 FOR UPDATE',
             [id]
         );
-        
+
         if (depositResult.rows.length === 0) {
             await client.query('ROLLBACK');
             return res.status(404).json({ success: false, message: 'Deposit not found' });
         }
-        
+
         const deposit = depositResult.rows[0];
         if (deposit.status !== 'PENDING') {
             await client.query('ROLLBACK');
             return res.status(400).json({ success: false, message: 'Deposit is not in pending state' });
         }
-        
+
         // Update deposit status
         await client.query(
             'UPDATE deposits SET status = $1, updated_at = NOW() WHERE id = $2',
             ['APPROVED', id]
         );
-        
+
         // Update user's balance
         await client.query(
             'UPDATE accounts SET balance = balance + $1 WHERE user_id = $2 AND type = $3',
             [deposit.amount, deposit.user_id, 'main']
         );
-        
+
+        // Optional: Log this transaction in commission_logs or a dedicated transaction log
+        // For now, we'll rely on the deposits table status change as the record.
+
         await client.query('COMMIT');
         res.json({ success: true, message: 'Deposit approved successfully' });
     } catch (error) {
@@ -515,19 +529,24 @@ const approveDeposit = async (req, res) => {
     }
 };
 
+/**
+ * @desc    Reject a deposit request
+ * @route   POST /api/admin/deposits/:id/reject
+ * @access  Private/Admin
+ */
 const rejectDeposit = async (req, res) => {
     const { id } = req.params;
-    
+
     try {
         const result = await pool.query(
             'UPDATE deposits SET status = $1, updated_at = NOW() WHERE id = $2 AND status = $3',
             ['REJECTED', id, 'PENDING']
         );
-        
+
         if (result.rowCount === 0) {
             return res.status(400).json({ success: false, message: 'Deposit not found or not in pending state' });
         }
-        
+
         res.json({ success: true, message: 'Deposit rejected successfully' });
     } catch (error) {
         console.error('Error rejecting deposit:', error);
@@ -535,53 +554,69 @@ const rejectDeposit = async (req, res) => {
     }
 };
 
-// Withdrawal Management
+/**
+ * @desc    Get all pending withdrawal requests for admin
+ * @route   GET /api/admin/withdrawals
+ * @access  Private/Admin
+ */
 const getWithdrawals = async (req, res) => {
     try {
         const result = await pool.query(`
-            SELECT w.*, u.username 
+            SELECT w.*, u.username
             FROM withdrawals w
             JOIN users u ON w.user_id = u.id
+            WHERE w.status = 'PENDING'
             ORDER BY w.created_at DESC
         `);
-        
+
         res.json({ success: true, withdrawals: result.rows });
     } catch (error) {
-        console.error('Error fetching withdrawals:', error);
-        res.status(500).json({ success: false, message: 'Error fetching withdrawals' });
+        console.error('Error fetching pending withdrawals:', error);
+        res.status(500).json({ success: false, message: 'Error fetching pending withdrawals' });
     }
 };
 
+/**
+ * @desc    Approve a withdrawal request
+ * @route   POST /api/admin/withdrawals/:id/approve
+ * @access  Private/Admin
+ */
 const approveWithdrawal = async (req, res) => {
     const { id } = req.params;
     const client = await pool.connect();
-    
+
     try {
         await client.query('BEGIN');
-        
+
         // Get withdrawal details
         const withdrawalResult = await client.query(
             'SELECT * FROM withdrawals WHERE id = $1 FOR UPDATE',
             [id]
         );
-        
+
         if (withdrawalResult.rows.length === 0) {
             await client.query('ROLLBACK');
             return res.status(404).json({ success: false, message: 'Withdrawal not found' });
         }
-        
+
         const withdrawal = withdrawalResult.rows[0];
         if (withdrawal.status !== 'PENDING') {
             await client.query('ROLLBACK');
             return res.status(400).json({ success: false, message: 'Withdrawal is not in pending state' });
         }
-        
+
         // Update withdrawal status
         await client.query(
             'UPDATE withdrawals SET status = $1, updated_at = NOW() WHERE id = $2',
             ['APPROVED', id]
         );
-        
+
+        // ** The amount was already deducted from the user's balance upon request. **
+        // ** No further balance deduction is needed here. **
+
+        // Optional: Log this transaction in commission_logs or a dedicated transaction log
+        // For now, we'll rely on the withdrawals table status change as the record.
+
         await client.query('COMMIT');
         res.json({ success: true, message: 'Withdrawal approved successfully' });
     } catch (error) {
@@ -593,42 +628,47 @@ const approveWithdrawal = async (req, res) => {
     }
 };
 
+/**
+ * @desc    Reject a withdrawal request
+ * @route   POST /api/admin/withdrawals/:id/reject
+ * @access  Private/Admin
+ */
 const rejectWithdrawal = async (req, res) => {
     const { id } = req.params;
     const client = await pool.connect();
-    
+
     try {
         await client.query('BEGIN');
-        
+
         // Get withdrawal details
         const withdrawalResult = await client.query(
             'SELECT * FROM withdrawals WHERE id = $1 FOR UPDATE',
             [id]
         );
-        
+
         if (withdrawalResult.rows.length === 0) {
             await client.query('ROLLBACK');
             return res.status(404).json({ success: false, message: 'Withdrawal not found' });
         }
-        
+
         const withdrawal = withdrawalResult.rows[0];
         if (withdrawal.status !== 'PENDING') {
             await client.query('ROLLBACK');
             return res.status(400).json({ success: false, message: 'Withdrawal is not in pending state' });
         }
-        
+
         // Update withdrawal status
         await client.query(
             'UPDATE withdrawals SET status = $1, updated_at = NOW() WHERE id = $2',
             ['REJECTED', id]
         );
-        
+
         // Refund the amount back to user's account
         await client.query(
             'UPDATE accounts SET balance = balance + $1 WHERE user_id = $2 AND type = $3',
             [withdrawal.amount, withdrawal.user_id, 'main']
         );
-        
+
         await client.query('COMMIT');
         res.json({ success: true, message: 'Withdrawal rejected and amount refunded' });
     } catch (error) {

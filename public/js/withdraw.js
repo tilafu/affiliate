@@ -39,59 +39,143 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
-  // Fetch and display the user's withdrawn amount
-  fetchData('/api/user/withdrawals', (data) => {
-    const withdrawElement = document.getElementById('user-withdrawn-amount');
-    withdrawElement.innerHTML = `<strong>${data.totalWithdrawals.toFixed(2)}<small style="font-size:14px"> USDT</small></strong>`;
-  });
+  // Function to refresh all data on the page
+  const refreshWithdrawalData = () => {
+      // Fetch and display the user's total withdrawn amount
+      fetchData('/api/user/withdrawals', (data) => {
+        const withdrawElement = document.getElementById('user-withdrawn-amount');
+        if (withdrawElement) {
+            withdrawElement.innerHTML = `<strong>${data.totalWithdrawals.toFixed(2)}<small style="font-size:14px"> USDT</small></strong>`;
+        } else {
+            console.warn('Total withdrawn amount element not found.');
+        }
+      });
 
-  // Fetch and display the withdrawable balance
-  fetchData('/api/user/withdrawable-balance', (data) => {
-    const balanceElement = document.getElementById('withdrawable-balance');
-    balanceElement.innerHTML = `<strong>${data.withdrawableBalance.toFixed(2)}<small style="font-size:14px"> USDT</small></strong>`;
-  });
+      // Fetch and display the withdrawable balance (Main account balance)
+      fetchData('/api/user/balance', (data) => { // Using /api/user/balance as it's the main account
+        const balanceElement = document.getElementById('withdrawable-balance');
+        if (balanceElement) {
+            balanceElement.innerHTML = `<strong>${data.balance.toFixed(2)}<small style="font-size:14px"> USDT</small></strong>`;
+        } else {
+            console.warn('Withdrawable balance element not found.');
+        }
+      });
 
-  // Fetch and display the withdraw history
-  fetchData('/api/user/withdraw-history', (data) => {
-    const historyElement = document.getElementById('withdraw-history');
-    historyElement.innerHTML = data.history
-      .map(
-        (entry) => `
-          <tr>
-            <td>${new Date(entry.date).toLocaleDateString()}</td>
-            <td>${new Date(entry.date).toLocaleTimeString()}</td>
-            <td>${entry.amount.toFixed(2)} USDT</td>
-          </tr>
-        `
-      )
-      .join('');
-  });
+      // Fetch and display the withdraw history
+      fetchData('/api/user/withdraw-history', (data) => {
+        const historyElement = document.querySelector('#withdraws table tbody'); // Select the tbody within the history tab
+        if (historyElement) {
+          historyElement.innerHTML = data.history
+            .map(
+              (entry) => `
+                <tr>
+                  <td>${new Date(entry.date).toLocaleDateString()}</td>
+                  <td>${new Date(entry.date).toLocaleTimeString()}</td>
+                  <td>${parseFloat(entry.amount).toFixed(2)} USDT</td>
+                  <td>${entry.address || 'N/A'}</td> 
+                  <td>${entry.status}</td>
+                </tr>
+              `
+            )
+            .join('');
+        } else {
+          console.warn('Withdraw history table body not found.');
+        }
+      });
+  };
 
-  // Fetch and display the user's balance
-  fetch('/api/user/balance', {
-    method: 'GET',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-  })
-    .then(response => response.json())
-    .then(data => {
-      if (data.success) {
-        const withdrawableBalanceElement = document.getElementById('withdrawable-balance');
-        withdrawableBalanceElement.innerHTML = `<strong>${data.balance.toFixed(2)}<small style="font-size:14px"> USDT</small></strong>`;
-      } else {
-        console.error('Failed to fetch balance:', data.message);
-      }
-    })    .catch(error => {
-      console.error('Error fetching balance:', error);
-    });
+  // Initial data load
+  refreshWithdrawalData();
+
 
   // Set up the withdraw form submission
-  document.getElementById('withdraw').addEventListener('click', (e) => {
-    // Handle withdraw submission
-    console.log('Withdraw button clicked');
-  });
+  const withdrawButton = document.getElementById('withdraw');
+  if (withdrawButton) {
+    withdrawButton.addEventListener('click', async (e) => {
+      e.preventDefault();
+
+      const amountInput = document.getElementById('withdraw_amount');
+      const passwordInput = document.getElementById('withdraw_password');
+      const accountDetailsInput = document.getElementById('withdrawal_account_details'); // Assuming this ID exists
+
+      const amount = amountInput ? amountInput.value : null;
+      const withdrawal_password = passwordInput ? passwordInput.value : null;
+      const withdrawal_account_details = accountDetailsInput ? accountDetailsInput.value : null;
+
+
+      // Add other form fields (method, withdrawal_account_details) as needed
+      // const method = document.getElementById('withdrawal_method').value;
+      // const accountDetails = document.getElementById('withdrawal_account_details').value;
+
+      if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
+        alert('Please enter a valid withdrawal amount.');
+        return;
+      }
+      if (!withdrawal_password) {
+         alert('Please enter your withdrawal password.');
+         return;
+      }
+      if (!withdrawal_account_details || withdrawal_account_details.trim() === '') {
+        alert('Please enter your withdrawal account details (e.g., TRC20 Address).');
+        return;
+      }
+      // Add validation for method, accountDetails, etc. as required
+
+      // Prepare data for the request
+      const withdrawalData = {
+        amount: parseFloat(amount),
+        withdrawal_password: withdrawal_password,
+        withdrawal_account_details: withdrawal_account_details,
+        // method: method, // Include other fields
+      };
+
+      try {
+        // Show loading indicator (using the existing dialog logic from the HTML script)
+        let loading = $(document).dialog({
+           type : 'notice',
+           infoIcon: baseurl + '/assets/frontend/shopva/img/loading.gif',
+           infoText: 'Submitting withdrawal request...',
+           autoClose: 0
+        });
+
+        const response = await fetch('/api/user/withdraw/request', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+            // 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') // If CSRF is needed
+          },
+          body: JSON.stringify(withdrawalData),
+        });
+
+        const data = await response.json();
+
+        loading.close(); // Close loading indicator
+
+        if (data.success) {
+          $(document).dialog({ infoText: data.message, autoClose: 2000 });
+          // Clear form
+          if (amountInput) amountInput.value = '';
+          if (passwordInput) passwordInput.value = '';
+          if (accountDetailsInput) accountDetailsInput.value = ''; // Clear account details input
+          // Refresh data on the page
+          refreshWithdrawalData();
+        } else {
+          $(document).dialog({ infoText: data.message || 'Failed to submit withdrawal request.', autoClose: 2000 });
+        }
+      } catch (error) {
+        console.error('Error submitting withdrawal request:', error);
+        // Ensure loading is closed even on error
+        if (loading && typeof loading.close === 'function') {
+           loading.close();
+        }
+        $(document).dialog({ infoText: 'An error occurred while submitting the withdrawal request.', autoClose: 2000 });
+      }
+    });
+  } else {
+    console.warn('Withdraw button not found.');
+  }
+
 });
 
 // Function to update translations on the withdrawal page

@@ -229,9 +229,21 @@
       </div>
 
       <div data-bs-parent="#tab-group-1" class="collapse" id="deposits">
-         <div class="container">
-            <div class="row">
-                           </div>
+         <div class="container table-responsive">
+            <table class="table table-striped">
+               <thead>
+                  <tr>
+                     <th scope="col" data-i18n="historyDate">Date</th>
+                     <th scope="col" data-i18n="historyTime">Time</th>
+                     <th scope="col" data-i18n="historyAmount">Amount</th>
+                     <th scope="col" data-i18n="historyDetails">Details</th>
+                     <th scope="col" data-i18n="historyStatus">Status</th>
+                  </tr>
+               </thead>
+               <tbody>
+                  <!-- Deposit history will be populated here by deposit.js -->
+               </tbody>
+            </table>
          </div>
       </div>
 
@@ -288,70 +300,28 @@
 <script src="./assets/frontend/js/bootstrap.bundle.min.js"></script>
 <script src="./assets/frontend/js/owl.carousel.min.js"></script>
 <script src="./assets/frontend/js/script.js"></script>
-<script src="./js/deposit.js"></script>
+<!-- <script src="./js/deposit.js"></script> --> <!-- Removed duplicate -->
 <script type="text/javascript">
    "use-strict";
 
-   const buttons = document.querySelectorAll("button");
-   const depositAmount = document.getElementById("deposit_amount");
+   // This logic for pre-filling amount from buttons can remain if desired,
+   // or be moved into deposit.js if preferred.
+   // For now, keeping it here as it's separate from the submission logic.
+   const presetAmountButtons = document.querySelectorAll(".bs-example"); // More specific selector
+   const depositAmountInput = document.getElementById("deposit_amount");
 
-   buttons.forEach(button => {
-      button.addEventListener("click", () => {
-         depositAmount.value = button.dataset.amount;
-      });
-   });
+   if (presetAmountButtons.length && depositAmountInput) {
+       presetAmountButtons.forEach(button => {
+          button.addEventListener("click", () => {
+             depositAmountInput.value = button.dataset.amount;
+          });
+       });
+   }
 
-   $("#deposit").click(function(e) {
-      e.preventDefault();
-         var loading = null;
-
-         var deposit_amount   = $("input[name=deposit_amount]").val();
-         let csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-
-         $.ajax({
-            url:'https://brain-labs.work/deposit/store', //Error loadng
-            data: {'deposit_amount' : deposit_amount},
-            type: 'post',
-            headers: {
-                'X-CSRF-TOKEN': csrfToken
-            },
-            dataType: 'json',
-            beforeSend:function(){
-               loading = $(document).dialog({
-                  type : 'notice',
-                  infoIcon: baseurl + '/assets/frontend/shopva/img/loading.gif',
-                  infoText: 'validating data......',
-                  autoClose: 0
-               });
-            },
-            success:function(data){
-
-                if(data.success) {
-                    $(document).dialog({
-                     infoText: data.message
-                  });
-                  setTimeout(function(){
-                     window.location.href = data.redirect_url;
-                  },2000);
-                }
-                if(data.error) {
-                    loading.close();
-                   $(document).dialog({
-                        infoText: data.message
-                     });
-                }/*else{
-                     $(document).dialog({
-                        infoText: "error",autoClose:2000
-                     });
-                  }*/
-            },
-            error:function (data) {
-               loading.close();
-            }
-         });
-      });
+   // The #deposit button click handler is now in public/js/deposit.js
+   // The old inline AJAX call has been removed.
 </script>
-<!-- Import i18n.js script -->
+<!-- Import i18n.js script FIRST -->
 <script src="./js/i18n.js"></script>
 <!-- Import deposit.js script -->
 <script src="./js/deposit.js"></script>

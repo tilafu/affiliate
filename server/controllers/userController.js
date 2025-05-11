@@ -2,38 +2,45 @@ const pool = require('../config/db');
 const bcrypt = require('bcrypt'); // Import bcrypt for password handling
 const logger = require('../logger'); // Import logger
 
+/**
+ * @desc    Get user's deposit history
+ * @route   GET /api/user/deposits
+ * @access  Private (requires token)
+ */
 const getUserDeposits = async (req, res) => {
   try {
     const userId = req.user.id;
 
-    // Query to calculate the total deposited amount
+    // Query to fetch deposit history from the deposits table
     const result = await pool.query(
-      `SELECT COALESCE(SUM(commission_amount), 0) AS total_deposits
-       FROM commission_logs
-       WHERE user_id = $1 AND commission_type = 'admin_deposit'`,
+      `SELECT id, amount, status, created_at AS date, description, txn_hash
+       FROM deposits
+       WHERE user_id = $1
+       ORDER BY created_at DESC`,
       [userId]
     );
 
-    const totalDeposits = result.rows[0].total_deposits;
-
-    res.json({ success: true, totalDeposits: parseFloat(totalDeposits) });
+    res.json({ success: true, history: result.rows });
   } catch (error) {
-    logger.error('Error fetching user deposits:', { userId, error: error.message, stack: error.stack });
-    res.status(500).json({ success: false, message: 'Server error fetching deposits' });
+    logger.error('Error fetching user deposit history:', { userId, error: error.message, stack: error.stack });
+    res.status(500).json({ success: false, message: 'Server error fetching deposit history' });
   }
 };
 
+/**
+ * @desc    Get user's total withdrawn amount
+ * @route   GET /api/user/withdrawals
+ * @access  Private (requires token)
+ */
 const getUserWithdrawals = async (req, res) => {
   try {
     const userId = req.user.id;
 
-    // Query to calculate the total withdrawn amount
-    // Assuming withdrawals are logged similarly to deposits or via a dedicated withdrawals table
-    // Using commission_logs with type 'withdrawal' or 'admin_withdrawal' for now
+    // Query to calculate the total approved withdrawn amount
     const result = await pool.query(
-      `SELECT COALESCE(SUM(commission_amount), 0) AS total_withdrawals
-       FROM commission_logs
-       WHERE user_id = $1 AND commission_type IN ('withdrawal', 'admin_withdrawal')`, // Adjust types if needed
+      `SELECT COALESCE(SUM(amount), 0) AS total_withdrawals
+       FROM withdrawals
+       WHERE user_id = $1 AND status = 'APPROVED'`,
       [userId]
     );
 
@@ -41,12 +48,16 @@ const getUserWithdrawals = async (req, res) => {
 
     res.json({ success: true, totalWithdrawals: parseFloat(totalWithdrawals) });
   } catch (error) {
-    logger.error('Error fetching user withdrawals:', { userId, error: error.message, stack: error.stack });
-    res.status(500).json({ success: false, message: 'Server error fetching withdrawals' });
+    logger.error('Error fetching user total withdrawals:', { userId, error: error.message, stack: error.stack });
+    res.status(500).json({ success: false, message: 'Server error fetching total withdrawals' });
   }
 };
 
-// Fetch withdrawable balance (Main account balance)
+/**
+ * @desc    Get user's withdrawable balance (Main account balance)
+ * @route   GET /api/user/withdrawable-balance
+ * @access  Private (requires token)
+ */
 const getWithdrawableBalance = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -67,16 +78,20 @@ const getWithdrawableBalance = async (req, res) => {
   }
 };
 
-// Fetch withdraw history
+/**
+ * @desc    Get user's withdraw history
+ * @route   GET /api/user/withdraw-history
+ * @access  Private (requires token)
+ */
 const getWithdrawHistory = async (req, res) => {
   try {
     const userId = req.user.id;
 
-    // Query to fetch withdraw history (adjust commission_type if needed)
+    // Query to fetch withdraw history from the withdrawals table
     const result = await pool.query(
-      `SELECT commission_amount AS amount, created_at AS date, description
-       FROM commission_logs
-       WHERE user_id = $1 AND commission_type IN ('withdrawal', 'admin_withdrawal')
+      `SELECT id, amount, status, created_at AS date, description, txn_hash
+       FROM withdrawals
+       WHERE user_id = $1
        ORDER BY created_at DESC`,
       [userId]
     );
@@ -140,7 +155,11 @@ const getUserBalances = async (req, res) => {
   }
 };
 
-// Fetch just the main balance (used by account.js currently)
+/**
+ * @desc    Fetch just the main balance (used by account.js currently)
+ * @route   GET /api/user/balance
+ * @access  Private (requires token)
+ */
 const getUserBalance = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -154,6 +173,166 @@ const getUserBalance = async (req, res) => {
     logger.error('Error fetching user balance:', { userId, error: error.message, stack: error.stack });
     res.status(500).json({ success: false, message: 'Server error fetching balance' });
   }
+};
+
+/**
+ * @desc    Request a new deposit
+ * @route   POST /api/user/deposit/request
+ * @access  Private
+ */
+const requestDeposit = async (req, res) => {
+    const userId = req.user.id;
+    const { amount, method, transaction_details, proof_image_path } = req.body; // Add fields as needed
+
+    // Basic validation
+    if (amount === undefined || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
+        return res.status(400).json({ success: false, message: 'Invalid deposit amount.' });
+    }
+    // Add validation for method, transaction_details, etc. as required
+
+    try {
+        const depositAmount = parseFloat(amount);
+        const desc = transaction_details || null;
+        // proof_image_path is not in the current schema, so remove it from insert.
+
+        const result = await pool.query(
+            `INSERT INTO deposits (user_id, amount, status, description, txn_hash)
+             VALUES ($1, $2, 'PENDING', $3, $4) RETURNING id, created_at`,
+            [userId, depositAmount, desc, null] // txn_hash is $4 (always null for now)
+        );
+
+        const newDeposit = result.rows[0];
+
+        // --- Add Admin Notification ---
+        try {
+            const notificationMessage = `New deposit request (ID: ${newDeposit.id}) from User ID ${userId} for amount ${parseFloat(amount).toFixed(2)}.`;
+            await pool.query(
+                `INSERT INTO admin_notifications (user_id, type, message) VALUES ($1, $2, $3)`,
+                [userId, 'new_deposit_request', notificationMessage]
+            );
+            logger.info(`Admin notification created for new deposit request ${newDeposit.id} from user ${userId}.`);
+        } catch (notificationError) {
+            logger.error('Failed to create admin notification for new deposit request:', { userId, error: notificationError.message });
+        }
+        // --- End Admin Notification ---
+
+        logger.info(`User ${userId} requested deposit ${newDeposit.id} for amount ${parseFloat(amount).toFixed(2)}.`);
+        res.status(201).json({ success: true, message: 'Deposit request submitted successfully. Waiting for admin approval.', depositId: newDeposit.id });
+
+    } catch (error) {
+        logger.error('Error requesting deposit:', { userId, error: error.message, stack: error.stack });
+        res.status(500).json({ success: false, message: 'Server error submitting deposit request.' });
+    }
+};
+
+/**
+ * @desc    Request a new withdrawal
+ * @route   POST /api/user/withdraw/request
+ * @access  Private
+ */
+const requestWithdrawal = async (req, res) => {
+    const userId = req.user.id;
+    const { amount, withdrawal_password, method, withdrawal_account_details } = req.body; // Add fields as needed
+
+    // Basic validation
+    if (amount === undefined || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
+        return res.status(400).json({ success: false, message: 'Invalid withdrawal amount.' });
+    }
+    if (!withdrawal_password) {
+         return res.status(400).json({ success: false, message: 'Withdrawal password is required.' });
+    }
+    if (!withdrawal_account_details || typeof withdrawal_account_details !== 'string' || withdrawal_account_details.trim() === '') {
+        return res.status(400).json({ success: false, message: 'Withdrawal account details (e.g., TRC20 Address) are required.' });
+    }
+    // Add validation for method, etc. as required
+
+    const client = await pool.connect(); // Use a client for transaction
+
+    try {
+        await client.query('BEGIN'); // Start transaction
+
+        // 1. Verify withdrawal password
+        const userResult = await client.query('SELECT withdrawal_password_hash FROM users WHERE id = $1', [userId]);
+        if (userResult.rows.length === 0 || !userResult.rows[0].withdrawal_password_hash) {
+             await client.query('ROLLBACK');
+             client.release();
+             return res.status(400).json({ success: false, message: 'Withdrawal password not set or user not found.' });
+        }
+        const withdrawalPasswordHash = userResult.rows[0].withdrawal_password_hash;
+        const isPasswordMatch = await bcrypt.compare(withdrawal_password, withdrawalPasswordHash);
+
+        if (!isPasswordMatch) {
+            await client.query('ROLLBACK');
+            client.release();
+            logger.warn(`User ${userId} failed withdrawal request: Incorrect withdrawal password.`);
+            return res.status(401).json({ success: false, message: 'Incorrect withdrawal password.' });
+        }
+
+        // 2. Check if user has sufficient balance in the main account
+        const accountResult = await client.query(
+            'SELECT balance FROM accounts WHERE user_id = $1 AND type = \'main\' FOR UPDATE', // Lock row
+            [userId]
+        );
+
+        if (accountResult.rows.length === 0) {
+            await client.query('ROLLBACK');
+            client.release();
+            return res.status(404).json({ success: false, message: 'User main account not found.' });
+        }
+
+        const currentBalance = parseFloat(accountResult.rows[0].balance);
+        const withdrawalAmount = parseFloat(amount);
+
+        if (currentBalance < withdrawalAmount) {
+            await client.query('ROLLBACK');
+            client.release();
+            return res.status(400).json({ success: false, message: 'Insufficient balance for withdrawal.' });
+        }
+
+        // 3. Deduct the amount from the user's balance immediately (or mark as frozen?)
+        // For this implementation, we'll deduct immediately upon request.
+        // An alternative is to move the amount to a 'frozen' state until approved.
+        const newBalance = currentBalance - withdrawalAmount;
+         await client.query(
+             'UPDATE accounts SET balance = $1 WHERE user_id = $2 AND type = \'main\'',
+             [newBalance.toFixed(2), userId]
+         );
+
+
+        // 4. Create a record in the withdrawals table with 'PENDING' status
+        const result = await client.query(
+            `INSERT INTO withdrawals (user_id, amount, status, address, description, txn_hash)
+             VALUES ($1, $2, 'PENDING', $3, $4, $5) RETURNING id, created_at`,
+            [userId, withdrawalAmount, withdrawal_account_details, null, null] // address and description can be used for withdrawal_account_details and notes
+        );
+
+        const newWithdrawal = result.rows[0];
+
+        // --- Add Admin Notification ---
+        try {
+            const notificationMessage = `New withdrawal request (ID: ${newWithdrawal.id}) from User ID ${userId} for amount ${withdrawalAmount.toFixed(2)}.`;
+            await client.query(
+                `INSERT INTO admin_notifications (user_id, type, message) VALUES ($1, $2, $3)`,
+                [userId, 'new_withdrawal_request', notificationMessage]
+            );
+            logger.info(`Admin notification created for new withdrawal request ${newWithdrawal.id} from user ${userId}.`);
+        } catch (notificationError) {
+            logger.error('Failed to create admin notification for new withdrawal request:', { userId, error: notificationError.message });
+        }
+        // --- End Admin Notification ---
+
+        await client.query('COMMIT'); // Commit transaction
+
+        logger.info(`User ${userId} requested withdrawal ${newWithdrawal.id} for amount ${withdrawalAmount.toFixed(2)}. Balance updated to ${newBalance.toFixed(2)}.`);
+        res.status(201).json({ success: true, message: 'Withdrawal request submitted successfully. Waiting for admin approval.', withdrawalId: newWithdrawal.id, newBalance: newBalance.toFixed(2) });
+
+    } catch (error) {
+        await client.query('ROLLBACK'); // Rollback on error
+        logger.error('Error requesting withdrawal:', { userId, error: error.message, stack: error.stack });
+        res.status(500).json({ success: false, message: 'Server error submitting withdrawal request.' });
+    } finally {
+        client.release(); // Release client back to pool
+    }
 };
 
 /**
@@ -486,13 +665,15 @@ module.exports = {
   getWithdrawHistory,
   getUserBalances,
   getUserBalance,
+  requestDeposit, // Export new function
+  requestWithdrawal, // Export new function
   changeLoginPassword,
   changeWithdrawPassword,
   getWithdrawalAddress,
   updateWithdrawalAddress,
-  createSupportMessage,    // Export new function
-  getUserSupportMessages, // Export new function
-  getUserNotifications, // Export new function
-  markNotificationAsRead // Export new function
+  createSupportMessage,
+  getUserSupportMessages,
+  getUserNotifications,
+  markNotificationAsRead
   // Other user-related functions
 };

@@ -248,7 +248,12 @@
                <div class="form-group mb-3">
                   <label class="mb-2">Enter Withdraw Password</label>
                   <input type="password" name="withdraw_password" id="withdraw_password" class="form-control" >
-                </div>               <div class="form-group mb-3">
+                </div>
+                <div class="form-group mb-3">
+                  <label class="mb-2" data-i18n="withdrawalAccountDetailsLabel">Withdrawal Account Details (e.g., TRC20 Address)</label>
+                  <input type="text" name="withdrawal_account_details" id="withdrawal_account_details" class="form-control" placeholder="Enter your TRC20 address or other details">
+                </div>
+                <div class="form-group mb-3">
                     <button class="btn btn-main btn-lg w-100" type="submit" id="withdraw" data-i18n="withdrawButton">Submit</button>
                 </div>
             </div>
@@ -256,9 +261,21 @@
       </div>
 
       <div data-bs-parent="#tab-group-1" class="collapse" id="withdraws">
-         <div class="container">
-            <div class="row">
-                           </div>
+         <div class="container table-responsive">
+            <table class="table table-striped">
+               <thead>
+                  <tr>
+                     <th scope="col" data-i18n="historyDate">Date</th>
+                     <th scope="col" data-i18n="historyTime">Time</th>
+                     <th scope="col" data-i18n="historyAmount">Amount</th>
+                     <th scope="col" data-i18n="historyDetails">Details</th>
+                     <th scope="col" data-i18n="historyStatus">Status</th>
+                  </tr>
+               </thead>
+               <tbody>
+                  <!-- Withdrawal history will be populated here by withdraw.js -->
+               </tbody>
+            </table>
          </div>
       </div>
 
@@ -313,131 +330,17 @@
 <script src="./assets/frontend/js/bootstrap.bundle.min.js"></script>
 <script src="./assets/frontend/js/owl.carousel.min.js"></script>
 <script src="./assets/frontend/js/script.js"></script>
-<script src="./js/withdraw.js"></script>
+<!-- <script src="./js/withdraw.js"></script> --> <!-- Removed duplicate -->
 <script src="./js/components.js"></script>
 <script type="text/javascript">
     "use-strict";
 
-     $('#withdraw').click(function (e) {
-        e.preventDefault();
-
-    var loading = null;
-    
-    var withdraw_amount   = $("input[name=withdraw_amount]").val();
-    var withdraw_password   = $("input[name=withdraw_password]").val();
-    let csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-
-    //var bank_status = $('#user_banking_status').text();
-    
-   // if(bank_status == 0){
-       // $(document).dialog({
-         //type: 'confirm',
-         //titleText: "Please first add withdraw details, and then make a withdraw",
-         //autoClose: 0,
-         //buttonTextConfirm:'Add Details',
-         //buttonTextCancel:'Cancel',
-        // onClickConfirmBtn: function () {
-         //   window.location.href = baseurl + 'user/withdraw_method';
-         //},
-         //onClickCancelBtn: function () {
-        
-         //}
-      //});
-      
-    //}else{
-       if(withdraw_amount == '' || withdraw_password == ''){
-        $(document).dialog({
-         type: 'confirm',
-         titleText: "Please fill amount and password",
-         autoClose: 0,
-         buttonTextConfirm:'Confirm',
-         buttonTextCancel:'Cancel',
-         onClickConfirmBtn: function () {
-            //$('#popup').hide();
-         },
-         onClickCancelBtn: function () {
-        
-         }
-      });
-        
-    }else{
-        
-    $(document).dialog({
-         type: 'confirm',
-         titleText: "Are you sure to Confirm",
-         autoClose: 0,
-         buttonTextConfirm:'Yes',
-         buttonTextCancel:'NO',
-         onClickConfirmBtn: function () {
-            $.ajax({
-            url:'https://brain-labs.work/withdraw/store',
-            data: {
-                'withdraw_amount' : withdraw_amount, 
-                'withdraw_password' : withdraw_password
-            },
-            type: 'post',
-            headers: {
-                'X-CSRF-TOKEN': csrfToken
-            },
-            dataType: 'json',
-            beforeSend:function(){
-               loading = $(document).dialog({
-                  type : 'notice',
-                  infoIcon: baseurl + '/assets/frontend/shopva/img/loading.gif',
-                  infoText: 'checking data......',
-                  autoClose: 0
-               });
-            },
-            success:function(data){
-
-                if(data.success) {
-                    $(document).dialog({
-                     infoText: data.message
-                  });
-                  setTimeout(function(){
-                     window.location.href = data.redirect_url;
-                  },2000);
-                }
-                if(data.error) {
-                   if (data.bankstatus == 0) {
-                    loading.close();
-                   $(document).dialog({
-                        infoText: data.message
-                     });
-
-                   window.location.href = data.redirect_url;
-
-                   }else {
-                    loading.close();
-                   $(document).dialog({
-                        infoText: data.message
-                     });
-
-                   }
-
-                }/*else{
-                     $(document).dialog({
-                        infoText: "error",autoClose:2000
-                     });
-                  }*/
-            },
-            error:function (data) {
-               loading.close();
-            }
-         });
-         },
-         onClickCancelBtn: function () {
-        
-         }
-      });
-        
-    } 
-    //}
-    
-   });
+    // The #withdraw button click handler is now in public/js/withdraw.js
+    // The old inline AJAX call has been removed.
+   
 </script>
 
-<!-- Import i18n.js script -->
+<!-- Import i18n.js script FIRST -->
 <script src="./js/i18n.js"></script>
 <!-- Import withdraw.js script -->
 <script src="./js/withdraw.js"></script>

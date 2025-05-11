@@ -16,10 +16,25 @@ const {
     createSupportMessage,    // Import new function
     getUserSupportMessages, // Import new function
     getUserNotifications, // Import new function
-    markNotificationAsRead // Import new function
+    markNotificationAsRead, // Import new function
+    requestDeposit, // Import new function
+    requestWithdrawal // Import new function
 } = require('../controllers/userController');
 
 const router = express.Router();
+
+// --- Deposit & Withdrawal Requests ---
+// @route   POST /api/user/deposit/request
+// @desc    Submit a new deposit request
+// @access  Private
+router.post('/deposit/request', protect, requestDeposit);
+
+// @route   POST /api/user/withdraw/request
+// @desc    Submit a new withdrawal request
+// @access  Private
+router.post('/withdraw/request', protect, requestWithdrawal);
+
+// --- End Deposit & Withdrawal Requests ---
 
 // @route   GET /api/user/profile
 // @desc    Get current user profile data
