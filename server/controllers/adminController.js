@@ -708,16 +708,16 @@ const getDrives = async (req, res) => {
 // Get drive history for a specific user
 const getDriveLogs = async (req, res) => {
     const { userId } = req.params;
-    try {
-        const result = await pool.query(`
+    try {        const result = await pool.query(`
             SELECT 
                 d.id,
                 d.created_at,
                 d.status,
-                d.commission as commission_amount,
-                p.name as product_name
-            FROM drives d
-            LEFT JOIN drive_orders do ON d.order_id = do.id
+                COALESCE(d.commission, 0) as commission_amount,
+                COALESCE(p.name, 'N/A') as product_name,
+                d.user_id
+            FROM drive_sessions d
+            LEFT JOIN drive_orders do ON do.session_id = d.id
             LEFT JOIN products p ON do.product_id = p.id
             WHERE d.user_id = $1
             ORDER BY d.created_at DESC

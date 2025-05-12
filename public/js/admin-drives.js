@@ -96,25 +96,52 @@ export async function loadDriveHistory(userId, username) {
             console.warn('API returned error:', response);
             showNotification(response.message || 'Failed to load drive history', 'error');
             return;
-        }
-
-        // Get drive history data and handle empty results
+        }        // Get drive history data
         const historyData = response.history || [];
-        if (historyData.length === 0) {
-            showNotification('No drive history found for this user', 'info');
-            showDriveHistoryModal(userId, username);
+        const driveHistoryBody = document.getElementById('driveHistoryBody');
+        
+        if (!driveHistoryBody) {
+            console.error('Drive history table body not found');
             return;
         }
 
-        // Calculate total commission
+        if (historyData.length === 0) {
+            driveHistoryBody.innerHTML = '<tr><td colspan="5" class="text-center">No drive history found</td></tr>';
+            return;
+        }
+
+        // Calculate total commission and build table rows
         let totalCommission = 0;
-        historyData.forEach(drive => {
+        const rows = historyData.map(drive => {
             const commission = parseFloat(drive.commission_amount || drive.commission || 0);
             totalCommission += commission;
+            
+            const date = drive.created_at ? new Date(drive.created_at).toLocaleString() : 'N/A';
+            const product = drive.product_name || 'N/A';
+            const status = drive.status || 'PENDING';
+            
+            return `
+                <tr>
+                    <td>${date}</td>
+                    <td>${product}</td>
+                    <td><span class="badge bg-${getStatusBadgeColor(status)}">${status}</span></td>
+                    <td>$${commission.toFixed(2)}</td>
+                    <td>
+                        <button class="btn btn-sm btn-info" onclick="showDriveDetails('${drive.id}')">
+                            Details
+                        </button>
+                    </td>
+                </tr>
+            `;
         });
 
-        // Show modal with drive history
-        showDriveHistoryModal(userId, username);
+        // Add the rows and total row
+        driveHistoryBody.innerHTML = rows.join('') + `
+            <tr class="table-info">
+                <td colspan="3"><strong>Total Commission</strong></td>
+                <td colspan="2"><strong>$${totalCommission.toFixed(2)}</strong></td>
+            </tr>
+        `;
 
     } catch (error) {
         console.error('Error loading drive history:', error);
@@ -179,18 +206,17 @@ export function showDriveHistoryModal(userId, username) {
     // Add new modal to DOM
     console.log('Adding new drive history modal to DOM');
     document.body.insertAdjacentHTML('beforeend', modalHtml);
-    
-    try {
+      try {
         console.log('Initializing Bootstrap modal');
-        const modal = new bootstrap.Modal(document.getElementById('driveHistoryModal'));
+        const modalElement = document.getElementById('driveHistoryModal');
+        const modal = new bootstrap.Modal(modalElement);
         console.log('Showing modal');
         modal.show();
-        
-        console.log('Loading drive history');
-        loadDriveHistory(userId);
+        return modal;
     } catch (error) {
         console.error('Error showing drive history modal:', error);
         showNotification('Failed to show drive history modal', 'error');
+        return null;
     }
 }
 
@@ -252,10 +278,11 @@ export function initializeDriveHandlers() {
                     console.error('View history clicked but userId is missing');
                     showNotification('Error: Could not identify user', 'error');
                     return;
+                }                console.log('View drive history clicked for:', { userId, username });
+                const driveModal = showDriveHistoryModal(userId, username);
+                if (driveModal) {
+                    await loadDriveHistory(userId, username);
                 }
-
-                console.log('View drive history clicked for:', { userId, username });
-                await loadDriveHistory(userId, username);
             }
 
             // Reset drive button handler
