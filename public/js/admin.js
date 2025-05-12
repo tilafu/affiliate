@@ -1,4 +1,35 @@
 // Admin Panel JavaScript
+import * as DriveModule from './admin-drives.js';
+
+// Global variables
+let driveUpdateInterval;
+
+// Helper function for status colors (used by consolidated drive history)
+function getStatusBadgeColor(status) {
+    switch (status.toLowerCase()) {
+        case 'active': return 'success';
+        case 'pending': return 'warning';
+        case 'completed': return 'primary';
+        case 'failed': return 'danger';
+        default: return 'secondary';
+    }
+}
+
+async function viewDriveDetails(driveId) {
+    try {
+        const response = await fetchWithAuth(`/admin/drives/${driveId}/details`);
+        if (response.success) {
+            showNotification('Loading drive details...', 'info');
+            // Implement drive details view...
+        }
+    } catch (error) {
+        console.error('Error loading drive details:', error);
+        showNotification('Failed to load drive details', 'error');
+    }
+}
+
+// Add polling interval reference
+
 document.addEventListener('DOMContentLoaded', () => {
     // Check authentication
     const token = localStorage.getItem('auth_token');
@@ -18,6 +49,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initialize all section handlers
     initializeHandlers();
+    
+    // Setup drive polling using the Drive module
+    DriveModule.setupDrivePolling();
 });
 
 // Helper function for authenticated API calls
@@ -41,35 +75,28 @@ function showNotification(message, type = 'success') { // type can be 'success',
     // Use $(document).dialog for notifications
     let dialogType = 'notice'; // Default dialog type
     if (type === 'success') {
-        dialogType = 'success'; // Or map to a specific dialog type if available, e.g., 'tips'
+        dialogType = 'success';
     } else if (type === 'error') {
-        dialogType = 'error'; // Or map to a specific dialog type
+        dialogType = 'error';
     }
-    // Assuming the dialog plugin handles different types or icons based on 'type'
-    // For simplicity, using infoText for the message and a default autoClose.
-    // The dialog plugin might have specific options for success/error icons.
-    $(document).dialog({ 
-        type: dialogType, 
-        infoText: message, 
-        autoClose: 2500 // Auto close after 2.5 seconds
-    });
-}
-
-// Add this notification function
-function showAdminNotification(message, type = 'info') {
-    const alertsContainer = document.getElementById('alerts-container');
-    const alert = document.createElement('div');
-    alert.className = `alert alert-${type} alert-dismissible fade show`;
-    alert.innerHTML = `
-        ${message}
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    `;
-    alertsContainer.appendChild(alert);
-
-    // Auto-remove after 5 seconds
-    setTimeout(() => {
-        alert.remove();
-    }, 5000);
+    // This uses a jQuery dialog plugin, ensure it's loaded and configured.
+    // Example: $(document).dialog({ type: dialogType, infoText: message, autoClose: 2500 });
+    // For now, we'll assume the dialog plugin is available and works with these options.
+    if (typeof $ !== 'undefined' && $.dialog) {
+        $(document).dialog({
+            type: dialogType,
+            infoText: message,
+            autoClose: 2500
+        });
+    } else {
+        console.warn('jQuery dialog plugin not available. Using console for notification:', type, message);
+        // Fallback to a simpler browser alert or console log if jQuery dialog is not present
+        if (type === 'error') {
+            alert(`Error: ${message}`);
+        } else {
+            alert(message);
+        }
+    }
 }
 
 function initializeSidebar() {
@@ -132,7 +159,7 @@ function loadSection(sectionName) {
             loadWithdrawals();
             break;
         case 'drives':
-            loadDrives();
+            DriveModule.loadDrives(); // Using the drive module instead
             break;
         case 'support':
             loadSupportMessages();
@@ -279,54 +306,7 @@ async function loadWithdrawals() {
 }
 
 // Data Drives Management
-async function loadDrives() {
-    try {
-        const response = await fetchWithAuth('/admin/drives');
-        if (response.success) {
-            const drivesList = document.getElementById('drives-list');
-            drivesList.innerHTML = response.drives.map(drive => `
-                <tr>
-                    <td>${drive.username}</td>
-                    <td>${drive.total_drives}</td>
-                    <td>$${drive.total_commission}</td>
-                    <td>${new Date(drive.last_drive).toLocaleDateString()}</td>
-                    <td>
-                        <span class="status-badge status-${drive.status === 'ACTIVE' ? 'approved' : 'rejected'}">
-                            ${drive.status}
-                        </span>
-                    </td>
-                    <td>
-                        <button class="btn btn-sm btn-warning reset-drive-btn" 
-                                data-user-id="${drive.user_id}">
-                            Reset Drive
-                        </button>
-                    </td>
-                </tr>
-            `).join('');
-        }
-    } catch (error) {
-        console.error('Error loading drives:', error);
-        showNotification('Failed to load drives data', 'error');
-    }
-}
-
-// Modify the loadDrives function to include username lookup
-async function getDriveStatus(userId) {
-    try {
-        // First get user details
-        const userResponse = await fetchWithAuth(`/admin/users/${userId}`);
-        const username = userResponse.user.username;
-        
-        // Then get drive status
-        const driveResponse = await fetchWithAuth(`/admin/drives/${userId}`);
-        
-        showAdminNotification(`Checking drive status for user: ${username}`, 'info');
-        return driveResponse;
-    } catch (error) {
-        console.error('Error getting drive status:', error);
-        showAdminNotification(`Error checking drive status for user ID ${userId}`, 'danger');
-    }
-}
+// These functions have been moved to admin-drives.js
 
 // Support Messages Management
 async function loadSupportMessages() {
@@ -381,7 +361,7 @@ async function loadSupportMessages() {
                             `<button class="btn btn-sm btn-primary reply-message-btn" 
                                     data-message-id="${msg.id}"
                                     data-user-id="${msg.sender_id}"
-                                    data-thread-subject="${originalMessage.subject || `Message ID ${originalMessage.id}`}">
+                                    data-thread-subject="${originalMessage.subject || 'Message ID ' + originalMessage.id}">
                                 Reply
                             </button>` : ''}
                         </div>
@@ -441,34 +421,32 @@ async function createProduct(event) {
     try {
         // NOTE: The fetch endpoint here seems incorrect for createProduct.
         // It should likely use fetchWithAuth or include the token header.
-        // Assuming fetchWithAuth should be used for consistency.
-        // Also, the form IDs referenced (e.g., create-product-form) need to exist in admin.html
-        const response = await fetch('/api/admin/products', {
+        const response = await fetchWithAuth('/admin/products', { // Changed to fetchWithAuth
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(productData)
+            // Content-Type is handled by fetchWithAuth
         });
         
-        const data = await response.json();
-        if (data.success) {
-            showNotification('Product created successfully');
-            document.getElementById('create-product-form').reset();
+        // fetchWithAuth already parses JSON
+        if (response.success) {
+            showNotification('Product created successfully', 'success');
+            document.getElementById('create-product-form').reset(); // Ensure this ID matches HTML
             await loadProducts();
         } else {
-            showError(data.message || 'Error creating product');
+            showNotification(response.message || 'Error creating product', 'error');
         }
     } catch (error) {
-        showError('Error creating product');
+        console.error('Error creating product:', error);
+        showNotification('Error creating product: ' + error.message, 'error');
     }
 }
 
-async function editProduct(productId) {
+async function editProduct(productId) { // This function populates the edit form
     try {
-        const response = await fetch(`/api/admin/products/${productId}`);
-        const data = await response.json();
-        if (data.success) {
+        const response = await fetchWithAuth(`/admin/products/${productId}`); // Changed to fetchWithAuth
+        if (response.success) {
             // Populate edit form with product data
-            const product = data.product;
+            const product = response.product;
             document.getElementById('edit-product-id').value = product.id;
             // Populate relevant fields only
             document.getElementById('edit-product-name').value = product.name;
@@ -479,17 +457,20 @@ async function editProduct(productId) {
             // Add image_url if needed: document.getElementById('edit-image-url').value = product.image_url || '';
             
             // Show edit modal (Ensure this modal ID exists in admin.html)
-            const editModalElement = document.getElementById('edit-product-modal');
+            const editModalElement = document.getElementById('edit-product-modal'); // Ensure this ID matches HTML
             if (!editModalElement) {
-                console.error("Edit product modal not found!");
-                showNotification('Error: Edit modal element not found.', 'error');
+                console.error("Edit product modal ('edit-product-modal') not found!");
+                showNotification('UI Error: Edit modal element not found.', 'error');
                 return;
             }
             const editModal = new bootstrap.Modal(editModalElement);
             editModal.show();
+        } else {
+            showNotification(response.message || 'Failed to load product details for editing.', 'error');
         }
     } catch (error) {
-        showError('Error loading product details');
+        console.error('Error loading product details for edit:', error);
+        showNotification('Error loading product details: ' + error.message, 'error');
     }
 }
 
@@ -515,16 +496,21 @@ async function updateProduct(event) {
         
         // Assuming fetchWithAuth returns parsed JSON directly
         const data = response; 
-        if (data.success) {
-            showNotification('Product updated successfully');
-            const editModal = bootstrap.Modal.getInstance(document.getElementById('edit-product-modal'));
-            editModal.hide();
+        // fetchWithAuth returns parsed JSON directly
+        if (response.success) {
+            showNotification('Product updated successfully', 'success');
+            const editModalEl = document.getElementById('edit-product-modal'); // Ensure this ID matches HTML
+            if (editModalEl) {
+                const editModal = bootstrap.Modal.getInstance(editModalEl);
+                if (editModal) editModal.hide();
+            }
             await loadProducts();
         } else {
-            showError(data.message || 'Error updating product');
+            showNotification(response.message || 'Error updating product', 'error');
         }
     } catch (error) {
-        showError('Error updating product');
+        console.error('Error updating product:', error);
+        showNotification('Error updating product: ' + error.message, 'error');
     }
 }
 
@@ -534,66 +520,64 @@ async function deleteProduct(productId) {
     }
 
     try {
-        const response = await fetch(`/api/admin/products/${productId}`, {
+        const response = await fetchWithAuth(`/admin/products/${productId}`, { // Changed to fetchWithAuth
             method: 'DELETE'
         });
         
-        const data = await response.json();
-        if (data.success) {
-            showNotification('Product deleted successfully');
+        if (response.success) {
+            showNotification('Product deleted successfully', 'success');
             await loadProducts();
         } else {
-            showError(data.message || 'Error deleting product');
+            showNotification(response.message || 'Error deleting product', 'error');
         }
     } catch (error) {
-        showError('Error deleting product');
+        console.error('Error deleting product:', error);
+        showNotification('Error deleting product: ' + error.message, 'error');
     }
 }
 
-async function respondToMessage(messageId) {
-    const response = prompt('Enter your response:');
-    if (!response) return;
+async function respondToMessage(messageId, responseText) { // Added responseText parameter
+    if (!responseText) return;
 
     try {
-        const result = await fetch(`/api/admin/support-messages/${messageId}/respond`, {
+        const response = await fetchWithAuth(`/admin/support-messages/${messageId}/respond`, { // Changed to fetchWithAuth
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ response })
+            body: JSON.stringify({ response: responseText }) // Ensure backend expects 'response'
         });
         
-        const data = await result.json();
-        if (data.success) {
-            showNotification('Response sent successfully');
-            await loadSupportMessages();
+        if (response.success) {
+            showNotification('Response sent successfully', 'success');
+            await loadSupportMessages(); // Reload to see the update
         } else {
-            showError(data.message || 'Error sending response');
+            showNotification(response.message || 'Error sending response', 'error');
         }
     } catch (error) {
-        showError('Error sending response');
+        console.error('Error sending response:', error);
+        showNotification('Error sending response: ' + error.message, 'error');
     }
 }
 
 async function markAsResolved(messageId) {
     try {
-        const response = await fetch(`/api/admin/support-messages/${messageId}/resolve`, {
+        const response = await fetchWithAuth(`/admin/support-messages/${messageId}/resolve`, { // Changed to fetchWithAuth
             method: 'PUT'
         });
         
-        const data = await response.json();
-        if (data.success) {
-            showNotification('Message marked as resolved');
-            await loadSupportMessages();
+        if (response.success) {
+            showNotification('Message marked as resolved', 'success');
+            await loadSupportMessages(); // Reload to see the update
         } else {
-            showError(data.message || 'Error updating message status');
+            showNotification(response.message || 'Error updating message status', 'error');
         }
     } catch (error) {
-        showError('Error updating message status');
+        console.error('Error updating message status:', error);
+        showNotification('Error updating message status: ' + error.message, 'error');
     }
 }
 
 function initializeHandlers() {
-    // Deposit handlers
     document.addEventListener('click', async (e) => {
+        // Deposit handlers
         if (e.target.matches('.approve-deposit-btn')) {
             const id = e.target.dataset.id;
             try {
@@ -606,9 +590,7 @@ function initializeHandlers() {
                 console.error('Error approving deposit:', error);
                 showNotification('Failed to approve deposit', 'error');
             }
-        }
-        
-        if (e.target.matches('.reject-deposit-btn')) {
+        } else if (e.target.matches('.reject-deposit-btn')) {
             const id = e.target.dataset.id;
             try {
                 const response = await fetchWithAuth(`/admin/deposits/${id}/reject`, { method: 'POST' });
@@ -621,11 +603,8 @@ function initializeHandlers() {
                 showNotification('Failed to reject deposit', 'error');
             }
         }
-    });
-
-    // Withdrawal handlers
-    document.addEventListener('click', async (e) => {
-        if (e.target.matches('.approve-withdrawal-btn')) {
+        // Withdrawal handlers
+        else if (e.target.matches('.approve-withdrawal-btn')) {
             const id = e.target.dataset.id;
             try {
                 const response = await fetchWithAuth(`/admin/withdrawals/${id}/approve`, { method: 'POST' });
@@ -637,9 +616,7 @@ function initializeHandlers() {
                 console.error('Error approving withdrawal:', error);
                 showNotification('Failed to approve withdrawal', 'error');
             }
-        }
-        
-        if (e.target.matches('.reject-withdrawal-btn')) {
+        } else if (e.target.matches('.reject-withdrawal-btn')) {
             const id = e.target.dataset.id;
             try {
                 const response = await fetchWithAuth(`/admin/withdrawals/${id}/reject`, { method: 'POST' });
@@ -650,35 +627,79 @@ function initializeHandlers() {
             } catch (error) {
                 console.error('Error rejecting withdrawal:', error);
                 showNotification('Failed to reject withdrawal', 'error');
-            }
+            }        }
+        // Drive handlers - now using the Drive module
+        else if (e.target.matches('.reset-drive-btn') || e.target.matches('.view-drive-history-btn')) {
+            // Pass the event to the Drive module's handlers
+            DriveModule.initializeDriveHandlers(e);
         }
-    });
-
-    // Drive handlers
-    document.addEventListener('click', async (e) => {
-        if (e.target.matches('.reset-drive-btn')) {
-            const userId = e.target.dataset.userId;
-            try {
-                const response = await fetchWithAuth(`/admin/users/${userId}/reset-drive`, { method: 'POST' });
-                if (response.success) {
-                    showNotification('Drive reset successfully', 'success');
-                    loadDrives();
-                }
-            } catch (error) {
-                console.error('Error resetting drive:', error);
-                showNotification('Failed to reset drive', 'error');
-            }
-        }
-    });
-
-    // Support message handlers
-    document.addEventListener('click', async (e) => {
-        if (e.target.matches('.reply-message-btn')) {
+        // Support message handlers
+        else if (e.target.matches('.reply-message-btn')) {
             const messageId = e.target.dataset.messageId;
             const userId = e.target.dataset.userId;
             document.getElementById('message-reply-form').style.display = 'block';
             document.getElementById('send-reply-button').dataset.messageId = messageId;
             document.getElementById('send-reply-button').dataset.userId = userId;
+        }
+        // Product handlers - EDIT Product Button Click
+        else if (e.target.matches('.edit-product-btn')) {
+            const productId = e.target.dataset.id;
+            try {
+                const response = await fetchWithAuth(`/admin/products/${productId}`);
+                if (response.success && response.product) {
+                    const product = response.product;
+                    document.getElementById('edit-product-id').value = product.id;
+                    document.getElementById('edit-product-name').value = product.name;
+                    document.getElementById('edit-product-price').value = product.price;
+                    document.getElementById('edit-commission-rate').value = product.commission_rate;
+                    // document.getElementById('edit-min-balance').value = product.min_balance_required || 0;
+                    // document.getElementById('edit-image-url').value = product.image_url || '';
+
+                    const editModalElement = document.getElementById('edit-product-modal');
+                    if (editModalElement) {
+                        const editModal = new bootstrap.Modal(editModalElement);
+                        editModal.show();
+                    } else {
+                        console.error("Edit product modal ('edit-product-modal') not found.");
+                        showNotification('UI Error: Edit modal not found.', 'error');
+                    }
+                } else {
+                    showNotification(response.message || 'Failed to load product details for editing.', 'error');
+                }
+            } catch (error) {
+                console.error('Error fetching product for edit:', error);
+                showNotification('Error fetching product details: ' + error.message, 'error');
+            }
+        }
+        // Product handlers - Delete product handler
+        else if (e.target.matches('.delete-product-btn')) {
+            if (confirm('Are you sure you want to delete this product?')) {
+                const id = e.target.dataset.id;
+                try {
+                    const response = await fetchWithAuth(`/admin/products/${id}`, { method: 'DELETE' });
+                    if (response.success) {
+                        showNotification('Product deleted successfully', 'success');
+                        loadProducts(); 
+                    } else {
+                        showNotification(response.message || 'Failed to delete product', 'error');
+                    }
+                } catch (error) {
+                    console.error('Error deleting product:', error);
+                    showNotification('Failed to delete product: ' + error.message, 'error');
+                }
+            }
+        }
+        // User management handlers
+        else if (e.target.matches('.manage-user-btn')) {
+            const userId = e.target.dataset.userId;
+            const username = e.target.dataset.username;
+            const currentTier = e.target.dataset.tier;
+            
+            const userDetails = document.getElementById('user-details');
+            document.getElementById('manage-username').textContent = username;
+            document.getElementById('manage-user-id').textContent = userId;
+            document.getElementById('user-tier-select').value = currentTier;
+            userDetails.style.display = 'block';
         }
     });
 
@@ -907,5 +928,37 @@ function initializeHandlers() {
             console.error('Error updating user tier:', error);
             showNotification('Failed to update user tier', 'error');
         }
+    });    // Visibility change handler for drives
+    document.addEventListener('visibilitychange', () => {
+        const drivesSection = document.getElementById('drives-section');
+        if (document.visibilityState === 'visible' && drivesSection?.style.display === 'block') {
+            DriveModule.loadDrives();
+        }
+    });
+    
+    // Cleanup on page unload
+    window.addEventListener('beforeunload', () => {
+        clearInterval(driveUpdateInterval);
     });
 }
+
+// Add this function for polling drive updates
+function setupDrivePolling() {
+    // Clear existing interval if any
+    if (driveUpdateInterval) {
+        clearInterval(driveUpdateInterval);
+    }
+    
+    // Poll every 30 seconds
+    driveUpdateInterval = setInterval(() => {
+        if (document.getElementById('drives-section')?.style.display === 'block') {
+            DriveModule.loadDrives();
+        }
+    }, 30000);
+}
+
+// Initialize drive module with dependencies
+DriveModule.initDependencies({
+    fetchWithAuth: fetchWithAuth,
+    showNotification: showNotification
+});

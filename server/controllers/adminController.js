@@ -705,6 +705,37 @@ const getDrives = async (req, res) => {
     }
 };
 
+// Get drive history for a specific user
+const getDriveLogs = async (req, res) => {
+    const { userId } = req.params;
+    try {
+        const result = await pool.query(`
+            SELECT 
+                d.id,
+                d.created_at,
+                d.status,
+                d.commission as commission_amount,
+                p.name as product_name
+            FROM drives d
+            LEFT JOIN drive_orders do ON d.order_id = do.id
+            LEFT JOIN products p ON do.product_id = p.id
+            WHERE d.user_id = $1
+            ORDER BY d.created_at DESC
+        `, [userId]);
+
+        res.json({ 
+            success: true, 
+            history: result.rows 
+        });
+    } catch (error) {
+        console.error('Error fetching drive logs:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Error fetching drive history' 
+        });
+    }
+};
+
 // Support Messages Management
 const replyToSupportMessage = async (req, res) => {
     const { message_id, user_id, message } = req.body;
@@ -763,15 +794,16 @@ module.exports = {
     
     // Product Management
     getProducts,
-    getProductById, // Added getProductById
+    getProductById,
     createProduct,
     updateProduct,
     deleteProduct,
     
     // Drive Management
     getDrives,
+    getDriveLogs,
     resetDrive,
-    endDrive, // Added endDrive
+    endDrive,
     
     // Financial Management
     getDeposits,

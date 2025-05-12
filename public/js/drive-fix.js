@@ -1,7 +1,18 @@
 // Fixes for admin.js drive history functionality
 // 1. Update loadDriveHistory to add more debug logs and proper error handling
 async function loadDriveHistory(userId, username) {
-    console.log(`Starting loadDriveHistory for userId=${userId}, username=${username}`);
+    // Enhanced logging for incoming parameters
+    console.log(`Starting loadDriveHistory. Received userId: ${userId} (type: ${typeof userId}), username: ${username} (type: ${typeof username})`);
+
+    // Robust check for invalid userId that could lead to "/undefined/" in URL
+    // This checks for null, undefined, or if the string representation is "undefined" (case-insensitive)
+    if (userId == null || String(userId).toLowerCase() === "undefined") {
+        console.error(`Invalid userId detected. Original userId value:`, userId, `(type: ${typeof userId}). Username: '${username}'. Aborting API call to prevent /undefined/ path.`);
+        // Provide a more user-friendly notification, possibly hinting at data issues.
+        showNotification(`Cannot load drive history: User identifier is missing or invalid. Please check the data source. (Username: '${username}')`, 'error');
+        return;
+    }
+
     try {
         // Try one of these alternative endpoints based on your backend structure
         console.log(`Fetching data from /admin/drives/${userId}/logs`);
@@ -11,7 +22,12 @@ async function loadDriveHistory(userId, username) {
         if (response.success) {
             // Check which property contains the history data
             const historyData = response.history || response.logs || response.drives || [];
-            console.log('History data found:', historyData);
+            console.log('History data found (count):', historyData.length);
+
+            // Log the first item to inspect its structure if data exists
+            if (historyData.length > 0) {
+                console.log('Sample drive data item (historyData[0]):', JSON.stringify(historyData[0], null, 2));
+            }
             
             // Create modal for displaying drive history
             let modalHTML = `
@@ -19,7 +35,7 @@ async function loadDriveHistory(userId, username) {
                     <div class="modal-dialog modal-lg">
                         <div class="modal-content">
                             <div class="modal-header">
-                                <h5 class="modal-title" id="driveHistoryModalLabel">Drive History for ${username}</h5>
+                                <h5 class="modal-title" id="driveHistoryModalLabel">Drive History for ${username || 'N/A'}</h5>
                                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                             </div>
                             <div class="modal-body">
@@ -36,15 +52,28 @@ async function loadDriveHistory(userId, username) {
                                         <tbody>`;
             
             if (historyData.length > 0) {
-                historyData.forEach(drive => {
+                historyData.forEach((drive, index) => {
+                    // Log each drive object being processed for detailed inspection
+                    console.log(`Processing drive item ${index + 1}/${historyData.length}:`, JSON.stringify(drive, null, 2));
+
+                    const driveDate = drive.created_at ? new Date(drive.created_at).toLocaleString() : 'N/A';
+                    const productName = drive.product_name || 'N/A';
+                    
+                    // Ensure commission is a number and formatted, default to 0.
+                    const commissionValue = parseFloat(drive.commission_amount || drive.commission || 0);
+                    const commissionDisplay = `$${commissionValue.toFixed(2)}`; 
+                    
+                    const driveStatus = String(drive.status || 'PENDING').toUpperCase(); // Ensure status is a string and uppercase
+                    const statusClass = String(drive.status || 'pending').toLowerCase(); // Ensure class is lowercase string
+
                     modalHTML += `
                         <tr>
-                            <td>${new Date(drive.created_at).toLocaleString()}</td>
-                            <td>${drive.product_name || 'N/A'}</td>
-                            <td>$${drive.commission_amount || drive.commission || 0}</td>
+                            <td>${driveDate}</td>
+                            <td>${productName}</td>
+                            <td>${commissionDisplay}</td>
                             <td>
-                                <span class="status-badge status-${(drive.status || 'pending').toLowerCase()}">
-                                    ${drive.status || 'PENDING'}
+                                <span class="status-badge status-${statusClass}">
+                                    ${driveStatus}
                                 </span>
                             </td>
                         </tr>`;
@@ -102,12 +131,16 @@ async function loadDriveHistory(userId, username) {
                 console.error('Error initializing or showing modal:', modalError);
             }
         } else {
-            console.warn('API returned success: false', response);
-            showNotification('Failed to load drive history', 'error');
+            console.warn('API returned success: false. Response:', response);
+            // Ensure a user-friendly message if response indicates failure but no specific error message.
+            const errorMessage = response.message || 'Failed to load drive history due to server indication of failure.';
+            showNotification(errorMessage, 'error');
         }
     } catch (error) {
         console.error('Error loading drive history:', error);
-        showNotification('Failed to load drive history', 'error');
+        // Check if error object has more details, e.g., from fetchWithAuth
+        const detail = error.message || 'An unexpected error occurred.';
+        showNotification(`Failed to load drive history: ${detail}`, 'error');
     }
 }
 
@@ -154,6 +187,9 @@ function checkBootstrapAvailability() {
     console.log('Bootstrap and Modal are available.');
     return true;
 }
+
+// Expose loadDriveHistory as global loadDrives to fix the ReferenceError in admin.js
+window.loadDrives = loadDriveHistory;
 
 // Call these functions when needed
 // loadDriveHistory(userId, username); 

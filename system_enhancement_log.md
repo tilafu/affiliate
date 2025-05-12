@@ -85,3 +85,13 @@ The data drive functionality now works correctly. Users can:
 - **Added**: Automatic tracking of completed working days (2 drives = 1 working day)
 - **Added**: Visual indicators when daily quota is completed
 - **Updated**: dashboard.js to fetch and display real-time drive progress statistics
+
+### 11. Admin Panel Drive Management Improvements
+- **Issue**: Missing proper drive history view and 404 errors on admin panel
+- **Solution**:
+  - Added new `/admin/drives/:userId/logs` API endpoint to fetch drive history
+  - Enhanced drive data display with real-time updates
+  - Added drive history modal showing all past drives and commission per drive
+  - Fixed jQuery dialog functionality by adding proper jQuery UI dependencies
+  - Implemented automatic data refresh every 30 seconds on the drive management page
+  - Added total commission calculation in drive history view

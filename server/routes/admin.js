@@ -30,6 +30,7 @@ router.post('/withdrawals/:id/reject', protect, admin, adminController.rejectWit
 
 // Drive Management
 router.get('/drives', protect, admin, adminController.getDrives);
+router.get('/drives/:userId/logs', protect, admin, adminController.getDriveLogs);
 router.post('/users/:userId/reset-drive', protect, admin, adminController.resetDrive);
 router.post('/drives/:driveId/end', protect, admin, adminController.endDrive);
 
