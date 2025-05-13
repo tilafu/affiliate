@@ -23,41 +23,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
 /**
  * Set up event handlers for drive-related buttons
+ * NOTE: Event handlers are now centralized in admin-drives.js
  */
 function setupEnhancedDriveButtons() {
-    document.addEventListener('click', function(event) {
-        // View drive history button handler
-        if (event.target.matches('.view-drive-history-btn') || 
-            event.target.closest('.view-drive-history-btn')) {
-            
-            const button = event.target.matches('.view-drive-history-btn') ? 
-                event.target : event.target.closest('.view-drive-history-btn');
-            
-            event.preventDefault();
-            
-            const userId = button.dataset.userId;
-            const username = button.dataset.username;
-            
-            console.log(`Enhanced view history clicked for user ${username} (ID: ${userId})`);
-            loadEnhancedDriveHistory(userId, username);
-        }
-        
-        // Reset drive button handler
-        if (event.target.matches('.reset-drive-btn') || 
-            event.target.closest('.reset-drive-btn')) {
-            
-            const button = event.target.matches('.reset-drive-btn') ? 
-                event.target : event.target.closest('.reset-drive-btn');
-            
-            event.preventDefault();
-            
-            const userId = button.dataset.userId;
-            const username = button.dataset.username || 'this user';
-            
-            console.log(`Enhanced reset drive clicked for user ${username} (ID: ${userId})`);
-            enhancedResetDrive(userId, username);
-        }
-    });
+    // Event handlers moved to admin-drives.js for centralization
+    console.log('Enhanced drive buttons are now managed in admin-drives.js');
 }
 
 /**

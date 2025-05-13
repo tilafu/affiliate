@@ -1,12 +1,14 @@
 /**
- * Admin Panel - Enhancement for Drive Data Tab
- * This file provides improved features for the admin panel's drive data tab:
- * 1. Fixed drive history viewing functionality
- * 2. Fixed reset drive functionality
- * 3. Dynamic data updates after each drive operation
- * 4. Enhanced commission tracking per drive
- * 5. Improved error handling
+ * Admin Panel - Enhanced Drive Data Management
+ * This script fixes the drive history view and reset functionality, and
+ * adds dynamic data updates after each drive operation.
  */
+
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Initializing drive data enhancements');
+    // Add custom styles for better visual feedback
+    addDriveDataStyles();
+});
 
 // Global variable to track active Bootstrap modals
 let activeModal = null;
@@ -205,9 +207,8 @@ async function enhancedResetDrive(userId, username) {
     showNotification('Resetting drive data...', 'info');
     
     try {
-        // Call API to reset drive
-        console.log(`Calling API endpoint: /admin/drives/reset/${userId}`);
-        const response = await fetchWithAuth(`/admin/drives/reset/${userId}`, {
+        // Call API to reset drive        console.log(`Calling API endpoint: /api/admin/users/${userId}/reset-drive`);
+        const response = await fetchWithAuth(`/api/admin/users/${userId}/reset-drive`, {
             method: 'POST'
         });
         console.log('Reset drive API response:', response);
@@ -292,128 +293,103 @@ async function enhancedRefreshDriveData(userId) {
 }
 
 /**
- * Set up event listeners for drive-related actions
+ * Refresh a specific drive row in the table
  */
-function setupDriveEventHandlers() {
-    console.log('Setting up drive event handlers');
-    
-    document.addEventListener('click', function(event) {
-        // Handler for view drive history button
-        if (event.target.matches('.view-drive-history-btn')) {
-            event.preventDefault();
-            
-            const userId = event.target.dataset.userId;
-            const username = event.target.dataset.username;
-            
-            console.log(`View drive history clicked for userId=${userId}, username=${username}`);
-            enhancedLoadDriveHistory(userId, username);
-        }
+async function refreshDriveRow(userId) {
+    try {
+        console.log(`Refreshing drive data for userId: ${userId}`);
         
-        // Handler for reset drive button
-        if (event.target.matches('.reset-drive-btn')) {
-            event.preventDefault();
+        // Fetch updated drive data for this user
+        const response = await fetchWithAuth(`/admin/drives/${userId}`);
+        
+        if (response.success && response.drive) {
+            // Find the row with this user ID
+            const row = findDriveRowById(userId);
             
-            const userId = event.target.dataset.userId;
-            const username = event.target.dataset.username;
-            
-            console.log(`Reset drive clicked for userId=${userId}, username=${username}`);
-            enhancedResetDrive(userId, username);
+            if (row) {
+                // Update the row with new data
+                updateDriveRowData(row, response.drive);
+                
+                // Add a visual highlight effect
+                highlightUpdatedRow(row);
+            } else {
+                console.warn(`Row for user ID ${userId} not found in table`);
+                
+                // If we can't find the row, reload the entire table
+                if (typeof loadDrives === 'function') {
+                    await loadDrives();
+                }
+            }
         }
-    });
-}
-
-/**
- * Update the drive table structure to add data attributes and custom classes
- * for easier targeting and styling
- */
-function enhanceDriveTable() {
-    console.log('Enhancing drive table structure');
-    
-    const driveTable = document.querySelector('#drives-table');
-    
-    if (!driveTable) {
-        console.warn('Drive table not found');
-        return;
+    } catch (error) {
+        console.error('Error refreshing drive data:', error);
     }
-    
-    // Add data-user-id attribute to each row for easier targeting
-    const rows = driveTable.querySelectorAll('tbody tr');
-    rows.forEach(row => {
-        const viewButton = row.querySelector('.view-drive-history-btn');
-        if (viewButton) {
-            const userId = viewButton.dataset.userId;
-            row.setAttribute('data-user-id', userId);
-            row.classList.add('data-row');
-        }
-        
-        // Add classes to cells for easier targeting
-        const cells = row.querySelectorAll('td');
-        if (cells.length >= 5) {
-            cells[1].classList.add('total-drives');
-            cells[2].classList.add('total-commission');
-            cells[3].classList.add('last-drive-date');
-        }
-    });
-    
-    console.log('Drive table enhanced');
 }
 
 /**
- * Add custom CSS for enhanced styling
+ * Find a drive row by user ID
  */
-function addCustomStyles() {
-    const styleElement = document.createElement('style');
-    styleElement.textContent = `
-        .table-highlight {
-            animation: highlight-row 2s ease-in-out;
+function findDriveRowById(userId) {
+    return document.querySelector(`tr[data-user-id="${userId}"]`);
+}
+
+/**
+ * Update a drive row with new data
+ */
+function updateDriveRowData(row, driveData) {
+    const cells = row.querySelectorAll('td');
+    if (cells.length >= 5) {
+        // Update total drives
+        cells[1].textContent = driveData.total_drives || '0';
+        
+        // Update total commission
+        const commission = parseFloat(driveData.total_commission || 0).toFixed(2);
+        cells[2].textContent = `$${commission}`;
+        
+        // Update last drive date
+        if (driveData.last_drive) {
+            const lastDriveDate = new Date(driveData.last_drive);
+            cells[3].textContent = lastDriveDate.toLocaleDateString();
+        } else {
+            cells[3].textContent = 'Never';
         }
         
-        @keyframes highlight-row {
-            0% { background-color: inherit; }
-            50% { background-color: rgba(40, 167, 69, 0.2); }
-            100% { background-color: inherit; }
+        // Update status badge
+        const statusBadge = cells[4].querySelector('.status-badge');
+        if (statusBadge && driveData.status) {
+            statusBadge.className = `status-badge status-${driveData.status.toLowerCase()}`;
+            statusBadge.textContent = driveData.status;
         }
-        
+    }
+}
+
+/**
+ * Add highlight effect to updated row
+ */
+function highlightUpdatedRow(row) {
+    row.classList.add('highlight-update');
+    setTimeout(() => row.classList.remove('highlight-update'), 2000);
+}
+
+/**
+ * Add custom styles for drive data
+ */
+function addDriveDataStyles() {
+    const style = document.createElement('style');
+    style.textContent = `
+        .highlight-update {
+            animation: highlightEffect 2s ease-in-out;
+        }
+        @keyframes highlightEffect {
+            0% { background-color: transparent; }
+            50% { background-color: rgba(255, 255, 0, 0.2); }
+            100% { background-color: transparent; }
+        }
         .status-badge {
-            display: inline-block;
-            padding: 0.25em 0.6em;
-            font-size: 0.75em;
-            font-weight: 700;
-            border-radius: 0.25rem;
-            text-transform: uppercase;
-        }
-        
-        .status-active, .status-approved {
-            background-color: rgba(40, 167, 69, 0.2);
-            color: #155724;
-        }
-        
-        .status-inactive, .status-rejected {
-            background-color: rgba(220, 53, 69, 0.2);
-            color: #721c24;
-        }
-        
-        .status-pending {
-            background-color: rgba(255, 193, 7, 0.2);
-            color: #856404;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.875em;
         }
     `;
-    
-    document.head.appendChild(styleElement);
+    document.head.appendChild(style);
 }
-
-// Initialize all enhancements when the document is ready
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('Initializing drive data enhancements');
-    
-    // Add custom styles
-    addCustomStyles();
-    
-    // Setup event handlers
-    setupDriveEventHandlers();
-    
-    // Enhance table structure (do this after the table is loaded)
-    setTimeout(enhanceDriveTable, 500);
-    
-    console.log('Drive data enhancements initialized');
-});

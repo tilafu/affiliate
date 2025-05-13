@@ -342,17 +342,18 @@ const getUsers = async (req, res) => {
  * @route   POST /api/admin/users/:userId/reset-drive
  * @access  Private/Admin
  */
-const resetDrive = async (req, res) => {
-    const { userId } = req.params;
+const resetDrive = async (req, res) => {    const { userId } = req.params;
     const adminUserId = req.user.id; // ID of the admin performing the action
 
     logger.info(`Admin ${adminUserId} attempting to reset drive for user ${userId}`);
 
     try {
-        // Find ALL session IDs that need reset ('active', 'pending_reset' or 'frozen')
+        // Find ALL session IDs that need reset (any status except 'completed')
         const sessionsToResetResult = await pool.query(
-            `SELECT id FROM drive_sessions
-             WHERE user_id = $1 AND status IN ('active', 'pending_reset', 'frozen')`,
+            `SELECT id, status FROM drive_sessions
+             WHERE user_id = $1 
+             AND status != 'completed'
+             ORDER BY created_at DESC`,
             [userId]
         );
 
@@ -360,13 +361,16 @@ const resetDrive = async (req, res) => {
 
         if (sessionIdsToReset.length === 0) {
             logger.warn(`No drive session found needing reset for user ${userId}.`);
-            return res.status(404).json({ message: 'No drive session found needing reset for this user.' });
+            return res.status(404).json({ success: false, message: 'No drive session found needing reset for this user.' });
         }
 
         // Update the status of ALL found sessions to 'completed'
         const newStatus = 'completed';
         await pool.query(
-            `UPDATE drive_sessions SET status = $1, completed_at = NOW() WHERE id = ANY($2::int[])`, // Use ANY to update multiple IDs
+            `UPDATE drive_sessions SET 
+                status = $1, 
+                completed_at = NOW()
+             WHERE id = ANY($2::int[])`, // Use ANY to update multiple IDs
             [newStatus, sessionIdsToReset] // Pass the array of IDs
         );
 
@@ -713,12 +717,12 @@ const getDriveLogs = async (req, res) => {
                 d.id,
                 d.created_at,
                 d.status,
-                COALESCE(d.commission, 0) as commission_amount,
+                COALESCE(d.commission_earned, 0) as commission_amount,
                 COALESCE(p.name, 'N/A') as product_name,
                 d.user_id
             FROM drive_sessions d
-            LEFT JOIN drive_orders do ON do.session_id = d.id
-            LEFT JOIN products p ON do.product_id = p.id
+            LEFT JOIN drive_orders dor ON dor.session_id = d.id
+            LEFT JOIN products p ON dor.product_id = p.id
             WHERE d.user_id = $1
             ORDER BY d.created_at DESC
         `, [userId]);

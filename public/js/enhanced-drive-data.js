@@ -16,34 +16,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
 /**
  * Set up event handlers for drive-related actions
+ * NOTE: Event handlers are now centralized in admin-drives.js
  */
 function setupDriveEventHandlers() {
-    // Use event delegation for better performance
-    document.addEventListener('click', function(event) {
-        // View drive history button handler
-        if (event.target.closest('.view-drive-history-btn')) {
-            const button = event.target.closest('.view-drive-history-btn');
-            event.preventDefault();
-            
-            const userId = button.dataset.userId;
-            const username = button.dataset.username;
-            
-            console.log(`View drive history clicked for userId=${userId}, username=${username}`);
-            loadEnhancedDriveHistory(userId, username);
-        }
-        
-        // Reset drive button handler
-        if (event.target.closest('.reset-drive-btn')) {
-            const button = event.target.closest('.reset-drive-btn');
-            event.preventDefault();
-            
-            const userId = button.dataset.userId;
-            const username = button.dataset.username || 'this user';
-            
-            console.log(`Reset drive clicked for userId=${userId}`);
-            resetDriveEnhanced(userId, username);
-        }
-    });
+    // Event handlers moved to admin-drives.js for centralization
+    console.log('Drive event handlers are now managed in admin-drives.js');
 }
 
 /**
@@ -150,8 +127,7 @@ async function resetDriveEnhanced(userId, username) {
     showNotification('Processing reset request...', 'info');
     
     try {
-        // Call API to reset drive
-        const response = await fetchWithAuth(`/admin/drives/reset/${userId}`, {
+        // Call API to reset drive        const response = await fetchWithAuth(`/admin/users/${userId}/reset-drive`, {
             method: 'POST'
         });
         console.log('Reset drive API response:', response);

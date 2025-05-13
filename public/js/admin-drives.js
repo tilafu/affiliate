@@ -263,14 +263,27 @@ export function initializeDriveHandlers() {
         return;
     }
 
+    // Remove any existing handlers using the data attribute
+    const existingButtons = drivesTable.querySelectorAll('[data-has-click-handler]');
+    existingButtons.forEach(btn => {
+        btn.removeAttribute('data-has-click-handler');
+    });
+
     // Use event delegation for better performance
     drivesTable.addEventListener('click', async function(event) {
         const target = event.target;
+        
+        // Prevent duplicate event handling
+        if (target.getAttribute('data-processing')) {
+            return;
+        }
 
         try {
             // View drive history button handler
             if (target.matches('.view-drive-history-btn')) {
                 event.preventDefault();
+                target.setAttribute('data-processing', 'true');
+
                 const userId = target.dataset.userId;
                 const username = target.dataset.username;
 
@@ -278,7 +291,7 @@ export function initializeDriveHandlers() {
                     console.error('View history clicked but userId is missing');
                     showNotification('Error: Could not identify user', 'error');
                     return;
-                }                console.log('View drive history clicked for:', { userId, username });
+                }console.log('View drive history clicked for:', { userId, username });
                 const driveModal = showDriveHistoryModal(userId, username);
                 if (driveModal) {
                     await loadDriveHistory(userId, username);
@@ -300,14 +313,9 @@ export function initializeDriveHandlers() {
                 // Confirm before resetting
                 if (!confirm(`Are you sure you want to reset the drive for ${username || 'this user'}?`)) {
                     return;
-                }
-
-                console.log('Reset drive clicked for:', { userId, username });
-                const response = await fetchWithAuth(`/admin/users/${userId}/reset-drive`, {
+                }                console.log('Reset drive clicked for:', { userId, username });                const response = await fetchWithAuth(`/admin/users/${userId}/reset-drive`, {
                     method: 'POST'
-                });
-
-                if (response.success) {
+                });                if (response.success) {
                     showNotification(response.message || 'Drive reset successfully', 'success');
                     // Refresh the drives table
                     await loadDrives();
@@ -320,8 +328,16 @@ export function initializeDriveHandlers() {
         } catch (error) {
             console.error('Error in drive handler:', error);
             showNotification(`Operation failed: ${error.message || 'Unknown error'}`, 'error');
+        } finally {
+            // Remove processing flag to allow future events
+            if (target.matches('.view-drive-history-btn, .reset-drive-btn')) {
+                target.removeAttribute('data-processing');
+            }
         }
     });
+
+    // Mark table as having handlers installed
+    drivesTable.setAttribute('data-handlers-initialized', 'true');
 }
 
 // Initialize the drive polling

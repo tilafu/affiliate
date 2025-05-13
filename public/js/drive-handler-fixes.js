@@ -102,44 +102,19 @@ function fixDriveHistoryFunction() {
 
 /**
  * Fix for reset drive functionality
+ * NOTE: Event handlers are now centralized in admin-drives.js
  */
 function fixResetDriveHandler() {
-    // Create improved click handler for reset drive button
-    document.addEventListener('click', function(e) {
-        if (e.target.matches('.reset-drive-btn')) {
-            const userId = e.target.dataset.userId;
-            console.log(`Reset drive button clicked for userId: ${userId}`);
-            
-            e.preventDefault();
-            e.stopPropagation();
-            
-            resetDrive(userId);
-        }
-        
-        if (e.target.matches('.view-drive-history-btn')) {
-            const userId = e.target.dataset.userId;
-            const username = e.target.dataset.username;
-            
-            e.preventDefault();
-            e.stopPropagation();
-            
-            if (typeof loadDriveHistory === 'function') {
-                loadDriveHistory(userId, username);
-            } else {
-                console.error('loadDriveHistory function not found');
-                showNotification('Error: Cannot load drive history - function not available', 'error');
-            }
-        }
-    }, true);
+    // Event handlers moved to admin-drives.js for centralization
+    console.log('Drive event handlers are now managed in admin-drives.js');
 }
 
 /**
  * Improved reset drive function
  */
 async function resetDrive(userId) {
-    try {
-        console.log(`Calling API endpoint: /admin/drives/reset/${userId}`);
-        const response = await fetchWithAuth(`/admin/drives/reset/${userId}`, { 
+    try {        console.log(`Calling API endpoint: /api/admin/users/${userId}/reset-drive`);
+        const response = await fetchWithAuth(`/api/admin/users/${userId}/reset-drive`, {
             method: 'POST'
         });
         console.log('Reset drive API response:', response);
