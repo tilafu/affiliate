@@ -127,7 +127,8 @@ async function resetDriveEnhanced(userId, username) {
     showNotification('Processing reset request...', 'info');
     
     try {
-        // Call API to reset drive        const response = await fetchWithAuth(`/admin/users/${userId}/reset-drive`, {
+        // Call API to reset drive
+        const response = await fetchWithAuth(`/admin/users/${userId}/reset-drive`, {
             method: 'POST'
         });
         console.log('Reset drive API response:', response);

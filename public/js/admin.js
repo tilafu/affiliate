@@ -64,39 +64,71 @@ async function fetchWithAuth(endpoint, options = {}) {
         }
     };
 
-    const response = await fetch(`/api${endpoint}`, { ...defaultOptions, ...options });
-    if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+    try {
+        console.debug(`Making API request to: /api${endpoint}`);
+        const response = await fetch(`/api${endpoint}`, { ...defaultOptions, ...options });
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error(`API error (${response.status}): ${errorText}`);
+            throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+        }
+        
+        const data = await response.json();
+        console.debug(`API response from ${endpoint}:`, data);
+        return data;
+    } catch (error) {
+        console.error(`Error in fetchWithAuth for ${endpoint}:`, error);
+        // Re-throw the error to be handled by the calling function
+        throw error;
     }
-    return await response.json();
 }
 
-function showNotification(message, type = 'success') { // type can be 'success', 'error', 'notice', 'confirm' for dialog
-    // Use $(document).dialog for notifications
-    let dialogType = 'notice'; // Default dialog type
-    if (type === 'success') {
-        dialogType = 'success';
-    } else if (type === 'error') {
-        dialogType = 'error';
+function showNotification(message, type = 'success') {
+    const modalElement = document.getElementById('notificationModal');
+    if (!modalElement) {
+        console.error('Notification modal element not found. Falling back to alert.');
+        alert((type === 'error' ? 'Error: ' : '') + message);
+        return;
     }
-    // This uses a jQuery dialog plugin, ensure it's loaded and configured.
-    // Example: $(document).dialog({ type: dialogType, infoText: message, autoClose: 2500 });
-    // For now, we'll assume the dialog plugin is available and works with these options.
-    if (typeof $ !== 'undefined' && $.dialog) {
-        $(document).dialog({
-            type: dialogType,
-            infoText: message,
-            autoClose: 2500
-        });
-    } else {
-        console.warn('jQuery dialog plugin not available. Using console for notification:', type, message);
-        // Fallback to a simpler browser alert or console log if jQuery dialog is not present
-        if (type === 'error') {
-            alert(`Error: ${message}`);
-        } else {
-            alert(message);
-        }
+
+    const modalTitle = document.getElementById('notificationModalLabel');
+    const modalBody = document.getElementById('notificationModalBody');
+    const modalHeader = document.getElementById('notificationModalHeader');
+
+    if (!modalTitle || !modalBody || !modalHeader) {
+        console.error('Notification modal sub-elements not found. Falling back to alert.');
+        alert((type === 'error' ? 'Error: ' : '') + message);
+        return;
     }
+
+    modalBody.textContent = message;
+
+    // Clear previous contextual classes
+    modalHeader.classList.remove('bg-success', 'bg-danger', 'bg-warning', 'bg-info', 'text-white');
+
+    switch (type) {
+        case 'success':
+            modalTitle.textContent = 'Success';
+            modalHeader.classList.add('bg-success', 'text-white');
+            break;
+        case 'error':
+            modalTitle.textContent = 'Error';
+            modalHeader.classList.add('bg-danger', 'text-white');
+            break;
+        case 'warning':
+            modalTitle.textContent = 'Warning';
+            modalHeader.classList.add('bg-warning', 'text-white');
+            break;
+        case 'info':
+        default:
+            modalTitle.textContent = 'Information';
+            modalHeader.classList.add('bg-info', 'text-white');
+            break;
+    }
+
+    const notificationModal = new bootstrap.Modal(modalElement);
+    notificationModal.show();
 }
 
 function initializeSidebar() {
@@ -160,6 +192,9 @@ function loadSection(sectionName) {
             break;
         case 'drives':
             DriveModule.loadDrives(); // Using the drive module instead
+            break;
+        case 'drive-configurations': // New section
+            loadDriveConfigurations();
             break;
         case 'support':
             loadSupportMessages();
@@ -577,6 +612,24 @@ async function markAsResolved(messageId) {
 
 function initializeHandlers() {
     document.addEventListener('click', async (e) => {
+
+        // Drive Configuration Buttons
+        if (e.target.matches('#create-drive-config-btn')) { // Corrected ID
+            openDriveConfigModal();
+        } else if (e.target.matches('.edit-drive-config-btn')) {
+            const configId = e.target.dataset.configId;
+            const config = allDriveConfigurations.find(c => c.id == configId);
+            if (config) {
+                openDriveConfigModal(config);
+            } else {
+                showNotification('Could not find configuration data to edit.', 'error');
+            }
+        } else if (e.target.matches('.delete-drive-config-btn')) {
+            const configId = e.target.dataset.configId;
+            deleteDriveConfigurationHandler(configId);
+        }
+
+        // Existing handlers below:
         // Deposit handlers
         if (e.target.matches('.approve-deposit-btn')) {
             const id = e.target.dataset.id;
@@ -627,7 +680,8 @@ function initializeHandlers() {
             } catch (error) {
                 console.error('Error rejecting withdrawal:', error);
                 showNotification('Failed to reject withdrawal', 'error');
-            }        }
+            }
+        }
         // Drive handlers - now using the Drive module
         else if (e.target.matches('.reset-drive-btn') || e.target.matches('.view-drive-history-btn')) {
             // Pass the event to the Drive module's handlers
@@ -652,8 +706,6 @@ function initializeHandlers() {
                     document.getElementById('edit-product-name').value = product.name;
                     document.getElementById('edit-product-price').value = product.price;
                     document.getElementById('edit-commission-rate').value = product.commission_rate;
-                    // document.getElementById('edit-min-balance').value = product.min_balance_required || 0;
-                    // document.getElementById('edit-image-url').value = product.image_url || '';
 
                     const editModalElement = document.getElementById('edit-product-modal');
                     if (editModalElement) {
@@ -701,7 +753,7 @@ function initializeHandlers() {
             document.getElementById('user-tier-select').value = currentTier;
             userDetails.style.display = 'block';
         }
-    });
+    }); // End of main click listener
 
     document.getElementById('send-reply-button')?.addEventListener('click', async () => {
         const messageId = document.getElementById('send-reply-button').dataset.messageId;
@@ -730,25 +782,16 @@ function initializeHandlers() {
         }
     });
 
-    // Product handlers
-
-    // ADD Product Form Submission (Corrected)
     const addProductForm = document.getElementById('add-product-form');
     if (addProductForm) {
         addProductForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            // Construct data only from relevant fields expected by the updated backend
             const productData = {
                 name: document.getElementById('product-name').value,
                 price: parseFloat(document.getElementById('product-price').value),
                 commission_rate: parseFloat(document.getElementById('product-commission').value),
-                // Add min_balance_required if it's in the add form
-                // min_balance_required: parseFloat(document.getElementById('product-min-balance').value) || 0, 
-                // Add image_url if it's in the add form
-                // image_url: document.getElementById('product-image-url').value || null 
             };
 
-            // Validate data before sending (basic example)
             if (!productData.name || isNaN(productData.price) || isNaN(productData.commission_rate)) {
                  showNotification('Please fill in Name, Price, and Commission Rate correctly.', 'error');
                  return;
@@ -762,8 +805,8 @@ function initializeHandlers() {
 
                 if (response.success) {
                     showNotification('Product added successfully', 'success');
-                    e.target.reset(); // Reset the add form
-                    loadProducts(); // Reload the product list
+                    e.target.reset(); 
+                    loadProducts(); 
                 } else {
                      showNotification(response.message || 'Failed to add product', 'error');
                 }
@@ -776,51 +819,12 @@ function initializeHandlers() {
          console.warn("Add product form ('add-product-form') not found.");
     }
 
-
-    // EDIT Product Button Click
-     document.addEventListener('click', async (e) => {
-        if (e.target.matches('.edit-product-btn')) {
-            const productId = e.target.dataset.id;
-            try {
-                // Fetch specific product details
-                 const response = await fetchWithAuth(`/admin/products/${productId}`); // Assuming endpoint exists
-                 if (response.success && response.product) {
-                     const product = response.product;
-                     // Populate the edit form modal
-                     document.getElementById('edit-product-id').value = product.id;
-                     document.getElementById('edit-product-name').value = product.name;
-                     document.getElementById('edit-product-price').value = product.price;
-                     document.getElementById('edit-commission-rate').value = product.commission_rate;
-                     // Populate other relevant fields if they exist in the modal form
-                     // document.getElementById('edit-min-balance').value = product.min_balance_required || 0;
-                     // document.getElementById('edit-image-url').value = product.image_url || '';
-
-                     // Show the modal
-                     const editModalElement = document.getElementById('edit-product-modal');
-                     if (editModalElement) {
-                         const editModal = new bootstrap.Modal(editModalElement);
-                         editModal.show();
-                     } else {
-                         console.error("Edit product modal ('edit-product-modal') not found.");
-                         showNotification('UI Error: Edit modal not found.', 'error');
-                     }
-                 } else {
-                     showNotification(response.message || 'Failed to load product details for editing.', 'error');
-                 }
-            } catch (error) {
-                 console.error('Error fetching product for edit:', error);
-                 showNotification('Error fetching product details: ' + error.message, 'error');
-            }
-        }
-    });
-
-    // EDIT Product Form Submission
     const editProductForm = document.getElementById('edit-product-form');
      if (editProductForm) {
         editProductForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const formData = new FormData(e.target);
-            const productId = formData.get('product_id'); // Get ID from hidden input
+            const productId = formData.get('product_id'); 
 
             if (!productId) {
                  showNotification('Error: Product ID missing from edit form.', 'error');
@@ -831,12 +835,8 @@ function initializeHandlers() {
                 name: formData.get('name'),
                 price: parseFloat(formData.get('price')),
                 commission_rate: parseFloat(formData.get('commission_rate')),
-                 // Add other fields if they are in the edit form
-                 // min_balance_required: parseFloat(formData.get('min_balance_required')) || 0,
-                 // image_url: formData.get('image_url') || null
             };
 
-             // Validate data before sending (basic example)
             if (!productData.name || isNaN(productData.price) || isNaN(productData.commission_rate)) {
                  showNotification('Please fill in Name, Price, and Commission Rate correctly.', 'error');
                  return;
@@ -850,7 +850,6 @@ function initializeHandlers() {
 
                 if (response.success) {
                     showNotification('Product updated successfully', 'success');
-                    // Hide the modal
                     const editModalElement = document.getElementById('edit-product-modal');
                      if (editModalElement) {
                          const editModal = bootstrap.Modal.getInstance(editModalElement);
@@ -858,7 +857,7 @@ function initializeHandlers() {
                             editModal.hide();
                          }
                      }
-                    loadProducts(); // Reload the product list
+                    loadProducts();
                 } else {
                      showNotification(response.message || 'Failed to update product', 'error');
                 }
@@ -870,45 +869,14 @@ function initializeHandlers() {
     } else {
          console.warn("Edit product form ('edit-product-form') not found.");
     }
-
-
-    // Delete product handler (Corrected structure)
-    document.addEventListener('click', async (e) => {
-        if (e.target.matches('.delete-product-btn')) {
-            if (confirm('Are you sure you want to delete this product?')) {
-                const id = e.target.dataset.id;
-                try {
-                    // Correct fetch call for DELETE
-                    const response = await fetchWithAuth(`/admin/products/${id}`, { method: 'DELETE' });
-                    if (response.success) {
-                        showNotification('Product deleted successfully', 'success');
-                        loadProducts(); // Reload list after delete
-                    } else {
-                         showNotification(response.message || 'Failed to delete product', 'error');
-                    }
-                } catch (error) {
-                    console.error('Error deleting product:', error);
-                    showNotification('Failed to delete product: ' + error.message, 'error');
-                }
-            }
-        }
-    });
-    // Removed the duplicated event listener for delete
-
-    // User management handlers
-    document.addEventListener('click', async (e) => {
-        if (e.target.matches('.manage-user-btn')) {
-            const userId = e.target.dataset.userId;
-            const username = e.target.dataset.username;
-            const currentTier = e.target.dataset.tier;
-            
-            const userDetails = document.getElementById('user-details');
-            document.getElementById('manage-username').textContent = username;
-            document.getElementById('manage-user-id').textContent = userId;
-            document.getElementById('user-tier-select').value = currentTier;
-            userDetails.style.display = 'block';
-        }
-    });
+    
+    // Drive Configuration Form Submission
+    const driveConfigForm = document.getElementById('driveConfigForm');
+    if (driveConfigForm) {
+        // The event listener is already here, we need to ensure handleDriveConfigFormSubmit is defined and the button triggers it.
+        // We will trigger the form submission from the button click handler.
+        // driveConfigForm.addEventListener('submit', handleDriveConfigFormSubmit);
+    }
 
     document.getElementById('update-tier-button')?.addEventListener('click', async () => {
         const userId = document.getElementById('manage-user-id').textContent;
@@ -928,7 +896,7 @@ function initializeHandlers() {
             console.error('Error updating user tier:', error);
             showNotification('Failed to update user tier', 'error');
         }
-    });    // Visibility change handler for drives
+    });    
     document.addEventListener('visibilitychange', () => {
         const drivesSection = document.getElementById('drives-section');
         if (document.visibilityState === 'visible' && drivesSection?.style.display === 'block') {
@@ -936,10 +904,31 @@ function initializeHandlers() {
         }
     });
     
-    // Cleanup on page unload
     window.addEventListener('beforeunload', () => {
         clearInterval(driveUpdateInterval);
     });
+
+    // Add event listener for the save drive configuration button explicitly
+    const saveDriveConfigButton = document.getElementById('save-drive-config-button');
+    if (saveDriveConfigButton) {
+        saveDriveConfigButton.addEventListener('click', () => {
+            // Programmatically submit the form
+            // This will trigger the 'submit' event listener on the form if it exists and is correctly set up.
+            // Or, we can directly call a refined version of handleDriveConfigFormSubmit.
+            // For now, let's assume handleDriveConfigFormSubmit will be called by form.submit()
+            // or we can call it directly if it's designed to be called without an event.
+            // Let's make it so handleDriveConfigFormSubmit is robust.
+            if (document.getElementById('driveConfigForm')) {
+                 // Create a new submit event
+                const submitEvent = new Event('submit', { bubbles: true, cancelable: true });
+                // Dispatch the event on the form
+                if (!document.getElementById('driveConfigForm').dispatchEvent(submitEvent)) {
+                    // Event was cancelled
+                    console.debug('Drive config form submission was cancelled by preventDefault.');
+                }
+            }
+        });
+    }
 }
 
 // Add this function for polling drive updates
@@ -955,6 +944,258 @@ function setupDrivePolling() {
             DriveModule.loadDrives();
         }
     }, 30000);
+}
+
+// Helper function to update the product counter in the drive configuration modal
+function updateProductCounter() {
+    const selectedCheckboxes = document.querySelectorAll('#product-checkboxes-container .product-checkbox:checked');
+    const countElement = document.getElementById('selected-products-count');
+    if (countElement) {
+        countElement.textContent = selectedCheckboxes.length;
+    }
+}
+
+// Helper function to populate a select element with products
+async function populateProductCheckboxes(containerId) {
+    const productContainer = document.getElementById(containerId);
+    if (!productContainer) {
+        console.error(`Product container '${containerId}' not found.`);
+        return;
+    }
+    productContainer.innerHTML = '<p>Loading products...</p>'; // Loading indicator
+
+    try {
+        const response = await fetchWithAuth('/admin/products'); // Assuming this endpoint returns all products
+        if (response.success && response.products) {
+            if (response.products.length === 0) {
+                productContainer.innerHTML = '<p>No products available to add.</p>';
+                document.getElementById('selected-products-count').textContent = '0';
+                return;
+            }
+            let checkboxesHTML = '';
+            response.products.forEach(product => {
+                checkboxesHTML += `
+                    <div class="form-check">
+                        <input class="form-check-input product-checkbox" type="checkbox" value="${product.id}" id="product-${product.id}-config">
+                        <label class="form-check-label" for="product-${product.id}-config">
+                            ${product.name} ($${product.price})
+                        </label>
+                    </div>
+                `;
+            });
+            productContainer.innerHTML = checkboxesHTML;
+            
+            // Add event listeners to update the counter when checkboxes are changed
+            const checkboxes = document.querySelectorAll('#product-checkboxes-container .product-checkbox');
+            checkboxes.forEach(checkbox => {
+                checkbox.addEventListener('change', updateProductCounter);
+            });
+            
+            // Initialize counter
+            updateProductCounter();
+        } else {
+            productContainer.innerHTML = '<p>Could not load products.</p>';
+            document.getElementById('selected-products-count').textContent = '0';
+            showNotification(response.message || 'Failed to load products for selection.', 'error');
+        }
+    } catch (error) {
+        console.error('Error fetching products for selection:', error);
+        productContainer.innerHTML = '<p>Error loading products.</p>';
+        document.getElementById('selected-products-count').textContent = '0';
+        showNotification('Error fetching products: ' + error.message, 'error');
+    }
+}
+
+// Drive Configurations Management
+let allDriveConfigurations = []; // To store fetched configurations for potential client-side filtering or access
+
+async function loadDriveConfigurations() {
+    console.debug("Attempting to load drive configurations..."); // Added debug
+    try {        const response = await fetchWithAuth('/admin/drive-configurations');
+        console.debug("Response from /admin/drive-configurations:", response); // Added debug
+        console.debug("Response type:", typeof response);
+        console.debug("Response keys:", response ? Object.keys(response) : 'null or undefined');
+        
+        if (response.success && response.configurations) {
+            allDriveConfigurations = response.configurations;
+            const listElement = document.getElementById('drive-configurations-list');
+            if (!listElement) {
+                console.error('Drive configurations list element not found.');
+                showNotification('UI Error: Drive configurations list element not found.', 'error'); // Notify user
+                return;
+            }
+            if (allDriveConfigurations.length === 0) {
+                listElement.innerHTML = '<tr><td colspan="6" class="text-center">No drive configurations found.</td></tr>';
+                return;
+            }
+            listElement.innerHTML = allDriveConfigurations.map(config => `
+                <tr data-config-id="${config.id}">
+                    <td>${config.id}</td>
+                    <td>${config.name}</td>
+                    <td>${config.description || 'N/A'}</td>
+                    <td><span class="badge bg-${config.is_active ? 'success' : 'secondary'}">${config.is_active ? 'Active' : 'Inactive'}</span></td>
+                    <td>${config.items ? config.items.length : 0}</td>
+                    <td>
+                        <button class="btn btn-sm btn-warning edit-drive-config-btn" data-config-id="${config.id}">Edit</button>
+                        <button class="btn btn-sm btn-danger delete-drive-config-btn" data-config-id="${config.id}">Delete</button>
+                    </td>
+                </tr>
+            `).join('');
+        } else {
+            console.error('Failed to load drive configurations:', response.message || 'Unknown error'); // Added debug
+            showNotification(response.message || 'Failed to load drive configurations.', 'error');
+        }
+    } catch (error) {
+        console.error('Error loading drive configurations:', error);
+        showNotification('Error loading drive configurations: ' + error.message, 'error');
+    }
+}
+
+async function handleDriveConfigFormSubmit(event) {
+    if(event) event.preventDefault(); // Prevent default form submission if called by event
+
+    const form = document.getElementById('driveConfigForm');
+    const configId = form.elements['drive-config-id'].value;
+    const name = form.elements['drive-config-name'].value;
+    const description = form.elements['drive-config-description'].value;
+    const isActive = form.elements['drive-config-active'].checked;
+
+    const selectedProductCheckboxes = document.querySelectorAll('#product-checkboxes-container .product-checkbox:checked');
+    const productIds = Array.from(selectedProductCheckboxes).map(cb => parseInt(cb.value, 10));
+
+    if (!name.trim()) {
+        showNotification('Configuration name is required.', 'error');
+        return;
+    }
+    if (productIds.length === 0) {
+        showNotification('At least one product must be selected for the configuration.', 'error');
+        return;
+    }
+
+    const payload = {
+        name,
+        description,
+        is_active: isActive,
+        product_ids: productIds
+    };
+
+    const method = configId ? 'PUT' : 'POST';
+    const endpoint = configId ? `/admin/drive-configurations/${configId}` : '/admin/drive-configurations';    try {
+        showNotification('Saving drive configuration...', 'info');
+        const response = await fetchWithAuth(endpoint, {
+            method: method,
+            body: JSON.stringify(payload)
+        });
+
+        if (response.success) {
+            showNotification(response.message || 'Drive configuration saved successfully!', 'success');
+            const modalElement = document.getElementById('driveConfigModal');
+            const modalInstance = bootstrap.Modal.getInstance(modalElement);
+            if (modalInstance) {
+                modalInstance.hide();
+            }
+            loadDriveConfigurations(); // Refresh the list
+        } else {
+            showNotification(response.message || 'Failed to save drive configuration.', 'error');
+        }
+
+        if (response.success) {
+            showNotification(response.message || 'Drive configuration saved successfully!', 'success');
+            const modalElement = document.getElementById('driveConfigModal');
+            const modalInstance = bootstrap.Modal.getInstance(modalElement);
+            if (modalInstance) {
+                modalInstance.hide();
+            }
+            loadDriveConfigurations(); // Refresh the list
+        } else {
+            showNotification(response.message || 'Failed to save drive configuration.', 'error');
+        }
+    } catch (error) {
+        console.error('Error saving drive configuration:', error);
+        showNotification('Error saving drive configuration: ' + error.message, 'error');
+    }
+}
+
+// Ensure the submit event listener for the form is correctly placed and calls the new function
+document.addEventListener('DOMContentLoaded', () => {
+    // ... other DOMContentLoaded logic ...
+
+    const driveConfigFormElement = document.getElementById('driveConfigForm');
+    if (driveConfigFormElement) {
+        driveConfigFormElement.addEventListener('submit', handleDriveConfigFormSubmit);
+    }
+});
+
+function openDriveConfigModal(config = null) {
+    const modalElement = document.getElementById('driveConfigModal');
+    const modalTitle = modalElement.querySelector('.modal-title');
+    const form = document.getElementById('driveConfigForm');
+    form.reset(); // Reset form fields
+
+    document.getElementById('drive-config-id').value = '';
+    const productManagementArea = document.getElementById('drive-config-products-management-area');
+    const productsNote = document.getElementById('drive-config-products-note');
+
+    // Clear existing product checkboxes to avoid duplication if modal is reopened
+    const productCheckboxesContainer = document.getElementById('product-checkboxes-container');
+    if (productCheckboxesContainer) {
+        productCheckboxesContainer.innerHTML = '<p><em>Loading products...</em></p>'; // Reset before populating
+    }
+
+
+    if (config) {
+        // Edit mode
+        modalTitle.textContent = 'Edit Drive Configuration';
+        document.getElementById('drive-config-id').value = config.id;
+        document.getElementById('drive-config-name').value = config.name;
+        document.getElementById('drive-config-description').value = config.description || '';
+        document.getElementById('drive-config-active').checked = config.is_active;        if (productManagementArea) productManagementArea.style.display = 'block';
+        if (productsNote) productsNote.style.display = 'none'; // Hide note when editing
+
+        populateProductCheckboxes('product-checkboxes-container').then(() => { // Corrected ID
+            if (config.items && Array.isArray(config.items)) {
+                config.items.forEach(item => {
+                    const productId = typeof item === 'object' ? item.product_id : item; // Adapt if item structure varies
+                    const checkbox = document.getElementById(`product-${productId}-config`);
+                    if (checkbox) {
+                        checkbox.checked = true;
+                    }
+                });
+                // Update the counter after setting checkboxes
+                updateProductCounter();
+            }
+        });
+
+    } else {
+        // Create mode
+        modalTitle.textContent = 'Create New Drive Configuration';
+        if (productManagementArea) productManagementArea.style.display = 'block'; // Should be visible
+        if (productsNote) productsNote.style.display = 'block'; // Show note for new configs
+        populateProductCheckboxes('product-checkboxes-container'); // Corrected ID
+    }
+
+    const driveConfigModal = new bootstrap.Modal(modalElement);
+    driveConfigModal.show();
+}
+
+async function deleteDriveConfigurationHandler(configId) {
+    if (!confirm('Are you sure you want to delete this drive configuration? This action cannot be undone.')) {
+        return;
+    }
+    // Backend endpoint for DELETE /admin/drive-configurations/:configId needs to be implemented.
+    // It should also handle deletion of associated drive_configuration_items.
+    try {
+        const response = await fetchWithAuth(`/admin/drive-configurations/${configId}`, { method: 'DELETE' });
+        if (response.success) {
+            showNotification('Drive configuration deleted successfully.', 'success');
+            loadDriveConfigurations(); // Refresh the list
+        } else {
+            showNotification(response.message || 'Failed to delete drive configuration.', 'error');
+        }
+    } catch (error) {
+        console.error('Error deleting drive configuration:', error);
+        showNotification('Error deleting drive configuration: ' + error.message, 'error');
+    }
 }
 
 // Initialize drive module with dependencies

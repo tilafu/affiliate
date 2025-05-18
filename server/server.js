@@ -13,7 +13,35 @@ const { calculateCommission } = require('./utils/commission'); // Import commiss
 
 // Middleware
 app.use(cors());
-app.use(express.json());
+
+// Global error handler for JSON parsing issues
+app.use(express.json({
+    verify: (req, res, buf, encoding) => {
+        try {
+            JSON.parse(buf);
+        } catch (e) {
+            res.status(400).json({ 
+                success: false, 
+                message: 'Invalid JSON in request body', 
+                error: e.message 
+            });
+            throw new Error('Invalid JSON: ' + e.message);
+        }
+    }
+}));
+
+// Request logging middleware
+app.use((req, res, next) => {
+    logger.debug(`Incoming request: ${req.method} ${req.originalUrl}`, { headers: req.headers, body: req.body });
+    
+    // Log response
+    const originalSend = res.send;
+    res.send = function (body) {
+        logger.debug(`Outgoing response: ${res.statusCode}`, { body: body });
+        originalSend.apply(res, arguments);
+    };
+    next();
+});
 
 // Serve static files from the public directory
 app.use(express.static(path.join(__dirname, '../public')));
@@ -90,6 +118,24 @@ logger.info('--- Testing Training Cap Check & Transfer ---');
   }
 }
 // --- END COMMISSION SERVICE TESTING ---
+
+// Global error handler
+app.use((err, req, res, next) => {
+    logger.error('Unhandled error:', { 
+        message: err.message, 
+        stack: err.stack, 
+        url: req.originalUrl,
+        method: req.method,
+        ip: req.ip
+    });
+    
+    // Send a structured error response
+    res.status(500).json({
+        success: false,
+        message: 'Internal Server Error',
+        error: process.env.NODE_ENV === 'production' ? undefined : err.message
+    });
+});
 
 // Start server
 app.listen(PORT, () => {

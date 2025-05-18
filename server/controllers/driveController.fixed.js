@@ -57,16 +57,16 @@ const startDrive = async (req, res) => {
                  // Should not happen if existingSession found it
                 logger.error(`Active session ${activeSessionId} found but details could not be retrieved for user ID: ${userId}.`); // Added error log
                 return res.status(404).json({ message: 'Active session found but details could not be retrieved.' });
-            }            
-            const sessionDetails = sessionDetailsResult.rows[0];
+            }
             
+            const sessionDetails = sessionDetailsResult.rows[0];
             const firstOrderResult = await pool.query(
-                `SELECT drive_ord.id, drive_ord.product_id, drive_ord.order_in_drive, drive_ord.status,
+                `SELECT do.id, do.product_id, do.order_in_drive, do.status,
                         p.name AS product_name, p.price AS product_price, p.image_url AS product_image_url, p.description AS product_description
-                 FROM drive_orders drive_ord
-                 JOIN products p ON drive_ord.product_id = p.id
-                 WHERE drive_ord.session_id = $1 AND drive_ord.status IN ('current', 'pending')
-                 ORDER BY CASE drive_ord.status WHEN 'current' THEN 0 ELSE 1 END, drive_ord.order_in_drive ASC
+                 FROM drive_orders do
+                 JOIN products p ON do.product_id = p.id
+                 WHERE do.session_id = $1 AND do.status = 'pending'
+                 ORDER BY do.order_in_drive ASC
                  LIMIT 1`,
                 [activeSessionId]
             );
@@ -80,42 +80,25 @@ const startDrive = async (req, res) => {
                 tasks_completed: parseInt(sessionDetails.tasks_completed_count, 10),
                 total_session_commission: parseFloat(sessionDetails.commission_earned)
             });
-        }        // Find an active drive configuration (e.g., the latest one or based on some criteria)        // First, check if the user has a specific drive configuration assigned
-        logger.debug(`No active session found for user ID: ${userId}. Attempting to create a new one.`); // Added debug log
-        logger.debug(`Checking for user-assigned drive configuration for user ID: ${userId}`);
-        
-        const userConfigResult = await pool.query(
-            `SELECT udc.drive_configuration_id, dc.name, dc.tasks_required
-             FROM user_drive_configurations udc
-             JOIN drive_configurations dc ON udc.drive_configuration_id = dc.id
-             WHERE udc.user_id = $1 AND dc.is_active = TRUE`,
-            [userId]
-        );
-        
-        let activeConfiguration;
-        
-        if (userConfigResult.rows.length > 0) {
-            // User has a specific drive configuration assigned
-            activeConfiguration = {
-                id: userConfigResult.rows[0].drive_configuration_id,
-                name: userConfigResult.rows[0].name,
-                tasks_required: userConfigResult.rows[0].tasks_required
-            };
-            logger.debug(`Using user-assigned drive configuration ID: ${activeConfiguration.id}, Name: ${activeConfiguration.name}, Tasks: ${activeConfiguration.tasks_required}`);
-        } else {
-            // No user-specific configuration, use default (first active one)
-            logger.debug(`No user-specific drive configuration found. Fetching default active configuration.`);
-            const activeConfigurationResult = await pool.query(
-                'SELECT id, name, tasks_required FROM drive_configurations WHERE is_active = TRUE ORDER BY id ASC LIMIT 1'
-            );
+        }
 
-            if (activeConfigurationResult.rows.length === 0) {
-                logger.warn('No active drive configurations found in the system.'); // Changed to warn
-                return res.status(404).json({ message: 'No active drive configurations found.' });
-            }
-            activeConfiguration = activeConfigurationResult.rows[0];
-            logger.debug(`Using default drive configuration ID: ${activeConfiguration.id}, Name: ${activeConfiguration.name}, Tasks: ${activeConfiguration.tasks_required}`); // Added debug log
-        }        // Get products for this configuration
+        // Find an active drive configuration (e.g., the latest one or based on some criteria)
+        // For simplicity, let's pick the one with the lowest ID that is active.
+        // This could be made more sophisticated (e.g., admin-designated default, or user choice)
+        logger.debug(`No active session found for user ID: ${userId}. Attempting to create a new one.`); // Added debug log
+        logger.debug(`Fetching active drive configuration.`); // Added debug log
+        const activeConfigurationResult = await pool.query(
+            'SELECT id, name FROM drive_configurations WHERE is_active = TRUE ORDER BY id ASC LIMIT 1'
+        );
+
+        if (activeConfigurationResult.rows.length === 0) {
+            logger.warn('No active drive configurations found in the system.'); // Changed to warn
+            return res.status(404).json({ message: 'No active drive configurations found.' });
+        }
+        const activeConfiguration = activeConfigurationResult.rows[0];
+        logger.debug(`Using drive configuration ID: ${activeConfiguration.id}, Name: ${activeConfiguration.name}`); // Added debug log
+
+        // Get products for this configuration
         logger.debug(`Fetching products for configuration ID: ${activeConfiguration.id}`); // Added debug log
         const configItemsResult = await pool.query(
             'SELECT product_id, order_in_drive FROM drive_configuration_items WHERE drive_configuration_id = $1 ORDER BY order_in_drive ASC',
@@ -126,40 +109,35 @@ const startDrive = async (req, res) => {
             logger.warn(`Drive configuration ID: ${activeConfiguration.id} has no products.`); // Changed to warn
             return res.status(400).json({ message: 'Selected drive configuration has no products.' });
         }
-        
-        // Use the tasks_required from the drive configuration instead of calculating it
-        const tasksRequired = activeConfiguration.tasks_required;
-        logger.debug(`Using configured tasks_required value: ${tasksRequired} for drive configuration ID: ${activeConfiguration.id}`);
+        const tasksRequired = configItemsResult.rows.length;
 
-        logger.debug(`Creating drive session for configuration ID: ${activeConfiguration.id}`); // Added debug log// Start a new drive session
+        // Start a new drive session
         const driveSessionResult = await pool.query(
             'INSERT INTO drive_sessions (user_id, drive_configuration_id, status, tasks_required, commission_earned, started_at) VALUES ($1, $2, \'active\', $3, 0, NOW()) RETURNING id, started_at',
             [userId, activeConfiguration.id, tasksRequired]
         );
-        
         const driveSessionId = driveSessionResult.rows[0].id;
         logger.info(`New drive session ${driveSessionId} created for user ID: ${userId} with configuration ID: ${activeConfiguration.id}`); // Changed to info
-        
+
         // Create drive_orders for this session
         const productOrders = configItemsResult.rows;
         logger.debug(`Creating ${productOrders.length} drive orders for session ID: ${driveSessionId}`); // Added debug log
-          for (const item of productOrders) {
-            // Add tasks_required to the INSERT statement to satisfy the NOT NULL constraint
+        for (const item of productOrders) {
             await pool.query(
-                'INSERT INTO drive_orders (session_id, product_id, order_in_drive, status, tasks_required) VALUES ($1, $2, $3, \'pending\', $4)',
-                [driveSessionId, item.product_id, item.order_in_drive, tasksRequired] // Use the tasksRequired variable
+                'INSERT INTO drive_orders (session_id, product_id, order_in_drive, status) VALUES ($1, $2, $3, \'pending\')',
+                [driveSessionId, item.product_id, item.order_in_drive]
             );
         }
-        
+
         // Fetch the first order to return to the client
         logger.debug(`Fetching first order for session ID: ${driveSessionId}`); // Added debug log
         const firstOrderResult = await pool.query(
-            `SELECT drive_ord.id, drive_ord.product_id, drive_ord.order_in_drive, drive_ord.status,
+            `SELECT do.id, do.product_id, do.order_in_drive, do.status,
                     p.name AS product_name, p.price AS product_price, p.image_url AS product_image_url, p.description AS product_description
-             FROM drive_orders drive_ord
-             JOIN products p ON drive_ord.product_id = p.id
-             WHERE drive_ord.session_id = $1
-             ORDER BY drive_ord.order_in_drive ASC
+             FROM drive_orders do
+             JOIN products p ON do.product_id = p.id
+             WHERE do.session_id = $1
+             ORDER BY do.order_in_drive ASC
              LIMIT 1`,
             [driveSessionId]
         );
@@ -172,7 +150,8 @@ const startDrive = async (req, res) => {
             drive_configuration_id: activeConfiguration.id,
             first_order: firstOrder, // Send the first order
             tasks_in_configuration: tasksRequired, // Send total tasks count
-            tasks_completed: 0 // Initially 0 tasks completed
+            tasks_completed: 0, // Initially 0 tasks completed
+            total_session_commission: 0 // Initially 0 commission
         });
         logger.debug(`startDrive completed successfully for user ID: ${userId}, session ID: ${driveSessionId}`); // Added debug log
 
@@ -189,7 +168,7 @@ const getDriveStatus = async (req, res) => {
     // First check for ANY active, pending_reset, or frozen session
     logger.debug(`Fetching current session status for user ID: ${userId}`); // Added debug log
     const sessionResult = await pool.query(
-      `SELECT id, status, tasks_completed, tasks_required, frozen_amount_needed, drive_configuration_id
+      `SELECT id, status, tasks_completed, tasks_required, frozen_amount_needed
        FROM drive_sessions
        WHERE user_id = $1 AND status IN ('active', 'pending_reset', 'frozen')
        ORDER BY started_at DESC LIMIT 1`,
@@ -205,6 +184,49 @@ const getDriveStatus = async (req, res) => {
     const sessionId = session.id;
     logger.debug(`Session ID: ${sessionId} found with status: ${session.status} for user ID: ${userId}`); // Added debug log
     
+    // Calculate total commission earned in this drive
+    logger.debug(`Calculating total commission for session ID: ${sessionId}`); // Added debug log
+    const commissionResult = await pool.query(
+      `SELECT COALESCE(SUM(commission_amount), 0) as total_commission
+       FROM commission_logs
+       WHERE user_id = $1 
+       AND commission_type = 'data_drive'
+       AND reference_id IN (
+         SELECT DISTINCT reference_id FROM commission_logs 
+         WHERE source_action_id IN (
+           SELECT product_id FROM drive_orders WHERE session_id = $2
+         )
+       )`,
+      [userId, sessionId]
+    );
+    
+    const totalCommission = parseFloat(commissionResult.rows[0]?.total_commission || 0);
+    logger.debug(`Total commission for session ID: ${sessionId} is ${totalCommission}`); // Added debug log
+    
+    if (session.status === 'pending_reset') {
+      logger.info(`Session ID: ${sessionId} is pending_reset for user ID: ${userId}.`); // Changed to info
+      return res.json({ 
+        code: 0, 
+        status: 'complete',
+        tasks_completed: session.tasks_completed,
+        tasks_required: session.tasks_required,
+        total_commission: totalCommission.toFixed(2),
+        info: 'Drive completed. Pending admin reset.'
+      });
+    }
+      if (session.status === 'frozen') {
+        logger.info(`Session ID: ${sessionId} is frozen for user ID: ${userId}. Amount needed: ${session.frozen_amount_needed}`); // Changed to info
+        return res.json({ 
+        code: 0, 
+        status: 'frozen',
+        tasks_completed: session.tasks_completed,
+        tasks_required: session.tasks_required,
+        total_commission: totalCommission.toFixed(2),
+        frozen_amount_needed: session.frozen_amount_needed,
+        info: 'Drive frozen due to insufficient balance. Please deposit funds.'
+      });
+    }
+
     // Look for ANY incomplete order (either current or pending)
     const incompleteOrderResult = await pool.query(
       `SELECT drv_ord.id AS order_id, drv_ord.status AS order_status, 
@@ -237,13 +259,6 @@ const getDriveStatus = async (req, res) => {
       );
       
       const totalCommission = parseFloat(commissionResult.rows[0]?.total_commission || 0);
-      
-      // Update the drive_session table with the latest commission_earned
-      await pool.query(
-        `UPDATE drive_sessions SET commission_earned = $1 WHERE id = $2`,
-        [totalCommission, sessionId]
-      );
-
       // If order was pending, set it to current
       if (incompleteOrder.order_status === 'pending') {
         await pool.query(
@@ -256,8 +271,6 @@ const getDriveStatus = async (req, res) => {
       return res.json({
         code: 0,
         status: 'active',
-        drive_session_id: sessionId, // Added
-        drive_configuration_id: session.drive_configuration_id, // Added
         tasks_completed: session.tasks_completed,
         tasks_required: session.tasks_required,
         total_commission: totalCommission.toFixed(2),
@@ -320,15 +333,17 @@ const getOrder = async (req, res) => {
         if (sessionResult.rows[0].status !== 'active') {
             logger.warn(`Drive session ${session_id} is not active (status: ${sessionResult.rows[0].status}) for user ID: ${userId}`); // Changed to warn
             return res.status(403).json({ message: `Drive session is not active. Current status: ${sessionResult.rows[0].status}` });
-        }        // Fetch the next pending order for the given drive session
+        }
+
+        // Fetch the next pending order for the given drive session
         logger.debug(`Fetching next pending order for session ID: ${session_id}`); // Added debug log
         const nextOrderResult = await pool.query(
-            `SELECT drive_ord.id, drive_ord.product_id, drive_ord.order_in_drive, drive_ord.status,
+            `SELECT do.id, do.product_id, do.order_in_drive, do.status,
                     p.name AS product_name, p.price AS product_price, p.image_url AS product_image_url, p.description AS product_description
-             FROM drive_orders drive_ord
-             JOIN products p ON drive_ord.product_id = p.id
-             WHERE drive_ord.session_id = $1 AND drive_ord.status = 'pending'
-             ORDER BY drive_ord.order_in_drive ASC
+             FROM drive_orders do
+             JOIN products p ON do.product_id = p.id
+             WHERE do.session_id = $1 AND do.status = 'pending'
+             ORDER BY do.order_in_drive ASC
              LIMIT 1`,
             [session_id]
         );
@@ -358,66 +373,34 @@ const getOrder = async (req, res) => {
 const saveOrder = async (req, res) => {
     const userId = req.user.id;
     const { drive_session_id, drive_order_id, product_id, tasks_completed_count, tasks_in_configuration } = req.body;
-    logger.debug(`Entering saveOrder for user ID: ${userId}, session ID: ${drive_session_id}, order ID: ${drive_order_id}, product ID: ${product_id}`);
+    logger.debug(`Entering saveOrder for user ID: ${userId}, session ID: ${drive_session_id}, order ID: ${drive_order_id}, product ID: ${product_id}`); // Added debug log
 
     if (!drive_session_id || !drive_order_id || !product_id) {
-        logger.warn(`saveOrder called with missing parameters for user ID: ${userId}. Session: ${drive_session_id}, Order: ${drive_order_id}, Product: ${product_id}`);
+        logger.warn(`saveOrder called with missing parameters for user ID: ${userId}. Session: ${drive_session_id}, Order: ${drive_order_id}, Product: ${product_id}`); // Changed to warn
         return res.status(400).json({ message: "Missing required parameters (drive_session_id, drive_order_id, product_id)." });
     }
-
-    // Validate ID formats (assuming they should be integers)
-    const idRegex = /^\d+$/; // Corrected regex: was /^\\d+$/
-    let numDriveOrderId, numProductId, numSessionId;
-
-    try {
-        const trimSessionId = String(drive_session_id).trim();
-        if (!idRegex.test(trimSessionId)) {
-            logger.warn(`Invalid drive_session_id format: ${drive_session_id}. Expected an integer string.`);
-            return res.status(400).json({ message: `Invalid drive_session_id format. Must be an integer string. Received: '${drive_session_id}'` });
-        }
-        numSessionId = parseInt(trimSessionId, 10);
-
-        const trimDriveOrderId = String(drive_order_id).trim();
-        if (!idRegex.test(trimDriveOrderId)) {
-            logger.warn(`Invalid drive_order_id format: ${drive_order_id}. Expected an integer string.`);
-            return res.status(400).json({ message: `Invalid drive_order_id format. Must be an integer string. Received: '${drive_order_id}'` });
-        }
-        numDriveOrderId = parseInt(trimDriveOrderId, 10);
-
-        const trimProductId = String(product_id).trim();
-        if (!idRegex.test(trimProductId)) {
-            logger.warn(`Invalid product_id format: ${product_id}. Expected an integer string.`);
-            return res.status(400).json({ message: `Invalid product_id format. Must be an integer string. Received: '${product_id}'` });
-        }
-        numProductId = parseInt(trimProductId, 10);
-
-    } catch (parseError) {
-        logger.error(`Error parsing IDs in saveOrder: ${parseError.message}`, { drive_session_id, drive_order_id, product_id });
-        return res.status(400).json({ message: "Invalid ID format. IDs must be convertible to integers." });
-    }
-
 
     const client = await pool.connect();
     try {
         await client.query('BEGIN');
-        logger.debug(`Transaction started for saveOrder, session ID: ${numSessionId}, order ID: ${numDriveOrderId}`); // Added debug log
-        
+        logger.debug(`Transaction started for saveOrder, session ID: ${drive_session_id}, order ID: ${drive_order_id}`); // Added debug log
+
         // Verify the drive order and session
-        logger.debug(`Verifying drive order ${numDriveOrderId} for session ${numSessionId} and user ${userId}`); // Added debug log
+        logger.debug(`Verifying drive order ${drive_order_id} for session ${drive_session_id} and user ${userId}`); // Added debug log
         const orderResult = await client.query(
-            `SELECT drive_ord.id, drive_ord.status as order_status, ds.status as session_status, ds.user_id, ds.drive_configuration_id, ds.tasks_required, ds.tasks_completed, ds.commission_earned as session_commission_earned,
+            `SELECT do.id, do.status as order_status, ds.status as session_status, ds.user_id, ds.drive_configuration_id, ds.tasks_required, ds.tasks_completed, ds.commission_earned as session_commission_earned,
                     p.price as product_price, p.commission_rate as product_commission_rate, u.tier as user_tier
-             FROM drive_orders drive_ord
-             JOIN drive_sessions ds ON drive_ord.session_id = ds.id
-             JOIN products p ON drive_ord.product_id = p.id
+             FROM drive_orders do
+             JOIN drive_sessions ds ON do.session_id = ds.id
+             JOIN products p ON do.product_id = p.id
              JOIN users u ON ds.user_id = u.id
-             WHERE drive_ord.id = $1 AND drive_ord.session_id = $2 AND drive_ord.product_id = $3 AND ds.user_id = $4`,
-            [numDriveOrderId, numSessionId, numProductId, userId]
+             WHERE do.id = $1 AND do.session_id = $2 AND do.product_id = $3 AND ds.user_id = $4`,
+            [drive_order_id, drive_session_id, product_id, userId]
         );
 
         if (orderResult.rows.length === 0) {
             await client.query('ROLLBACK');
-            logger.warn(`Order ${numDriveOrderId} not found or mismatched for session ${numSessionId}, product ${numProductId}, user ${userId}.`); // Changed to warn
+            logger.warn(`Order ${drive_order_id} not found or mismatched for session ${drive_session_id}, product ${product_id}, user ${userId}.`); // Changed to warn
             return res.status(404).json({ message: "Drive order not found, or does not match session/product, or access denied." });
         }
 
@@ -425,22 +408,23 @@ const saveOrder = async (req, res) => {
 
         if (orderData.session_status !== 'active') {
             await client.query('ROLLBACK');
-            logger.warn(`Attempt to save order ${numDriveOrderId} for a non-active session ${numSessionId} (status: ${orderData.session_status}).`); // Changed to warn
+            logger.warn(`Attempt to save order ${drive_order_id} for a non-active session ${drive_session_id} (status: ${orderData.session_status}).`); // Changed to warn
             return res.status(403).json({ message: `Cannot save order, drive session is not active. Status: ${orderData.session_status}` });
         }
+
         if (orderData.order_status === 'completed') {
             // If already completed, just return success with current state. This can happen with retries or refreshes.
             // Fetch the next pending order to help client continue
-            logger.info(`Order ${numDriveOrderId} is already marked as completed for session ${numSessionId}.`); // Changed to info
+            logger.info(`Order ${drive_order_id} is already marked as completed for session ${drive_session_id}.`); // Changed to info
             const nextPendingOrderResult = await client.query(
-                `SELECT drive_ord.id, drive_ord.product_id, drive_ord.order_in_drive, drive_ord.status,
+                `SELECT do.id, do.product_id, do.order_in_drive, do.status,
                         p.name AS product_name, p.price AS product_price, p.image_url AS product_image_url, p.description AS product_description
-                 FROM drive_orders drive_ord
-                 JOIN products p ON drive_ord.product_id = p.id
-                 WHERE drive_ord.session_id = $1 AND drive_ord.status = 'pending'
-                 ORDER BY drive_ord.order_in_drive ASC
+                 FROM drive_orders do
+                 JOIN products p ON do.product_id = p.id
+                 WHERE do.session_id = $1 AND do.status = 'pending'
+                 ORDER BY do.order_in_drive ASC
                  LIMIT 1`,
-                [numSessionId]
+                [drive_session_id]
             );
             const nextPendingOrder = nextPendingOrderResult.rows.length > 0 ? nextPendingOrderResult.rows[0] : null;
             const updatedTasksCompleted = orderData.tasks_completed; // Use existing completed count
@@ -449,7 +433,7 @@ const saveOrder = async (req, res) => {
             return res.status(200).json({
                 message: "Order already completed.",
                 order_status: 'completed',
-                drive_session_id: numSessionId,
+                drive_session_id: drive_session_id,
                 next_order: nextPendingOrder,
                 tasks_completed: updatedTasksCompleted,
                 tasks_in_configuration: orderData.tasks_required,
@@ -458,15 +442,15 @@ const saveOrder = async (req, res) => {
         }
 
         // Mark the order as completed
-        logger.debug(`Marking order ${numDriveOrderId} as completed for session ${numSessionId}.`); // Added debug log
+        logger.debug(`Marking order ${drive_order_id} as completed for session ${drive_session_id}.`); // Added debug log
         await client.query(
             'UPDATE drive_orders SET status = \'completed\', completed_at = NOW() WHERE id = $1',
-            [numDriveOrderId]
+            [drive_order_id]
         );
 
         // Calculate commission for this specific order
         const orderCommission = parseFloat(orderData.product_price) * (parseFloat(orderData.product_commission_rate) / 100);
-        logger.debug(`Calculated commission for order ${numDriveOrderId}: ${orderCommission}`); // Added debug log
+        logger.debug(`Calculated commission for order ${drive_order_id}: ${orderCommission}`); // Added debug log
 
         // Update user's main balance
         logger.debug(`Updating main balance for user ${userId} by ${orderCommission}`); // Added debug log
@@ -477,17 +461,17 @@ const saveOrder = async (req, res) => {
 
         // Log the commission
         const commissionLogId = uuidv4();
-        logger.debug(`Logging commission (ID: ${commissionLogId}) for user ${userId}, order ${numDriveOrderId}, amount ${orderCommission}`); // Added debug log
+        logger.debug(`Logging commission (ID: ${commissionLogId}) for user ${userId}, order ${drive_order_id}, amount ${orderCommission}`); // Added debug log
         await client.query(
             'INSERT INTO commission_logs (id, user_id, amount, type, description, product_id, drive_order_id, drive_session_id, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())',
-            [commissionLogId, userId, orderCommission, 'drive_product_completion', `Commission for completing product ${numProductId} in drive ${numSessionId}`, numProductId, numDriveOrderId, numSessionId]
+            [commissionLogId, userId, orderCommission, 'drive_product_completion', `Commission for completing product ${product_id} in drive ${drive_session_id}`, product_id, drive_order_id, drive_session_id]
         );
 
         // Update the drive session: increment tasks_completed and add to commission_earned
-        logger.debug(`Updating drive session ${numSessionId}: incrementing tasks_completed and commission_earned by ${orderCommission}`); // Added debug log
+        logger.debug(`Updating drive session ${drive_session_id}: incrementing tasks_completed and commission_earned by ${orderCommission}`); // Added debug log
         const updatedSessionResult = await client.query(
             'UPDATE drive_sessions SET tasks_completed = tasks_completed + 1, commission_earned = commission_earned + $1 WHERE id = $2 RETURNING tasks_completed, commission_earned, tasks_required',
-            [orderCommission, numSessionId]
+            [orderCommission, drive_session_id]
         );
         const updatedSessionData = updatedSessionResult.rows[0];
         const currentTasksCompleted = updatedSessionData.tasks_completed;
@@ -495,47 +479,49 @@ const saveOrder = async (req, res) => {
 
         // Initialize nextPendingOrder variable for the response
         let nextPendingOrder = null;
-        logger.debug(`Initialized nextPendingOrder as null for drive session ${numSessionId}`);
+        logger.debug(`Initialized nextPendingOrder as null for drive session ${drive_session_id}`);
         let sessionStatus = 'active';
 
         if (currentTasksCompleted >= orderData.tasks_required) {
             // All tasks for this drive session are completed
-            logger.info(`All ${orderData.tasks_required} tasks completed for drive session ${numSessionId}. Marking session as completed.`); // Changed to info
+            logger.info(`All ${orderData.tasks_required} tasks completed for drive session ${drive_session_id}. Marking session as completed.`); // Changed to info
             await client.query(
                 'UPDATE drive_sessions SET status = \'completed\', completed_at = NOW() WHERE id = $1',
-                [numSessionId]
+                [drive_session_id]
             );
             sessionStatus = 'completed';
             // Optionally, log a final drive completion event or trigger other processes
-            logDriveOperation(userId, numSessionId, 'drive_completed', `Drive session completed with ${currentTasksCompleted} tasks and total commission ${currentSessionCommission}.`);        } else {
+            logDriveOperation(userId, drive_session_id, 'drive_completed', `Drive session completed with ${currentTasksCompleted} tasks and total commission ${currentSessionCommission}.`);
+
+        } else {
             // Fetch the next pending order
-            logger.debug(`Fetching next pending order for session ${numSessionId} as not all tasks are complete yet (${currentTasksCompleted}/${orderData.tasks_required})`); // Added debug log
+            logger.debug(`Fetching next pending order for session ${drive_session_id} as not all tasks are complete yet (${currentTasksCompleted}/${orderData.tasks_required})`); // Added debug log
             const nextPendingOrderResult = await client.query(
-                `SELECT drive_ord.id, drive_ord.product_id, drive_ord.order_in_drive, drive_ord.status,
+                `SELECT do.id, do.product_id, do.order_in_drive, do.status,
                         p.name AS product_name, p.price AS product_price, p.image_url AS product_image_url, p.description AS product_description
-                 FROM drive_orders drive_ord
-                 JOIN products p ON drive_ord.product_id = p.id
-                 WHERE drive_ord.session_id = $1 AND drive_ord.status = 'pending'
-                 ORDER BY drive_ord.order_in_drive ASC
+                 FROM drive_orders do
+                 JOIN products p ON do.product_id = p.id
+                 WHERE do.session_id = $1 AND do.status = 'pending'
+                 ORDER BY do.order_in_drive ASC
                  LIMIT 1`,
-                [numSessionId]
+                [drive_session_id]
             );
             if (nextPendingOrderResult.rows.length > 0) {
                 nextPendingOrder = nextPendingOrderResult.rows[0];
-                logger.debug(`Next order ID: ${nextPendingOrder.id} found for session ${numSessionId}`); // Added debug log
+                logger.debug(`Next order ID: ${nextPendingOrder.id} found for session ${drive_session_id}`); // Added debug log
             } else {
                 // This case should ideally not be hit if currentTasksCompleted < tasks_required
                 // but as a safeguard:
-                logger.warn(`Session ${numSessionId} not yet complete (${currentTasksCompleted}/${orderData.tasks_required}), but no next pending order found. This might indicate an issue.`); // Changed to warn
+                logger.warn(`Session ${drive_session_id} not yet complete (${currentTasksCompleted}/${orderData.tasks_required}), but no next pending order found. This might indicate an issue.`); // Changed to warn
             }
         }
         await client.query('COMMIT');
-        logger.debug(`Transaction committed for saveOrder, session ID: ${numSessionId}, order ID: ${numDriveOrderId}`); // Added debug log
+        logger.debug(`Transaction committed for saveOrder, session ID: ${drive_session_id}, order ID: ${drive_order_id}`); // Added debug log
         
         res.status(200).json({
             message: "Order saved successfully.",
             order_status: 'completed',
-            drive_session_id: numSessionId,
+            drive_session_id: drive_session_id,
             drive_session_status: sessionStatus, // 'active' or 'completed'
             next_order: nextPendingOrder,
             tasks_completed: currentTasksCompleted,
@@ -635,7 +621,6 @@ const getDriveOrders = async (req, res) => {
 
     res.json({ code: 0, orders });
   } catch (error) {
-    logger.error(`Error getting drive orders for user ${userId}: ${error.message}`, { stack: error.stack });
     res.status(500).json({ code: 1, info: 'Server error getting drive orders: ' + error.message });
   }
 };
@@ -689,20 +674,21 @@ const getActiveDriveSessionDetails = async (req, res) => {
              WHERE ds.user_id = $1 AND ds.status = 'active'`,
             [userId]
         );
-        
+
         if (activeSessionResult.rows.length === 0) {
             return res.json({ active_session: false, message: 'No active drive session found.' });
         }
-        
+
         const sessionDetails = activeSessionResult.rows[0];
+        
         // Fetch the current pending order for this active session
         const currentOrderResult = await pool.query(
-            `SELECT drive_ord.id, drive_ord.product_id, drive_ord.order_in_drive, drive_ord.status,
+            `SELECT do.id, do.product_id, do.order_in_drive, do.status,
                     p.name AS product_name, p.price AS product_price, p.image_url AS product_image_url, p.description AS product_description
-             FROM drive_orders drive_ord
-             JOIN products p ON drive_ord.product_id = p.id
-             WHERE drive_ord.session_id = $1 AND drive_ord.status = 'pending'
-             ORDER BY drive_ord.order_in_drive ASC
+             FROM drive_orders do
+             JOIN products p ON do.product_id = p.id
+             WHERE do.session_id = $1 AND do.status = 'pending'
+             ORDER BY do.order_in_drive ASC
              LIMIT 1`,
             [sessionDetails.drive_session_id]
         );
@@ -720,7 +706,7 @@ const getActiveDriveSessionDetails = async (req, res) => {
         });
 
     } catch (error) {
-        logger.error(`Error fetching active drive session details for user ${userId}: ${error.message}`, { stack: error.stack });
+        console.error('Error fetching active drive session details:', error);
         res.status(500).json({ message: 'Failed to fetch active drive session details', error: error.message });
     }
 };

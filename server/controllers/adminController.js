@@ -342,7 +342,8 @@ const getUsers = async (req, res) => {
  * @route   POST /api/admin/users/:userId/reset-drive
  * @access  Private/Admin
  */
-const resetDrive = async (req, res) => {    const { userId } = req.params;
+const resetDrive = async (req, res) => {
+    const { userId } = req.params;
     const adminUserId = req.user.id; // ID of the admin performing the action
 
     logger.info(`Admin ${adminUserId} attempting to reset drive for user ${userId}`);
@@ -380,6 +381,168 @@ const resetDrive = async (req, res) => {    const { userId } = req.params;
     } catch (error) {
         logger.error(`Error resetting drive for user ${userId}:`, { error: error.message, stack: error.stack });
         res.status(500).json({ message: 'Server error resetting drive session.' });
+    }
+};
+
+/**
+ * @desc    Get the current drive configuration assigned to a user
+ * @route   GET /api/admin/users/:userId/drive-configuration
+ * @access  Private/Admin
+ */
+const getUserDriveConfiguration = async (req, res) => {
+    const { userId } = req.params;
+    const adminId = req.user.id;
+
+    logger.info(`Admin ${adminId} getting drive configuration for user ${userId}`);
+
+    try {
+        // Verify user exists
+        const userResult = await pool.query('SELECT id, username FROM users WHERE id = $1', [userId]);
+        
+        if (userResult.rows.length === 0) {
+            logger.warn(`Admin ${adminId} tried to get drive configuration for non-existent user ${userId}`);
+            return res.status(404).json({ success: false, message: 'User not found' });
+        }
+
+        // Get current configuration if any
+        const configResult = await pool.query(
+            `SELECT udc.*, dc.name, dc.description 
+             FROM user_drive_configurations udc
+             JOIN drive_configurations dc ON udc.drive_configuration_id = dc.id
+             WHERE udc.user_id = $1`,
+            [userId]
+        );
+
+        // Get all available active configurations for dropdown
+        const allConfigsResult = await pool.query(
+            `SELECT id, name, description FROM drive_configurations WHERE is_active = TRUE ORDER BY name`
+        );
+
+        const currentConfig = configResult.rows.length > 0 ? {
+            id: configResult.rows[0].drive_configuration_id,
+            name: configResult.rows[0].name,
+            description: configResult.rows[0].description,
+            assigned_at: configResult.rows[0].created_at
+        } : null;
+
+        res.json({
+            success: true,
+            user: {
+                id: userResult.rows[0].id,
+                username: userResult.rows[0].username
+            },
+            current_configuration: currentConfig,
+            available_configurations: allConfigsResult.rows
+        });
+    } catch (error) {
+        logger.error(`Error getting drive configuration for user ${userId}:`, { error: error.message, stack: error.stack });
+        res.status(500).json({ success: false, message: 'Server error getting drive configuration' });
+    }
+};
+
+/**
+ * @desc    Assign a drive configuration to a user
+ * @route   POST /api/admin/users/:userId/drive-configuration
+ * @access  Private/Admin
+ */
+const assignDriveConfiguration = async (req, res) => {
+    const { userId } = req.params;
+    const { drive_configuration_id } = req.body;
+    const adminId = req.user.id;
+
+    logger.info(`Admin ${adminId} assigning drive configuration ${drive_configuration_id} to user ${userId}`);
+
+    if (!drive_configuration_id) {
+        return res.status(400).json({ success: false, message: 'Drive configuration ID is required' });
+    }
+
+    const client = await pool.connect();
+    
+    try {
+        await client.query('BEGIN');
+        
+        // Verify user exists
+        const userResult = await client.query('SELECT id FROM users WHERE id = $1', [userId]);
+        
+        if (userResult.rows.length === 0) {
+            await client.query('ROLLBACK');
+            logger.warn(`Admin ${adminId} tried to assign drive to non-existent user ${userId}`);
+            return res.status(404).json({ success: false, message: 'User not found' });
+        }
+
+        // Verify drive configuration exists and is active
+        const configResult = await client.query(
+            'SELECT id, name FROM drive_configurations WHERE id = $1 AND is_active = TRUE', 
+            [drive_configuration_id]
+        );
+        
+        if (configResult.rows.length === 0) {
+            await client.query('ROLLBACK');
+            logger.warn(`Admin ${adminId} tried to assign non-existent or inactive drive configuration ${drive_configuration_id}`);
+            return res.status(404).json({ success: false, message: 'Drive configuration not found or not active' });
+        }
+
+        // Delete any existing assignment for this user
+        await client.query('DELETE FROM user_drive_configurations WHERE user_id = $1', [userId]);
+
+        // Insert the new assignment
+        await client.query(
+            'INSERT INTO user_drive_configurations (user_id, drive_configuration_id) VALUES ($1, $2)', 
+            [userId, drive_configuration_id]
+        );
+
+        await client.query('COMMIT');
+        
+        logger.info(`Admin ${adminId} successfully assigned drive configuration ${drive_configuration_id} to user ${userId}`);
+        res.json({ 
+            success: true, 
+            message: `Successfully assigned ${configResult.rows[0].name} configuration to user ${userId}` 
+        });
+    } catch (error) {
+        await client.query('ROLLBACK');
+        logger.error(`Error assigning drive configuration to user ${userId}:`, { error: error.message, stack: error.stack });
+        res.status(500).json({ success: false, message: 'Server error assigning drive configuration' });
+    } finally {
+        client.release();
+    }
+};
+
+/**
+ * @desc    Remove a drive configuration from a user
+ * @route   DELETE /api/admin/users/:userId/drive-configuration
+ * @access  Private/Admin
+ */
+const removeDriveConfiguration = async (req, res) => {
+    const { userId } = req.params;
+    const adminId = req.user.id;
+
+    logger.info(`Admin ${adminId} removing drive configuration from user ${userId}`);
+
+    try {
+        // Verify user exists
+        const userResult = await pool.query('SELECT id FROM users WHERE id = $1', [userId]);
+        
+        if (userResult.rows.length === 0) {
+            logger.warn(`Admin ${adminId} tried to remove drive from non-existent user ${userId}`);
+            return res.status(404).json({ success: false, message: 'User not found' });
+        }
+
+        // Delete any existing assignment for this user
+        const result = await pool.query('DELETE FROM user_drive_configurations WHERE user_id = $1 RETURNING drive_configuration_id', [userId]);
+
+        if (result.rows.length === 0) {
+            logger.warn(`Admin ${adminId} tried to remove non-existent drive configuration for user ${userId}`);
+            return res.status(404).json({ success: false, message: 'User does not have an assigned drive configuration' });
+        }
+
+        logger.info(`Admin ${adminId} successfully removed drive configuration from user ${userId}`);
+        res.json({ 
+            success: true, 
+            message: `Successfully removed drive configuration assignment from user ${userId}` 
+        });
+    } catch (error) {
+        logger.error(`Error removing drive configuration from user ${userId}:`, { error: error.message, stack: error.stack });
+        res.status(500).json({ success: false, message: 'Server error removing drive configuration' });
     }
 };
 
@@ -687,24 +850,39 @@ const rejectWithdrawal = async (req, res) => {
 // Drive Management
 const getDrives = async (req, res) => {
     try {
+        // Updated to reflect new schema: drive_sessions and drive_configurations
         const result = await pool.query(`
             SELECT 
                 u.id as user_id,
                 u.username,
-                COUNT(d.id) as total_drives,
-                COALESCE(SUM(d.commission), 0) as total_commission,
-                MAX(d.created_at) as last_drive,
-                CASE WHEN COUNT(CASE WHEN d.status = 'ACTIVE' THEN 1 END) > 0 
-                     THEN 'ACTIVE' ELSE 'INACTIVE' END as status
+                COUNT(ds.id) FILTER (WHERE ds.drive_configuration_id IS NOT NULL AND ds.status = 'completed') as total_completed_drives,
+                COALESCE(SUM(ds.commission_earned) FILTER (WHERE ds.drive_configuration_id IS NOT NULL AND ds.status = 'completed'), 0) as total_commission_earned,
+                MAX(ds.completed_at) FILTER (WHERE ds.drive_configuration_id IS NOT NULL AND ds.status = 'completed') as last_drive_date,
+                CASE 
+                    WHEN COUNT(ds_active.id) > 0 THEN 'ACTIVE' 
+                    ELSE 'INACTIVE' 
+                END as user_drive_status
             FROM users u
-            LEFT JOIN drives d ON u.id = d.user_id
+            LEFT JOIN drive_sessions ds ON u.id = ds.user_id AND ds.drive_configuration_id IS NOT NULL
+            LEFT JOIN drive_sessions ds_active ON u.id = ds_active.user_id AND ds_active.status = 'ongoing' AND ds_active.drive_configuration_id IS NOT NULL 
             GROUP BY u.id, u.username
-            ORDER BY total_drives DESC
+            ORDER BY total_completed_drives DESC, total_commission_earned DESC
         `);
         
-        res.json({ success: true, drives: result.rows });
+        // Frontend admin-drives.js expects: user_id, username, total_drives (renamed to total_completed_drives), 
+        // total_commission (renamed to total_commission_earned), last_drive (renamed to last_drive_date), status (renamed to user_drive_status)
+        const drivesData = result.rows.map(row => ({
+            user_id: row.user_id,
+            username: row.username,
+            total_drives: parseInt(row.total_completed_drives) || 0,
+            total_commission: parseFloat(row.total_commission_earned) || 0,
+            last_drive: row.last_drive_date,
+            status: row.user_drive_status
+        }));
+
+        res.json({ success: true, drives: drivesData });
     } catch (error) {
-        console.error('Error fetching drives:', error);
+        logger.error('Error fetching drives data for admin:', { error: error.message, stack: error.stack });
         res.status(500).json({ success: false, message: 'Error fetching drives data' });
     }
 };
@@ -712,27 +890,29 @@ const getDrives = async (req, res) => {
 // Get drive history for a specific user
 const getDriveLogs = async (req, res) => {
     const { userId } = req.params;
-    try {        const result = await pool.query(`
-            SELECT 
-                d.id,
-                d.created_at,
-                d.status,
-                COALESCE(d.commission_earned, 0) as commission_amount,
-                COALESCE(p.name, 'N/A') as product_name,
-                d.user_id
-            FROM drive_sessions d
-            LEFT JOIN drive_orders dor ON dor.session_id = d.id
-            LEFT JOIN products p ON dor.product_id = p.id
-            WHERE d.user_id = $1
-            ORDER BY d.created_at DESC
-        `, [userId]);
+    try {
+        // Updated to join with drive_configurations and provide data for "View History"
+        // Frontend admin-drives.js expects: id (session_id), name (config_name), date (completed_at), status, earnings (commission_earned)
+        const result = await pool.query(
+            `SELECT 
+                ds.id AS id, 
+                COALESCE(dc.name, 'Drive Session ' || ds.id) AS name, 
+                ds.completed_at AS date, 
+                ds.status, 
+                COALESCE(ds.commission_earned, 0) AS earnings
+            FROM drive_sessions ds
+            LEFT JOIN drive_configurations dc ON ds.drive_configuration_id = dc.id
+            WHERE ds.user_id = $1
+            ORDER BY ds.created_at DESC`,
+            [userId]
+        );
 
         res.json({ 
             success: true, 
             history: result.rows 
         });
     } catch (error) {
-        console.error('Error fetching drive logs:', error);
+        logger.error(`Error fetching drive logs for user ${userId}:`, { error: error.message, stack: error.stack });
         res.status(500).json({ 
             success: false, 
             message: 'Error fetching drive history' 
@@ -783,6 +963,277 @@ const endDrive = async (req, res) => {
     res.status(501).json({ success: false, message: `Drive ending for ${driveId} not yet implemented.` });
 };
 
+// ++ Drive Configuration Management ++
+
+/**
+ * @desc    Create a new Drive Configuration (template)
+ * @route   POST /api/admin/drive-configurations
+ * @access  Private/Admin
+ */
+const createDriveConfiguration = async (req, res) => {
+    // Frontend sends product_ids as a simple array of integers.
+    // Backend needs to map this to { product_id, order_in_drive }.
+    const { name, description, product_ids, is_active = true } = req.body; 
+    const adminUserId = req.user.id;
+
+    if (!name || !product_ids || !Array.isArray(product_ids) || product_ids.length === 0) {
+        return res.status(400).json({ message: 'Name and a non-empty array of product_ids are required.' });
+    }
+
+    // Map product_ids to the format expected by the database insert logic
+    const products = product_ids.map((id, index) => ({
+        product_id: parseInt(id), // Ensure product_id is an integer
+        order_in_drive: index // order_in_drive is 0-based index
+    }));
+
+    for (const product of products) {
+        if (isNaN(product.product_id) || product.order_in_drive === undefined) { // Check for NaN after parseInt
+            return res.status(400).json({ message: 'Each product must have a valid product_id and order_in_drive will be assigned by order.' });
+        }
+    }
+
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+
+        const driveConfigResult = await client.query(
+            'INSERT INTO drive_configurations (name, description, created_by_admin_id, is_active) VALUES ($1, $2, $3, $4) RETURNING id',
+            [name, description, adminUserId, is_active]
+        );
+        const driveConfigurationId = driveConfigResult.rows[0].id;
+
+        if (products.length > 0) { // Only insert items if products array is not empty
+            const productQueries = products.map(product => {
+                return client.query(
+                    'INSERT INTO drive_configuration_items (drive_configuration_id, product_id, order_in_drive) VALUES ($1, $2, $3)',
+                    [driveConfigurationId, product.product_id, product.order_in_drive]
+                );
+            });
+            await Promise.all(productQueries);
+        }
+
+        await client.query('COMMIT');
+        logger.info(`Admin ${adminUserId} created drive configuration ${driveConfigurationId} named "${name}"`);
+        
+        // Fetch the newly created configuration to return it with all details, including products with names
+        const newConfigResult = await pool.query(
+            `SELECT
+                dc.id, dc.name, dc.description, dc.is_active, dc.created_at, dc.updated_at,
+                COALESCE(
+                    json_agg(
+                        json_build_object(
+                            'item_id', dci.id,
+                            'product_id', dci.product_id,
+                            'order_in_drive', dci.order_in_drive,
+                            'product_name', p.name
+                        )
+                        ORDER BY dci.order_in_drive ASC
+                    ) FILTER (WHERE dci.id IS NOT NULL), '[]'::json
+                ) AS products
+            FROM drive_configurations dc
+            LEFT JOIN drive_configuration_items dci ON dc.id = dci.drive_configuration_id
+            LEFT JOIN products p ON dci.product_id = p.id
+            WHERE dc.id = $1
+            GROUP BY dc.id`,
+            [driveConfigurationId]
+        );
+
+        res.status(201).json({ 
+            success: true, 
+            message: 'Drive configuration created successfully.', 
+            driveConfiguration: newConfigResult.rows[0]
+        });
+
+    } catch (error) {
+        await client.query('ROLLBACK');
+        logger.error('Error creating drive configuration:', { error: error.message, stack: error.stack, adminUserId, name, body: req.body });
+        if (error.constraint === 'drive_configuration_items_product_id_fkey') {
+            return res.status(400).json({ message: 'Invalid product_id found in the products list. Ensure all product IDs exist.' });
+        }
+        if (error.constraint === 'drive_configuration_items_drive_configuration_id_product_id_or_key') { // Assuming this is the unique constraint name
+             return res.status(400).json({ message: 'Duplicate product_id and order_in_drive combination in products list.'});
+        }
+        res.status(500).json({ message: 'Server error creating drive configuration.' });
+    } finally {
+        client.release();
+    }
+};
+
+/**
+ * @desc    Get all Drive Configurations with their items
+ * @route   GET /api/admin/drive-configurations
+ * @access  Private/Admin
+ */
+const getDriveConfigurations = async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT
+                dc.id, dc.name, dc.description, dc.is_active, dc.created_at, dc.updated_at,
+                COALESCE(
+                    json_agg(
+                        json_build_object(
+                            'item_id', dci.id,
+                            'product_id', dci.product_id,
+                            'order_in_drive', dci.order_in_drive,
+                            'product_name', p.name -- Assuming products table has a name column
+                        )
+                        ORDER BY dci.order_in_drive ASC
+                    ) FILTER (WHERE dci.id IS NOT NULL), '[]'::json
+                ) AS products
+            FROM drive_configurations dc
+            LEFT JOIN drive_configuration_items dci ON dc.id = dci.drive_configuration_id
+            LEFT JOIN products p ON dci.product_id = p.id
+            GROUP BY dc.id, dc.name, dc.description, dc.is_active, dc.created_at, dc.updated_at
+            ORDER BY dc.created_at DESC
+        `);
+
+        res.json({ success: true, configurations: result.rows });
+    } catch (error) {
+        logger.error('Error fetching drive configurations:', { error: error.message, stack: error.stack });
+        res.status(500).json({ message: 'Server error fetching drive configurations.' });
+    }
+};
+
+/**
+ * @desc    Update an existing Drive Configuration (name, description, is_active)
+ * @route   PUT /api/admin/drive-configurations/:id
+ * @access  Private/Admin
+ */
+const updateDriveConfiguration = async (req, res) => {
+    const { id } = req.params;
+    const { name, description, is_active } = req.body;
+    const adminUserId = req.user.id;
+
+    if (name === undefined && description === undefined && is_active === undefined) {
+        return res.status(400).json({ message: 'No fields provided for update. Provide name, description, or is_active.' });
+    }
+
+    const fieldsToUpdate = [];
+    const values = [];
+    let queryIndex = 1;
+
+    if (name !== undefined) {
+        fieldsToUpdate.push(`name = $${queryIndex++}`);
+        values.push(name);
+    }
+    if (description !== undefined) {
+        fieldsToUpdate.push(`description = $${queryIndex++}`);
+        values.push(description);
+    }
+    if (is_active !== undefined) {
+        fieldsToUpdate.push(`is_active = $${queryIndex++}`);
+        values.push(is_active);
+    }
+    
+    fieldsToUpdate.push(`updated_at = NOW()`); // Always update updated_at timestamp
+
+    values.push(id); // For the WHERE clause
+
+    const updateQuery = `UPDATE drive_configurations SET ${fieldsToUpdate.join(', ')} WHERE id = $${queryIndex} RETURNING *`;
+
+    try {
+        const result = await pool.query(updateQuery, values);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ message: 'Drive configuration not found.' });
+        }
+        
+        // Fetch the updated configuration with its products to return consistent data
+        const updatedConfigResult = await pool.query(
+             `SELECT
+                dc.id, dc.name, dc.description, dc.is_active, dc.created_at, dc.updated_at,
+                COALESCE(
+                    json_agg(
+                        json_build_object(
+                            'item_id', dci.id,
+                            'product_id', dci.product_id,
+                            'order_in_drive', dci.order_in_drive,
+                            'product_name', p.name
+                        )
+                        ORDER BY dci.order_in_drive ASC
+                    ) FILTER (WHERE dci.id IS NOT NULL), '[]'::json
+                ) AS products
+            FROM drive_configurations dc
+            LEFT JOIN drive_configuration_items dci ON dc.id = dci.drive_configuration_id
+            LEFT JOIN products p ON dci.product_id = p.id
+            WHERE dc.id = $1
+            GROUP BY dc.id`,
+            [id]
+        );
+
+
+        logger.info(`Admin ${adminUserId} updated drive configuration ${id}.`);
+        res.json({ 
+            success: true, 
+            message: 'Drive configuration updated successfully.',
+            driveConfiguration: updatedConfigResult.rows[0]
+        });
+
+    } catch (error) {
+        logger.error(`Error updating drive configuration ${id}:`, { error: error.message, stack: error.stack, adminUserId });
+        res.status(500).json({ message: 'Server error updating drive configuration.' });
+    }
+};
+
+/**
+ * @desc    Delete a Drive Configuration and its items
+ * @route   DELETE /api/admin/drive-configurations/:id
+ * @access  Private/Admin
+ */
+const deleteDriveConfiguration = async (req, res) => {
+    const { id } = req.params;
+    const adminUserId = req.user.id;
+    const client = await pool.connect();
+
+    try {
+        await client.query('BEGIN');
+
+        // Check if the configuration is in use by any active/pending drive_sessions
+        // This is a soft check; depending on requirements, deletion might be blocked or sessions might be disassociated.
+        // For now, we'll just log a warning if it's in use but proceed with deletion.
+        const activeSessionsCheck = await client.query(
+            `SELECT COUNT(*) FROM drive_sessions WHERE drive_configuration_id = $1 AND status NOT IN ('completed', 'cancelled')`,
+            [id]
+        );
+        if (parseInt(activeSessionsCheck.rows[0].count) > 0) {
+            logger.warn(`Admin ${adminUserId} is deleting drive configuration ${id} which is currently associated with ${activeSessionsCheck.rows[0].count} active/pending drive sessions.`);
+            // Optionally, you could prevent deletion here:
+            // await client.query('ROLLBACK');
+            // client.release();
+            // return res.status(400).json({ message: 'Cannot delete configuration: It is currently in use by active drive sessions.' });
+        }
+
+
+        // Delete items from drive_configuration_items
+        await client.query('DELETE FROM drive_configuration_items WHERE drive_configuration_id = $1', [id]);
+
+        // Delete the drive configuration itself
+        const result = await client.query('DELETE FROM drive_configurations WHERE id = $1 RETURNING id', [id]);
+
+        if (result.rowCount === 0) {
+            await client.query('ROLLBACK');
+            return res.status(404).json({ message: 'Drive configuration not found.' });
+        }
+
+        await client.query('COMMIT');
+        logger.info(`Admin ${adminUserId} deleted drive configuration ${id}.`);
+        res.json({ success: true, message: 'Drive configuration deleted successfully.' });
+
+    } catch (error) {
+        await client.query('ROLLBACK');
+        logger.error(`Error deleting drive configuration ${id}:`, { error: error.message, stack: error.stack, adminUserId });
+        // Check for foreign key constraints if drive_configurations.id is referenced by other tables
+        // that are not handled (e.g., if drive_sessions had ON DELETE RESTRICT)
+        if (error.code === '23503') { // PostgreSQL foreign key violation
+             return res.status(409).json({ message: 'Cannot delete configuration: It is still referenced by other records (e.g., drive sessions). Please ensure it is not in use.' });
+        }
+        res.status(500).json({ message: 'Server error deleting drive configuration.' });
+    } finally {
+        client.release();
+    }
+};
+
+
 console.log({
   approveDeposit: typeof approveDeposit,
   rejectDeposit: typeof rejectDeposit,
@@ -807,7 +1258,13 @@ module.exports = {
     getDrives,
     getDriveLogs,
     resetDrive,
-    endDrive,
+    endDrive,    createDriveConfiguration, // Added
+    getDriveConfigurations, // Added
+    updateDriveConfiguration, // Added
+    deleteDriveConfiguration, // Added
+    getUserDriveConfiguration, // Added for user-specific configurations
+    assignDriveConfiguration, // Added for user-specific configurations
+    removeDriveConfiguration, // Added for user-specific configurations
     
     // Financial Management
     getDeposits,

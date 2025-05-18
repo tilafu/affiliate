@@ -60,9 +60,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json' // Assuming POST requires Content-Type
+                    'Content-Type': 'application/json' 
                 },
-                // No body needed for start drive based on backend controller
+                body: JSON.stringify({}) // Add empty JSON object to satisfy the JSON validator
             });
 
             console.log('Start drive response status:', response.status);
@@ -118,14 +118,13 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('Fetching next order...');
         // TODO: Show loading state in the drive content area
         
-        try {
-            const response = await fetch(`${API_BASE_URL}/api/drive/getorder`, {
+        try {            const response = await fetch(`${API_BASE_URL}/api/drive/getorder`, {
                 method: 'POST', // Backend getOrder uses POST
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
                 },
-                 // No body needed for getorder based on backend controller
+                body: JSON.stringify({}) // Add empty JSON object to satisfy the JSON validator
             });
 
             const data = await response.json();

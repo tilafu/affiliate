@@ -574,5 +574,17 @@ $(document).ready(function(){
   animation: progress-flash 0.7s ease;
 }
 </style>
+
+<!-- Debug utilities - Only included in development environments -->
+<script>
+// Simple environment detection - you can remove this in production
+const isDevEnvironment = true; // Set to false in production
+if (isDevEnvironment) {
+    const debugScript = document.createElement('script');
+    debugScript.src = './js/debug-drive-parameters.js';
+    document.body.appendChild(debugScript);
+    console.log('Debug utilities loaded');
+}
+</script>
 </body>
 </html>

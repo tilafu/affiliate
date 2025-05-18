@@ -34,6 +34,17 @@ router.get('/drives/:userId/logs', protect, admin, adminController.getDriveLogs)
 router.post('/users/:userId/reset-drive', protect, admin, adminController.resetDrive);
 router.post('/drives/:driveId/end', protect, admin, adminController.endDrive);
 
+// Drive Configuration Management
+router.post('/drive-configurations', protect, admin, adminController.createDriveConfiguration);
+router.get('/drive-configurations', protect, admin, adminController.getDriveConfigurations);
+router.put('/drive-configurations/:id', protect, admin, adminController.updateDriveConfiguration); // Added route for updating
+router.delete('/drive-configurations/:id', protect, admin, adminController.deleteDriveConfiguration); // Added route for deleting
+
+// User-specific Drive Configuration Management
+router.get('/users/:userId/drive-configuration', protect, admin, adminController.getUserDriveConfiguration);
+router.post('/users/:userId/drive-configuration', protect, admin, adminController.assignDriveConfiguration);
+router.delete('/users/:userId/drive-configuration', protect, admin, adminController.removeDriveConfiguration);
+
 // Support Management
 router.get('/support/messages', protect, admin, adminController.getAllSupportMessages);
 router.post('/support/messages/reply', protect, admin, adminController.replyToSupportMessage);

@@ -112,6 +112,7 @@
                 <div class="sub-menu">
                     <a href="#" class="nav-link" data-section="drives">Data Drives</a>
                     <a href="#" class="nav-link" data-section="products">Products</a>
+                    <a href="#" class="nav-link" data-section="drive-configurations">Drive Configurations</a>
                 </div>
             </div>
             <a href="#" class="nav-link" data-section="support">Support Messages</a>
@@ -349,6 +350,28 @@
 
         </section>
 
+        <!-- Drive Configurations Section -->
+        <section id="drive-configurations-section" class="section" style="display: none;">
+            <h2>Drive Configurations</h2>
+            <button id="create-drive-config-btn" class="btn btn-primary mb-3">Create New Drive Configuration</button>
+            <div class="table-responsive mt-4">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Description</th>
+                            <th>Status</th>
+                            <th>Products</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="drive-configurations-list">
+                        <!-- Drive configurations will be listed here by admin.js -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
         <!-- Support Section -->
         <section id="support-section" class="section" style="display: none;">
             <h2>Support Messages</h2>
@@ -378,11 +401,74 @@
                 </div>
             </div>
         </section>
+    </div> <!-- Closing main-content -->
+
+    <!-- Drive Configuration Modal -->
+    <div class="modal fade" id="driveConfigModal" tabindex="-1" aria-labelledby="driveConfigModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="driveConfigModalLabel">Create/Edit Drive Configuration</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="driveConfigForm">
+                        <input type="hidden" id="drive-config-id" name="drive_config_id">
+                        <div class="mb-3">
+                            <label for="drive-config-name" class="form-label">Configuration Name</label>
+                            <input type="text" class="form-control" id="drive-config-name" name="name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="drive-config-description" class="form-label">Description</label>
+                            <textarea class="form-control" id="drive-config-description" name="description" rows="3"></textarea>
+                        </div>
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="drive-config-active" name="is_active">
+                            <label class="form-check-label" for="drive-config-active">Active</label>
+                        </div>
+                        <div class="mb-3">
+                            <h6>Select Products</h6>
+                            <p><small><em>Products will be added to the drive in the order they are selected. For editing order or products in existing configurations, specific controls will be available later.</em></small></p>
+                            <div id="product-checkboxes-container" class="mt-2" style="max-height: 200px; overflow-y: auto; border: 1px solid #ccc; padding: 10px;">
+                                <!-- Product checkboxes will be populated here by admin.js -->
+                                <p><em>Loading products...</em></p>
+                            </div>
+                            <div id="product-counter" class="mt-2 text-muted">
+                                <small>Selected products: <span id="selected-products-count">0</span></small>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="save-drive-config-button">Save Configuration</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Generic Notification Modal -->
+    <div class="modal fade" id="notificationModal" tabindex="-1" aria-labelledby="notificationModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header" id="notificationModalHeader">
+            <h5 class="modal-title" id="notificationModalLabel">Notification</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body" id="notificationModalBody">
+            <!-- Message will be injected here -->
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-primary" data-bs-dismiss="modal">OK</button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Background Overlay for Mobile -->
     <div class="bg-overlay"></div>    <!-- Scripts -->
-    <script src="./assets/js/jquery.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
     <script src="./assets/js/bootstrap.bundle.min.js"></script>
     <script type="module" src="./js/admin.js"></script>
 </body>
