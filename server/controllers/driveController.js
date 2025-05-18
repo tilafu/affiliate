@@ -406,7 +406,7 @@ const saveOrder = async (req, res) => {
         logger.debug(`Verifying drive order ${numDriveOrderId} for session ${numSessionId} and user ${userId}`); // Added debug log
         const orderResult = await client.query(
             `SELECT drive_ord.id, drive_ord.status as order_status, ds.status as session_status, ds.user_id, ds.drive_configuration_id, ds.tasks_required, ds.tasks_completed, ds.commission_earned as session_commission_earned,
-                    p.price as product_price, p.commission_rate as product_commission_rate, u.tier as user_tier
+                    p.price as product_price, u.tier as user_tier
              FROM drive_orders drive_ord
              JOIN drive_sessions ds ON drive_ord.session_id = ds.id
              JOIN products p ON drive_ord.product_id = p.id
@@ -460,13 +460,29 @@ const saveOrder = async (req, res) => {
         // Mark the order as completed
         logger.debug(`Marking order ${numDriveOrderId} as completed for session ${numSessionId}.`); // Added debug log
         await client.query(
-            'UPDATE drive_orders SET status = \'completed\', completed_at = NOW() WHERE id = $1',
+            'UPDATE drive_orders SET status = \'completed\' WHERE id = $1',
             [numDriveOrderId]
         );
 
-        // Calculate commission for this specific order
-        const orderCommission = parseFloat(orderData.product_price) * (parseFloat(orderData.product_commission_rate) / 100);
-        logger.debug(`Calculated commission for order ${numDriveOrderId}: ${orderCommission}`); // Added debug log
+        // Validate product_price before calculating commission
+        const productPrice = parseFloat(orderData.product_price);
+
+        if (isNaN(productPrice)) {
+            await client.query('ROLLBACK');
+            logger.error(`Invalid product_price for product ID ${numProductId} in order ${numDriveOrderId}: '${orderData.product_price}'. Cannot calculate commission.`);
+            // The finally block will release the client
+            return res.status(500).json({ message: "Internal server error: Invalid product price encountered." });
+        }
+
+        // Calculate commission for this specific order using the utility function
+        let orderCommission = calculateCommission(productPrice, orderData.user_tier, 'drive_product_completion');
+        // Ensure orderCommission is a number, default to 0 if calculateCommission returns NaN or undefined
+        if (isNaN(orderCommission) || typeof orderCommission === 'undefined') {
+            logger.warn(`Calculated commission for order ${numDriveOrderId} resulted in an invalid value (UserTier: ${orderData.user_tier}, ProductPrice: ${productPrice}). Defaulting to 0.`);
+            orderCommission = 0;
+        }
+        logger.debug(`Calculated commission for order ${numDriveOrderId}: ${orderCommission} (UserTier: ${orderData.user_tier}, ProductPrice: ${productPrice})`);
+
 
         // Update user's main balance
         logger.debug(`Updating main balance for user ${userId} by ${orderCommission}`); // Added debug log
@@ -476,11 +492,12 @@ const saveOrder = async (req, res) => {
         );
 
         // Log the commission
-        const commissionLogId = uuidv4();
-        logger.debug(`Logging commission (ID: ${commissionLogId}) for user ${userId}, order ${numDriveOrderId}, amount ${orderCommission}`); // Added debug log
+        // const commissionLogId = uuidv4(); // ID is SERIAL, no need to generate here.
+        const commissionDescription = `Commission for completing drive order ${numDriveOrderId} (Product ID: ${numProductId}) in drive session ${numSessionId}`;
+        logger.debug(`Logging commission for user ${userId}, order ${numDriveOrderId}, amount ${orderCommission}, description: ${commissionDescription}`);
         await client.query(
-            'INSERT INTO commission_logs (id, user_id, amount, type, description, product_id, drive_order_id, drive_session_id, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())',
-            [commissionLogId, userId, orderCommission, 'drive_product_completion', `Commission for completing product ${numProductId} in drive ${numSessionId}`, numProductId, numDriveOrderId, numSessionId]
+            'INSERT INTO commission_logs (user_id, commission_amount, commission_type, description, source_action_id, account_type, created_at) VALUES ($1, $2, $3, $4, $5, $6, NOW())',
+            [userId, orderCommission, 'direct_drive', commissionDescription, numDriveOrderId, 'main']
         );
 
         // Update the drive session: increment tasks_completed and add to commission_earned
