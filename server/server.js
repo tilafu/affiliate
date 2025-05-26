@@ -28,15 +28,17 @@ const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/user');
 const adminRoutes = require('./routes/admin'); // Import admin routes
 const driveRoutes = require('./routes/drive'); // Import drive routes
+const adminDriveRoutes = require('./routes/adminDriveRoutes'); // Import admin drive routes
 
 // Apply routes
 app.use('/api/auth', authRoutes);
 app.use('/api/user', userRoutes); // This will include the support message routes
 app.use('/api/admin', adminRoutes); // Use admin routes
 app.use('/api/drive', driveRoutes); // Use drive routes
+app.use('/api/admin/drive-management', adminDriveRoutes); // Use admin drive routes
 
 // Routes
-app.use('/api/admin', require('./routes/admin'));
+// app.use('/api/admin', require('./routes/admin')); // This line is redundant and can be removed if adminRoutes is already used above.
 
 // --- COMMISSION SERVICE TESTING ---
 async function testCommissionService() {
