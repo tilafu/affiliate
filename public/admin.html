@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
+<head>    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Panel</title>
     <link rel="stylesheet" href="./assets/css/bootstrap.min.css">
     <link rel="stylesheet" href="./assets/css/style.css">
+    <link rel="stylesheet" href="./css/debug.css">
     <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
@@ -49,10 +49,16 @@
             padding: 5px 10px;
             border-radius: 15px;
             font-size: 12px;
-        }
-        .status-approved { background: #2ecc71; color: white; }
+        }        .status-approved { background: #2ecc71; color: white; }
         .status-rejected { background: #e74c3c; color: white; }
         .status-pending { background: #f1c40f; color: white; }
+        
+        /* Fix for disabled buttons */
+        button:disabled, .btn:disabled {
+            cursor: not-allowed !important;
+            opacity: 0.65;
+        }
+        
         @media (max-width: 768px) {
             .main-sidebar {
                 left: -250px;
@@ -111,6 +117,7 @@
                 <a href="#" class="nav-link">Operations</a>
                 <div class="sub-menu">
                     <a href="#" class="nav-link" data-section="drives">Data Drives</a>
+                    <a href="#" class="nav-link" data-section="drive-configurations">Drive Configurations</a> <!-- New Link -->
                     <a href="#" class="nav-link" data-section="products">Products</a>
                     <a href="#" class="nav-link" data-section="drive-configurations">Drive Configurations</a>
                 </div>
@@ -195,7 +202,19 @@
                             <option value="platinum">Platinum</option>
                         </select>
                     </div>
-                    <button id="update-tier-button" class="btn btn-primary mt-3">Update Tier</button>
+                    <button id="update-tier-button" class="btn btn-primary mt-3 mb-3">Update Tier</button> <!-- Added mb-3 for spacing -->
+
+                    <hr> <!-- Separator -->
+
+                    <div class="form-group mt-3"> <!-- Added mt-3 for spacing -->
+                        <label for="user-drive-config-select">Assign Drive Configuration:</label>
+                        <select id="user-drive-config-select" class="form-control">
+                            <!-- Options will be populated by JavaScript -->
+                            <option value="">None</option> 
+                        </select>
+                        <small id="current-assigned-config" class="form-text text-muted"></small> <!-- To show current assignment -->
+                    </div>
+                    <button id="assign-drive-config-button" class="btn btn-success mt-3">Assign Configuration</button>
                 </div>
             </div>
         </section>
@@ -245,7 +264,9 @@
                 <table class="table">
                     <thead>
                         <tr>
-                            <th>User</th>
+                            <th>User ID</th>
+                            <th>Username</th>
+                            <th>Assigned Drive Config</th>
                             <th>Total Drives</th>
                             <th>Commission</th>
                             <th>Last Drive</th>
@@ -257,6 +278,57 @@
                 </table>
             </div>
         </section>
+
+        <!-- Drive Configurations Section (New) -->
+        <section id="drive-configurations-section" class="section" style="display: none;">
+            <h2>Drive Configurations Management</h2>
+            
+            <button class="btn btn-primary mb-3" id="show-create-config-modal-btn">Create New Configuration</button>
+
+            <div class="table-responsive mt-4">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Description</th>
+                            <th>Tasks Required</th>
+                            <th>Is Active</th>
+                            <th>Created At</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="drive-configurations-list"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Manage Task Sets Modal (Redesigned) -->
+        <div class="modal fade" id="manageTaskSetsModal" tabindex="-1" aria-labelledby="manageTaskSetsModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="manageTaskSetsModalLabel">Create Task Sets</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>For User: <strong id="modal-taskset-username">N/A</strong></p>
+                        <p>Using Drive Configuration: <strong id="modal-taskset-configname">N/A</strong></p>
+                        <input type="hidden" id="modal-taskset-user-id">
+                        <input type="hidden" id="modal-taskset-config-id">
+                        
+                        <h6 class="mt-3">Available Products in Configuration:</h6>
+                        <div id="products-for-task-set-creation-list" class="list-group">
+                            <!-- Products will be loaded here by JavaScript -->
+                            <p class="text-muted">Select a user and their assigned configuration to see products.</p>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
 
         <!-- Products Section -->
         <section id="products-section" class="section" style="display: none;">
@@ -471,5 +543,6 @@
     <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
     <script src="./assets/js/bootstrap.bundle.min.js"></script>
     <script type="module" src="./js/admin.js"></script>
+    <script type="module" src="./js/admin-drives.js"></script> <!-- Ensure admin-drives.js is loaded as a module if not already -->
 </body>
 </html>

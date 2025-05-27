@@ -39,3 +39,13 @@
     font-weight: bold;
     margin-right: 5px;
 }
+
+/* Ensure buttons have a pointer cursor */
+button, .btn {
+    cursor: pointer !important; /* Added !important to override other potential styles */
+}
+
+/* Specifically for disabled buttons, revert to default cursor if needed or keep pointer */
+button:disabled, .btn:disabled {
+    cursor: not-allowed; /* Or default, if pointer on disabled is not desired */
+}

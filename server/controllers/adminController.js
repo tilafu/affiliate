@@ -891,6 +891,7 @@ const getDrives = async (req, res) => {
 const getDriveLogs = async (req, res) => {
     const { userId } = req.params;
     try {
+<<<<<<< HEAD
         // Updated to join with drive_configurations and provide data for "View History"
         // Frontend admin-drives.js expects: id (session_id), name (config_name), date (completed_at), status, earnings (commission_earned)
         const result = await pool.query(
@@ -906,16 +907,44 @@ const getDriveLogs = async (req, res) => {
             ORDER BY ds.created_at DESC`,
             [userId]
         );
+=======
+        // Temporarily modified due to "column dor.product_id does not exist" error.
+        // This means the 'drive_orders' table in the DB is missing the 'product_id' column.
+        // The product_name will be 'N/A' until the database schema is corrected
+        // as per 'sql/add_drive_orders_table.sql'.
+        const result = await pool.query(`
+            SELECT
+                d.id,
+                d.created_at,
+                d.status,
+                COALESCE(d.commission_earned, 0) as commission_amount,
+                'N/A' as product_name, -- Product name is temporarily unavailable
+                d.user_id
+            FROM drive_sessions d
+            -- The following JOINs were removed because dor.product_id is missing in the current DB schema:
+            -- LEFT JOIN drive_orders dor ON dor.session_id = d.id
+            -- LEFT JOIN products p ON dor.product_id = p.id
+            WHERE d.user_id = $1
+            ORDER BY d.created_at DESC
+        `, [userId]);
+>>>>>>> main
 
-        res.json({ 
-            success: true, 
-            history: result.rows 
+        res.json({
+            success: true,
+            history: result.rows
         });
     } catch (error) {
+<<<<<<< HEAD
         logger.error(`Error fetching drive logs for user ${userId}:`, { error: error.message, stack: error.stack });
         res.status(500).json({ 
             success: false, 
             message: 'Error fetching drive history' 
+=======
+        logger.error('Error fetching drive logs:', { error: error.message, stack: error.stack, query: error.query, detail: error.detail }); // Enhanced logging
+        res.status(500).json({
+            success: false,
+            message: 'Error fetching drive history. Check server logs for details.' // More generic message to user
+>>>>>>> main
         });
     }
 };

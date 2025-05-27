@@ -1,6 +1,6 @@
-// Admin Panel JavaScript
-import * as DriveModule from './admin-drives.js';
+import * as DriveModuleAPI from './admin-drives.js';
 
+// Admin Panel JavaScript
 // Global variables
 let driveUpdateInterval;
 
@@ -27,6 +27,7 @@ async function viewDriveDetails(driveId) {
         showNotification('Failed to load drive details', 'error');
     }
 }
+window.viewDriveDetails = viewDriveDetails; // Make it globally accessible
 
 // Add polling interval reference
 
@@ -50,20 +51,37 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize all section handlers
     initializeHandlers();
     
-    // Setup drive polling using the Drive module
-    DriveModule.setupDrivePolling();
+    // Initialize DriveModule functionality from admin-drives.js
+    if (DriveModuleAPI && typeof DriveModuleAPI.initDependencies === 'function') {
+        DriveModuleAPI.initDependencies({ fetchWithAuth, showNotification }); // Pass dependencies
+
+        if (typeof DriveModuleAPI.setupDrivePolling === 'function') {
+            DriveModuleAPI.setupDrivePolling();
+        } else {
+            console.warn('DriveModuleAPI.setupDrivePolling function not found in imported module.');
+        }
+    } else {
+        console.error('DriveModuleAPI or its initDependencies function is not available. Ensure admin-drives.js is loaded as a module and exports correctly.');
+    }
 });
 
 // Helper function for authenticated API calls
 async function fetchWithAuth(endpoint, options = {}) {
     const token = localStorage.getItem('auth_token');
-    const defaultOptions = {
+    const defaultHeaders = {
+        'Authorization': `Bearer ${token}`,
+        // 'Content-Type': 'application/json' // Default Content-Type will be handled below
+    };
+
+    const mergedOptions = {
+        ...options, // Spread other options like method, body
         headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
+            ...defaultHeaders, // Start with default headers (Authorization)
+            ...(options.headers || {}), // Merge and override with provided headers
         }
     };
 
+<<<<<<< HEAD
     try {
         console.debug(`Making API request to: /api${endpoint}`);
         const response = await fetch(`/api${endpoint}`, { ...defaultOptions, ...options });
@@ -81,6 +99,68 @@ async function fetchWithAuth(endpoint, options = {}) {
         console.error(`Error in fetchWithAuth for ${endpoint}:`, error);
         // Re-throw the error to be handled by the calling function
         throw error;
+=======
+    // Set Content-Type to application/json by default if not already set and not FormData
+    if (!mergedOptions.headers['Content-Type'] && !(options.body instanceof FormData)) {
+        mergedOptions.headers['Content-Type'] = 'application/json';
+    }
+
+    // If body is FormData, the browser sets Content-Type to multipart/form-data automatically, 
+    // so remove our default if it was set, or any explicit one if it conflicts.
+    if (options.body instanceof FormData) {
+        delete mergedOptions.headers['Content-Type'];
+    }
+
+    const url = endpoint.startsWith('/api') ? endpoint : `/api${endpoint}`;
+    const response = await fetch(url, mergedOptions);
+
+    let responseBodyText = '';
+    try {
+        responseBodyText = await response.text(); // Read body once as text
+    } catch (e) {
+        // This catch is primarily for network errors during response.text() itself,
+        // though usually response.ok would be false for network issues caught by fetch itself.
+        console.error('Error reading response text:', e);
+        const err = new Error('Failed to read response from server.');
+        err.status = response.status; // Keep original status if available
+        throw err;
+    }
+
+    if (!response.ok) {
+        let errorData = { message: `HTTP error! status: ${response.status}`, status: response.status, responseText: responseBodyText };
+        try {
+            // Try to parse the already read text as JSON
+            errorData = { ...JSON.parse(responseBodyText), status: response.status, responseText: responseBodyText };
+            console.error('API Error Response (JSON):', errorData);
+        } catch (e) {
+            // If parsing as JSON fails, the responseText is already in errorData
+            console.error('API Error Response (Non-JSON):', responseBodyText);
+            if (!errorData.message && responseBodyText) {
+                errorData.message = responseBodyText;
+            } else if (!errorData.message) {
+                errorData.message = `HTTP error! status: ${response.status} - Non-JSON response`;
+            }
+        }
+        const err = new Error(errorData.message || `HTTP error! status: ${response.status}`);
+        err.data = errorData;
+        err.status = response.status;
+        throw err;
+    }
+
+    // If response.ok is true, try to parse the text as JSON
+    try {
+        if (responseBodyText === "" && response.status === 204) { // Handle 204 No Content specifically
+             return null; // Or an empty object/array as appropriate for your API contract
+        }
+        return JSON.parse(responseBodyText);
+    } catch (e) {
+        // If JSON parsing fails for a successful response, it might be plain text or an empty body not handled as 204.
+        console.warn('Successful response was not valid JSON. Status:', response.status, 'Body:', responseBodyText);
+        // Return the raw text for successful non-JSON responses, or handle as needed.
+        // If your API contract says
+        // then this case might indicate an API issue or an unexpected response.
+        return responseBodyText; // Or throw an error, or return null/undefined based on how you want to treat this.
+>>>>>>> main
     }
 }
 
@@ -190,14 +270,29 @@ function loadSection(sectionName) {
         case 'withdrawals':
             loadWithdrawals();
             break;
-        case 'drives':
-            DriveModule.loadDrives(); // Using the drive module instead
+        case 'drives': 
+            if (DriveModuleAPI && typeof DriveModuleAPI.loadDrives === 'function') {
+                DriveModuleAPI.loadDrives();
+            } else {
+                console.error('DriveModuleAPI.loadDrives function is not available.');
+            }
             break;
+<<<<<<< HEAD
         case 'drive-configurations': // New section
             loadDriveConfigurations();
             break;
         case 'support':
             loadSupportMessages();
+=======
+        case 'drive-configurations':
+            // This section's initial data is loaded by DriveModuleAPI.initDependencies.
+            // If a reload is needed upon navigating here, loadDriveConfigurations should be exported from admin-drives.js and called here.
+            if (DriveModuleAPI && typeof DriveModuleAPI.loadDriveConfigurations === 'function') {
+                 DriveModuleAPI.loadDriveConfigurations(); // This will currently not run as it's not exported.
+            } else {
+                console.log('Drive configurations section displayed. Initial data loaded by initDependencies.');
+            }
+>>>>>>> main
             break;
         case 'products':
             loadProducts();
@@ -244,7 +339,9 @@ async function loadUsers() {
                         <button class="btn btn-sm btn-primary manage-user-btn" 
                                 data-user-id="${user.id}" 
                                 data-username="${user.username}"
-                                data-tier="${user.tier}">
+                                data-tier="${user.tier}"
+                                data-assigned-config-id="${user.assigned_drive_configuration_id || ''}"
+                                data-assigned-config-name="${user.assigned_drive_configuration_name || 'N/A'}">
                             Manage
                         </button>
                     </td>
@@ -254,6 +351,77 @@ async function loadUsers() {
     } catch (error) {
         console.error('Error loading users:', error);
         showNotification('Failed to load users', 'error');
+    }
+}
+
+// New function to populate the drive configuration dropdown
+async function populateDriveConfigurationDropdown(currentAssignedConfigId, currentAssignedConfigName) {
+    const selectElement = document.getElementById('user-drive-config-select');
+    const currentAssignedElement = document.getElementById('current-assigned-config');
+
+    if (!selectElement || !currentAssignedElement) {
+        console.error('Required elements for drive configuration dropdown not found.');
+        return;
+    }
+
+    // Note: The caller (e.g., manage user button handler) typically sets
+    // selectElement.innerHTML = '<option value="">Loading configurations...</option>';
+    // before calling this function.
+
+    try {
+        // Ensure DriveModuleAPI and getDriveConfigurations are available
+        if (!DriveModuleAPI || typeof DriveModuleAPI.getDriveConfigurations !== 'function') {
+            console.error('DriveModuleAPI.getDriveConfigurations is not available.');
+            showNotification('Critical error: Drive configuration module not loaded correctly.', 'error');
+            selectElement.innerHTML = '<option value="">Error loading module</option>';
+            currentAssignedElement.textContent = 'Error';
+            return;
+        }
+
+        const configurations = await DriveModuleAPI.getDriveConfigurations();
+        
+        selectElement.innerHTML = ''; // Clear "Loading..." or previous options immediately
+
+        if (configurations && configurations.length > 0) {
+            let activeConfigFound = false;
+            const defaultOption = document.createElement('option');
+            defaultOption.value = "";
+            defaultOption.textContent = "Select a Configuration";
+            selectElement.appendChild(defaultOption);
+
+            configurations.forEach(config => {
+                if (config.is_active) { // Only show active configurations
+                    activeConfigFound = true;
+                    const option = document.createElement('option');
+                    option.value = config.id;
+                    option.textContent = config.name;
+                    selectElement.appendChild(option);
+                }
+            });
+
+            if (!activeConfigFound) {
+                // If loop completes and no active configs were added, but default "Select..." is there.
+                // We can either leave "Select a Configuration" or be more specific.
+                // For clarity, let's indicate no active ones are available if the list was otherwise populated.
+                // If configurations was not empty but all were inactive:
+                if (selectElement.options.length <= 1 && configurations.some(c => !c.is_active)) { // only "Select..." is present
+                     selectElement.innerHTML = '<option value="">No active configurations available</option>';
+                } else if (selectElement.options.length <=1) { // Covers case where configurations was empty or all were inactive
+                     selectElement.innerHTML = '<option value="">No configurations available</option>';
+                }
+            }
+        } else {
+            selectElement.innerHTML = '<option value="">No configurations available</option>';
+        }
+
+        currentAssignedElement.textContent = currentAssignedConfigName || 'N/A';
+        selectElement.value = currentAssignedConfigId || '';
+
+    } catch (error) {
+        console.error('Error populating drive configuration dropdown:', error);
+        showNotification('Failed to load drive configurations for assignment.', 'error');
+        selectElement.innerHTML = '<option value="">Error loading configurations</option>';
+        currentAssignedElement.textContent = 'Error';
     }
 }
 
@@ -611,6 +779,7 @@ async function markAsResolved(messageId) {
 }
 
 function initializeHandlers() {
+<<<<<<< HEAD
     document.addEventListener('click', async (e) => {
 
         // Drive Configuration Buttons
@@ -706,54 +875,89 @@ function initializeHandlers() {
                     document.getElementById('edit-product-name').value = product.name;
                     document.getElementById('edit-product-price').value = product.price;
                     document.getElementById('edit-commission-rate').value = product.commission_rate;
+=======
+    document.addEventListener('click', async (event) => {
+        const target = event.target;
+>>>>>>> main
 
-                    const editModalElement = document.getElementById('edit-product-modal');
-                    if (editModalElement) {
-                        const editModal = new bootstrap.Modal(editModalElement);
-                        editModal.show();
-                    } else {
-                        console.error("Edit product modal ('edit-product-modal') not found.");
-                        showNotification('UI Error: Edit modal not found.', 'error');
-                    }
+        // --- Drive Configuration & Task Set Modals ---
+        // Handler for "Add New Task Set" button within the "Manage Task Sets Modal"
+        if (target.id === 'show-create-taskset-modal-btn') {
+            event.preventDefault();
+            const configIdInput = document.getElementById('current-config-id-for-taskset');
+            const configNameElement = document.getElementById('tasksetConfigName');
+            
+            const configId = configIdInput ? configIdInput.value : null;
+            // Fallback for configName if the element isn't found or populated, though it should be.
+            const configName = configNameElement ? configNameElement.textContent : 'Selected Configuration';
+
+            if (configId) {
+                if (DriveModuleAPI && typeof DriveModuleAPI.showCreateTaskSetModal === 'function') {
+                    DriveModuleAPI.showCreateTaskSetModal(configId, configName);
                 } else {
-                    showNotification(response.message || 'Failed to load product details for editing.', 'error');
+                    console.error('DriveModuleAPI.showCreateTaskSetModal is not available. Ensure admin-drives.js is loaded and DriveModuleAPI is correctly imported/assigned.');
+                    showNotification('Error: Cannot open the form to create a new task set.', 'error');
                 }
-            } catch (error) {
-                console.error('Error fetching product for edit:', error);
-                showNotification('Error fetching product details: ' + error.message, 'error');
+            } else {
+                console.error('Cannot create task set: Configuration ID is missing. Ensure "current-config-id-for-taskset" input is populated when the modal is shown.');
+                showNotification('Could not determine the current configuration to add a task set to. Please close and reopen the task set manager.', 'error');
             }
         }
-        // Product handlers - Delete product handler
-        else if (e.target.matches('.delete-product-btn')) {
-            if (confirm('Are you sure you want to delete this product?')) {
-                const id = e.target.dataset.id;
-                try {
-                    const response = await fetchWithAuth(`/admin/products/${id}`, { method: 'DELETE' });
-                    if (response.success) {
-                        showNotification('Product deleted successfully', 'success');
-                        loadProducts(); 
-                    } else {
-                        showNotification(response.message || 'Failed to delete product', 'error');
-                    }
-                } catch (error) {
-                    console.error('Error deleting product:', error);
-                    showNotification('Failed to delete product: ' + error.message, 'error');
-                }
-            }
-        }
-        // User management handlers
-        else if (e.target.matches('.manage-user-btn')) {
-            const userId = e.target.dataset.userId;
-            const username = e.target.dataset.username;
-            const currentTier = e.target.dataset.tier;
+
+        // User Management
+        else if (target.matches('.manage-user-btn')) {
+            const userId = target.dataset.userId;
+            const username = target.dataset.username;
+            const currentTier = target.dataset.tier;
+            const assignedConfigId = target.dataset.assignedConfigId;
+            const assignedConfigName = target.dataset.assignedConfigName;
             
             const userDetails = document.getElementById('user-details');
             document.getElementById('manage-username').textContent = username;
-            document.getElementById('manage-user-id').textContent = userId;
+            document.getElementById('manage-user-id').textContent = userId; // This is a hidden input or span to store the ID
             document.getElementById('user-tier-select').value = currentTier;
+            
+            // Populate drive configuration dropdown
+            await populateDriveConfigurationDropdown(assignedConfigId, assignedConfigName);
+            
             userDetails.style.display = 'block';
         }
+<<<<<<< HEAD
     }); // End of main click listener
+=======
+        // Assign Drive Configuration Button
+        else if (target.id === 'assign-drive-config-button') {
+            event.preventDefault();
+            const userId = document.getElementById('manage-user-id').textContent; // Assuming manage-user-id holds the current user ID
+            const selectedConfigId = document.getElementById('user-drive-config-select').value;
+
+            if (!userId) {
+                showNotification('Cannot assign configuration: User ID not found.', 'error');
+                return;
+            }
+
+            // The backend will handle unassignment if selectedConfigId is empty
+            try {
+                const response = await fetchWithAuth(`/api/admin/users/${userId}/assign-drive-configuration`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ drive_configuration_id: selectedConfigId || null }) // Send null if "None" is selected
+                });
+
+                if (response.success) {
+                    showNotification('Drive configuration assigned successfully!', 'success');
+                    await loadUsers(); // Refresh the user list to show updated assignment (if displayed there)
+                    document.getElementById('user-details').style.display = 'none'; // Hide the card
+                } else {
+                    throw new Error(response.message || 'Failed to assign drive configuration.');
+                }
+            } catch (error) {
+                console.error('Error assigning drive configuration:', error);
+                showNotification(error.message || 'Error assigning drive configuration', 'error');
+            }
+        }
+    });
+>>>>>>> main
 
     document.getElementById('send-reply-button')?.addEventListener('click', async () => {
         const messageId = document.getElementById('send-reply-button').dataset.messageId;
@@ -853,9 +1057,7 @@ function initializeHandlers() {
                     const editModalElement = document.getElementById('edit-product-modal');
                      if (editModalElement) {
                          const editModal = bootstrap.Modal.getInstance(editModalElement);
-                         if (editModal) {
-                            editModal.hide();
-                         }
+                         if (editModal) editModal.hide();
                      }
                     loadProducts();
                 } else {
@@ -884,23 +1086,31 @@ function initializeHandlers() {
 
         try {
             const response = await fetchWithAuth(`/admin/users/${userId}/tier`, {
-                method: 'PUT',
-                body: JSON.stringify({ tier: newTier })
+            method: 'PUT',
+            body: JSON.stringify({ tier: newTier })
             });
 
-            if (response.success) {
-                showNotification('User tier updated successfully', 'success');
-                loadUsers();
+            if (response.success) { // Fixed missing parenthesis
+            showNotification('User tier updated successfully', 'success');
+            loadUsers();
             }
         } catch (error) {
             console.error('Error updating user tier:', error);
             showNotification('Failed to update user tier', 'error');
         }
+<<<<<<< HEAD
     });    
+=======
+        });    // Visibility change handler for drives
+>>>>>>> main
     document.addEventListener('visibilitychange', () => {
         const drivesSection = document.getElementById('drives-section');
         if (document.visibilityState === 'visible' && drivesSection?.style.display === 'block') {
-            DriveModule.loadDrives();
+            if (DriveModuleAPI && typeof DriveModuleAPI.loadDrives === 'function') {
+                DriveModuleAPI.loadDrives();
+            } else {
+                console.error('DriveModuleAPI.loadDrives is not available.');
+            }
         }
     });
     
@@ -931,6 +1141,7 @@ function initializeHandlers() {
     }
 }
 
+<<<<<<< HEAD
 // Add this function for polling drive updates
 function setupDrivePolling() {
     // Clear existing interval if any
@@ -1202,4 +1413,10 @@ async function deleteDriveConfigurationHandler(configId) {
 DriveModule.initDependencies({
     fetchWithAuth: fetchWithAuth,
     showNotification: showNotification
+=======
+// Initial load for the default or active section
+document.addEventListener('DOMContentLoaded', () => {
+    const defaultSection = 'dashboard'; // Change this to your desired default section
+    loadSection(defaultSection);
+>>>>>>> main
 });

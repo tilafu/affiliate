@@ -1,5 +1,27 @@
 // Drive Management Module for Admin Panel
 
+// Will be imported from the main module
+let fetchWithAuth;
+let showNotification;
+let isInitialized = false; // Flag to track initialization
+
+// Initialize dependencies from the main module
+export function initDependencies(dependencies) {
+    fetchWithAuth = dependencies.fetchWithAuth;
+    showNotification = dependencies.showNotification;
+    
+    if (!fetchWithAuth || !showNotification) {
+        console.error("CRITICAL: fetchWithAuth or showNotification not passed to admin-drives.js initDependencies");
+        isInitialized = false;
+        return;
+    }
+    isInitialized = true;
+    console.log("admin-drives.js initialized with dependencies.");
+
+    // Initialize Drive Configuration UI elements and event listeners if the section is visible
+    // This part of the code was removed as per the latest requirements
+}
+
 // Helper function for status colors
 function getStatusBadgeColor(status) {
     switch (status.toLowerCase()) {
@@ -13,6 +35,11 @@ function getStatusBadgeColor(status) {
 
 // Data Drives Management - Load all drives
 export async function loadDrives() {
+    if (!isInitialized) {
+        showNotification('Drive module is not ready. Please wait or refresh.', 'error');
+        console.error('loadDrives called before initDependencies completed.');
+        return;
+    }
     try {
         const response = await fetchWithAuth('/admin/drives'); // This endpoint should now return user summaries including total completed drives
         if (!response.success) {
@@ -35,24 +62,59 @@ export async function loadDrives() {
                 return '';
             }
 
+<<<<<<< HEAD
             const username = userDriveSummary.username ? userDriveSummary.username.replace(/[<>]/g, '') : 'Unknown';
             const totalCompletedDrives = userDriveSummary.total_completed_drives || 0; // New field
             const totalCommissionEarned = parseFloat(userDriveSummary.total_commission_earned || 0).toFixed(2); // Renamed for clarity
             const lastDriveDate = userDriveSummary.last_drive_date ? new Date(userDriveSummary.last_drive_date).toLocaleString() : 'Never'; // Renamed for clarity
             const status = userDriveSummary.status || 'INACTIVE'; // This might represent current drive status or overall activity
+=======
+            // Ensure all data values are properly escaped and defaulted
+            const username = drive.username ? drive.username.replace(/[<>]/g, '') : 'Unknown';
+            const totalDrives = drive.total_drives || 0;
+            const totalCommission = parseFloat(drive.total_commission || 0).toFixed(2);
+            const lastDrive = drive.last_drive ? new Date(drive.last_drive).toLocaleString() : 'Never';
+            const status = drive.status || 'INACTIVE';
+            const assignedConfigName = drive.assigned_drive_configuration_name || 'N/A';
+            const assignedConfigId = drive.assigned_drive_configuration_id || null;
+>>>>>>> main
 
             return `
-            <tr data-user-id="${userId}">
+            <tr data-user-id="${userId}" data-assigned-config-id="${assignedConfigId}" data-assigned-config-name="${assignedConfigName}">
                 <td>${userId}</td>
                 <td>${username}</td>
+<<<<<<< HEAD
                 <td>${totalCompletedDrives}</td> {/* Display total completed drives */}
                 <td>$${totalCommissionEarned}</td>
                 <td>${lastDriveDate}</td>
                 <td><span class="badge bg-${getStatusBadgeColor(status)}">${status}</span></td>                <td>
                     <button class="btn btn-sm btn-info view-drive-history-btn" 
+=======
+                <td>${assignedConfigName}</td>
+                <td>${totalDrives}</td>
+                <td>$${totalCommission}</td>
+                <td>${lastDrive}</td>
+                <td><span class="badge bg-${getStatusBadgeColor(status)}">${status}</span></td>
+                <td>
+                    <button class="btn btn-sm btn-info view-drive-history-btn"
+>>>>>>> main
                             data-user-id="${userId}"
                             data-username="${username}">
                         View History
+                    </button>
+                    <button class="btn btn-sm btn-primary assign-drive-config-btn"
+                            data-user-id="${userId}"
+                            data-username="${username}">
+                        Assign Drive Config
+                    </button>
+                    <button class="btn btn-sm btn-success assign-combos-btn"
+                            data-user-id="${userId}"
+                            data-username="${username}"
+                            data-assigned-config-id="${assignedConfigId}"
+                            data-assigned-config-name="${assignedConfigName}"
+                            ${!assignedConfigId ? 'disabled' : ''}
+                            title="${!assignedConfigId ? 'Assign a Drive Config first' : 'Assign Task Sets (Combos)'}">
+                        Assign Combos
                     </button>
                     <button class="btn btn-sm btn-warning reset-drive-btn" 
                             data-user-id="${userId}"
@@ -256,16 +318,25 @@ export function initializeDriveHandlers() {
     const existingButtons = drivesTable.querySelectorAll('[data-has-click-handler]');
     existingButtons.forEach(btn => {
         btn.removeAttribute('data-has-click-handler');
+        // More robustly remove old listeners if they were attached directly
+        // This is a bit of a hack; ideally, clone and replace the button or manage listeners more carefully
+        const newBtn = btn.cloneNode(true);
+        btn.parentNode.replaceChild(newBtn, btn);
     });
+
 
     // Use event delegation for better performance
     drivesTable.addEventListener('click', async function(event) {
-        const target = event.target;
+        const target = event.target.closest('button'); // Ensure we are targeting a button
+        if (!target) return;
         
         // Prevent duplicate event handling
         if (target.getAttribute('data-processing')) {
             return;
         }
+
+        const userId = target.dataset.userId;
+        const username = target.dataset.username;
 
         try {
             // View drive history button handler
@@ -273,14 +344,13 @@ export function initializeDriveHandlers() {
                 event.preventDefault();
                 target.setAttribute('data-processing', 'true');
 
-                const userId = target.dataset.userId;
-                const username = target.dataset.username;
-
                 if (!userId) {
                     console.error('View history clicked but userId is missing');
                     showNotification('Error: Could not identify user', 'error');
+                    target.removeAttribute('data-processing');
                     return;
-                }console.log('View drive history clicked for:', { userId, username });
+                }
+                console.log('View drive history clicked for:', { userId, username });
                 const driveModal = showDriveHistoryModal(userId, username);
                 if (driveModal) {
                     await loadDriveHistory(userId, username);
@@ -288,15 +358,13 @@ export function initializeDriveHandlers() {
             }
 
             // Reset drive button handler
-            if (target.matches('.reset-drive-btn')) {
+            else if (target.matches('.reset-drive-btn')) {
                 event.preventDefault();
-                const userId = target.dataset.userId;
-                const username = target.dataset.username;
-
                 if (!userId) {
                     console.error('Reset drive clicked but userId is missing');
                     showNotification('Error: Could not identify user', 'error');
                     return;
+<<<<<<< HEAD
                 }                // Confirm before resetting
                 if (!confirm(`Are you sure you want to reset the drive for ${username || 'this user'}?`)) {
                     return;
@@ -307,15 +375,27 @@ export function initializeDriveHandlers() {
                     body: JSON.stringify({}) // Empty object to avoid JSON parsing errors
                 });
                 
+=======
+                }
+
+                if (!confirm(`Are you sure you want to reset the drive for ${username || 'this user'}?`)) {
+                    return;
+                }
+                target.setAttribute('data-processing', 'true');
+                console.log('Reset drive clicked for:', { userId, username });
+                const response = await fetchWithAuth(`/admin/users/${userId}/reset-drive`, {
+                    method: 'POST'
+                });
+>>>>>>> main
                 if (response.success) {
                     showNotification(response.message || 'Drive reset successfully', 'success');
-                    // Refresh the drives table
                     await loadDrives();
                 } else {
                     console.warn('Failed to reset drive:', response);
                     showNotification(response.message || 'Failed to reset drive', 'error');
                 }
             }
+<<<<<<< HEAD
             
             // Assign drive configuration button handler
             if (target.matches('.assign-drive-config-btn')) {
@@ -333,6 +413,34 @@ export function initializeDriveHandlers() {
                 
                 console.log('Assign drive configuration clicked for:', { userId, username });
                 await handleDriveConfigAssignment(event);
+=======
+            // Assign Drive Config button handler
+            else if (target.matches('.assign-drive-config-btn')) {
+                event.preventDefault();
+                if (!userId) {
+                    console.error('Assign Drive Config clicked but userId is missing');
+                    showNotification('Error: Could not identify user', 'error');
+                    return;
+                }
+                target.setAttribute('data-processing', 'true');
+                console.log('Assign Drive Config clicked for:', { userId, username });
+                await showAssignDriveConfigModal(userId, username);
+            }
+            // Assign Combos button handler
+            else if (target.matches('.assign-combos-btn')) {
+                event.preventDefault();
+                const assignedConfigId = target.dataset.assignedConfigId;
+                const assignedConfigName = target.dataset.assignedConfigName;
+
+                if (!userId || !assignedConfigId || assignedConfigId === 'null' || assignedConfigId === 'undefined') {
+                    console.error('Assign Combos clicked but userId or assignedConfigId is missing', { userId, assignedConfigId });
+                    showNotification('Error: User or assigned configuration details are missing. Please assign a Drive Config first.', 'error');
+                    return;
+                }
+                target.setAttribute('data-processing', 'true');
+                console.log('Assign Combos clicked for:', { userId, username, assignedConfigId, assignedConfigName });
+                await showAssignCombosModal(userId, username, assignedConfigId, assignedConfigName);
+>>>>>>> main
             }
 
         } catch (error) {
@@ -340,16 +448,21 @@ export function initializeDriveHandlers() {
             showNotification(`Operation failed: ${error.message || 'Unknown error'}`, 'error');
         } finally {
             // Remove processing flag to allow future events
+<<<<<<< HEAD
             if (target.matches('.view-drive-history-btn, .reset-drive-btn, .assign-drive-config-btn')) {
+=======
+            if (target.hasAttribute('data-processing')) {
+>>>>>>> main
                 target.removeAttribute('data-processing');
             }
         }
     });
 
-    // Mark table as having handlers installed
+    // Mark table as having handlers initialized
     drivesTable.setAttribute('data-handlers-initialized', 'true');
 }
 
+<<<<<<< HEAD
 // Handle the drive configuration assignment
 export async function handleDriveConfigAssignment(event) {
     const userId = event.target.dataset.userId;
@@ -513,16 +626,1044 @@ export function setupDrivePolling() {
             loadDrives();
         } catch (error) {
             console.error('Error in drive polling:', error);
+=======
+// Function to show a modal for assigning a drive configuration to a user
+async function showAssignDriveConfigModal(userId, username) {
+    // Fetch active drive configurations
+    let activeConfigurations = [];
+    try {
+        const allConfigs = await getDriveConfigurations(); // Assuming this function is available and fetches all configs
+        activeConfigurations = allConfigs.filter(config => config.is_active);
+    } catch (error) {
+        showNotification('Failed to load drive configurations for assignment.', 'error');
+        console.error('Error fetching active configurations:', error);
+        return;
+    }
+
+    if (activeConfigurations.length === 0) {
+        showNotification('No active drive configurations available to assign.', 'info');
+        return;
+    }
+
+    const configOptions = activeConfigurations.map(config => 
+        `<option value="${config.id}">${config.name} (ID: ${config.id})</option>`
+    ).join('');
+
+    const modalId = 'assignDriveConfigToUserModal';
+    removeExistingModal(modalId);
+
+    const modalHtml = `
+    <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${modalId}Label" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="${modalId}Label">Assign Drive Configuration to ${username} (User ID: ${userId})</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <form id="assign-drive-config-to-user-form">
+              <input type="hidden" id="assign-dc-user-id" value="${userId}">
+              <div class="mb-3">
+                <label for="select-drive-config-to-assign" class="form-label">Select Drive Configuration*</label>
+                <select class="form-select" id="select-drive-config-to-assign" required>
+                  <option value="" disabled selected>Choose a configuration...</option>
+                  ${configOptions}
+                </select>
+              </div>
+              <button type="submit" class="btn btn-primary">Assign Configuration</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>`;
+
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    const modalElement = document.getElementById(modalId);
+    const modal = new bootstrap.Modal(modalElement);
+    modal.show();
+
+    document.getElementById('assign-drive-config-to-user-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const selectedConfigId = document.getElementById('select-drive-config-to-assign').value;
+        const currentUserId = document.getElementById('assign-dc-user-id').value;
+
+        if (!selectedConfigId) {
+            showNotification('Please select a drive configuration.', 'error');
+            return;
+>>>>>>> main
         }
-    }, 30000);
+
+        try {
+            // API endpoint: PUT /api/admin/drive-management/users/:userId/assign-drive-config
+            // Body: { "drive_configuration_id": selectedConfigId }
+            const response = await fetchWithAuth(`/api/admin/drive-management/users/${currentUserId}/assign-drive-config`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ drive_configuration_id: selectedConfigId })
+            });
+
+            if (response.success) {
+                showNotification('Drive configuration assigned successfully!', 'success');
+                modal.hide();
+                await loadDrives(); // Refresh the drives list to show the new assignment
+            } else {
+                throw new Error(response.message || 'Failed to assign drive configuration.');
+            }
+        } catch (error) {
+            showNotification(error.message || 'Error assigning drive configuration', 'error');
+            console.error('Error in assign-drive-config-to-user-form submit:', error);
+        }
+    });
 }
 
-// Will be imported from the main module
-let fetchWithAuth;
-let showNotification;
 
-// Initialize dependencies from the main module
-export function initDependencies(dependencies) {
-    fetchWithAuth = dependencies.fetchWithAuth;
-    showNotification = dependencies.showNotification;
+// Function to show the modal for assigning combos (Task Sets)
+async function showAssignCombosModal(userId, username, assignedConfigId, assignedConfigName) {
+    console.log(`showAssignCombosModal for user: ${username} (ID: ${userId}), Config: ${assignedConfigName} (ID: ${assignedConfigId})`);
+    
+    const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('manageTaskSetsModal'));
+    
+    // Populate user and config info in the modal
+    document.getElementById('modal-taskset-username').textContent = username;
+    document.getElementById('modal-taskset-configname').textContent = assignedConfigName;
+    // Store for later use, e.g., when creating a task set for this user/config
+    document.getElementById('manageTaskSetsModal').dataset.currentUserId = userId;
+    document.getElementById('manageTaskSetsModal').dataset.currentConfigId = assignedConfigId;
+
+
+    await loadProductsForTaskSetCreationModal(assignedConfigId);
+    
+    modal.show();
+}
+
+// New function to load products for the "Assign Combos" modal
+async function loadProductsForTaskSetCreationModal(configId) {
+    const productListDiv = document.getElementById('products-for-task-set-creation-list');
+    if (!productListDiv) {
+        console.error('Product list div for task set creation not found.');
+        showNotification('UI element missing for product list.', 'error');
+        return;
+    }
+    productListDiv.innerHTML = '<p>Loading products...</p>';
+
+    try {
+        // API: GET /api/admin/drive-management/configurations/:configId/products
+        // This endpoint should return all products associated with the drive configuration,
+        // not products already in task sets for this config, but all products defined within the config.
+        const response = await fetchWithAuth(`/api/admin/drive-management/configurations/${configId}/products`);
+
+        if (!response.success || !Array.isArray(response.products)) {
+            throw new Error(response.message || 'Failed to load products for the configuration or invalid format.');
+        }
+        
+        const products = response.products;
+
+        if (products.length === 0) {
+            productListDiv.innerHTML = '<p>No products found in this drive configuration. Add products to the configuration first.</p>';
+            return;
+        }
+
+        // Display products with an "Add Combo" button for each
+        productListDiv.innerHTML = products.map(product => `
+            <div class="list-group-item d-flex justify-content-between align-items-center">
+                <span>${product.name} (ID: ${product.id}, Price: $${product.price})</span>
+                <button class="btn btn-sm btn-primary add-combo-from-product-btn" 
+                        data-product-id="${product.id}" 
+                        data-product-name="${product.name}">
+                    + Add Combo
+                </button>
+            </div>
+        `).join('');
+
+        // Add event listeners for the "Add Combo" buttons
+        productListDiv.querySelectorAll('.add-combo-from-product-btn').forEach(button => {
+            button.addEventListener('click', async (e) => {
+                const productId = e.target.dataset.productId;
+                const productName = e.target.dataset.productName;
+                const currentUserId = document.getElementById('manageTaskSetsModal').dataset.currentUserId;
+                const currentConfigId = document.getElementById('manageTaskSetsModal').dataset.currentConfigId;
+
+                // For simplicity, let's auto-generate a task set name and order for now.
+                // In a real scenario, you might prompt the user for these.
+                const taskSetName = `Combo for ${productName} (User: ${currentUserId})`;
+                // A more robust way to determine order would be to count existing task sets for the user/config.
+                const displayOrder = 1; // Placeholder
+
+                console.log('Creating task set with:', { currentUserId, currentConfigId, productId, taskSetName, displayOrder });
+
+                // API Call: POST /api/admin/drive-management/tasksets
+                // Body should include: name, order_in_drive, is_combo (false for single product), 
+                // drive_configuration_id, user_id, and product_ids (array with single product_id)
+                try {
+                    const creationResponse = await fetchWithAuth('/api/admin/drive-management/tasksets', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            name: taskSetName,
+                            order_in_drive: displayOrder,
+                            is_combo: false, // A "combo" from a single product is essentially a single task set
+                            drive_configuration_id: currentConfigId,
+                            user_id: currentUserId, 
+                            product_ids: [productId] // Send as an array
+                        })
+                    });
+
+                    if (creationResponse && creationResponse.id) {
+                        showNotification(`Task Set "${taskSetName}" created successfully for product "${productName}"!`, 'success');
+                        // Optionally, refresh or update UI. For now, just a notification.
+                        // You might want to close the modal or refresh a list of user's task sets if displayed elsewhere.
+                        const modalInstance = bootstrap.Modal.getInstance(document.getElementById('manageTaskSetsModal'));
+                        if (modalInstance) {
+                            modalInstance.hide();
+                        }
+                        await loadDrives(); // Refresh drives to reflect any changes (e.g. if task set count is shown)
+                    } else {
+                        throw new Error(creationResponse.message || 'Failed to create task set.');
+                    }
+                } catch (error) {
+                    showNotification(error.message || 'Error creating task set.', 'error');
+                    console.error('Error creating task set from product:', error);
+                }
+            });
+        });
+
+    } catch (error) {
+        productListDiv.innerHTML = `<p class="text-danger">Error loading products: ${error.message}</p>`;
+        showNotification(error.message, 'error');
+        console.error('Error in loadProductsForTaskSetCreationModal:', error);
+    }
+}
+
+// --- Drive Configuration Management ---
+
+// NEW EXPORTED function to GET data
+export async function getDriveConfigurations() {
+    if (!isInitialized) {
+        // This function might be called by other modules, so a console log is better than showNotification directly
+        console.error('getDriveConfigurations called before initDependencies completed.');
+        // Optionally, try to use a fallback or throw an error if critical
+        // For now, let it proceed, but it will likely fail if fetchWithAuth is needed.
+        // Or, if showNotification is available globally, use it cautiously.
+        if (typeof showNotification === 'function') { // Check if it was somehow set globally or by a partial init
+            showNotification('Drive configuration data might be unavailable: module not fully ready.', 'warning');
+        } else {
+            // console.warn('showNotification not available for getDriveConfigurations pre-init warning.');
+        }
+        // To prevent cascading errors, return empty or handle as per contract
+        // return []; // This might be a safer default if the caller expects an array
+    }
+    try {
+        const configurations = await fetchWithAuth('/api/admin/drive-management/configurations'); 
+        if (Array.isArray(configurations)) {
+            return configurations;
+        } else {
+            console.warn('Fetched drive configurations is not an array:', configurations);
+            if (typeof showNotification === 'function') {
+                showNotification('Received unexpected format for drive configurations.', 'error');
+            }
+            return []; 
+        }
+    } catch (error) {
+        console.error('Error fetching drive configurations:', error);
+        if (typeof showNotification === 'function') {
+            showNotification(error.message || 'Failed to fetch drive configurations list', 'error');
+        }
+        return []; 
+    }
+}
+
+// ORIGINAL function to LOAD data into the table - NOW EXPORTED
+export async function loadDriveConfigurations() { // Added export
+    try {
+        // Add a check to see if getDriveConfigurations is actually a function
+        // This check might be redundant if called via DriveModuleAPI.getDriveConfigurations,
+        // but kept for internal calls if any, or for robustness.
+        if (typeof getDriveConfigurations !== 'function') { // This check refers to the getDriveConfigurations in this file's scope
+            console.error('CRITICAL: getDriveConfigurations (internal) is not a function or not defined. Check admin-drives.js.');
+            if (typeof showNotification === 'function') {
+                showNotification('Fatal error: Cannot load drive configurations data. Module might be corrupted (internal check).', 'error');
+            }
+            const configList = document.getElementById('drive-configurations-list');
+            if (configList) {
+                configList.innerHTML = '<tr><td colspan="7" class="text-center text-danger">Error: Drive configuration loader failed (internal).</td></tr>';
+            }
+            return;
+        }
+
+        const configurations = await getDriveConfigurations(); // Call the sibling function in this module
+        
+        const configList = document.getElementById('drive-configurations-list');
+        if (!configList) {
+            console.error('Drive configurations list element not found');
+            return;
+        }
+
+        configList.innerHTML = configurations.map(config => `
+            <tr>
+                <td>${config.id}</td>
+                <td>${config.name}</td>
+                <td>${config.description || 'N/A'}</td>
+                <td>${config.tasks_required}</td>
+                <td><span class="badge bg-${config.is_active ? 'success' : 'secondary'}">${config.is_active ? 'Active' : 'Inactive'}</span></td>
+                <td>${new Date(config.created_at).toLocaleString()}</td>
+                <td>
+                    <button class="btn btn-sm btn-warning edit-config-btn" data-config-id="${config.id}">Edit</button>
+                    <button class="btn btn-sm btn-danger delete-config-btn" data-config-id="${config.id}">Delete</button>
+                </td>
+            </tr>
+        `).join('');
+
+        // Add event listeners for new buttons
+        document.querySelectorAll('.edit-config-btn').forEach(button => {
+            button.addEventListener('click', (e) => {
+                const configId = e.target.dataset.configId;
+                showEditDriveConfigurationModal(configId);
+            });
+        });
+        document.querySelectorAll('.delete-config-btn').forEach(button => {
+            button.addEventListener('click', (e) => {
+                const configId = e.target.dataset.configId;
+                handleDeleteDriveConfiguration(configId);
+            });
+        });
+
+    } catch (error) {
+        console.error('Error loading drive configurations:', error);
+        // showNotification is available in this module's scope
+        showNotification(error.message || 'Failed to load drive configurations', 'error');
+    }
+}
+
+function showCreateDriveConfigurationModal() {
+    const modalHtml = `
+    <div class="modal fade" id="createDriveConfigModal" tabindex="-1" aria-labelledby="createDriveConfigModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="createDriveConfigModalLabel">Create Drive Configuration</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <form id="create-drive-config-form">
+              <div class="mb-3">
+                <label for="config-name" class="form-label">Name*</label>
+                <input type="text" class="form-control" id="config-name" required>
+              </div>
+              <div class="mb-3">
+                <label for="config-description" class="form-label">Description</label>
+                <textarea class="form-control" id="config-description" rows="3"></textarea>
+              </div>
+              <div class="mb-3">
+                <label for="config-tasks-required" class="form-label">Tasks Required (Number of Task Sets)*</label>
+                <input type="number" class="form-control" id="config-tasks-required" required min="1">
+              </div>
+              <div class="mb-3 form-check">
+                <input type="checkbox" class="form-check-input" id="config-is-active" checked>
+                <label class="form-check-label" for="config-is-active">Is Active</label>
+              </div>
+              <button type="submit" class="btn btn-primary">Create Configuration</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>`;
+
+    removeExistingModal('createDriveConfigModal');
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    const modalElement = document.getElementById('createDriveConfigModal');
+    const modal = new bootstrap.Modal(modalElement);
+    modal.show();
+
+    document.getElementById('create-drive-config-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const name = document.getElementById('config-name').value;
+        const description = document.getElementById('config-description').value;
+        const tasks_required = parseInt(document.getElementById('config-tasks-required').value);
+        const is_active = document.getElementById('config-is-active').checked;
+
+        if (!name || !tasks_required || tasks_required <=0) {
+            showNotification('Name and a positive number for Tasks Required are mandatory.', 'error');
+            return;
+        }
+
+        try {
+            const response = await fetchWithAuth('/api/admin/drive-management/configurations', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, description, tasks_required, is_active })
+            });
+            if (response && response.id) { // Assuming successful creation returns the new object with an id
+                showNotification('Drive configuration created successfully!', 'success');
+                modal.hide();
+                loadDriveConfigurations(); // Refresh the list
+            } else {
+                throw new Error(response.message || 'Failed to create configuration.');
+            }
+        } catch (error) {
+            showNotification(error.message || 'Error creating configuration', 'error');
+        }
+    });
+}
+
+async function showEditDriveConfigurationModal(configId) {
+    try {
+        const config = await fetchWithAuth(`/api/admin/drive-management/configurations/${configId}`);
+
+        const modalHtml = `
+        <div class="modal fade" id="editDriveConfigModal" tabindex="-1" aria-labelledby="editDriveConfigModalLabel" aria-hidden="true">
+          <div class="modal-dialog">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title" id="editDriveConfigModalLabel">Edit Drive Configuration: ${config.name}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+              </div>
+              <div class="modal-body">
+                <form id="edit-drive-config-form">
+                  <input type="hidden" id="edit-config-id" value="${config.id}">
+                  <div class="mb-3">
+                    <label for="edit-config-name" class="form-label">Name*</label>
+                    <input type="text" class="form-control" id="edit-config-name" value="${config.name}" required>
+                  </div>
+                  <div class="mb-3">
+                    <label for="edit-config-description" class="form-label">Description</label>
+                    <textarea class="form-control" id="edit-config-description" rows="3">${config.description || ''}</textarea>
+                  </div>
+                  <div class="mb-3">
+                    <label for="edit-config-tasks-required" class="form-label">Tasks Required (Number of Task Sets)*</label>
+                    <input type="number" class="form-control" id="edit-config-tasks-required" value="${config.tasks_required}" required min="1">
+                  </div>
+                  <div class="mb-3 form-check">
+                    <input type="checkbox" class="form-check-input" id="edit-config-is-active" ${config.is_active ? 'checked' : ''}>
+                    <label class="form-check-label" for="edit-config-is-active">Is Active</label>
+                  </div>
+                  <button type="submit" class="btn btn-primary">Save Changes</button>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>`;
+
+        removeExistingModal('editDriveConfigModal');
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        const modalElement = document.getElementById('editDriveConfigModal');
+        const modal = new bootstrap.Modal(modalElement);
+        modal.show();
+
+        document.getElementById('edit-drive-config-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('edit-config-id').value;
+            const name = document.getElementById('edit-config-name').value;
+            const description = document.getElementById('edit-config-description').value;
+            const tasks_required = parseInt(document.getElementById('edit-config-tasks-required').value);
+            const is_active = document.getElementById('edit-config-is-active').checked;
+
+            if (!name || !tasks_required || tasks_required <=0) {
+                showNotification('Name and a positive number for Tasks Required are mandatory.', 'error');
+                return;
+            }
+
+            try {
+                const updateResponse = await fetchWithAuth(`/api/admin/drive-management/configurations/${id}`, { 
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, description, tasks_required, is_active })
+                });
+                if (updateResponse && updateResponse.id) { 
+                    showNotification('Drive configuration updated successfully!', 'success');
+                    modal.hide();
+                    loadDriveConfigurations(); 
+                } else {
+                    throw new Error(updateResponse.message || 'Failed to update configuration.');
+                }
+            } catch (error) {
+                showNotification(error.message || 'Error updating configuration', 'error');
+            }
+        });
+
+    } catch (error) {
+        showNotification(error.message || 'Error loading configuration for editing', 'error');
+    }
+}
+
+async function handleDeleteDriveConfiguration(configId) {
+    if (!confirm('Are you sure you want to delete this drive configuration? This action cannot be undone.')) {
+        return;
+    }
+    try {
+        const response = await fetchWithAuth(`/api/admin/drive-management/configurations/${configId}`, { 
+            method: 'DELETE'
+        });
+        if (response && response.success !== false) { 
+            showNotification('Drive configuration deleted successfully!', 'success');
+            loadDriveConfigurations(); 
+        } else {
+            throw new Error(response.message || 'Failed to delete configuration.');
+        }
+    } catch (error) {
+        showNotification(error.message || 'Error deleting configuration', 'error');
+    }
+}
+
+function removeExistingModal(modalId) {
+    const existingModal = document.getElementById(modalId);
+    if (existingModal) {
+        const modalInstance = bootstrap.Modal.getInstance(existingModal);
+        if (modalInstance) {
+            modalInstance.hide();
+        }
+        existingModal.remove(); // Remove the modal HTML from the DOM
+    }
+    // Also remove backdrop if any stuck
+    const backdrop = document.querySelector('.modal-backdrop');
+    if (backdrop) {
+        backdrop.remove();
+    }
+}
+
+// --- Task Set Management for a Drive Configuration ---
+// This function `showTaskSetsForConfiguration` and related functions for managing task sets directly 
+// from the "Drive Configurations Management" table (e.g., showCreateTaskSetModal, showEditTaskSetModal, handleDeleteTaskSet,
+// showManageProductsModal, loadProductsForTaskSet, renderProductsInModal, handleSaveProductOrder, 
+// showAddProductToTaskSetModal, handleRemoveProductFromTaskSet) might become obsolete or need significant
+// refactoring if task sets are now managed *only* in the context of a user's assigned configuration via the "Assign Combos" flow.
+// For now, I will leave them, but they are prime candidates for cleanup once the new flow is fully implemented and tested.
+
+async function showTaskSetsForConfiguration(configId, configName) {
+    document.getElementById('tasksetConfigName').textContent = configName;
+    document.getElementById('current-config-id-for-taskset').value = configId;
+
+    try {
+        // Use fetchWithAuth, which is initialized in initDependencies
+        const taskSetsArray = await fetchWithAuth(`/api/admin/drive-management/configurations/${configId}/tasksets`); 
+
+        // Check if the response is an array
+        if (!Array.isArray(taskSetsArray)) { 
+            console.error('Invalid response from server when fetching task sets: Expected an array but received:', taskSetsArray);
+            throw new Error('Invalid response format from server: Expected an array of task sets.');
+        }
+
+        const taskSets = taskSetsArray; // Use the array directly
+        const taskSetsList = document.getElementById('task-sets-list');
+        
+        if (!taskSetsList) {
+            console.error('Task sets list element not found');
+            showNotification('UI element for task sets not found.', 'error');
+            return;
+        }
+
+        taskSetsList.innerHTML = ''; // Clear existing content
+
+        if (taskSets.length === 0) {
+            taskSetsList.innerHTML = '<tr><td colspan="6" class="text-center">No task sets found for this configuration. Create one!</td></tr>';
+        } else {
+            taskSetsList.innerHTML = taskSets.map(ts => `
+                <tr data-task-set-id="${ts.id}">
+                    <td>${ts.id}</td>
+                    <td>${ts.name || 'N/A'}</td>
+                    <td>${ts.display_order}</td>
+                    <td>${ts.products_count || 0}</td>
+                    <td><span class="badge bg-${ts.is_combo ? 'primary' : 'info'}">${ts.is_combo ? 'Combo' : 'Single'}</span></td>
+                    <td>
+                        <button class="btn btn-sm btn-secondary manage-products-btn" data-task-set-id="${ts.id}" data-task-set-name="${ts.name || 'Task Set ' + ts.id}" data-config-id="${configId}" data-config-name="${configName}">Manage Products</button>
+                        <button class="btn btn-sm btn-warning edit-task-set-btn" data-task-set-id="${ts.id}" data-config-id="${configId}" data-config-name="${configName}">Edit</button>
+                        <button class="btn btn-sm btn-danger delete-task-set-btn" data-task-set-id="${ts.id}" data-config-id="${configId}" data-config-name="${configName}">Delete</button>
+                    </td>
+                </tr>
+            `).join('');
+
+            // Re-attach event listeners for newly created buttons
+            taskSetsList.querySelectorAll('.manage-products-btn').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    const taskSetId = e.target.dataset.taskSetId;
+                    const taskSetName = e.target.dataset.taskSetName;
+                    showManageProductsModal(taskSetId, taskSetName, configId, configName); 
+                });
+            });
+            taskSetsList.querySelectorAll('.edit-task-set-btn').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    const taskSetId = e.target.dataset.taskSetId;
+                    const currentConfigId = e.target.dataset.configId;
+                    const currentConfigName = e.target.dataset.configName;
+                    showEditTaskSetModal(taskSetId, currentConfigId, currentConfigName); 
+                });
+            });
+            taskSetsList.querySelectorAll('.delete-task-set-btn').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    const taskSetId = e.target.dataset.taskSetId;
+                    const currentConfigId = e.target.dataset.configId;
+                    const currentConfigName = e.target.dataset.configName;
+                    handleDeleteTaskSet(taskSetId, currentConfigId, currentConfigName); 
+                });
+            });
+        }
+
+        const modalElement = document.getElementById('manageTaskSetsModal');
+        if (modalElement) {
+            const modal = bootstrap.Modal.getOrCreateInstance(modalElement);
+            modal.show();
+        } else {
+            console.error('Manage Task Sets modal element (#manageTaskSetsModal) not found');
+            showNotification('Could not display task sets modal: UI element missing.', 'error');
+        }
+
+    } catch (error) {
+        console.error('Error in showTaskSetsForConfiguration:', error);
+        showNotification(error.message || 'Error loading task sets for configuration.', 'error');
+        
+        // Attempt to show the modal anyway so the user isn't stuck, and display error inside
+        const modalElement = document.getElementById('manageTaskSetsModal');
+        if (modalElement) {
+             const modal = bootstrap.Modal.getOrCreateInstance(modalElement);
+             modal.show(); 
+             const taskSetsList = document.getElementById('task-sets-list');
+             if(taskSetsList) {
+                taskSetsList.innerHTML = `<tr><td colspan="6" class="text-center text-danger">Failed to load task sets: ${error.message || 'Unknown error'}. Please try again or check console.</td></tr>`;
+             }
+        } else {
+            console.error('Manage Task Sets modal element (#manageTaskSetsModal) not found, cannot display error fallback.');
+        }
+    }
+}
+
+export function showCreateTaskSetModal(configId, configName) { // Added export
+    const modalId = 'createTaskSetModal';
+    removeExistingModal(modalId);
+
+    const modalHtml = `
+    <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${modalId}Label" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="${modalId}Label">Create New Task Set for ${configName}</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <form id="create-task-set-form">
+              <input type="hidden" id="create-task-set-config-id" value="${configId}">
+              <div class="mb-3">
+                <label for="task-set-name" class="form-label">Task Set Name*</label>
+                <input type="text" class="form-control" id="task-set-name" required>
+              </div>
+              <div class="mb-3">
+                <label for="task-set-display-order" class="form-label">Display Order*</label>
+                <input type="number" class="form-control" id="task-set-display-order" required min="1">
+              </div>
+              <div class="mb-3 form-check">
+                <input type="checkbox" class="form-check-input" id="task-set-is-combo">
+                <label class="form-check-label" for="task-set-is-combo">Is Combo Set (allows multiple products)</label>
+              </div>
+              <button type="submit" class="btn btn-primary">Create Task Set</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>`;
+
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    const modalElement = document.getElementById(modalId);
+    const modal = new bootstrap.Modal(modalElement);
+    modal.show();
+
+    document.getElementById('create-task-set-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const name = document.getElementById('task-set-name').value;
+        const display_order_from_form = parseInt(document.getElementById('task-set-display-order').value);
+        const is_combo = document.getElementById('task-set-is-combo').checked;
+        // configId and configName are available from the showCreateTaskSetModal parameters
+
+        if (!name || !display_order_from_form || display_order_from_form <= 0) {
+            showNotification('Task Set Name and a positive Display Order are mandatory.', 'error');
+            return;
+        }
+
+        try {
+            const response = await fetchWithAuth('/api/admin/drive-management/tasksets', { // Corrected API endpoint
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    name, 
+                    order_in_drive: display_order_from_form, // Field name matches backend
+                    is_combo,
+                    drive_configuration_id: configId // Added drive_configuration_id from function parameter
+                })
+            });
+            if (response && response.id) { 
+                showNotification('Task Set created successfully!', 'success');
+                modal.hide();
+                showTaskSetsForConfiguration(configId, configName); // Use parameters for refreshing
+            } else {
+                const errorMessage = response && response.message ? response.message : 'Failed to create task set.';
+                throw new Error(errorMessage);
+            }
+        } catch (error) {
+            const errorMessage = error && error.message ? error.message : 'Error creating task set';
+            showNotification(errorMessage, 'error');
+        }
+    });
+}
+
+// Updated to accept configId and configName for refreshing the list
+async function showEditTaskSetModal(taskSetId, configId, configName) { 
+    console.log('showEditTaskSetModal called for taskSetId:', taskSetId, 'configId:', configId, 'configName:', configName);
+    try {
+        const taskSet = await fetchWithAuth(`/api/admin/drive-management/task-sets/${taskSetId}`); 
+
+        const modalId = 'editTaskSetModal';
+        removeExistingModal(modalId);
+
+        const modalHtml = `
+        <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${modalId}Label" aria-hidden="true">
+          <div class="modal-dialog">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title" id="${modalId}Label">Edit Task Set: ${taskSet.name}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+              </div>
+              <div class="modal-body">
+                <form id="edit-task-set-form">
+                  <input type="hidden" id="edit-task-set-id" value="${taskSet.id}">
+                  <input type="hidden" id="edit-task-set-config-id" value="${configId}"> 
+                  <div class="mb-3">
+                    <label for="edit-ts-name" class="form-label">Task Set Name*</label>
+                    <input type="text" class="form-control" id="edit-ts-name" value="${taskSet.name}" required>
+                  </div>
+                  <div class="mb-3>
+                    <label for="edit-ts-display-order" class="form-label">Display Order*</label>
+                    <input type="number" class="form-control" id="edit-ts-display-order" value="${taskSet.display_order}" required min="1">
+                  </div>
+                  <div class="mb-3 form-check">
+                    <input type="checkbox" class="form-check-input" id="edit-ts-is-combo" ${taskSet.is_combo ? 'checked' : ''}>
+                    <label class="form-check-label" for="edit-ts-is-combo">Is Combo Set</label>
+                  </div>
+                  <button type="submit" class="btn btn-primary">Save Changes</button>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>`;
+
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        const modalElement = document.getElementById(modalId);
+        const modal = new bootstrap.Modal(modalElement);
+        modal.show();
+
+        document.getElementById('edit-task-set-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('edit-task-set-id').value;
+            const name = document.getElementById('edit-ts-name').value;
+            const display_order = parseInt(document.getElementById('edit-ts-display-order').value);
+            const is_combo = document.getElementById('edit-ts-is-combo').checked;
+            const currentConfigId = document.getElementById('edit-task-set-config-id').value;
+
+            if (!name || !display_order || display_order <= 0) {
+                showNotification('Task Set Name and a positive Display Order are mandatory.', 'error');
+                return;
+            }
+
+            try {
+                const updateResponse = await fetchWithAuth(`/api/admin/drive-management/task-sets/${id}`, { 
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, display_order, is_combo, drive_configuration_id: currentConfigId }) 
+                });
+                if (updateResponse && updateResponse.id) { 
+                    showNotification('Task Set updated successfully!', 'success');
+                    modal.hide();
+                    showTaskSetsForConfiguration(currentConfigId, configName); 
+                } else {
+                    throw new Error(updateResponse.message || 'Failed to update task set.');
+                }
+            } catch (error) {
+                showNotification(error.message || 'Error updating task set', 'error');
+            }
+        });
+
+    } catch (error) {
+        showNotification(error.message || 'Error loading task set for editing', 'error');
+    }
+}
+
+async function handleDeleteTaskSet(taskSetId, configId, configName) { 
+    console.log('handleDeleteTaskSet called for taskSetId:', taskSetId, 'configId:', configId, 'configName:', configName);
+    if (confirm('Are you sure you want to delete this task set? This will also remove all associated products within this set.')) {
+        try {
+            const response = await fetchWithAuth(`/api/admin/drive-management/task-sets/${taskSetId}`, { 
+                method: 'DELETE'
+            });
+            if (response && response.success !== false) { 
+                showNotification('Task Set deleted successfully!', 'success');
+                showTaskSetsForConfiguration(configId, configName); 
+            } else {
+                throw new Error(response.message || 'Failed to delete task set.');
+            }
+        } catch (error) {
+            showNotification(error.message || 'Error deleting task set', 'error');
+        }
+    }
+}
+
+// Updated to accept configId and configName for context when adding products or other operations that might need it
+function showManageProductsModal(taskSetId, taskSetName, configId, configName) { 
+    console.log('showManageProductsModal called for', { taskSetId, taskSetName, configId, configName });
+    // Implementation will involve:
+    // 1. Setting modal title.
+    // 2. Fetching products for the task set: GET /api/admin/drive-management/task-sets/${taskSetId}/products
+    // 3. Displaying products in a list/table with options to add, edit order/overrides, remove.
+    // 4. "Add Product" would likely open another modal/form to select a product and set its properties for this task set.
+    const modalElement = document.getElementById('manageProductsInTaskSetModal');
+    if (!modalElement) {
+        console.error('Manage Products modal element not found.');
+        showNotification('UI Error: Manage products modal not found.', 'error');
+        return;
+    }
+
+    document.getElementById('manageProductsModalLabel').textContent = `Manage Products for: ${taskSetName}`;
+    // Store taskSetId and other context for use by other functions within this modal
+    modalElement.dataset.taskSetId = taskSetId;
+    modalElement.dataset.taskSetName = taskSetName;
+    modalElement.dataset.configId = configId; 
+    modalElement.dataset.configName = configName;
+
+    const addProductBtn = document.getElementById('show-add-product-to-task-set-modal-btn');
+    if (addProductBtn) {
+        const newBtn = addProductBtn.cloneNode(true);
+        addProductBtn.parentNode.replaceChild(newBtn, addProductBtn);
+        newBtn.onclick = () => showAddProductToTaskSetModal(taskSetId, taskSetName, configId, configName);
+    } else {
+        console.error('Add product to task set button not found in modal');
+    }
+    
+    const saveOrderBtn = document.getElementById('save-product-order-btn');
+    if (saveOrderBtn) {
+        const newSaveOrderBtn = saveOrderBtn.cloneNode(true);
+        saveOrderBtn.parentNode.replaceChild(newSaveOrderBtn, saveOrderBtn);
+        newSaveOrderBtn.onclick = () => handleSaveProductOrder(taskSetId, taskSetName, configId, configName);
+    } else {
+        console.error('Save product order button not found in modal');
+    }
+
+    loadProductsForTaskSet(taskSetId, taskSetName, configId, configName); // Pass configId and configName
+
+    const modal = bootstrap.Modal.getOrCreateInstance(modalElement);
+    modal.show();
+}
+
+async function loadProductsForTaskSet(taskSetId, taskSetName, configId, configName) {
+    const productsList = document.getElementById('products-in-task-set-list');
+    if (!productsList) {
+        console.error('Products in task set list element not found.');
+        return;
+    }
+    productsList.innerHTML = '<tr><td colspan="5" class="text-center">Loading products...</td></tr>';
+
+    try {
+        const products = await fetchWithAuth(`/api/admin/drive-management/task-sets/${taskSetId}/products`); 
+
+        if (!products || !Array.isArray(products)) { 
+             throw new Error('Invalid data received for products in task set.');
+        }
+
+        if (products.length === 0) {
+            productsList.innerHTML = '<tr><td colspan="5" class="text-center">No products added to this task set yet.</td></tr>';
+        } else {
+            // Sort products by display_order before rendering
+            products.sort((a, b) => a.display_order - b.display_order);
+            renderProductsInModal(products, taskSetId, taskSetName, configId, configName);
+        }
+    } catch (error) {
+        productsList.innerHTML = `<tr><td colspan="5" class="text-center text-danger">Error: ${error.message}</td></tr>`;
+        showNotification(error.message, 'error');
+    }
+}
+
+function renderProductsInModal(products, taskSetId, taskSetName, configId, configName) {
+    const productsList = document.getElementById('products-in-task-set-list');
+    productsList.innerHTML = products.map((p, index) => `
+        <tr data-product-id="${p.product_id}" data-original-order="${p.display_order}">
+            <td>${p.product_name}</td>
+            <td>$${p.product_price}</td>
+            <td>${p.product_commission_rate}%</td>
+            <td>
+                <button class="btn btn-sm btn-outline-secondary product-order-up-btn" ${index === 0 ? 'disabled' : ''} title="Move Up">
+                    <i class="fas fa-arrow-up"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-secondary product-order-down-btn" ${index === products.length - 1 ? 'disabled' : ''} title="Move Down">
+                    <i class="fas fa-arrow-down"></i>
+                </button>
+            </td>
+            <td>
+                <button class="btn btn-sm btn-danger remove-product-from-task-set-btn" data-product-id="${p.product_id}" data-product-name="${p.product_name}">Remove</button>
+            </td>
+        </tr>
+    `).join('');
+
+    // Add event listeners for reorder and remove buttons
+    productsList.querySelectorAll('.remove-product-from-task-set-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const productId = e.currentTarget.dataset.productId;
+            const productName = e.currentTarget.dataset.productName;
+            handleRemoveProductFromTaskSet(taskSetId, productId, productName, taskSetName, configId, configName);
+        });
+    });
+
+    productsList.querySelectorAll('.product-order-up-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const row = e.currentTarget.closest('tr');
+            if (row.previousElementSibling) {
+                row.parentNode.insertBefore(row, row.previousElementSibling);
+                updateProductReorderButtonStates(productsList);
+            }
+        });
+    });
+
+    productsList.querySelectorAll('.product-order-down-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const row = e.currentTarget.closest('tr');
+            if (row.nextElementSibling) {
+                row.parentNode.insertBefore(row.nextElementSibling, row);
+                updateProductReorderButtonStates(productsList);
+            }
+        });
+    });
+    updateProductReorderButtonStates(productsList); // Initial state update
+}
+
+function updateProductReorderButtonStates(productListElement) {
+    const rows = productListElement.querySelectorAll('tr');
+    rows.forEach((row, index) => {
+        const upButton = row.querySelector('.product-order-up-btn');
+        const downButton = row.querySelector('.product-order-down-btn');
+        if (upButton) upButton.disabled = index === 0;
+        if (downButton) downButton.disabled = index === rows.length - 1;
+    });
+}
+
+async function handleSaveProductOrder(taskSetId, taskSetName, configId, configName) {
+    const productsListElement = document.getElementById('products-in-task-set-list');
+    const productRows = productsListElement.querySelectorAll('tr[data-product-id]');
+    const orderedProductIds = Array.from(productRows).map(row => row.dataset.productId);
+
+    if (orderedProductIds.length === 0) {
+        showNotification('No products to order.', 'info');
+        return;
+    }
+
+    try {
+        const response = await fetchWithAuth(`/api/admin/drive-management/task-sets/${taskSetId}/products/reorder`, { 
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ products: productsOrder })
+        });
+        if (response && response.success) {
+            showNotification('Product order saved successfully!', 'success');
+            loadProductsForTaskSet(taskSetId, taskSetName, configId, configName); 
+        } else {
+            throw new Error(response.message || 'Failed to save product order.');
+        }
+    } catch (error) {
+        showNotification(error.message || 'Error saving product order', 'error');
+    }
+}
+
+async function showAddProductToTaskSetModal(taskSetId, taskSetName, configId, configName) {
+    const modalId = 'addProductToTaskSetModal';
+    removeExistingModal(modalId);
+
+    // Fetch available products to populate the select dropdown
+    let availableProducts = [];
+    try {
+        const productsResponse = await fetchWithAuth('/api/products'); // Assuming a general products endpoint
+        if (!productsResponse.ok) {
+            throw new Error('Failed to load available products.');
+        }
+        availableProducts = await productsResponse.json();
+        if (availableProducts.success === false) { // If API wraps in {success: ..., products: ...}
+             availableProducts = availableProducts.products || [];
+        }
+    } catch (error) {
+        showNotification(error.message, 'error');
+        return; // Don't show modal if products can't be loaded
+    }
+
+    if (!Array.isArray(availableProducts)) {
+        console.error('Available products data is not an array:', availableProducts);
+        showNotification('Could not load products for selection (invalid format).', 'error');
+        return;
+    }
+
+    const productOptions = availableProducts.map(p => `<option value="${p.id}">${p.name} ($${p.price})</option>`).join('');
+
+    const modalHtml = `
+    <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${modalId}Label" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="${modalId}Label">Add Product to: ${taskSetName}</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <form id="add-product-to-task-set-form">
+              <div class="mb-3">
+                <label for="select-product-to-add" class="form-label">Select Product*</label>
+                <select class="form-select" id="select-product-to-add" required>
+                  <option value="" disabled selected>Choose a product...</option>
+                  ${productOptions}
+                </select>
+              </div>
+              <button type="submit" class="btn btn-primary">Add Product</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>`;
+
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    const modalElement = document.getElementById(modalId);
+    const modal = new bootstrap.Modal(modalElement);
+    modal.show();
+
+    document.getElementById('add-product-to-task-set-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const productId = document.getElementById('select-product-to-add').value;
+
+        if (!productId) {
+            showNotification('Please select a product to add.', 'error');
+            return;
+        }
+
+        try {
+            const response = await fetchWithAuth(`/api/admin/drive-management/task-sets/${taskSetId}/products`, { 
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ product_id: productId, display_order: displayOrder })
+            });
+            if (response && response.product_id) { 
+                showNotification('Product added to task set successfully!', 'success');
+                modal.hide();
+                loadProductsForTaskSet(taskSetId, taskSetName, configId, configName); 
+            } else {
+                throw new Error(response.message || 'Failed to add product to task set.');
+            }
+        } catch (error) {
+            showNotification(error.message || 'Error adding product to task set', 'error');
+        }
+    });
+}
+
+async function handleRemoveProductFromTaskSet(productId, productName, taskSetId, taskSetName, configId, configName) {
+    if (confirm(`Are you sure you want to remove "${productName}" from "${taskSetName}"?`)) {
+        try {
+            const response = await fetchWithAuth(`/api/admin/drive-management/task-sets/${taskSetId}/products/${productId}`, { 
+                method: 'DELETE'
+            });
+             if (response && response.success !== false) { 
+                showNotification('Product removed from task set successfully!', 'success');
+                loadProductsForTaskSet(taskSetId, taskSetName, configId, configName); 
+            } else {
+                throw new Error(response.message || 'Failed to remove product from task set.');
+            }
+        } catch (error) {
+            showNotification(error.message || 'Error removing product', 'error');
+        }
+    }
 }
