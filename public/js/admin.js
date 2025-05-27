@@ -27,6 +27,7 @@ async function viewDriveDetails(driveId) {
         showNotification('Failed to load drive details', 'error');
     }
 }
+window.viewDriveDetails = viewDriveDetails; // Make it globally accessible
 
 // Add polling interval reference
 

@@ -603,3 +603,76 @@ exports.addProductToDriveItemCombo = async (req, res) => {
         client.release();
     }
 };
+
+// Assign a Drive Configuration to a User (for admin override or direct assignment)
+exports.assignDriveConfigurationToUser = async (req, res) => {
+    const { userId } = req.params;
+    const { drive_configuration_id } = req.body;
+
+    if (!drive_configuration_id) {
+        return res.status(400).json({ message: 'drive_configuration_id is mandatory.' });
+    }
+
+    try {
+        // 1. Verify user exists
+        const userResult = await pool.query('SELECT id FROM users WHERE id = $1', [userId]);
+        if (userResult.rows.length === 0) {
+            return res.status(404).json({ message: 'User not found.' });
+        }
+
+        // 2. Verify drive configuration exists
+        const configResult = await pool.query('SELECT id FROM drive_configurations WHERE id = $1 AND is_active = TRUE', [drive_configuration_id]);
+        if (configResult.rows.length === 0) {
+            return res.status(404).json({ message: 'Active drive configuration not found.' });
+        }
+
+        // 3. Update the user's assigned_drive_configuration_id
+        // Assuming 'users' table has a column 'assigned_drive_configuration_id'
+        const updateQuery = 
+            'UPDATE users SET assigned_drive_configuration_id = $1 WHERE id = $2 RETURNING id, username, email, assigned_drive_configuration_id';
+        
+        const updateResult = await pool.query(updateQuery, [drive_configuration_id, userId]);
+
+        if (updateResult.rows.length === 0) {
+            // This case should ideally not be reached if user and config checks passed
+            return res.status(500).json({ message: 'Failed to update user with drive configuration.' });
+        }
+
+        logger.info(`Admin assigned drive configuration ${drive_configuration_id} to user ${userId}.`);
+        res.status(200).json({ 
+            message: 'User drive configuration assigned successfully.', 
+            user: updateResult.rows[0] 
+        });
+
+    } catch (error) {
+        logger.error(`Error assigning drive configuration ${drive_configuration_id} to user ${userId}:`, error);
+        // Check if the error is due to a non-existent column
+        if (error.message.includes('column "assigned_drive_configuration_id" of relation "users" does not exist')) {
+            return res.status(500).json({ 
+                message: 'Database schema error: The column "assigned_drive_configuration_id" does not exist on the "users" table. Please update the database schema.',
+                error: error.message 
+            });
+        }
+        if (error.message.includes('column "updated_at" of relation "users" does not exist')) {
+            // If updated_at also doesn't exist, try the query without it.
+            // This is a fallback, ideally the schema should be consistent.
+            logger.warn('Column "updated_at" does not exist in "users" table. Attempting update without it.');
+            try {
+                const fallbackUpdateQuery = 'UPDATE users SET assigned_drive_configuration_id = $1 WHERE id = $2 RETURNING id, username, email, assigned_drive_configuration_id';
+                const fallbackResult = await pool.query(fallbackUpdateQuery, [drive_configuration_id, userId]);
+                if (fallbackResult.rows.length === 0) {
+                    return res.status(500).json({ message: 'Failed to update user with drive configuration (fallback attempt).' });
+                }
+                logger.info(`Admin assigned drive configuration ${drive_configuration_id} to user ${userId} (fallback without updated_at).`);
+                return res.status(200).json({
+                    message: 'User drive configuration assigned successfully (schema mismatch for updated_at).',
+                    user: fallbackResult.rows[0]
+                });
+            } catch (fallbackError) {
+                logger.error(`Fallback update attempt also failed for user ${userId}:`, fallbackError);
+                return res.status(500).json({ message: 'Failed to assign drive configuration to user (fallback failed)', error: fallbackError.message });
+            }
+        }
+        res.status(500).json({ message: 'Failed to assign drive configuration to user', error: error.message });
+    }
+};

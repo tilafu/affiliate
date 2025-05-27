@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
+<head>    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Panel</title>
     <link rel="stylesheet" href="./assets/css/bootstrap.min.css">
     <link rel="stylesheet" href="./assets/css/style.css">
+    <link rel="stylesheet" href="./css/debug.css">
     <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
@@ -49,10 +49,16 @@
             padding: 5px 10px;
             border-radius: 15px;
             font-size: 12px;
-        }
-        .status-approved { background: #2ecc71; color: white; }
+        }        .status-approved { background: #2ecc71; color: white; }
         .status-rejected { background: #e74c3c; color: white; }
         .status-pending { background: #f1c40f; color: white; }
+        
+        /* Fix for disabled buttons */
+        button:disabled, .btn:disabled {
+            cursor: not-allowed !important;
+            opacity: 0.65;
+        }
+        
         @media (max-width: 768px) {
             .main-sidebar {
                 left: -250px;

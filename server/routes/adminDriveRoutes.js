@@ -27,6 +27,9 @@ router.delete('/taskset-products/:id', authMiddleware.protect, authMiddleware.ad
 // User Drive Assignment
 router.post('/users/:userId/drive/assign', authMiddleware.protect, authMiddleware.admin, adminDriveController.assignDriveToUser);
 
+// Route for admin to directly assign/update a user's drive configuration (e.g. for override)
+router.put('/users/:userId/assign-drive-config', authMiddleware.protect, authMiddleware.admin, adminDriveController.assignDriveConfigurationToUser);
+
 // User Active Drive Item Routes
 router.get('/users/:userId/drive/active-items', authMiddleware.protect, authMiddleware.admin, adminDriveController.getActiveDriveItemsForUser);
 router.post('/users/:userId/drive/active-items/:driveItemId/add-combo', authMiddleware.protect, authMiddleware.admin, adminDriveController.addProductToDriveItemCombo);
