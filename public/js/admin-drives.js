@@ -482,17 +482,18 @@ async function showAssignDriveConfigModal(userId, username) {
             showNotification('Please select a drive configuration.', 'error');
             return;
         }
-
-        try {
-            // API endpoint: PUT /api/admin/drive-management/users/:userId/assign-drive-config
-            // Body: { "drive_configuration_id": selectedConfigId }
-            const response = await fetchWithAuth(`/api/admin/drive-management/users/${currentUserId}/assign-drive-config`, {
+        
+        try {            const response = await fetchWithAuth(`/api/admin/drive-management/users/${currentUserId}/assign-drive-config`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ drive_configuration_id: selectedConfigId })
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    drive_configuration_id: selectedConfigId
+                })
             });
 
-            if (response.success) {
+            if (response.message) {
                 showNotification('Drive configuration assigned successfully!', 'success');
                 modal.hide();
                 await loadDrives(); // Refresh the drives list to show the new assignment
@@ -517,8 +518,8 @@ async function showAssignCombosModal(userId, username, assignedConfigId, assigne
     document.getElementById('modal-taskset-username').textContent = username;
     document.getElementById('modal-taskset-configname').textContent = assignedConfigName;
     // Store for later use, e.g., when creating a task set for this user/config
-    document.getElementById('manageTaskSetsModal').dataset.currentUserId = userId;
-    document.getElementById('manageTaskSetsModal').dataset.currentConfigId = assignedConfigId;
+    document.getElementById('modal-taskset-user-id').value = userId;
+    document.getElementById('modal-taskset-config-id').value = assignedConfigId;
 
 
     await loadProductsForTaskSetCreationModal(assignedConfigId);
@@ -536,8 +537,7 @@ async function loadProductsForTaskSetCreationModal(configId) {
     }
     productListDiv.innerHTML = '<p>Loading products...</p>';
 
-    try {
-        // API: GET /api/admin/drive-management/configurations/:configId/products
+    try {        // API: GET /api/admin/drive-management/configurations/:configId/products
         // This endpoint should return all products associated with the drive configuration,
         // not products already in task sets for this config, but all products defined within the config.
         const response = await fetchWithAuth(`/api/admin/drive-management/configurations/${configId}/products`);
@@ -567,11 +567,16 @@ async function loadProductsForTaskSetCreationModal(configId) {
 
         // Add event listeners for the "Add Combo" buttons
         productListDiv.querySelectorAll('.add-combo-from-product-btn').forEach(button => {
-            button.addEventListener('click', async (e) => {
-                const productId = e.target.dataset.productId;
+            button.addEventListener('click', async (e) => {                const productId = e.target.dataset.productId;
                 const productName = e.target.dataset.productName;
-                const currentUserId = document.getElementById('manageTaskSetsModal').dataset.currentUserId;
-                const currentConfigId = document.getElementById('manageTaskSetsModal').dataset.currentConfigId;
+                const currentUserId = document.getElementById('modal-taskset-user-id').value;
+                const currentConfigId = document.getElementById('modal-taskset-config-id').value;
+
+                if (!currentUserId || !currentConfigId) {
+                    showNotification('Missing user ID or configuration ID. Please try again.', 'error');
+                    console.error('Missing data:', { currentUserId, currentConfigId, productId, productName });
+                    return;
+                }
 
                 // For simplicity, let's auto-generate a task set name and order for now.
                 // In a real scenario, you might prompt the user for these.
@@ -724,7 +729,8 @@ export async function loadDriveConfigurations() { // Added export
     }
 }
 
-function showCreateDriveConfigurationModal() {
+// Export the function to make it accessible via DriveModuleAPI
+export function showCreateDriveConfigurationModal() {
     const modalHtml = `
     <div class="modal fade" id="createDriveConfigModal" tabindex="-1" aria-labelledby="createDriveConfigModalLabel" aria-hidden="true">
       <div class="modal-dialog">

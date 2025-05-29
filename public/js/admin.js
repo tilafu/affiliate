@@ -735,9 +735,19 @@ function initializeHandlers() {
     document.addEventListener('click', async (event) => {
         const target = event.target;
 
-        // --- Drive Configuration & Task Set Modals ---
+    // --- Drive Configuration & Task Set Modals ---
+        // Handler for "Create New Configuration" button in the Drive Configurations section
+        if (target.id === 'show-create-config-modal-btn') {
+            event.preventDefault();
+            if (DriveModuleAPI && typeof DriveModuleAPI.showCreateDriveConfigurationModal === 'function') {
+                DriveModuleAPI.showCreateDriveConfigurationModal();
+            } else {
+                console.error('DriveModuleAPI.showCreateDriveConfigurationModal is not available. Ensure admin-drives.js is loaded and exports this function.');
+                showNotification('Error: Cannot open the form to create a new drive configuration.', 'error');
+            }
+        }
         // Handler for "Add New Task Set" button within the "Manage Task Sets Modal"
-        if (target.id === 'show-create-taskset-modal-btn') {
+        else if (target.id === 'show-create-taskset-modal-btn') {
             event.preventDefault();
             const configIdInput = document.getElementById('current-config-id-for-taskset');
             const configNameElement = document.getElementById('tasksetConfigName');

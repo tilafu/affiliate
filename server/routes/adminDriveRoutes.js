@@ -10,6 +10,9 @@ router.get('/configurations/:id', authMiddleware.protect, authMiddleware.admin, 
 router.put('/configurations/:id', authMiddleware.protect, authMiddleware.admin, adminDriveController.updateDriveConfiguration);
 router.delete('/configurations/:id', authMiddleware.protect, authMiddleware.admin, adminDriveController.deleteDriveConfiguration);
 
+// Get products for a configuration
+router.get('/configurations/:configId/products', authMiddleware.protect, authMiddleware.admin, adminDriveController.getProductsForConfiguration);
+
 // Drive Task Set Routes
 router.post('/tasksets', authMiddleware.protect, authMiddleware.admin, adminDriveController.createDriveTaskSet);
 router.get('/configurations/:configurationId/tasksets', authMiddleware.protect, authMiddleware.admin, adminDriveController.getTaskSetsForConfiguration);
