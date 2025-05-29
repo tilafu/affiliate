@@ -634,21 +634,20 @@ async function loadProductsForTaskSetCreationModal(configId) {
 // NEW EXPORTED function to GET data
 export async function getDriveConfigurations() {
     if (!isInitialized) {
-        // This function might be called by other modules, so a console log is better than showNotification directly
         console.error('getDriveConfigurations called before initDependencies completed.');
-        // Optionally, try to use a fallback or throw an error if critical
-        // For now, let it proceed, but it will likely fail if fetchWithAuth is needed.
-        // Or, if showNotification is available globally, use it cautiously.
-        if (typeof showNotification === 'function') { // Check if it was somehow set globally or by a partial init
+        if (typeof showNotification === 'function') {
             showNotification('Drive configuration data might be unavailable: module not fully ready.', 'warning');
-        } else {
-            // console.warn('showNotification not available for getDriveConfigurations pre-init warning.');
         }
-        // To prevent cascading errors, return empty or handle as per contract
-        // return []; // This might be a safer default if the caller expects an array
+        return []; // Return empty array or appropriate default/error state
     }
     try {
-        const configurations = await fetchWithAuth('/api/admin/drive-management/configurations'); 
+        const response = await fetchWithAuth('/api/admin/drive-management/configurations');
+        // Ensure the response structure is as expected, often it's response.data or similar
+        // For this example, assuming fetchWithAuth directly returns the array or an object with a property.
+        // If fetchWithAuth returns a more complex object (e.g., { success: true, configurations: [...] }), adjust here.
+        // Based on previous usage, fetchWithAuth seems to return the data directly or an object that can be treated as such.
+        const configurations = response; // Adjust if fetchWithAuth wraps data, e.g., response.data or response.configurations
+
         if (Array.isArray(configurations)) {
             return configurations;
         } else {
@@ -656,34 +655,23 @@ export async function getDriveConfigurations() {
             if (typeof showNotification === 'function') {
                 showNotification('Received unexpected format for drive configurations.', 'error');
             }
-            return []; 
+            return [];
         }
     } catch (error) {
         console.error('Error fetching drive configurations:', error);
         if (typeof showNotification === 'function') {
-            showNotification(error.message || 'Failed to fetch drive configurations list', 'error');
+            showNotification(error.message || 'Failed to fetch drive configurations', 'error');
         }
-        return []; 
+        return [];
     }
 }
 
 // ORIGINAL function to LOAD data into the table - NOW EXPORTED
 export async function loadDriveConfigurations() { // Added export
     try {
-        // Add a check to see if getDriveConfigurations is actually a function
-        // This check might be redundant if called via DriveModuleAPI.getDriveConfigurations,
-        // but kept for internal calls if any, or for robustness.
-        if (typeof getDriveConfigurations !== 'function') { // This check refers to the getDriveConfigurations in this file's scope
-            console.error('CRITICAL: getDriveConfigurations (internal) is not a function or not defined. Check admin-drives.js.');
-            if (typeof showNotification === 'function') {
-                showNotification('Fatal error: Cannot load drive configurations data. Module might be corrupted (internal check).', 'error');
-            }
-            const configList = document.getElementById('drive-configurations-list');
-            if (configList) {
-                configList.innerHTML = '<tr><td colspan="7" class="text-center text-danger">Error: Drive configuration loader failed (internal).</td></tr>';
-            }
-            return;
-        }
+        // Removed redundant check for typeof getDriveConfigurations === 'function'
+        // getDriveConfigurations is defined in the same module scope and will either be a function
+        // or the call below would fail. It also has its own initialization checks.
 
         const configurations = await getDriveConfigurations(); // Call the sibling function in this module
         
@@ -730,84 +718,234 @@ export async function loadDriveConfigurations() { // Added export
 }
 
 // Export the function to make it accessible via DriveModuleAPI
+// Comment: The function showCreateDriveConfigurationModal is exported on the next line.
 export function showCreateDriveConfigurationModal() {
-    const modalHtml = `
-    <div class="modal fade" id="createDriveConfigModal" tabindex="-1" aria-labelledby="createDriveConfigModalLabel" aria-hidden="true">
-      <div class="modal-dialog">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title" id="createDriveConfigModalLabel">Create Drive Configuration</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-          </div>
-          <div class="modal-body">
-            <form id="create-drive-config-form">
-              <div class="mb-3">
-                <label for="config-name" class="form-label">Name*</label>
-                <input type="text" class="form-control" id="config-name" required>
-              </div>
-              <div class="mb-3">
-                <label for="config-description" class="form-label">Description</label>
-                <textarea class="form-control" id="config-description" rows="3"></textarea>
-              </div>
-              <div class="mb-3">
-                <label for="config-tasks-required" class="form-label">Tasks Required (Number of Task Sets)*</label>
-                <input type="number" class="form-control" id="config-tasks-required" required min="1">
-              </div>
-              <div class="mb-3 form-check">
-                <input type="checkbox" class="form-check-input" id="config-is-active" checked>
-                <label class="form-check-label" for="config-is-active">Is Active</label>
-              </div>
-              <button type="submit" class="btn btn-primary">Create Configuration</button>
-            </form>
-          </div>
-        </div>
-      </div>
-    </div>`;
-
-    removeExistingModal('createDriveConfigModal');
-    document.body.insertAdjacentHTML('beforeend', modalHtml);
-    const modalElement = document.getElementById('createDriveConfigModal');
-    const modal = new bootstrap.Modal(modalElement);
-    modal.show();
-
-    document.getElementById('create-drive-config-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const name = document.getElementById('config-name').value;
-        const description = document.getElementById('config-description').value;
-        const tasks_required = parseInt(document.getElementById('config-tasks-required').value);
-        const is_active = document.getElementById('config-is-active').checked;
-
-        if (!name || !tasks_required || tasks_required <=0) {
-            showNotification('Name and a positive number for Tasks Required are mandatory.', 'error');
-            return;
-        }
-
-        try {
-            const response = await fetchWithAuth('/api/admin/drive-management/configurations', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, description, tasks_required, is_active })
-            });
-            if (response && response.id) { // Assuming successful creation returns the new object with an id
-                showNotification('Drive configuration created successfully!', 'success');
-                modal.hide();
-                loadDriveConfigurations(); // Refresh the list
-            } else {
-                throw new Error(response.message || 'Failed to create configuration.');
+    // Fetch all available products
+    fetchWithAuth('/admin/products') // Changed from /api/products
+        .then(productsResponse => {
+            // Assuming fetchWithAuth might return a structured response like { success: true, products: [] }
+            // or just the array directly. Adjust based on actual fetchWithAuth behavior.
+            let productsList = [];
+            if (productsResponse && productsResponse.success && Array.isArray(productsResponse.products)) {
+                productsList = productsResponse.products;
+            } else if (Array.isArray(productsResponse)) {
+                productsList = productsResponse; // Fallback if it returns array directly
             }
-        } catch (error) {
-            showNotification(error.message || 'Error creating configuration', 'error');
-        }
-    });
+            
+            const modalHtml = `
+            <div class="modal fade" id="createDriveConfigModal" tabindex="-1" aria-labelledby="createDriveConfigModalLabel" aria-hidden="true">
+              <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                  <div class="modal-header">
+                    <h5 class="modal-title" id="createDriveConfigModalLabel">Create Drive Configuration</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                  </div>
+                  <div class="modal-body">
+                    <form id="create-drive-config-form">
+                      <div class="mb-3">
+                        <label for="config-name" class="form-label">Name*</label>
+                        <input type="text" class="form-control" id="config-name" required>
+                      </div>
+                      <div class="mb-3">
+                        <label for="config-description" class="form-label">Description</label>
+                        <textarea class="form-control" id="config-description" rows="3"></textarea>
+                      </div>
+                      <div class="mb-3">
+                        <label for="config-tasks-required" class="form-label">Tasks Required (Number of Task Sets)*</label>
+                        <input type="number" class="form-control" id="config-tasks-required" required min="1" value="1">
+                      </div>
+                      <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="config-is-active" checked>
+                        <label class="form-check-label" for="config-is-active">Is Active</label>
+                      </div>
+                      
+                      <hr>
+                      <h5>Product Selection <span class="badge bg-secondary" id="selected-products-count">0 selected</span></h5>
+                      
+                      <div class="row mb-3">
+                        <div class="col-md-6">
+                          <label for="min-price-filter" class="form-label">Min Price ($)</label>
+                          <input type="number" class="form-control" id="min-price-filter" value="0" min="0" step="0.01">
+                        </div>
+                        <div class="col-md-6">
+                          <label for="max-price-filter" class="form-label">Max Price ($)</label>
+                          <input type="number" class="form-control" id="max-price-filter" min="0" step="0.01">
+                        </div>
+                      </div>
+                      
+                      <div class="mb-3">
+                        <button type="button" class="btn btn-secondary" id="apply-price-filter">Apply Price Filter</button>
+                        <button type="button" class="btn btn-outline-secondary" id="reset-price-filter">Reset Filter</button>
+                      </div>
+                      
+                      <div class="mb-3">
+                        <label class="form-label">Available Products</label>
+                        <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
+                          <table class="table table-sm table-hover">
+                            <thead>
+                              <tr>
+                                <th>Select</th>
+                                <th>ID</th>
+                                <th>Name</th>
+                                <th>Price ($)</th>
+                                <th>Commission (%)</th>
+                              </tr>
+                            </thead>
+                            <tbody id="available-products-list">
+                              ${productsList.map(product => `
+                                <tr data-product-id="${product.id}" data-product-price="${product.price || 0}">
+                                  <td><input type="checkbox" class="product-select-checkbox" data-product-id="${product.id}"></td>
+                                  <td>${product.id}</td>
+                                  <td>${product.name}</td>
+                                  <td>${parseFloat(product.price || 0).toFixed(2)}</td>
+                                  <td>${parseFloat(product.commission_rate || 0).toFixed(2)}</td>
+                                </tr>
+                              `).join('')}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                      
+                      <button type="submit" class="btn btn-primary">Create Configuration</button>
+                    </form>
+                  </div>
+                </div>
+              </div>
+            </div>`;
+
+            removeExistingModal('createDriveConfigModal');
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            const modalElement = document.getElementById('createDriveConfigModal');
+            const modal = new bootstrap.Modal(modalElement);
+            modal.show();
+
+            // Initialize and update selected products counter
+            const selectedCountElement = document.getElementById('selected-products-count');
+            const productCheckboxes = document.querySelectorAll('#available-products-list .product-select-checkbox');
+            
+            const updateSelectedCount = () => {
+                const count = document.querySelectorAll('#available-products-list .product-select-checkbox:checked').length;
+                selectedCountElement.textContent = `${count} selected`;
+            };
+
+            productCheckboxes.forEach(checkbox => {
+                checkbox.addEventListener('change', updateSelectedCount);
+            });
+            updateSelectedCount(); // Initial count
+
+            // Handle price filter
+            const applyFilterBtn = document.getElementById('apply-price-filter');
+            const resetFilterBtn = document.getElementById('reset-price-filter');
+            const minPriceInput = document.getElementById('min-price-filter');
+            const maxPriceInput = document.getElementById('max-price-filter');
+            
+            applyFilterBtn.addEventListener('click', () => {
+                const minPrice = parseFloat(minPriceInput.value) || 0;
+                const maxPrice = parseFloat(maxPriceInput.value) || Number.MAX_SAFE_INTEGER;
+                
+                document.querySelectorAll('#available-products-list tr').forEach(row => {
+                    const productPrice = parseFloat(row.dataset.productPrice) || 0;
+                    if (productPrice >= minPrice && (maxPrice === 0 || productPrice <= maxPrice)) {
+                        row.style.display = ''; // Show row
+                    } else {
+                        row.style.display = 'none'; // Hide row
+                    }
+                });
+            });
+            
+            resetFilterBtn.addEventListener('click', () => {
+                minPriceInput.value = '0';
+                maxPriceInput.value = '';
+                document.querySelectorAll('#available-products-list tr').forEach(row => {
+                    row.style.display = ''; // Show all rows
+                });
+            });
+
+            document.getElementById('create-drive-config-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const name = document.getElementById('config-name').value;
+                const description = document.getElementById('config-description').value;
+                const tasks_required = parseInt(document.getElementById('config-tasks-required').value);
+                const is_active = document.getElementById('config-is-active').checked;
+                
+                // Collect selected product IDs
+                const selectedProductIds = [];
+                document.querySelectorAll('.product-select-checkbox:checked').forEach(checkbox => {
+                    selectedProductIds.push(checkbox.dataset.productId);
+                });
+
+                if (!name || !tasks_required || tasks_required <= 0) {
+                    showNotification('Name and a positive number for Tasks Required are mandatory.', 'error');
+                    return;
+                }
+
+                try {
+                    const response = await fetchWithAuth('/api/admin/drive-management/configurations', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ 
+                            name, 
+                            description, 
+                            tasks_required, 
+                            is_active,
+                            product_ids: selectedProductIds 
+                        })
+                    });
+                    if (response && response.id) { // Assuming successful creation returns the new object with an id
+                        showNotification('Drive configuration created successfully!', 'success');
+                        modal.hide();
+                        loadDriveConfigurations(); // Refresh the list
+                    } else {
+                        throw new Error(response.message || 'Failed to create configuration.');
+                    }
+                } catch (error) {
+                    showNotification(error.message || 'Error creating configuration', 'error');
+                }
+            });
+        })
+        .catch(error => {
+            console.error('Error fetching products for drive configuration modal:', error);
+            showNotification('Error loading products. Please try again.', 'error');
+        });
 }
 
 async function showEditDriveConfigurationModal(configId) {
     try {
         const config = await fetchWithAuth(`/api/admin/drive-management/configurations/${configId}`);
+        if (!config || !config.id) { // Basic check for a valid config object
+            showNotification('Failed to load drive configuration details.', 'error');
+            return;
+        }
+        
+        // Fetch all available products for the product list
+        let productsList = [];
+        try {
+            // Corrected endpoint and improved response handling
+            const productsResponse = await fetchWithAuth(`/admin/products`); 
+            if (!productsResponse) {
+                 console.error('No response received from /admin/products');
+                 showNotification('Failed to load products: No response from server.', 'error');
+            } else if (productsResponse.error) { // Check for explicit error message from API
+                console.error('Error fetching products:', productsResponse.error, 'Status:', productsResponse.status);
+                showNotification(`Error loading products: ${productsResponse.error} (Status: ${productsResponse.status})`, 'error');
+            } else if (Array.isArray(productsResponse)) {
+                productsList = productsResponse;
+            } else if (productsResponse.products && Array.isArray(productsResponse.products)) { // Handle if products are nested
+                productsList = productsResponse.products;
+            } else {
+                // Fallback for unexpected structure, but still an array was expected
+                console.warn('Products data is not in the expected array format, or is missing. Received:', productsResponse);
+                showNotification('Products data is not in the expected format. Displaying an empty list.', 'warning');
+            }
+        } catch (fetchError) {
+            console.error('Error fetching products for edit modal:', fetchError);
+            showNotification('Error fetching products. Please try again.', 'error');
+            // Decide if the modal should still open or not
+        }
 
         const modalHtml = `
         <div class="modal fade" id="editDriveConfigModal" tabindex="-1" aria-labelledby="editDriveConfigModalLabel" aria-hidden="true">
-          <div class="modal-dialog">
+          <div class="modal-dialog modal-lg">
             <div class="modal-content">
               <div class="modal-header">
                 <h5 class="modal-title" id="editDriveConfigModalLabel">Edit Drive Configuration: ${config.name}</h5>
@@ -832,6 +970,54 @@ async function showEditDriveConfigurationModal(configId) {
                     <input type="checkbox" class="form-check-input" id="edit-config-is-active" ${config.is_active ? 'checked' : ''}>
                     <label class="form-check-label" for="edit-config-is-active">Is Active</label>
                   </div>
+                  
+                  <hr>
+                  <h5>Product Selection</h5>
+                  
+                  <div class="row mb-3">
+                    <div class="col-md-6">
+                      <label for="edit-min-price-filter" class="form-label">Min Price ($)</label>
+                      <input type="number" class="form-control" id="edit-min-price-filter" value="0" min="0" step="0.01">
+                    </div>
+                    <div class="col-md-6">
+                      <label for="edit-max-price-filter" class="form-label">Max Price ($)</label>
+                      <input type="number" class="form-control" id="edit-max-price-filter" min="0" step="0.01">
+                    </div>
+                  </div>
+                  
+                  <div class="mb-3">
+                    <button type="button" class="btn btn-secondary" id="edit-apply-price-filter">Apply Price Filter</button>
+                    <button type="button" class="btn btn-outline-secondary" id="edit-reset-price-filter">Reset Filter</button>
+                  </div>
+                  
+                  <div class="mb-3">
+                    <label class="form-label">Available Products</label>
+                    <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
+                      <table class="table table-sm table-hover">
+                        <thead>
+                          <tr>
+                            <th>Select</th>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Price ($)</th>
+                            <th>Commission (%)</th>
+                          </tr>
+                        </thead>
+                        <tbody id="edit-available-products-list">
+                          ${productsList.map(product => `
+                            <tr data-product-id="${product.id}" data-product-price="${product.price || 0}">
+                              <td><input type="checkbox" class="product-select-checkbox" data-product-id="${product.id}" ${config.product_ids && config.product_ids.includes(product.id) ? 'checked' : ''}></td>
+                              <td>${product.id}</td>
+                              <td>${product.name}</td>
+                              <td>${parseFloat(product.price || 0).toFixed(2)}</td>
+                              <td>${parseFloat(product.commission_rate || 0).toFixed(2)}</td>
+                            </tr>
+                          `).join('')}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                  
                   <button type="submit" class="btn btn-primary">Save Changes</button>
                 </form>
               </div>
@@ -839,11 +1025,55 @@ async function showEditDriveConfigurationModal(configId) {
           </div>
         </div>`;
 
-        removeExistingModal('editDriveConfigModal');
         document.body.insertAdjacentHTML('beforeend', modalHtml);
         const modalElement = document.getElementById('editDriveConfigModal');
         const modal = new bootstrap.Modal(modalElement);
         modal.show();
+
+        // Try to load any existing products assigned to this configuration
+        try {
+            const configProducts = await fetchWithAuth(`/api/admin/drive-management/configurations/${configId}/products`);
+            if (Array.isArray(configProducts) && configProducts.length > 0) {
+                // Mark checkboxes for products that are already assigned to this configuration
+                configProducts.forEach(product => {
+                    const checkbox = document.querySelector(`.product-select-checkbox[data-product-id="${product.id}"]`);
+                    if (checkbox) {
+                        checkbox.checked = true;
+                    }
+                });
+            }
+        } catch (error) {
+            console.warn('Could not load existing products for this configuration:', error);
+            // Continue without pre-selecting products
+        }
+
+        // Handle price filter
+        const applyFilterBtn = document.getElementById('edit-apply-price-filter');
+        const resetFilterBtn = document.getElementById('edit-reset-price-filter');
+        const minPriceInput = document.getElementById('edit-min-price-filter');
+        const maxPriceInput = document.getElementById('edit-max-price-filter');
+        
+        applyFilterBtn.addEventListener('click', () => {
+            const minPrice = parseFloat(minPriceInput.value) || 0;
+            const maxPrice = parseFloat(maxPriceInput.value) || Number.MAX_SAFE_INTEGER;
+            
+            document.querySelectorAll('#edit-available-products-list tr').forEach(row => {
+                const productPrice = parseFloat(row.dataset.productPrice) || 0;
+                if (productPrice >= minPrice && (maxPrice === 0 || productPrice <= maxPrice)) {
+                    row.style.display = ''; // Show row
+                } else {
+                    row.style.display = 'none'; // Hide row
+                }
+            });
+        });
+        
+        resetFilterBtn.addEventListener('click', () => {
+            minPriceInput.value = '0';
+            maxPriceInput.value = '';
+            document.querySelectorAll('#edit-available-products-list tr').forEach(row => {
+                row.style.display = ''; // Show all rows
+            });
+        });
 
         document.getElementById('edit-drive-config-form').addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -852,6 +1082,12 @@ async function showEditDriveConfigurationModal(configId) {
             const description = document.getElementById('edit-config-description').value;
             const tasks_required = parseInt(document.getElementById('edit-config-tasks-required').value);
             const is_active = document.getElementById('edit-config-is-active').checked;
+            
+            // Collect selected product IDs
+            const selectedProductIds = [];
+            document.querySelectorAll('.product-select-checkbox:checked').forEach(checkbox => {
+                selectedProductIds.push(checkbox.dataset.productId);
+            });
 
             if (!name || !tasks_required || tasks_required <=0) {
                 showNotification('Name and a positive number for Tasks Required are mandatory.', 'error');
@@ -862,7 +1098,13 @@ async function showEditDriveConfigurationModal(configId) {
                 const updateResponse = await fetchWithAuth(`/api/admin/drive-management/configurations/${id}`, { 
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name, description, tasks_required, is_active })
+                    body: JSON.stringify({ 
+                        name, 
+                        description, 
+                        tasks_required, 
+                        is_active,
+                        product_ids: selectedProductIds 
+                    })
                 });
                 if (updateResponse && updateResponse.id) { 
                     showNotification('Drive configuration updated successfully!', 'success');
@@ -1431,9 +1673,10 @@ async function showAddProductToTaskSetModal(taskSetId, taskSetName, configId, co
             const response = await fetchWithAuth(`/api/admin/drive-management/task-sets/${taskSetId}/products`, { 
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ product_id: productId, display_order: displayOrder })
+                body: JSON.stringify({ product_id: productId })
             });
-            if (response && response.product_id) { 
+            if (response && response.success) {
+
                 showNotification('Product added to task set successfully!', 'success');
                 modal.hide();
                 loadProductsForTaskSet(taskSetId, taskSetName, configId, configName); 
@@ -1446,20 +1689,16 @@ async function showAddProductToTaskSetModal(taskSetId, taskSetName, configId, co
     });
 }
 
-async function handleRemoveProductFromTaskSet(productId, productName, taskSetId, taskSetName, configId, configName) {
-    if (confirm(`Are you sure you want to remove "${productName}" from "${taskSetName}"?`)) {
-        try {
-            const response = await fetchWithAuth(`/api/admin/drive-management/task-sets/${taskSetId}/products/${productId}`, { 
-                method: 'DELETE'
-            });
-             if (response && response.success !== false) { 
-                showNotification('Product removed from task set successfully!', 'success');
-                loadProductsForTaskSet(taskSetId, taskSetName, configId, configName); 
-            } else {
-                throw new Error(response.message || 'Failed to remove product from task set.');
-            }
-        } catch (error) {
-            showNotification(error.message || 'Error removing product', 'error');
-        }
+// Initialize Drive Configuration Handlers
+export function initializeDriveConfigHandlers() {
+    // Initialize the "Create New Configuration" button
+    const createConfigBtn = document.getElementById('show-create-config-modal-btn');
+    if (createConfigBtn) {
+        createConfigBtn.addEventListener('click', () => {
+            showCreateDriveConfigurationModal();
+        });
+        console.log('Create new configuration button handler initialized');
+    } else {
+        console.warn('Create new configuration button not found in the DOM');
     }
 }

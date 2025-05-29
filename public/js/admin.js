@@ -54,12 +54,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize DriveModule functionality from admin-drives.js
     if (DriveModuleAPI && typeof DriveModuleAPI.initDependencies === 'function') {
         DriveModuleAPI.initDependencies({ fetchWithAuth, showNotification }); // Pass dependencies
-
-        if (typeof DriveModuleAPI.setupDrivePolling === 'function') {
-            DriveModuleAPI.setupDrivePolling();
-        } else {
-            console.warn('DriveModuleAPI.setupDrivePolling function not found in imported module.');
-        }
+        // Removed call to DriveModuleAPI.setupDrivePolling as it does not exist.
+        // Polling will be handled by loadSection.
     } else {
         console.error('DriveModuleAPI or its initDependencies function is not available. Ensure admin-drives.js is loaded as a module and exports correctly.');
     }
@@ -206,6 +202,12 @@ function initializeSidebar() {
 }
 
 function loadSection(sectionName) {
+    // Clear any existing drive update interval when changing sections
+    if (driveUpdateInterval) {
+        clearInterval(driveUpdateInterval);
+        driveUpdateInterval = null; // Reset the variable
+    }
+
     // Hide all sections
     document.querySelectorAll('.section').forEach(section => {
         section.style.display = 'none';
@@ -233,16 +235,31 @@ function loadSection(sectionName) {
             break;
         case 'drives': 
             if (DriveModuleAPI && typeof DriveModuleAPI.loadDrives === 'function') {
-                DriveModuleAPI.loadDrives();
+                DriveModuleAPI.loadDrives(); // Load drives data immediately
+                // Setup polling for the drives list when this section is active
+                driveUpdateInterval = setInterval(() => {
+                    if (document.getElementById('drives-section')?.style.display === 'block') {
+                        console.log('Polling for drive updates...');
+                        DriveModuleAPI.loadDrives();
+                    } else {
+                        // If drives section is not visible, clear interval (should be caught by section change too)
+                        if (driveUpdateInterval) clearInterval(driveUpdateInterval);
+                        driveUpdateInterval = null;
+                    }
+                }, 30000); // Poll every 30 seconds
             } else {
                 console.error('DriveModuleAPI.loadDrives function is not available.');
             }
-            break;
-        case 'drive-configurations':
+            break;        case 'drive-configurations':
             // This section's initial data is loaded by DriveModuleAPI.initDependencies.
             // If a reload is needed upon navigating here, loadDriveConfigurations should be exported from admin-drives.js and called here.
             if (DriveModuleAPI && typeof DriveModuleAPI.loadDriveConfigurations === 'function') {
                  DriveModuleAPI.loadDriveConfigurations(); // This will currently not run as it's not exported.
+                 
+                 // Initialize the drive configuration handlers
+                 if (typeof DriveModuleAPI.initializeDriveConfigHandlers === 'function') {
+                     DriveModuleAPI.initializeDriveConfigHandlers();
+                 }
             } else {
                 console.log('Drive configurations section displayed. Initial data loaded by initDependencies.');
             }
