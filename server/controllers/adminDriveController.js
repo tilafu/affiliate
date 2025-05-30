@@ -71,11 +71,24 @@ exports.getDriveConfigurations = async (req, res) => {
 exports.getDriveConfigurationById = async (req, res) => {
     const { id } = req.params;
     try {
-        const result = await pool.query('SELECT * FROM drive_configurations WHERE id = $1', [id]);
-        if (result.rows.length === 0) {
+        const configResult = await pool.query('SELECT * FROM drive_configurations WHERE id = $1', [id]);
+        if (configResult.rows.length === 0) {
             return res.status(404).json({ message: 'Drive configuration not found.' });
         }
-        res.status(200).json(result.rows[0]);
+        const configuration = configResult.rows[0];
+
+        // Fetch associated product IDs (only from non-combo task sets)
+        const productIdsResult = await pool.query(
+            `SELECT dtsp.product_id
+             FROM drive_task_sets dts
+             JOIN drive_task_set_products dtsp ON dts.id = dtsp.task_set_id
+             WHERE dts.drive_configuration_id = $1 AND dts.is_combo = FALSE`,
+            [id]
+        );
+        // Ensure product_ids are stored as strings if they are numbers, to match checkbox data-product-id
+        configuration.product_ids = productIdsResult.rows.map(row => String(row.product_id));
+
+        res.status(200).json(configuration);
     } catch (error) {
         logger.error(`Error fetching drive configuration ${id}:`, error);
         res.status(500).json({ message: 'Failed to fetch drive configuration', error: error.message });
@@ -84,20 +97,25 @@ exports.getDriveConfigurationById = async (req, res) => {
 
 // Update a Drive Configuration
 exports.updateDriveConfiguration = async (req, res) => {
-    const { id } = req.params;
-    const { name, description, tasks_required, is_active, product_ids = [] } = req.body;
+    const { id } = req.params; // drive_configuration_id
+    let { name, description, tasks_required, is_active, product_ids = [] } = req.body;
 
     if (!name || typeof tasks_required !== 'number' || tasks_required <= 0) {
         return res.status(400).json({ message: 'Name and a positive tasks_required are mandatory.' });
     }
 
+    // Ensure product_ids are numbers and filter out any NaNs if parsing failed
+    const newDesiredProductIds = product_ids
+        .map(pid => parseInt(pid, 10))
+        .filter(pid => !isNaN(pid));
+
     const client = await pool.connect();
     try {
         await client.query('BEGIN');
 
-        // 0. Check if the configuration exists before attempting update
+        // 0. Check if the configuration exists
         const configCheck = await client.query('SELECT id FROM drive_configurations WHERE id = $1', [id]);
-        if (configCheck.rows.length === 0) { // Corrected: Added parentheses
+        if (configCheck.rows.length === 0) {
             await client.query('ROLLBACK');
             return res.status(404).json({ message: 'Drive configuration not found.' });
         }
@@ -107,79 +125,105 @@ exports.updateDriveConfiguration = async (req, res) => {
             'UPDATE drive_configurations SET name = $1, description = $2, tasks_required = $3, is_active = $4, updated_at = NOW() WHERE id = $5 RETURNING *',
             [name, description, tasks_required, is_active, id]
         );
-        
-        // This check is technically redundant due to the one above, but good for safety if logic changes.
-        // if (updatedConfigResult.rows.length === 0) {
-        //     await client.query('ROLLBACK');
-        //     return res.status(404).json({ message: 'Drive configuration not found during update attempt.' });
-        // }
         logger.info(`Drive configuration ${id} basic details updated.`);
 
-        // 2. Fetch existing auto-generated task sets and their products for this configuration
+        // 2. Fetch existing auto-generated (non-combo) task sets and their products for this configuration
         const existingTaskSetsResult = await client.query(
-            `SELECT dts.id as task_set_id, dtsp.product_id
+            `SELECT dts.id as task_set_id, dtsp.product_id, dts.order_in_drive
              FROM drive_task_sets dts
              JOIN drive_task_set_products dtsp ON dts.id = dtsp.task_set_id
              WHERE dts.drive_configuration_id = $1 AND dts.is_combo = FALSE`,
             [id]
         );
-        const existingProductLinks = existingTaskSetsResult.rows.map(r => ({ task_set_id: r.task_set_id, product_id: r.product_id }));
-        const existingProductIds = existingProductLinks.map(link => link.product_id);
+        // existingProductLinks will be an array of {task_set_id (numeric), product_id (numeric), order_in_drive (numeric)}
+        const existingProductLinks = existingTaskSetsResult.rows; 
+        const existingDbProductIds = existingProductLinks.map(link => link.product_id);
 
-        // 3. Determine products to add and remove
-        const productsToAdd = product_ids.filter(pid => !existingProductIds.includes(pid));
-        const productLinksToRemove = existingProductLinks.filter(link => !product_ids.includes(link.product_id));
+        // 3. Determine product links to remove
+        // These are links where the product_id is in existingDbProductIds but NOT in newDesiredProductIds
+        const productLinksToRemove = existingProductLinks.filter(link => !newDesiredProductIds.includes(link.product_id));
         
-        logger.info(`Updating products for drive config ${id}. To add: ${productsToAdd.join(', ') || 'none'}. To remove links for products: ${productLinksToRemove.map(l => l.product_id).join(', ') || 'none'}`);
-
-        // 4. Remove old product associations (drive_task_set_products and then drive_task_sets)
-        for (const link of productLinksToRemove) {
-            logger.info(`Removing product link: product_id ${link.product_id} from task_set_id ${link.task_set_id} for config ${id}`);
-            await client.query('DELETE FROM drive_task_set_products WHERE task_set_id = $1 AND product_id = $2', [link.task_set_id, link.product_id]);
-            await client.query('DELETE FROM drive_task_sets WHERE id = $1', [link.task_set_id]);
-            logger.info(`Deleted auto-generated task_set ${link.task_set_id} for product ${link.product_id}`);
+        logger.info(`Updating products for drive config ${id}. Desired product IDs: [${newDesiredProductIds.join(', ')}]. Existing product IDs: [${existingDbProductIds.join(', ')}].`);
+        if (productLinksToRemove.length > 0) {
+            logger.info(`Product links to remove (product IDs): [${productLinksToRemove.map(l => l.product_id).join(', ')}]`);
         }
 
-        // 5. Add new product associations and re-sequence all auto-generated task sets
-        let orderCounter = 1;
-        for (const productId of product_ids) {
-            let taskSetId;
-            const existingLinkForCurrentProduct = existingProductLinks.find(link => link.product_id === productId && !productLinksToRemove.some(rtl => rtl.task_set_id === link.task_set_id));
+        // 4. Remove old product associations (drive_task_set_products and then their drive_task_sets)
+        for (const link of productLinksToRemove) {
+            logger.info(`Step 4: Removing product link for product_id ${link.product_id} from task_set_id ${link.task_set_id} for config ${id}`);
+            await client.query('DELETE FROM drive_task_set_products WHERE task_set_id = $1 AND product_id = $2', [link.task_set_id, link.product_id]);
+            await client.query('DELETE FROM drive_task_sets WHERE id = $1', [link.task_set_id]);
+            logger.info(`Step 4: Deleted auto-generated task_set ${link.task_set_id} (was for product ${link.product_id})`);
+        }
 
-            if (existingLinkForCurrentProduct) {
-                taskSetId = existingLinkForCurrentProduct.task_set_id;
-                logger.info(`Updating order for existing task_set ${taskSetId} (product ${productId}) to ${orderCounter} for config ${id}`);
+        // 5.A. Temporarily shift order_in_drive for existing non-combo task sets that are being KEPT.
+        // These are task sets whose products are in newDesiredProductIds AND were in existingProductLinks.
+        const tempOrderOffset = 1000000; // A large number unlikely to cause conflicts
+        const taskSetsToKeepAndReorder = existingProductLinks.filter(link => newDesiredProductIds.includes(link.product_id));
+
+        for (const link of taskSetsToKeepAndReorder) {
+            logger.info(`Step 5.A: Temporarily shifting order for task_set ${link.task_set_id} (product ${link.product_id}, current order ${link.order_in_drive}) for config ${id}`);
+            await client.query(
+                'UPDATE drive_task_sets SET order_in_drive = $1, updated_at = NOW() WHERE id = $2',
+                [link.order_in_drive + tempOrderOffset, link.task_set_id]
+            );
+        }
+
+        // 5.B. Assign final order_in_drive for kept task sets and create new task sets for new products.
+        // newDesiredProductIds dictates the final order.
+        let orderCounter = 1;
+        for (const productId of newDesiredProductIds) { // productId is numeric here
+            // Check if this product was one of the existing ones (its task set was kept and order shifted)
+            const existingKeptLink = taskSetsToKeepAndReorder.find(link => link.product_id === productId);
+
+            if (existingKeptLink) {
+                const taskSetId = existingKeptLink.task_set_id;
+                logger.info(`Step 5.B: Updating final order for existing task_set ${taskSetId} (product ${productId}) to ${orderCounter} for config ${id}`);
                 await client.query(
-                    'UPDATE drive_task_sets SET order_in_drive = $1, name = $2 WHERE id = $3',
+                    'UPDATE drive_task_sets SET order_in_drive = $1, name = $2, updated_at = NOW() WHERE id = $3',
                     [orderCounter, `Task Set ${orderCounter}`, taskSetId]
                 );
             } else {
-                logger.info(`Creating new task_set for product ${productId} at order ${orderCounter} for config ${id}`);
+                // This product is new to this configuration's non-combo task sets.
+                logger.info(`Step 5.B: Creating new task_set for new product ${productId} at order ${orderCounter} for config ${id}`);
                 const taskSetResult = await client.query(
-                    'INSERT INTO drive_task_sets (drive_configuration_id, name, order_in_drive, is_combo, created_at) VALUES ($1, $2, $3, $4, NOW()) RETURNING id',
-                    [id, `Task Set ${orderCounter}`, orderCounter, false]
+                    'INSERT INTO drive_task_sets (drive_configuration_id, name, order_in_drive, is_combo, created_at, updated_at) VALUES ($1, $2, $3, $4, NOW(), NOW()) RETURNING id',
+                    [id, `Task Set ${orderCounter}`, orderCounter, false] // `id` is drive_configuration_id
                 );
-                taskSetId = taskSetResult.rows[0].id;
+                const taskSetId = taskSetResult.rows[0].id;
 
                 await client.query(
                     'INSERT INTO drive_task_set_products (task_set_id, product_id, order_in_set, created_at) VALUES ($1, $2, $3, NOW())',
-                    [taskSetId, productId, 1] 
+                    [taskSetId, productId, 1] // order_in_set is 1 for non-combo single product task sets
                 );
-                logger.info(`Created task_set ${taskSetId} and linked product ${productId} for config ${id}`);
+                logger.info(`Step 5.B: Created task_set ${taskSetId} and linked product ${productId} for config ${id}`);
             }
             orderCounter++;
         }
         
         await client.query('COMMIT');
-        logger.info(`Drive configuration ${id} - '${name}' updated successfully with product associations.`);
+        logger.info(`Drive configuration ${id} - '${name}' updated successfully with reordered/updated product associations.`);
         
-        const finalConfigResult = await pool.query('SELECT * FROM drive_configurations WHERE id = $1', [id]);
-        res.status(200).json(finalConfigResult.rows[0]);
+        // Fetch the fully updated configuration to return, including potentially new/updated product_ids
+        const finalConfigData = await client.query('SELECT * FROM drive_configurations WHERE id = $1', [id]);
+        const finalConfiguration = finalConfigData.rows[0];
+
+        const finalProductIdsResult = await client.query(
+            `SELECT dtsp.product_id
+             FROM drive_task_sets dts
+             JOIN drive_task_set_products dtsp ON dts.id = dtsp.task_set_id
+             WHERE dts.drive_configuration_id = $1 AND dts.is_combo = FALSE ORDER BY dts.order_in_drive ASC`,
+            [id]
+        );
+        finalConfiguration.product_ids = finalProductIdsResult.rows.map(row => String(row.product_id));
+
+
+        res.status(200).json(finalConfiguration);
 
     } catch (error) {
         await client.query('ROLLBACK');
-        logger.error(`Error updating drive configuration ${id}: ${error.message}`, { stack: error.stack });
-        res.status(500).json({ message: 'Failed to update drive configuration', error: error.message });
+        logger.error(`Error updating drive configuration ${id}: ${error.message}`, { stack: error.stack, detail: error.detail, constraint: error.constraint });
+        res.status(500).json({ message: 'Failed to update drive configuration', error: error.message, detail: error.detail, constraint: error.constraint });
     } finally {
         client.release();
     }

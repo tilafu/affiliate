@@ -5,6 +5,22 @@ let fetchWithAuth;
 let showNotification;
 let isInitialized = false; // Flag to track initialization
 
+// Helper function to remove an existing modal from the DOM
+function removeExistingModal(modalId) {
+    const existingModal = document.getElementById(modalId);
+    if (existingModal) {
+        // Ensure Bootstrap modal instance is disposed if it exists, to prevent issues
+        const modalInstance = bootstrap.Modal.getInstance(existingModal);
+        if (modalInstance) {
+            modalInstance.hide(); // Hide first to allow for transitions
+            // Bootstrap's hide is asynchronous, but removing the element directly after should be fine
+            // For more complex scenarios, one might listen for the 'hidden.bs.modal' event
+        }
+        existingModal.remove();
+        console.log(`Removed existing modal with ID: ${modalId}`);
+    }
+}
+
 // Initialize dependencies from the main module
 export function initDependencies(dependencies) {
     fetchWithAuth = dependencies.fetchWithAuth;
@@ -645,7 +661,6 @@ export async function getDriveConfigurations() {
         // Ensure the response structure is as expected, often it's response.data or similar
         // For this example, assuming fetchWithAuth directly returns the array or an object with a property.
         // If fetchWithAuth returns a more complex object (e.g., { success: true, configurations: [...] }), adjust here.
-        // Based on previous usage, fetchWithAuth seems to return the data directly or an object that can be treated as such.
         const configurations = response; // Adjust if fetchWithAuth wraps data, e.g., response.data or response.configurations
 
         if (Array.isArray(configurations)) {
@@ -909,46 +924,84 @@ export function showCreateDriveConfigurationModal() {
         });
 }
 
+// Replace the existing showEditDriveConfigurationModal function in c:\\Users\\user\\Documents\\affiliate-final\\public\\js\\admin-drives.js with this:
+
 async function showEditDriveConfigurationModal(configId) {
     try {
-        const config = await fetchWithAuth(`/api/admin/drive-management/configurations/${configId}`);
-        if (!config || !config.id) { // Basic check for a valid config object
+        // Fetch the specific configuration
+        const configResponse = await fetchWithAuth(`/api/admin/drive-management/configurations/${configId}`);
+        if (!configResponse || !configResponse.id) {
             showNotification('Failed to load drive configuration details.', 'error');
+            console.error('Invalid config response:', configResponse);
             return;
         }
-        
-        // Fetch all available products for the product list
+        const config = configResponse;
+
+        // Fetch all available products
         let productsList = [];
         try {
-            // Corrected endpoint and improved response handling
-            const productsResponse = await fetchWithAuth(`/admin/products`); 
-            if (!productsResponse) {
-                 console.error('No response received from /admin/products');
-                 showNotification('Failed to load products: No response from server.', 'error');
-            } else if (productsResponse.error) { // Check for explicit error message from API
-                console.error('Error fetching products:', productsResponse.error, 'Status:', productsResponse.status);
-                showNotification(`Error loading products: ${productsResponse.error} (Status: ${productsResponse.status})`, 'error');
-            } else if (Array.isArray(productsResponse)) {
-                productsList = productsResponse;
-            } else if (productsResponse.products && Array.isArray(productsResponse.products)) { // Handle if products are nested
+            const productsResponse = await fetchWithAuth(`/admin/products`);
+            if (productsResponse && productsResponse.success && Array.isArray(productsResponse.products)) {
                 productsList = productsResponse.products;
+            } else if (Array.isArray(productsResponse)) { // Fallback for direct array response
+                productsList = productsResponse;
             } else {
-                // Fallback for unexpected structure, but still an array was expected
                 console.warn('Products data is not in the expected array format, or is missing. Received:', productsResponse);
                 showNotification('Products data is not in the expected format. Displaying an empty list.', 'warning');
             }
         } catch (fetchError) {
             console.error('Error fetching products for edit modal:', fetchError);
             showNotification('Error fetching products. Please try again.', 'error');
-            // Decide if the modal should still open or not
+            // Continue with an empty productsList if fetching fails, so modal can still show config details
         }
 
+        // Ensure product_ids from config are strings for consistent comparison
+        const associatedProductIds = Array.isArray(config.product_ids) ? config.product_ids.map(String) : [];
+
+        // 1. Prepare product data for sorting and rendering
+        const productDataForTable = productsList.map(product => {
+            const productIdStr = String(product.id); // Ensure product.id is a string for comparison
+            const isSelected = associatedProductIds.includes(productIdStr);
+            return {
+                id: productIdStr, // Store as string
+                name: product.name,
+                price: product.price || 0,
+                commission_rate: product.commission_rate || 0,
+                isSelected: isSelected
+            };
+        });
+
+        // 2. Sort product data: selected first, then by name
+        productDataForTable.sort((a, b) => {
+            if (a.isSelected && !b.isSelected) return -1;
+            if (!a.isSelected && b.isSelected) return 1;
+            const aName = String(a.name || '').toLowerCase();
+            const bName = String(b.name || '').toLowerCase();
+            if (aName < bName) return -1;
+            if (aName > bName) return 1;
+            return 0;
+        });
+
+        // 3. Generate HTML for sorted products
+        const productsHtml = productDataForTable.map(p => `
+            <tr data-product-id="${p.id}" data-product-price="${parseFloat(p.price).toFixed(2)}">
+              <td><input type="checkbox" class="product-select-checkbox-edit" data-product-id="${p.id}" ${p.isSelected ? 'checked' : ''}></td>
+              <td>${p.id}</td>
+              <td>${p.name}</td>
+              <td>${parseFloat(p.price).toFixed(2)}</td>
+              <td>${parseFloat(p.commission_rate).toFixed(2)}</td>
+            </tr>
+        `).join('');
+
+        const modalId = 'editDriveConfigModal';
+        removeExistingModal(modalId); // Helper function to remove modal if it exists
+
         const modalHtml = `
-        <div class="modal fade" id="editDriveConfigModal" tabindex="-1" aria-labelledby="editDriveConfigModalLabel" aria-hidden="true">
+        <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${modalId}Label" aria-hidden="true">
           <div class="modal-dialog modal-lg">
             <div class="modal-content">
               <div class="modal-header">
-                <h5 class="modal-title" id="editDriveConfigModalLabel">Edit Drive Configuration: ${config.name}</h5>
+                <h5 class="modal-title" id="${modalId}Label">Edit Drive Configuration: ${config.name}</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
               </div>
               <div class="modal-body">
@@ -956,7 +1009,7 @@ async function showEditDriveConfigurationModal(configId) {
                   <input type="hidden" id="edit-config-id" value="${config.id}">
                   <div class="mb-3">
                     <label for="edit-config-name" class="form-label">Name*</label>
-                    <input type="text" class="form-control" id="edit-config-name" value="${config.name}" required>
+                    <input type="text" class="form-control" id="edit-config-name" value="${config.name || ''}" required>
                   </div>
                   <div class="mb-3">
                     <label for="edit-config-description" class="form-label">Description</label>
@@ -964,7 +1017,7 @@ async function showEditDriveConfigurationModal(configId) {
                   </div>
                   <div class="mb-3">
                     <label for="edit-config-tasks-required" class="form-label">Tasks Required (Number of Task Sets)*</label>
-                    <input type="number" class="form-control" id="edit-config-tasks-required" value="${config.tasks_required}" required min="1">
+                    <input type="number" class="form-control" id="edit-config-tasks-required" value="${config.tasks_required || 1}" required min="1">
                   </div>
                   <div class="mb-3 form-check">
                     <input type="checkbox" class="form-check-input" id="edit-config-is-active" ${config.is_active ? 'checked' : ''}>
@@ -972,22 +1025,22 @@ async function showEditDriveConfigurationModal(configId) {
                   </div>
                   
                   <hr>
-                  <h5>Product Selection</h5>
+                  <h5>Product Selection <span class="badge bg-secondary" id="selected-products-count-edit">0 selected</span></h5>
                   
                   <div class="row mb-3">
                     <div class="col-md-6">
-                      <label for="edit-min-price-filter" class="form-label">Min Price ($)</label>
-                      <input type="number" class="form-control" id="edit-min-price-filter" value="0" min="0" step="0.01">
+                      <label for="min-price-filter-edit" class="form-label">Min Price ($)</label>
+                      <input type="number" class="form-control" id="min-price-filter-edit" value="0" min="0" step="0.01">
                     </div>
                     <div class="col-md-6">
-                      <label for="edit-max-price-filter" class="form-label">Max Price ($)</label>
-                      <input type="number" class="form-control" id="edit-max-price-filter" min="0" step="0.01">
+                      <label for="max-price-filter-edit" class="form-label">Max Price ($)</label>
+                      <input type="number" class="form-control" id="max-price-filter-edit" min="0" step="0.01">
                     </div>
                   </div>
                   
                   <div class="mb-3">
-                    <button type="button" class="btn btn-secondary" id="edit-apply-price-filter">Apply Price Filter</button>
-                    <button type="button" class="btn btn-outline-secondary" id="edit-reset-price-filter">Reset Filter</button>
+                    <button type="button" class="btn btn-secondary" id="apply-price-filter-edit">Apply Price Filter</button>
+                    <button type="button" class="btn btn-outline-secondary" id="reset-price-filter-edit">Reset Filter</button>
                   </div>
                   
                   <div class="mb-3">
@@ -1003,22 +1056,14 @@ async function showEditDriveConfigurationModal(configId) {
                             <th>Commission (%)</th>
                           </tr>
                         </thead>
-                        <tbody id="edit-available-products-list">
-                          ${productsList.map(product => `
-                            <tr data-product-id="${product.id}" data-product-price="${product.price || 0}">
-                              <td><input type="checkbox" class="product-select-checkbox" data-product-id="${product.id}" ${config.product_ids && config.product_ids.includes(product.id) ? 'checked' : ''}></td>
-                              <td>${product.id}</td>
-                              <td>${product.name}</td>
-                              <td>${parseFloat(product.price || 0).toFixed(2)}</td>
-                              <td>${parseFloat(product.commission_rate || 0).toFixed(2)}</td>
-                            </tr>
-                          `).join('')}
+                        <tbody id="available-products-list-edit">
+                          ${productsHtml}
                         </tbody>
                       </table>
                     </div>
                   </div>
                   
-                  <button type="submit" class="btn btn-primary">Save Changes</button>
+                  <button type="submit" class="btn btn-primary">Update Configuration</button>
                 </form>
               </div>
             </div>
@@ -1026,76 +1071,76 @@ async function showEditDriveConfigurationModal(configId) {
         </div>`;
 
         document.body.insertAdjacentHTML('beforeend', modalHtml);
-        const modalElement = document.getElementById('editDriveConfigModal');
+        const modalElement = document.getElementById(modalId);
         const modal = new bootstrap.Modal(modalElement);
         modal.show();
 
-        // Try to load any existing products assigned to this configuration
-        try {
-            const configProducts = await fetchWithAuth(`/api/admin/drive-management/configurations/${configId}/products`);
-            if (Array.isArray(configProducts) && configProducts.length > 0) {
-                // Mark checkboxes for products that are already assigned to this configuration
-                configProducts.forEach(product => {
-                    const checkbox = document.querySelector(`.product-select-checkbox[data-product-id="${product.id}"]`);
-                    if (checkbox) {
-                        checkbox.checked = true;
-                    }
-                });
-            }
-        } catch (error) {
-            console.warn('Could not load existing products for this configuration:', error);
-            // Continue without pre-selecting products
-        }
-
-        // Handle price filter
-        const applyFilterBtn = document.getElementById('edit-apply-price-filter');
-        const resetFilterBtn = document.getElementById('edit-reset-price-filter');
-        const minPriceInput = document.getElementById('edit-min-price-filter');
-        const maxPriceInput = document.getElementById('edit-max-price-filter');
+        // Initialize and update selected products counter for EDIT modal
+        const selectedCountElementEdit = document.getElementById('selected-products-count-edit');
+        const productCheckboxesEdit = document.querySelectorAll('#available-products-list-edit .product-select-checkbox-edit');
         
-        applyFilterBtn.addEventListener('click', () => {
-            const minPrice = parseFloat(minPriceInput.value) || 0;
-            const maxPrice = parseFloat(maxPriceInput.value) || Number.MAX_SAFE_INTEGER;
+        const updateSelectedCountEdit = () => {
+            const count = document.querySelectorAll('#available-products-list-edit .product-select-checkbox-edit:checked').length;
+            selectedCountElementEdit.textContent = `${count} selected`;
+        };
+
+        productCheckboxesEdit.forEach(checkbox => {
+            checkbox.addEventListener('change', updateSelectedCountEdit);
+        });
+        updateSelectedCountEdit(); // Initial count based on pre-selected items
+
+        // Handle price filter for EDIT modal
+        const applyFilterBtnEdit = document.getElementById('apply-price-filter-edit');
+        const resetFilterBtnEdit = document.getElementById('reset-price-filter-edit');
+        const minPriceInputEdit = document.getElementById('min-price-filter-edit');
+        const maxPriceInputEdit = document.getElementById('max-price-filter-edit');
+        
+        applyFilterBtnEdit.addEventListener('click', () => {
+            const minPrice = parseFloat(minPriceInputEdit.value) || 0;
+            const maxPriceText = maxPriceInputEdit.value.trim();
+            // If maxPriceText is empty, it means no upper limit.
+            const maxPrice = maxPriceText === '' ? Number.MAX_SAFE_INTEGER : parseFloat(maxPriceText);
             
-            document.querySelectorAll('#edit-available-products-list tr').forEach(row => {
+            document.querySelectorAll('#available-products-list-edit tr').forEach(row => {
                 const productPrice = parseFloat(row.dataset.productPrice) || 0;
-                if (productPrice >= minPrice && (maxPrice === 0 || productPrice <= maxPrice)) {
-                    row.style.display = ''; // Show row
+                // Adjust condition for maxPrice: if maxPrice is NaN (due to empty input but failed parse), treat as no limit.
+                if (productPrice >= minPrice && (isNaN(maxPrice) || productPrice <= maxPrice)) {
+                    row.style.display = '';
                 } else {
-                    row.style.display = 'none'; // Hide row
+                    row.style.display = 'none';
                 }
             });
         });
         
-        resetFilterBtn.addEventListener('click', () => {
-            minPriceInput.value = '0';
-            maxPriceInput.value = '';
-            document.querySelectorAll('#edit-available-products-list tr').forEach(row => {
-                row.style.display = ''; // Show all rows
+        resetFilterBtnEdit.addEventListener('click', () => {
+            minPriceInputEdit.value = '0';
+            maxPriceInputEdit.value = ''; // Clear max price input
+            document.querySelectorAll('#available-products-list-edit tr').forEach(row => {
+                row.style.display = '';
             });
         });
 
+        // Handle form submission for EDIT modal
         document.getElementById('edit-drive-config-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const id = document.getElementById('edit-config-id').value;
+            const currentConfigId = document.getElementById('edit-config-id').value;
             const name = document.getElementById('edit-config-name').value;
             const description = document.getElementById('edit-config-description').value;
             const tasks_required = parseInt(document.getElementById('edit-config-tasks-required').value);
             const is_active = document.getElementById('edit-config-is-active').checked;
             
-            // Collect selected product IDs
             const selectedProductIds = [];
-            document.querySelectorAll('.product-select-checkbox:checked').forEach(checkbox => {
-                selectedProductIds.push(checkbox.dataset.productId);
+            document.querySelectorAll('#available-products-list-edit .product-select-checkbox-edit:checked').forEach(checkbox => {
+                selectedProductIds.push(parseInt(checkbox.dataset.productId, 10)); // Ensure IDs are integers for the backend
             });
 
-            if (!name || !tasks_required || tasks_required <=0) {
+            if (!name || !tasks_required || tasks_required <= 0) {
                 showNotification('Name and a positive number for Tasks Required are mandatory.', 'error');
                 return;
             }
 
             try {
-                const updateResponse = await fetchWithAuth(`/api/admin/drive-management/configurations/${id}`, { 
+                const response = await fetchWithAuth(`/api/admin/drive-management/configurations/${currentConfigId}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
@@ -1106,55 +1151,30 @@ async function showEditDriveConfigurationModal(configId) {
                         product_ids: selectedProductIds 
                     })
                 });
-                if (updateResponse && updateResponse.id) { 
+
+                // Check for a success flag or specific status code from fetchWithAuth wrapper if applicable
+                // Assuming direct response object or a response.success flag
+                if (response && (response.success === true || (response.id && response.name === name))) { 
                     showNotification('Drive configuration updated successfully!', 'success');
                     modal.hide();
-                    loadDriveConfigurations(); 
+                    loadDriveConfigurations(); // Refresh the list
                 } else {
-                    throw new Error(updateResponse.message || 'Failed to update configuration.');
+                    // Log the full response for debugging if it's not a success
+                    console.error('Failed to update configuration, response:', response);
+                    const errorMessage = response && response.message ? response.message : 'Failed to update configuration.';
+                    const errorDetail = response && response.error ? response.error : '';
+                    const errorConstraint = response && response.constraint ? `Constraint: ${response.constraint}` : '';
+                    showNotification(`${errorMessage} ${errorDetail} ${errorConstraint}`.trim(), 'error');
                 }
             } catch (error) {
+                console.error('Error updating configuration:', error);
                 showNotification(error.message || 'Error updating configuration', 'error');
             }
         });
 
     } catch (error) {
-        showNotification(error.message || 'Error loading configuration for editing', 'error');
-    }
-}
-
-async function handleDeleteDriveConfiguration(configId) {
-    if (!confirm('Are you sure you want to delete this drive configuration? This action cannot be undone.')) {
-        return;
-    }
-    try {
-        const response = await fetchWithAuth(`/api/admin/drive-management/configurations/${configId}`, { 
-            method: 'DELETE'
-        });
-        if (response && response.success !== false) { 
-            showNotification('Drive configuration deleted successfully!', 'success');
-            loadDriveConfigurations(); 
-        } else {
-            throw new Error(response.message || 'Failed to delete configuration.');
-        }
-    } catch (error) {
-        showNotification(error.message || 'Error deleting configuration', 'error');
-    }
-}
-
-function removeExistingModal(modalId) {
-    const existingModal = document.getElementById(modalId);
-    if (existingModal) {
-        const modalInstance = bootstrap.Modal.getInstance(existingModal);
-        if (modalInstance) {
-            modalInstance.hide();
-        }
-        existingModal.remove(); // Remove the modal HTML from the DOM
-    }
-    // Also remove backdrop if any stuck
-    const backdrop = document.querySelector('.modal-backdrop');
-    if (backdrop) {
-        backdrop.remove();
+        console.error('Error showing edit drive configuration modal:', error);
+        showNotification('Failed to show edit drive configuration modal: ' + (error.message || 'Unknown error'), 'error');
     }
 }
 
