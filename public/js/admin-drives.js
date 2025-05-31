@@ -105,9 +105,36 @@ export async function loadDrives() {
                             data-username="${username}">
                         Reset Drive
                     </button>
+                    <button class="btn btn-sm btn-secondary view-user-drive-progress-btn"
+                            data-user-id="${userId}"
+                            data-username="${username}">
+                        View Progress
+                    </button>
                 </td>
             </tr>`;
         }).join('');
+
+        // Add a new "View Progress" button to each row
+        const rows = drivesList.querySelectorAll('tr');
+        rows.forEach(row => {
+            const userId = row.dataset.userId;
+            const username = row.querySelector('td:nth-child(2)').textContent; // Assuming username is in the second cell
+            if (userId) {
+                const actionsCell = row.querySelector('td:last-child');
+                if (actionsCell) {
+                    const progressButton = document.createElement('button');
+                    progressButton.className = 'btn btn-sm btn-secondary view-user-drive-progress-btn';
+                    progressButton.textContent = 'View Progress';
+                    progressButton.dataset.userId = userId;
+                    progressButton.dataset.username = username;
+                    // Add a small margin to the left if there are other buttons
+                    if (actionsCell.hasChildNodes()) {
+                        progressButton.style.marginLeft = '5px';
+                    }
+                    actionsCell.appendChild(progressButton);
+                }
+            }
+        });
 
         // Initialize handlers after updating the table
         initializeDriveHandlers();
@@ -401,6 +428,18 @@ export function initializeDriveHandlers() {
                 target.setAttribute('data-processing', 'true');
                 console.log('Assign Combos clicked for:', { userId, username, assignedConfigId, assignedConfigName });
                 await showAssignCombosModal(userId, username, assignedConfigId, assignedConfigName);
+            }
+            // View User Drive Progress button handler
+            else if (target.matches('.view-user-drive-progress-btn')) {
+                event.preventDefault();
+                if (!userId) {
+                    console.error('View User Drive Progress clicked but userId is missing');
+                    showNotification('Error: Could not identify user for progress view.', 'error');
+                    return;
+                }
+                target.setAttribute('data-processing', 'true');
+                console.log('View User Drive Progress clicked for:', { userId, username });
+                await showUserDriveProgressModal(userId, username);
             }
 
         } catch (error) {
@@ -780,15 +819,13 @@ export function showCreateDriveConfigurationModal() {
                       
                       <div class="mb-3">
                         <label class="form-label">Available Products</label>
-                        <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
-                          <table class="table table-sm table-hover">
+                        <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">                        <table class="table table-sm table-hover">
                             <thead>
                               <tr>
                                 <th>Select</th>
                                 <th>ID</th>
                                 <th>Name</th>
                                 <th>Price ($)</th>
-                                <th>Commission (%)</th>
                               </tr>
                             </thead>
                             <tbody id="available-products-list">
@@ -798,7 +835,6 @@ export function showCreateDriveConfigurationModal() {
                                   <td>${product.id}</td>
                                   <td>${product.name}</td>
                                   <td>${parseFloat(product.price || 0).toFixed(2)}</td>
-                                  <td>${parseFloat(product.commission_rate || 0).toFixed(2)}</td>
                                 </tr>
                               `).join('')}
                             </tbody>
@@ -993,14 +1029,12 @@ async function showEditDriveConfigurationModal(configId) {
                   <div class="mb-3">
                     <label class="form-label">Available Products</label>
                     <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
-                      <table class="table table-sm table-hover">
-                        <thead>
+                      <table class="table table-sm table-hover">                        <thead>
                           <tr>
                             <th>Select</th>
                             <th>ID</th>
                             <th>Name</th>
                             <th>Price ($)</th>
-                            <th>Commission (%)</th>
                           </tr>
                         </thead>
                         <tbody id="edit-available-products-list">
@@ -1010,7 +1044,6 @@ async function showEditDriveConfigurationModal(configId) {
                               <td>${product.id}</td>
                               <td>${product.name}</td>
                               <td>${parseFloat(product.price || 0).toFixed(2)}</td>
-                              <td>${parseFloat(product.commission_rate || 0).toFixed(2)}</td>
                             </tr>
                           `).join('')}
                         </tbody>
@@ -1509,7 +1542,7 @@ async function loadProductsForTaskSet(taskSetId, taskSetName, configId, configNa
             renderProductsInModal(products, taskSetId, taskSetName, configId, configName);
         }
     } catch (error) {
-        productsList.innerHTML = `<tr><td colspan="5" class="text-center text-danger">Error: ${error.message}</td></tr>`;
+        productsList.innerHTML = `<tr><td colspan="4" class="text-center text-danger">Error: ${error.message}</td></tr>`;
         showNotification(error.message, 'error');
     }
 }
@@ -1520,7 +1553,6 @@ function renderProductsInModal(products, taskSetId, taskSetName, configId, confi
         <tr data-product-id="${p.product_id}" data-original-order="${p.display_order}">
             <td>${p.product_name}</td>
             <td>$${p.product_price}</td>
-            <td>${p.product_commission_rate}%</td>
             <td>
                 <button class="btn btn-sm btn-outline-secondary product-order-up-btn" ${index === 0 ? 'disabled' : ''} title="Move Up">
                     <i class="fas fa-arrow-up"></i>
@@ -1700,5 +1732,75 @@ export function initializeDriveConfigHandlers() {
         console.log('Create new configuration button handler initialized');
     } else {
         console.warn('Create new configuration button not found in the DOM');
+    }
+}
+
+// Function to show user drive progress modal
+async function showUserDriveProgressModal(userId, username) {
+    const modalElement = document.getElementById('userDriveProgressModal');
+    if (!modalElement) {
+        console.error('User drive progress modal element not found.');
+        showNotification('Could not display progress: Modal component missing.', 'error');
+        return;
+    }
+    const modal = new bootstrap.Modal(modalElement);
+
+    // Set title and show loading state
+    const modalTitle = document.getElementById('userDriveProgressModalLabel');
+    if (modalTitle) {
+        modalTitle.textContent = `Drive Progress for ${username || 'User ' + userId}`;
+    }
+    document.getElementById('userDriveProgressDetailsPlaceholder').style.display = 'block';
+    document.getElementById('userDriveProgressDetails').style.display = 'none';
+    document.getElementById('progress-task-items-list').innerHTML = ''; // Clear previous items
+
+    modal.show();
+
+    try {
+        const response = await fetchWithAuth(`/api/admin/users/${userId}/drive-progress`);
+        document.getElementById('userDriveProgressDetailsPlaceholder').style.display = 'none';
+        document.getElementById('userDriveProgressDetails').style.display = 'block';
+
+        if (!response || !response.drive_session_id) { // Check for a key field from the expected response
+            const message = response && response.message ? response.message : 'No active drive progress found or an error occurred.';
+            document.getElementById('progress-user-info').textContent = `${username} (ID: ${userId})`;
+            document.getElementById('progress-drive-config-name').textContent = 'N/A';
+            document.getElementById('progress-summary').textContent = 'N/A';
+            document.getElementById('progress-task-items-list').innerHTML = `<tr><td colspan="3" class="text-center">${message}</td></tr>`;
+            if (response && response.message) showNotification(response.message, response.message.includes('No active drive session') ? 'info' : 'warning');
+            else showNotification('Failed to load progress details.', 'warning');
+            return;
+        }
+
+        // Populate modal with data
+        document.getElementById('progress-user-info').textContent = `${username} (ID: ${response.user_id})`;
+        document.getElementById('progress-drive-config-name').textContent = response.drive_configuration_name;
+        document.getElementById('progress-summary').textContent = `${response.completed_task_items} of ${response.total_task_items} tasks completed.`;
+
+        const taskItemsList = document.getElementById('progress-task-items-list');
+        if (response.task_items && response.task_items.length > 0) {
+            response.task_items.forEach(item => {
+                const products = item.products.map(p => p.name).join(', ');
+                const row = document.createElement('tr');
+                if (item.task_item_id === response.current_task_item_id) {
+                    row.classList.add('table-info'); // Highlight current task
+                }
+                row.innerHTML = `
+                    <td>${item.order_in_drive}</td>
+                    <td>${products}</td>
+                    <td><span class="badge bg-${getStatusBadgeColor(item.user_status)}">${item.user_status}</span></td>
+                `;
+                taskItemsList.appendChild(row);
+            });
+        } else {
+            taskItemsList.innerHTML = '<tr><td colspan="3" class="text-center">No task items found for this drive session.</td></tr>';
+        }
+
+    } catch (error) {
+        console.error('Error fetching user drive progress:', error);
+        showNotification('Failed to fetch user drive progress: ' + (error.message || 'Unknown error'), 'error');
+        document.getElementById('userDriveProgressDetailsPlaceholder').style.display = 'none';
+        document.getElementById('userDriveProgressDetails').style.display = 'block'; // Show the details section to display error message inside
+        document.getElementById('progress-task-items-list').innerHTML = `<tr><td colspan="3" class="text-center text-danger">Error loading data.</td></tr>`;
     }
 }

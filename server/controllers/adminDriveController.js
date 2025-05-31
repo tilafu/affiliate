@@ -1,5 +1,6 @@
 const pool = require('../config/db');
 const logger = require('../logger');
+const tierCommissionService = require('../services/tierCommissionService');
 
 // --- Drive Configuration Management ---
 
@@ -457,7 +458,7 @@ exports.deleteDriveTaskSet = async (req, res) => {
 
 // Add a product to a Drive Task Set
 exports.addProductToTaskSet = async (req, res) => {
-    const { task_set_id, product_id, order_in_set, price_override, commission_override } = req.body;
+    const { task_set_id, product_id, order_in_set, price_override } = req.body;
 
     if (!task_set_id || !product_id || typeof order_in_set !== 'number') {
         return res.status(400).json({ message: 'task_set_id, product_id, and order_in_set are mandatory.' });
@@ -485,8 +486,8 @@ exports.addProductToTaskSet = async (req, res) => {
         }
 
         const result = await pool.query(
-            'INSERT INTO drive_task_set_products (task_set_id, product_id, order_in_set, price_override, commission_override, created_at) VALUES ($1, $2, $3, $4, $5, NOW()) RETURNING *',
-            [task_set_id, product_id, order_in_set, price_override, commission_override]
+            'INSERT INTO drive_task_set_products (task_set_id, product_id, order_in_set, price_override, created_at) VALUES ($1, $2, $3, $4, NOW()) RETURNING *',
+            [task_set_id, product_id, order_in_set, price_override]
         );
         logger.info(`Product ${product_id} added to task set ${task_set_id}`);
         res.status(201).json(result.rows[0]);
@@ -505,7 +506,7 @@ exports.getProductsForTaskSet = async (req, res) => {
     const { taskSetId } = req.params;
     try {
         const result = await pool.query(
-            `SELECT dtsp.*, p.name as product_name, p.description as product_description, p.price as original_price, p.commission_rate as original_commission
+            `SELECT dtsp.*, p.name as product_name, p.description as product_description, p.price as original_price
              FROM drive_task_set_products dtsp
              JOIN products p ON dtsp.product_id = p.id
              WHERE dtsp.task_set_id = $1
@@ -522,9 +523,8 @@ exports.getProductsForTaskSet = async (req, res) => {
 // Get a specific product within a Drive Task Set by its own ID
 exports.getDriveTaskSetProductById = async (req, res) => {
     const { id } = req.params; // This is the ID from drive_task_set_products table
-    try {
-        const result = await pool.query(
-            `SELECT dtsp.*, p.name as product_name, p.description as product_description, p.price as original_price, p.commission_rate as original_commission
+    try {        const result = await pool.query(
+            `SELECT dtsp.*, p.name as product_name, p.description as product_description, p.price as original_price
              FROM drive_task_set_products dtsp
              JOIN products p ON dtsp.product_id = p.id
              WHERE dtsp.id = $1`,
@@ -543,9 +543,9 @@ exports.getDriveTaskSetProductById = async (req, res) => {
 // Update a product within a Drive Task Set
 exports.updateProductInTaskSet = async (req, res) => {
     const { id } = req.params; // This is the ID from drive_task_set_products table
-    const { order_in_set, price_override, commission_override } = req.body;
+    const { order_in_set, price_override } = req.body;
 
-    if (order_in_set === undefined && price_override === undefined && commission_override === undefined) {
+    if (order_in_set === undefined && price_override === undefined) {
         return res.status(400).json({ message: 'No update fields provided.'});
     }
 
@@ -563,12 +563,11 @@ exports.updateProductInTaskSet = async (req, res) => {
 
     const newOrderInSet = order_in_set !== undefined ? order_in_set : currentProductInSet.order_in_set;
     const newPriceOverride = price_override !== undefined ? price_override : currentProductInSet.price_override;
-    const newCommissionOverride = commission_override !== undefined ? commission_override : currentProductInSet.commission_override;
 
     try {
         const result = await pool.query(
-            'UPDATE drive_task_set_products SET order_in_set = $1, price_override = $2, commission_override = $3, WHERE id = $4 RETURNING *',
-            [newOrderInSet, newPriceOverride, newCommissionOverride, id]
+            'UPDATE drive_task_set_products SET order_in_set = $1, price_override = $2 WHERE id = $3 RETURNING *',
+            [newOrderInSet, newPriceOverride, id]
         );
         logger.info(`Product in task set updated: ${id}`);
         res.status(200).json(result.rows[0]);
@@ -831,100 +830,152 @@ exports.assignDriveConfigurationToUser = async (req, res) => {
         return res.status(400).json({ message: 'drive_configuration_id is mandatory.' });
     }
 
+    const client = await pool.connect(); // Use a client for transaction
+
     try {
+        await client.query('BEGIN'); // Start transaction
+
         // 1. Verify user exists
-        const userResult = await pool.query('SELECT id FROM users WHERE id = $1', [userId]);
+        const userResult = await client.query('SELECT id FROM users WHERE id = $1', [userId]);
         if (userResult.rows.length === 0) {
+            await client.query('ROLLBACK');
+            client.release();
             return res.status(404).json({ message: 'User not found.' });
         }
 
-        // 2. Verify drive configuration exists
-        const configResult = await pool.query('SELECT id FROM drive_configurations WHERE id = $1 AND is_active = TRUE', [drive_configuration_id]);
-        if (configResult.rows.length === 0) {
+        // 2. Verify drive configuration exists and get tasks_required
+        const configDetailsResult = await client.query(
+            'SELECT id, tasks_required FROM drive_configurations WHERE id = $1 AND is_active = TRUE',
+            [drive_configuration_id]
+        );
+        if (configDetailsResult.rows.length === 0) {
+            await client.query('ROLLBACK');
+            client.release();
             return res.status(404).json({ message: 'Active drive configuration not found.' });
         }
+        const tasksRequired = configDetailsResult.rows[0].tasks_required;
 
         // 3. Update the user's assigned_drive_configuration_id
-        // Assuming 'users' table has a column 'assigned_drive_configuration_id'
-        const updateQuery = 
-            'UPDATE users SET assigned_drive_configuration_id = $1 WHERE id = $2 RETURNING id, username, email, assigned_drive_configuration_id';
-        
-        const updateResult = await pool.query(updateQuery, [drive_configuration_id, userId]);        if (updateResult.rows.length === 0) {
-            // This case should ideally not be reached if user and config checks passed
+        const updateUserConfigResult = await client.query(
+            'UPDATE users SET assigned_drive_configuration_id = $1 WHERE id = $2 RETURNING id, username, email, assigned_drive_configuration_id',
+            [drive_configuration_id, userId]
+        );
+        if (updateUserConfigResult.rows.length === 0) {
+            await client.query('ROLLBACK');
+            client.release();
             return res.status(500).json({ message: 'Failed to update user with drive configuration.' });
         }
 
         // 4. Check if there's an existing active drive session for this user
-        const existingSessionResult = await pool.query(
+        const existingSessionResult = await client.query(
             `SELECT id FROM drive_sessions 
              WHERE user_id = $1 AND status IN ('active', 'pending_reset', 'frozen')
              ORDER BY started_at DESC LIMIT 1`,
             [userId]
-        );
-
-        // If no active session exists, create one for this configuration
+        );        // If no active session exists, create one for this configuration
         if (existingSessionResult.rows.length === 0) {
-            // Create a new drive session
-            const createSessionResult = await pool.query(
-                `INSERT INTO drive_sessions 
-                 (user_id, drive_configuration_id, status, started_at)
-                 VALUES ($1, $2, 'active', NOW()) 
-                 RETURNING id`,
-                [userId, drive_configuration_id]
+            logger.debug(`assignDriveConfigurationToUser: No existing active session for user ${userId}. Creating new session.`);
+            
+            // First, fetch task set products for the configuration to ensure we have valid data            // First, fetch task set products for the configuration to ensure we have valid data
+            const taskSetProductsResult = await client.query(
+                `SELECT ts.id as task_set_id, tsp.product_id, ts.order_in_drive, ts.name as task_set_name
+                 FROM drive_task_sets ts
+                 JOIN drive_task_set_products tsp ON ts.id = tsp.task_set_id
+                 WHERE ts.drive_configuration_id = $1
+                 AND tsp.order_in_set = 1 
+                 ORDER BY ts.order_in_drive ASC`,
+                [drive_configuration_id]
+            );
+
+            if (taskSetProductsResult.rows.length === 0) {
+                await client.query('ROLLBACK');
+                logger.warn(`assignDriveConfigurationToUser: No task set products found for drive_configuration_id: ${drive_configuration_id}. Cannot create session.`);
+                client.release();
+                return res.status(400).json({ 
+                    message: 'Drive configuration has no products defined. Cannot start drive. Please contact an administrator.' 
+                });
+            }            logger.info(`assignDriveConfigurationToUser: Found ${taskSetProductsResult.rows.length} task set products for config ${drive_configuration_id}.`);            // Create drive session without current_user_active_drive_item_id initially (it's nullable)
+            const sessionInsertResult = await client.query(
+                `INSERT INTO drive_sessions (user_id, drive_configuration_id, status, tasks_required, started_at, created_at)
+                 VALUES ($1, $2, 'active', $3, NOW(), NOW()) RETURNING id`,
+                [userId, drive_configuration_id, tasksRequired]
             );
             
-            if (createSessionResult.rows.length > 0) {
-                const newSessionId = createSessionResult.rows[0].id;
-                logger.info(`Created new drive session ${newSessionId} for user ${userId} with configuration ${drive_configuration_id}`);
+            const newDriveSessionId = sessionInsertResult.rows[0].id;
+            logger.info(`assignDriveConfigurationToUser: New drive_session created with ID: ${newDriveSessionId} for user ${userId}`);
+
+            // Now create the user_active_drive_items
+            let firstUserActiveDriveItemId = null;
+            for (let i = 0; i < taskSetProductsResult.rows.length; i++) {
+                const productInfo = taskSetProductsResult.rows[i];
+                const overallOrder = productInfo.order_in_drive;
                 
-                // Optionally, set up the initial task sets for this session
-                // This could involve querying drive_task_sets for this configuration
-                // and creating corresponding user_active_drive_items
-                // ...
+                const activeItemInsertResult = await client.query(
+                    `INSERT INTO user_active_drive_items (user_id, drive_session_id, product_id_1, order_in_drive, user_status, task_type, created_at, updated_at)
+                     VALUES ($1, $2, $3, $4, $5, 'order', NOW(), NOW()) RETURNING id`,
+                    [userId, newDriveSessionId, productInfo.product_id, overallOrder, i === 0 ? 'CURRENT' : 'PENDING']
+                );
+                
+                const insertedItemId = activeItemInsertResult.rows[0]?.id;
+                logger.debug(`assignDriveConfigurationToUser: Inserted user_active_drive_item for session ${newDriveSessionId}, product ${productInfo.product_id}, order ${overallOrder}. Returned ID: ${insertedItemId}`);
+
+                if (i === 0) {
+                    if (insertedItemId) {
+                        firstUserActiveDriveItemId = insertedItemId;
+                        logger.info(`assignDriveConfigurationToUser: firstUserActiveDriveItemId set to: ${firstUserActiveDriveItemId}`);
+                    } else {
+                        logger.error(`assignDriveConfigurationToUser: CRITICAL - Inserted first user_active_drive_item (i=0) but RETURNING id was null/undefined for session ${newDriveSessionId}.`);
+                    }
+                }
             }
+
+            if (!firstUserActiveDriveItemId) {
+                await client.query('ROLLBACK');
+                logger.error(`assignDriveConfigurationToUser: CRITICAL_ERROR - Task set products were found (${taskSetProductsResult.rows.length}), but firstUserActiveDriveItemId was NOT set. Rolling back for session ${newDriveSessionId}.`);
+                client.release();
+                return res.status(500).json({ 
+                    message: 'Failed to initialize drive items correctly. The drive session could not be started properly.'
+                });
+            }
+
+            // Finally, update the drive_session with the firstUserActiveDriveItemId
+            const updateSessionResult = await client.query(
+                'UPDATE drive_sessions SET current_user_active_drive_item_id = $1 WHERE id = $2',
+                [firstUserActiveDriveItemId, newDriveSessionId]
+            );
+
+            if (updateSessionResult.rowCount === 0) {
+                await client.query('ROLLBACK');
+                logger.error(`assignDriveConfigurationToUser: CRITICAL_ERROR - Failed to update drive_session ${newDriveSessionId} with firstUserActiveDriveItemId ${firstUserActiveDriveItemId}. Rolling back.`);
+                client.release();
+                return res.status(500).json({ 
+                    message: 'Failed to finalize drive session initialization.'
+                });
+            }
+            logger.info(`assignDriveConfigurationToUser: Successfully updated drive_session ${newDriveSessionId} with current_user_active_drive_item_id ${firstUserActiveDriveItemId}.`);
+
         } else {
-            // Optionally, update the existing session to use the new configuration
-            // This depends on your business logic - whether reassigning a config should
-            // update an existing session or leave it alone
             const sessionId = existingSessionResult.rows[0].id;
-            logger.info(`User ${userId} already has active session ${sessionId}. Not creating a new one.`);
+            logger.info(`assignDriveConfigurationToUser: User ${userId} already has active session ${sessionId}. Not creating a new one, but assigned_drive_configuration_id in users table is updated.`);
         }
 
-        logger.info(`Admin assigned drive configuration ${drive_configuration_id} to user ${userId}.`);
+        await client.query('COMMIT'); // Commit transaction
+        logger.info(`Admin assigned drive configuration ${drive_configuration_id} to user ${userId}. User's record updated and new session (if applicable) initialized.`);
         res.status(200).json({ 
             message: 'User drive configuration assigned successfully.', 
-            user: updateResult.rows[0] 
+            user: updateUserConfigResult.rows[0] 
         });
 
     } catch (error) {
+        await client.query('ROLLBACK'); // Rollback on any error
         logger.error(`Error assigning drive configuration ${drive_configuration_id} to user ${userId}:`, error);
-        // Check if the error is due to a non-existent column
-        if (error.message.includes('column "assigned_drive_configuration_id" of relation "users" does not exist')) {
-            return res.status(500).json({ 
-                message: 'Database schema error: The column "assigned_drive_configuration_id" does not exist on the "users" table. Please update the database schema.',
-                error: error.message 
-            });
-        }
-        if (error.message.includes('column "updated_at" of relation "users" does not exist')) {
-            // If updated_at also doesn't exist, try the query without it.
-            // This is a fallback, ideally the schema should be consistent.
-            logger.warn('Column "updated_at" does not exist in "users" table. Attempting update without it.');
-            try {
-                const fallbackUpdateQuery = 'UPDATE users SET assigned_drive_configuration_id = $1 WHERE id = $2 RETURNING id, username, email, assigned_drive_configuration_id';
-                const fallbackResult = await pool.query(fallbackUpdateQuery, [drive_configuration_id, userId]);
-                if (fallbackResult.rows.length === 0) {
-                    return res.status(500).json({ message: 'Failed to update user with drive configuration (fallback attempt).' });
-                }
-                logger.info(`Admin assigned drive configuration ${drive_configuration_id} to user ${userId} (fallback without updated_at).`);
-                return res.status(200).json({
-                    message: 'User drive configuration assigned successfully (schema mismatch for updated_at).',
-                    user: fallbackResult.rows[0]
-                });
-            } catch (fallbackError) {
-                logger.error(`Fallback update attempt also failed for user ${userId}:`, fallbackError);
-                return res.status(500).json({ message: 'Failed to assign drive configuration to user (fallback failed)', error: fallbackError.message });
-            }
-        }        res.status(500).json({ message: 'Failed to assign drive configuration to user', error: error.message });
+        res.status(500).json({ 
+            message: 'Failed to assign drive configuration to user', 
+            error: error.message,
+            code: error.code // Pass along SQL error code if available
+        });
+    } finally {
+        client.release(); // Release client in all cases
     }
 };
 
@@ -973,5 +1024,57 @@ exports.getProductsForConfiguration = async (req, res) => {
             message: 'Failed to fetch products for configuration', 
             error: error.message 
         });
+    }
+};
+
+// New function to get user drive progress
+exports.getUserDriveProgress = async (req, res) => {
+    const { userId } = req.params;
+
+    if (!userId) {
+        return res.status(400).json({ message: "User ID is required." });
+    }
+
+    const query = `
+        SELECT
+            ds.user_id,
+            ds.id AS drive_session_id,
+            dc.id AS drive_configuration_id,
+            dc.name AS drive_configuration_name,
+            uadi.id AS task_item_id,
+            uadi.order_in_drive,
+            uadi.user_status,
+            uadi.product_id_1,
+            p1.name AS product_1_name,
+            uadi.product_id_2,
+            p2.name AS product_2_name,
+            uadi.product_id_3,
+            p3.name AS product_3_name,
+            (SELECT COUNT(*) FROM user_active_drive_items uadi_count WHERE uadi_count.drive_session_id = ds.id) AS total_task_items
+        FROM
+            drive_sessions ds
+        JOIN
+            drive_configurations dc ON ds.drive_configuration_id = dc.id
+        LEFT JOIN
+            user_active_drive_items uadi ON ds.id = uadi.drive_session_id
+        LEFT JOIN
+            products p1 ON uadi.product_id_1 = p1.id
+        LEFT JOIN
+            products p2 ON uadi.product_id_2 = p2.id
+        LEFT JOIN
+            products p3 ON uadi.product_id_3 = p3.id
+        WHERE
+            ds.user_id = $1
+            AND ds.status = 'active'
+        ORDER BY
+            ds.started_at DESC, uadi.order_in_drive ASC
+    `;
+
+    try {
+        const result = await pool.query(query, [userId]);
+        res.status(200).json(result.rows);
+    } catch (error) {
+        logger.error(`Error fetching drive progress for user ${userId}:`, error);
+        res.status(500).json({ message: 'Failed to fetch drive progress', error: error.message });
     }
 };

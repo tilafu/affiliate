@@ -555,13 +555,11 @@ async function loadProducts() {
     try {
         const response = await fetchWithAuth('/admin/products');
         if (response.success) {
-            const productList = document.getElementById('products-list');
-            productList.innerHTML = response.products.map(product => `
+            const productList = document.getElementById('products-list');            productList.innerHTML = response.products.map(product => `
                 <tr>
                     <td>${product.id}</td>
                     <td>${product.name}</td>
                     <td>$${product.price}</td>
-                    <td>${product.commission_rate}%</td>
                     <td>
                         <button class="btn btn-sm btn-danger delete-product-btn" data-id="${product.id}">
                             Delete
@@ -586,9 +584,9 @@ async function createProduct(event) {
     const productData = {
         name: formData.get('name'),
         price: parseFloat(formData.get('price')),
-        commission_rate: parseFloat(formData.get('commission_rate')),
-        min_balance_required: parseFloat(formData.get('min_balance_required')) || 0
-        // image_url might be added here if the form includes it
+        description: formData.get('description') || null,
+        min_balance_required: parseFloat(formData.get('min_balance_required')) || 0,
+        image_url: formData.get('image_url') || null
     };
 
     try {
@@ -620,11 +618,9 @@ async function editProduct(productId) { // This function populates the edit form
         if (response.success) {
             // Populate edit form with product data
             const product = response.product;
-            document.getElementById('edit-product-id').value = product.id;
-            // Populate relevant fields only
+            document.getElementById('edit-product-id').value = product.id;            // Populate relevant fields only
             document.getElementById('edit-product-name').value = product.name;
             document.getElementById('edit-product-price').value = product.price;
-            document.getElementById('edit-commission-rate').value = product.commission_rate;
             // Assuming min_balance_required is still needed/editable
             document.getElementById('edit-min-balance').value = product.min_balance_required || 0; 
             // Add image_url if needed: document.getElementById('edit-image-url').value = product.image_url || '';
@@ -655,9 +651,9 @@ async function updateProduct(event) {
     const productData = {
         name: formData.get('name'),
         price: parseFloat(formData.get('price')),
-        commission_rate: parseFloat(formData.get('commission_rate')),
-        min_balance_required: parseFloat(formData.get('min_balance_required')) || 0
-        // Add image_url if needed: image_url: formData.get('image_url')
+        description: formData.get('description') || null,
+        min_balance_required: parseFloat(formData.get('min_balance_required')) || 0,
+        image_url: formData.get('image_url') || null
     };
 
     try {
@@ -870,12 +866,10 @@ function initializeHandlers() {
     const addProductForm = document.getElementById('add-product-form');
     if (addProductForm) {
         addProductForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            // Construct data only from relevant fields expected by the updated backend
+            e.preventDefault();            // Construct data only from relevant fields expected by the updated backend
             const productData = {
                 name: document.getElementById('product-name').value,
                 price: parseFloat(document.getElementById('product-price').value),
-                commission_rate: parseFloat(document.getElementById('product-commission').value),
                 // Add min_balance_required if it's in the add form
                 // min_balance_required: parseFloat(document.getElementById('product-min-balance').value) || 0, 
                 // Add image_url if it's in the add form
@@ -883,8 +877,8 @@ function initializeHandlers() {
             };
 
             // Validate data before sending (basic example)
-            if (!productData.name || isNaN(productData.price) || isNaN(productData.commission_rate)) {
-                 showNotification('Please fill in Name, Price, and Commission Rate correctly.', 'error');
+            if (!productData.name || isNaN(productData.price)) {
+                 showNotification('Please fill in Name and Price correctly.', 'error');
                  return;
             }
 
@@ -919,12 +913,10 @@ function initializeHandlers() {
                 // Fetch specific product details
                  const response = await fetchWithAuth(`/admin/products/${productId}`); // Assuming endpoint exists
                  if (response.success && response.product) {
-                     const product = response.product;
-                     // Populate the edit form modal
+                     const product = response.product;                     // Populate the edit form modal
                      document.getElementById('edit-product-id').value = product.id;
                      document.getElementById('edit-product-name').value = product.name;
                      document.getElementById('edit-product-price').value = product.price;
-                     document.getElementById('edit-commission-rate').value = product.commission_rate;
                      // Populate other relevant fields if they exist in the modal form
                      // document.getElementById('edit-min-balance').value = product.min_balance_required || 0;
                      // document.getElementById('edit-image-url').value = product.image_url || '';
@@ -959,20 +951,17 @@ function initializeHandlers() {
             if (!productId) {
                  showNotification('Error: Product ID missing from edit form.', 'error');
                  return;
-            }
-
-            const productData = {
+            }            const productData = {
                 name: formData.get('name'),
                 price: parseFloat(formData.get('price')),
-                commission_rate: parseFloat(formData.get('commission_rate')),
                  // Add other fields if they are in the edit form
                  // min_balance_required: parseFloat(formData.get('min_balance_required')) || 0,
                  // image_url: formData.get('image_url') || null
             };
 
              // Validate data before sending (basic example)
-            if (!productData.name || isNaN(productData.price) || isNaN(productData.commission_rate)) {
-                 showNotification('Please fill in Name, Price, and Commission Rate correctly.', 'error');
+            if (!productData.name || isNaN(productData.price)) {
+                 showNotification('Please fill in Name and Price correctly.', 'error');
                  return;
             }
 

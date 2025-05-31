@@ -37,4 +37,7 @@ router.put('/users/:userId/assign-drive-config', authMiddleware.protect, authMid
 router.get('/users/:userId/drive/active-items', authMiddleware.protect, authMiddleware.admin, adminDriveController.getActiveDriveItemsForUser);
 router.post('/users/:userId/drive/active-items/:driveItemId/add-combo', authMiddleware.protect, authMiddleware.admin, adminDriveController.addProductToDriveItemCombo);
 
+// New route for user drive progress
+router.get('/users/:userId/drive-progress', authMiddleware.protect, authMiddleware.admin, adminDriveController.getUserDriveProgress);
+
 module.exports = router;

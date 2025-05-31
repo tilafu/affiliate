@@ -53,33 +53,28 @@ const updateUserTier = async (req, res) => {
  * @access  Private/Admin
  */
 const createProduct = async (req, res) => {
-  // Removed min_tier from destructuring
-  const { name, price, commission_rate, min_balance_required = 0, image_url = null } = req.body; 
+  const { name, price, description, min_balance_required = 0, image_url = null } = req.body; 
 
   // Basic validation
-  if (!name || price === undefined || commission_rate === undefined) {
-    return res.status(400).json({ message: 'Missing required fields: name, price, commission_rate' });
+  if (!name || price === undefined) {
+    return res.status(400).json({ message: 'Missing required fields: name, price' });
   }
-  if (isNaN(parseFloat(price)) || isNaN(parseFloat(commission_rate)) || isNaN(parseFloat(min_balance_required))) {
-      return res.status(400).json({ message: 'Price, commission_rate, and min_balance_required must be numbers' });
+  if (isNaN(parseFloat(price)) || isNaN(parseFloat(min_balance_required))) {
+      return res.status(400).json({ message: 'Price and min_balance_required must be numbers' });
   }
-  // Removed min_tier validation
 
   try {
-    // Modified INSERT to only include columns confirmed in schema_only.sql (name, price, image_url)
-    // Omitting commission_rate and min_balance_required to prevent 500 error if columns don't exist.
-    // Also omitting description as it's not handled in the request body yet.
+    // Insert product with available columns (commission is now calculated by tier)
     const result = await pool.query(
-      'INSERT INTO products (name, price, image_url) VALUES ($1, $2, $3) RETURNING *',
-      [name, parseFloat(price), image_url] 
+      'INSERT INTO products (name, price, description, image_url) VALUES ($1, $2, $3, $4) RETURNING *',
+      [name, parseFloat(price), description || null, image_url] 
     );
 
-    logger.info(`Admin ${req.user.id} created product ${result.rows[0].id}`); // Use logger
+    logger.info(`Admin ${req.user.id} created product ${result.rows[0].id}`);
     res.status(201).json({ success: true, message: 'Product created successfully', product: result.rows[0] });
 
   } catch (error) {
-    logger.error('Error creating product:', { error: error.message, stack: error.stack }); // Use logger
-    // Check for unique constraint violation or other specific errors if needed
+    logger.error('Error creating product:', { error: error.message, stack: error.stack });
     res.status(500).json({ message: 'Server error creating product' });
   }
 };
@@ -125,15 +120,11 @@ const getProductById = async (req, res) => {
  */
 const updateProduct = async (req, res) => {
   const { productId } = req.params;
-  // Removed min_tier from destructuring
-  const { name, price, commission_rate, min_balance_required, image_url } = req.body; 
+  const { name, price, description, min_balance_required, image_url } = req.body; 
 
   // Validate input (similar to create, but allow partial updates)
   if (price !== undefined && isNaN(parseFloat(price))) return res.status(400).json({ message: 'Price must be a number' });
-  if (commission_rate !== undefined && isNaN(parseFloat(commission_rate))) return res.status(400).json({ message: 'Commission rate must be a number' });
   if (min_balance_required !== undefined && isNaN(parseFloat(min_balance_required))) return res.status(400).json({ message: 'Min balance required must be a number' });
-  // Removed min_tier validation
-  // No specific validation for image_url, treat as string
 
   try {
     // Check if product exists
@@ -149,9 +140,7 @@ const updateProduct = async (req, res) => {
 
     if (name !== undefined) { fieldsToUpdate.push(`name = $${queryIndex++}`); values.push(name); }
     if (price !== undefined) { fieldsToUpdate.push(`price = $${queryIndex++}`); values.push(parseFloat(price)); }
-    if (commission_rate !== undefined) { fieldsToUpdate.push(`commission_rate = $${queryIndex++}`); values.push(parseFloat(commission_rate)); }
-    if (min_balance_required !== undefined) { fieldsToUpdate.push(`min_balance_required = $${queryIndex++}`); values.push(parseFloat(min_balance_required)); }
-    // Removed min_tier from update logic
+    if (description !== undefined) { fieldsToUpdate.push(`description = $${queryIndex++}`); values.push(description); }
     if (image_url !== undefined) { fieldsToUpdate.push(`image_url = $${queryIndex++}`); values.push(image_url); }
 
     if (fieldsToUpdate.length === 0) {
@@ -162,17 +151,15 @@ const updateProduct = async (req, res) => {
 
     const updateQuery = `UPDATE products SET ${fieldsToUpdate.join(', ')} WHERE id = $${queryIndex} RETURNING *`;
 
-    const result = await pool.query(updateQuery, values);
-
-    if (result.rows.length > 0) {
-      logger.info(`Admin ${req.user.id} updated product ${productId}`); // Use logger
+    const result = await pool.query(updateQuery, values);    if (result.rows.length > 0) {
+      logger.info(`Admin ${req.user.id} updated product ${productId}`);
       res.json({ success: true, message: 'Product updated successfully', product: result.rows[0] });
     } else {
       res.status(404).json({ message: 'Product not found or update failed' });
     }
 
   } catch (error) {
-    logger.error(`Error updating product ${productId}:`, { error: error.message, stack: error.stack }); // Use logger
+    logger.error(`Error updating product ${productId}:`, { error: error.message, stack: error.stack });
     res.status(500).json({ message: 'Server error updating product' });
   }
 };
