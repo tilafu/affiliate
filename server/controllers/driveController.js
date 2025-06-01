@@ -4,15 +4,15 @@ const logger = require('../logger');
 const { calculateCommission } = require('../utils/commission');
 const { logDriveOperation } = require('../utils/driveLogger');
 const driveProgressService = require('../services/driveProgressService');
+const tierCommissionService = require('../services/tierCommissionService');
 
 // --- Helper Functions ---
 async function getUserDriveInfo(userId, client = pool) { // Added client parameter
   const userResult = await client.query('SELECT tier FROM users WHERE id = $1', [userId]);
   if (userResult.rows.length === 0) throw new Error('User not found');
-  const tier = userResult.rows[0].tier || 'bronze';
-  const accountResult = await client.query(
-    'SELECT balance FROM accounts WHERE user_id = $1 AND type = \\\'main\\\'',
-    [userId]
+  const tier = userResult.rows[0].tier || 'bronze';  const accountResult = await client.query(
+    'SELECT balance FROM accounts WHERE user_id = $1 AND type = $2',
+    [userId, 'main']
   );
   const balance = accountResult.rows.length > 0 ? parseFloat(accountResult.rows[0].balance) : 0;
   return { tier, balance };
@@ -188,16 +188,30 @@ const startDrive = async (req, res) => {
         await client.query('BEGIN');
 
         // 1. Check for existing active, pending_reset, or frozen drive_sessions
-        // This logic remains largely the same, as drive_sessions still governs the overall state.
-        const existingSessionResult = await client.query(
-            `SELECT ds.id, ds.status, ds.drive_configuration_id, uadi.id as current_user_active_drive_item_id
-             FROM drive_sessions ds
-             LEFT JOIN user_active_drive_items uadi ON ds.current_user_active_drive_item_id = uadi.id
-             WHERE ds.user_id = $1 AND ds.status IN ('active', 'pending_reset', 'frozen')
-             ORDER BY ds.started_at DESC LIMIT 1`,
-            [userId]
-        );
-
+        // This logic remains largely the same, as drive_sessions still governs the overall state.        
+        let existingSessionResult;        try {
+            existingSessionResult = await client.query(
+                `SELECT ds.id, ds.status, ds.drive_configuration_id, uadi.id as current_user_active_drive_item_id
+                 FROM drive_sessions ds
+                 LEFT JOIN user_active_drive_items uadi ON ds.current_user_active_drive_item_id = uadi.id
+                 WHERE ds.user_id = $1 AND ds.status IN ('active', 'pending_reset', 'frozen')
+                 ORDER BY ds.started_at DESC LIMIT 1`,
+                [userId]    
+            );
+            // Log success
+            logger.info(`Successfully queried drive_sessions table with current_user_active_drive_item_id join`);
+        } catch (queryError) {
+            logger.error(`Error querying drive_sessions: ${queryError.message}`);
+            
+            // Fallback query without the problematic column
+            existingSessionResult = await client.query(
+                `SELECT ds.id, ds.status, ds.drive_configuration_id
+                 FROM drive_sessions ds
+                 WHERE ds.user_id = $1 AND ds.status IN ('active', 'pending_reset', 'frozen')
+                 ORDER BY ds.started_at DESC LIMIT 1`,
+                [userId]    
+            );        } 
+        
         if (existingSessionResult.rows.length > 0) {
             const existingSession = existingSessionResult.rows[0];
             // If a session exists, we should return its current state based on user_active_drive_items
@@ -213,26 +227,257 @@ const startDrive = async (req, res) => {
             // For simplicity, if any of these states exist, we prevent user-initiated start.
             // The user should go through the normal drive flow if a session is already 'active'.
             await client.query('ROLLBACK');
-            client.release();
-            logger.warn(`User ${userId} attempted to start a new drive via user endpoint, but an admin-managed session (status: ${existingSession.status}) exists.`);
-            return res.status(409).json({ message: `A drive session (status: ${existingSession.status}) is already managed for you. Please proceed with your current drive.` });
+            // Don't release the client here, it will be released in the finally block            logger.warn(`User ${userId} attempted to start a new drive via user endpoint, but an admin-managed session (status: ${existingSession.status}) exists.`);
+            
+            // Instead of preventing the user from continuing, we'll return the details about the existing session
+            // This lets the client-side code handle it gracefully
+            return res.status(200).json({ 
+                code: 0,
+                message: `A drive session (status: ${existingSession.status}) is already assigned to you. Please continue with your current drive.`,
+                existing_session: true,
+                session_id: existingSession.id,
+                status: existingSession.status,
+                drive_configuration_id: existingSession.drive_configuration_id,
+                current_user_active_drive_item_id: existingSession.current_user_active_drive_item_id || null
+            });
+        }        // If no admin-assigned drive (active, pending_reset, frozen), check if user has an assigned drive configuration
+        // Check if the user has an assigned_drive_configuration_id in the users table
+        const userConfigResult = await client.query(
+            'SELECT assigned_drive_configuration_id FROM users WHERE id = $1',
+            [userId]
+        );
+        
+        if (userConfigResult.rows.length > 0 && userConfigResult.rows[0].assigned_drive_configuration_id) {
+            const configId = userConfigResult.rows[0].assigned_drive_configuration_id;
+            logger.info(`User ${userId} has an assigned drive configuration: ${configId}`);
+            
+            // Create a new drive session with the assigned configuration
+            try {
+                // Get configuration details
+                const configResult = await client.query(
+                    'SELECT tasks_required FROM drive_configurations WHERE id = $1 AND is_active = TRUE',
+                    [configId]
+                );
+                
+                if (configResult.rows.length === 0) {
+                    await client.query('ROLLBACK');
+                    logger.warn(`User ${userId} has assigned drive configuration ${configId} but it is not active.`);
+                    return res.status(404).json({ 
+                        message: 'The assigned drive configuration is not active. Please contact an administrator.' 
+                    });
+                }
+                
+                const tasksRequired = configResult.rows[0].tasks_required;
+                
+                // Create new drive session
+                const sessionInsertResult = await client.query(
+                    `INSERT INTO drive_sessions (user_id, drive_configuration_id, status, tasks_required, started_at, created_at)
+                     VALUES ($1, $2, 'active', $3, NOW(), NOW()) RETURNING id`,
+                    [userId, configId, tasksRequired]
+                );
+                
+                const newDriveSessionId = sessionInsertResult.rows[0].id;
+                logger.info(`startDrive: New drive_session created with ID: ${newDriveSessionId} for user ${userId}`);
+                
+                // Fetch task set products for the configuration
+                const taskSetProductsResult = await client.query(
+                    `SELECT ts.id as task_set_id, tsp.product_id, ts.order_in_drive, ts.name as task_set_name
+                     FROM drive_task_sets ts
+                     JOIN drive_task_set_products tsp ON ts.id = tsp.task_set_id
+                     WHERE ts.drive_configuration_id = $1
+                     AND tsp.order_in_set = 1 -- Assuming the primary product for a step is order_in_set = 1
+                     ORDER BY ts.order_in_drive ASC`,
+                    [configId]
+                );
+                
+                if (taskSetProductsResult.rows.length === 0) {
+                    await client.query('ROLLBACK');
+                    logger.warn(`No task set products found for drive_configuration_id: ${configId}`);
+                    return res.status(400).json({ 
+                        message: 'Drive configuration has no products defined. Please contact an administrator.' 
+                    });
+                }
+                logger.info(`startDrive: Found ${taskSetProductsResult.rows.length} task set products for config ${configId}.`);
+                
+                // Populate user_active_drive_items
+                let firstUserActiveDriveItemId = null;
+                if (taskSetProductsResult.rows.length > 0) {
+                    for (let i = 0; i < taskSetProductsResult.rows.length; i++) {
+                        const productInfo = taskSetProductsResult.rows[i];
+                        const overallOrder = productInfo.order_in_drive;
+                        
+                        const activeItemInsertResult = await client.query(
+                            `INSERT INTO user_active_drive_items (user_id, drive_session_id, product_id_1, order_in_drive, user_status, task_type, created_at, updated_at)
+                             VALUES ($1, $2, $3, $4, $5, 'order', NOW(), NOW()) RETURNING id`,
+                            [userId, newDriveSessionId, productInfo.product_id, overallOrder, i === 0 ? 'CURRENT' : 'PENDING']
+                        );
+                        
+                        const insertedItemId = activeItemInsertResult.rows[0]?.id;
+                        logger.debug(`startDrive: Inserted user_active_drive_item for session ${newDriveSessionId}, product ${productInfo.product_id}, order ${overallOrder}. Returned ID: ${insertedItemId}`);
+
+                        if (i === 0) {
+                            if (insertedItemId) {
+                                firstUserActiveDriveItemId = insertedItemId;
+                                logger.info(`startDrive: firstUserActiveDriveItemId set to: ${firstUserActiveDriveItemId} (from item ${i})`);
+                            } else {
+                                logger.error(`startDrive: CRITICAL - Inserted first user_active_drive_item (i=0) but RETURNING id was null/undefined for session ${newDriveSessionId}.`);
+                            }
+                        }
+                    }
+                } else {
+                    // This case is already handled by a check at line 136, which rolls back.
+                    // Adding a log here for completeness, though it might be redundant if the earlier check catches it.
+                    logger.warn(`startDrive: taskSetProductsResult.rows.length was 0 when trying to populate user_active_drive_items. Session ID: ${newDriveSessionId}. This should have been caught earlier.`);
+                }
+                
+                logger.info(`startDrive: After loop, firstUserActiveDriveItemId is: ${firstUserActiveDriveItemId} for session ${newDriveSessionId}`);
+
+                // This check ensures that if products were expected for the drive configuration,
+                // a first active item ID was indeed captured and can be set on the session.
+                if (taskSetProductsResult.rows.length > 0) { 
+                    if (firstUserActiveDriveItemId && Number.isInteger(firstUserActiveDriveItemId) && firstUserActiveDriveItemId > 0) {
+                        logger.info(`startDrive: Attempting to UPDATE drive_sessions ${newDriveSessionId} with current_user_active_drive_item_id = ${firstUserActiveDriveItemId}`);
+                        const updateSessionResult = await client.query(
+                            'UPDATE drive_sessions SET current_user_active_drive_item_id = $1 WHERE id = $2',
+                            [firstUserActiveDriveItemId, newDriveSessionId]
+                        );
+                        logger.info(`startDrive: drive_sessions UPDATE result for session ${newDriveSessionId}: rowCount = ${updateSessionResult.rowCount}`);
+                        
+                        logger.info(`startDrive: Attempting COMMIT for session ${newDriveSessionId}`);
+                        await client.query('COMMIT');
+                        logger.info(`startDrive: COMMIT successful for session ${newDriveSessionId}. User ${userId}, config ${configId}, first item ID: ${firstUserActiveDriveItemId}`);
+                        
+                        // --- BEGIN: Enhance response for task.js ---
+                        let responsePayload = {
+                            code: 0,
+                            message: 'Drive started successfully!',
+                            drive_session_id: newDriveSessionId,
+                            // tasksRequired is from the drive_configurations table, representing total items in this drive.
+                            tasks_in_configuration: tasksRequired, 
+                            tasks_completed: 0, // Drive just started, so 0 items completed.
+                            total_session_commission: "0.00", // No commission earned at the start of the drive.
+                            current_order: null // Initialize current_order, will be populated if there's a first item.
+                        };
+
+                        // Fetch details for the firstUserActiveDriveItemId to construct current_order object.
+                        // This item was just created and marked as 'CURRENT'.
+                        logger.debug(`startDrive: Preparing response. firstUserActiveDriveItemId for itemDetailsResult query: ${firstUserActiveDriveItemId}`);                        const itemDetailsResult = await client.query(
+                            `SELECT
+                               uadi.id as user_active_drive_item_id,
+                               uadi.product_id_1, p1.name as p1_name, p1.price as p1_price, 
+                               p1.image_url as p1_image_url, p1.description as p1_description
+                               /* Add p2, p3 if startDrive can create combo items directly */
+                             FROM user_active_drive_items uadi
+                             LEFT JOIN products p1 ON uadi.product_id_1 = p1.id
+                             /* Add joins for p2, p3 if needed */
+                             WHERE uadi.id = $1`,
+                            [firstUserActiveDriveItemId]
+                        );
+                        logger.debug(`startDrive: itemDetailsResult query returned ${itemDetailsResult.rows.length} rows.`);
+
+                        if (itemDetailsResult.rows.length > 0) {
+                            const itemDetails = itemDetailsResult.rows[0];
+                            const { tier } = await getUserDriveInfo(userId, client); // Fetch user tier for commission calculation.
+
+                            let currentItemTotalPrice = 0;
+                            const productsInItem = [];
+                            let potentialCommission = 0;                            // Since startDrive currently creates items with only product_id_1
+                            if (itemDetails.product_id_1 && itemDetails.p1_price) {
+                                const price = parseFloat(itemDetails.p1_price);
+                                currentItemTotalPrice += price;
+                                productsInItem.push({
+                                    id: itemDetails.product_id_1,
+                                    name: itemDetails.p1_name,
+                                    price: price,
+                                    image_url: itemDetails.p1_image_url,
+                                    description: itemDetails.p1_description
+                                });
+                                // For a single product item, use tier-based commission calculation
+                                const commissionData = await tierCommissionService.calculateCommissionForUser(userId, price, false);
+                                potentialCommission = commissionData.commissionAmount;
+                            }
+                            
+                            responsePayload.current_order = {
+                                user_active_drive_item_id: itemDetails.user_active_drive_item_id,
+                                products: productsInItem, // Array of products in this first item
+                                total_price: currentItemTotalPrice.toFixed(2),
+                                order_commission: potentialCommission.toFixed(2), // Potential commission for this first item
+                                fund_amount: currentItemTotalPrice.toFixed(2), // Amount to be deducted for this item
+                                product_number: uuidv4().substring(0, 18), // Mimicking getDriveStatus structure
+                                premium_status: 0, // Mimicking getDriveStatus structure
+                                // Primary product details for frontend compatibility
+                                product_id: productsInItem[0]?.id,
+                                product_name: productsInItem[0]?.name,
+                                product_image: productsInItem[0]?.image_url || './assets/uploads/products/newegg-1.jpg',
+                                product_price: productsInItem[0] ? parseFloat(productsInItem[0].price).toFixed(2) : "0.00",
+                                product_description: productsInItem[0]?.description,
+                                is_combo: productsInItem.length > 1 // Will be false for initial items from startDrive
+                            };
+                        } else {
+                            // This case should ideally not happen if firstUserActiveDriveItemId was set and committed.
+                            logger.error(`startDrive: Successfully created session ${newDriveSessionId} and item ${firstUserActiveDriveItemId} was set, COMMIT was done, but FAILED to fetch item details for the response. Current_order will be null.`);
+                        }
+                        // --- END: Enhance response for task.js ---
+                        
+                        return res.status(200).json(responsePayload);
+                    } else {
+                        // CRITICAL: Expected items, but firstUserActiveDriveItemId was NOT set or invalid.
+                        logger.error(`CRITICAL_ERROR in startDrive for user ${userId}, new session ${newDriveSessionId}: Task set products were found (${taskSetProductsResult.rows.length}), but firstUserActiveDriveItemId was NOT set or invalid ('${firstUserActiveDriveItemId}'). Rolling back transaction.`);
+                        await client.query('ROLLBACK');
+                        logger.info(`startDrive: ROLLBACK executed due to invalid firstUserActiveDriveItemId for session ${newDriveSessionId}.`);
+                        // client.release() will be handled in the finally block
+                        return res.status(500).json({ 
+                            message: 'Failed to initialize drive items correctly. The drive session could not be started properly. Please try again or contact support.',
+                            code: 1 
+                        });
+                    }
+                }
+                // If taskSetProductsResult.rows.length was 0, an earlier check (around line 136 in your file)
+                // already handles rolling back and returning an error, so we don't need to re-check that here.
+                
+            } catch (innerError) {
+                await client.query('ROLLBACK');
+                logger.error(`Error starting drive for user ${userId} with assigned configuration ${configId}:`, innerError);
+                return res.status(500).json({ 
+                    message: 'Failed to start drive with assigned configuration.',
+                    error: innerError.message
+                });
+            }
         }
-
-        // If no admin-assigned drive (active, pending_reset, frozen), then the user cannot start one themselves.
-        // The old logic of user-initiated drive start is removed. Drives are now assigned by admins.
+        
+        // If we reach here, the user doesn't have an assigned drive configuration
         await client.query('ROLLBACK');
-        client.release();
-        logger.info(`User ${userId} attempted to start a drive, but no admin-assigned drive session was found.`);
+        logger.info(`User ${userId} attempted to start a drive, but no admin-assigned drive session or configuration was found.`);
         return res.status(403).json({ message: 'Drives are assigned by administrators. Please contact an admin to start a new drive.' });
-
     } catch (error) {
         if (client) {
-            try { await client.query('ROLLBACK'); } catch (rbError) { logger.error('Rollback error in startDrive:', rbError); }
+            try { 
+                await client.query('ROLLBACK'); 
+                logger.debug('Successfully rolled back transaction in startDrive error handler');
+            } catch (rbError) { 
+                logger.error('Rollback error in startDrive:', rbError); 
+            }
         }
-        logger.error(`Error in startDrive for user ID: ${userId} - ${error.message}`, { stack: error.stack });
-        res.status(500).json({ message: 'Failed to process drive request', error: error.message });
+        logger.error(`Error in startDrive for user ID: ${userId} - ${error.message}`, { 
+            stack: error.stack,
+            userId: userId, // Add user context
+            errorName: error.name,
+            errorCode: error.code // Capture DB error codes if present
+        });
+        res.status(500).json({ 
+            message: 'Failed to process drive request',
+            error: error.message,
+            code: 1 // Consistent error code format 
+        });
     } finally {
+<<<<<<< HEAD
         if (client) client.release();
+>>>>>>> main
+=======
+        if (client) {
+            client.release();
+            logger.debug('Database client released in startDrive finally block');
+        }
 >>>>>>> main
     }
 };
@@ -307,11 +552,11 @@ const getDriveStatus = async (req, res) => {
           [incompleteOrder.order_id]
 =======
     const userId = req.user.id;
-    logger.debug(`getDriveStatus called for user ID: ${userId} (using user_active_drive_items)`);
-
+    logger.debug(`getDriveStatus called for user ID: ${userId} (using user_active_drive_items)`);    
     const client = await pool.connect();
     try {
         // 1. Fetch the latest relevant drive session and its current active item
+<<<<<<< HEAD
         const sessionResult = await client.query(
             `SELECT
                ds.id AS drive_session_id, ds.status AS session_status,
@@ -330,6 +575,78 @@ const getDriveStatus = async (req, res) => {
             [userId]
 >>>>>>> main
         );
+=======
+        let sessionResult;
+        try {
+            sessionResult = await client.query(
+                `SELECT
+                   ds.id AS drive_session_id, ds.status AS session_status,
+                   ds.drive_configuration_id,
+                   dc.tasks_required AS total_steps_in_drive, /* tasks_required from config is total steps */
+                   uadi.id AS current_user_active_drive_item_id,
+                   uadi.product_id_1, uadi.product_id_2, uadi.product_id_3,
+                   uadi.order_in_drive AS current_item_order,
+                   uadi.user_status AS current_item_user_status,
+                   ds.frozen_amount_needed
+                 FROM drive_sessions ds
+                 JOIN drive_configurations dc ON ds.drive_configuration_id = dc.id
+                 LEFT JOIN user_active_drive_items uadi ON ds.current_user_active_drive_item_id = uadi.id
+                 WHERE ds.user_id = $1 AND ds.status IN ('active', 'pending_reset', 'frozen')
+                 ORDER BY ds.started_at DESC LIMIT 1`,
+                [userId]
+            );
+            logger.info(`Successfully queried drive status with current_user_active_drive_item_id join`);
+        } catch (queryError) {            logger.error(`Error in getDriveStatus query: ${queryError.message}`);
+            
+            // Attempt a fallback query without the problematic join
+            try {
+                sessionResult = await client.query(
+                    `SELECT
+                       ds.id AS drive_session_id, ds.status AS session_status,
+                       ds.drive_configuration_id,
+                       dc.tasks_required AS total_steps_in_drive
+                     FROM drive_sessions ds
+                     JOIN drive_configurations dc ON ds.drive_configuration_id = dc.id
+                     WHERE ds.user_id = $1 AND ds.status IN ('active', 'pending_reset', 'frozen')
+                     ORDER BY ds.started_at DESC LIMIT 1`,
+                    [userId]
+                );
+                
+                logger.info(`Used fallback query for drive status without current_user_active_drive_item_id join`);
+                
+                // If we got results, now fetch the active drive items separately
+                if (sessionResult.rows.length > 0) {
+                    const session = sessionResult.rows[0];
+                    
+                    // Find the first CURRENT or PENDING item to use
+                    const activeItemsResult = await client.query(
+                        `SELECT id, product_id_1, product_id_2, product_id_3, order_in_drive, user_status
+                         FROM user_active_drive_items
+                         WHERE drive_session_id = $1 AND user_status IN ('CURRENT', 'PENDING')
+                         ORDER BY order_in_drive ASC LIMIT 1`,
+                        [session.drive_session_id]
+                    );
+                    
+                    if (activeItemsResult.rows.length > 0) {
+                        // Attach the active item details to the session record
+                        const activeItem = activeItemsResult.rows[0];
+                        session.current_user_active_drive_item_id = activeItem.id;
+                        session.product_id_1 = activeItem.product_id_1;
+                        session.product_id_2 = activeItem.product_id_2;
+                        session.product_id_3 = activeItem.product_id_3;
+                        session.current_item_order = activeItem.order_in_drive;
+                        session.current_item_user_status = activeItem.user_status;
+                    }
+                }
+            } catch (fallbackError) {
+                logger.error(`Fallback query also failed: ${fallbackError.message}`);
+                return res.status(500).json({ 
+                    code: 1, 
+                    info: 'Database error while checking drive status. Please contact support.'
+                });
+            }
+        }
+>>>>>>> main
 
 <<<<<<< HEAD
       return res.json({
@@ -405,30 +722,91 @@ const getDriveStatus = async (req, res) => {
                 drive_configuration_id: session.drive_configuration_id,
                 info: 'Drive frozen due to insufficient balance. Please deposit funds.'
             });
-        }
-
-        // 6. Handle 'active' status
+        }        // 6. Handle 'active' status
         if (session.session_status === 'active') {
             if (!session.current_user_active_drive_item_id) {
-                client.release();
-                logger.error(`Active session ${driveSessionId} for user ${userId} has no current_user_active_drive_item_id.`);
-                return res.status(500).json({ code: 1, info: 'Error: Active session is in an inconsistent state (no current item).' });
+                // Handle missing current_user_active_drive_item_id by fetching the first active item
+                const firstItemResult = await client.query(
+                    `SELECT id FROM user_active_drive_items 
+                     WHERE drive_session_id = $1 AND user_status != 'COMPLETED'
+                     ORDER BY order_in_drive ASC LIMIT 1`,
+                    [driveSessionId]
+                );
+                
+                if (firstItemResult.rows.length > 0) {
+                    // Update the session with the first active item
+                    const firstItemId = firstItemResult.rows[0].id;
+                    await client.query(
+                        'UPDATE drive_sessions SET current_user_active_drive_item_id = $1 WHERE id = $2',
+                        [firstItemId, driveSessionId]
+                    );
+                    
+                    // Set session.current_user_active_drive_item_id for further processing
+                    session.current_user_active_drive_item_id = firstItemId;
+                    logger.info(`Updated session ${driveSessionId} with missing current_user_active_drive_item_id to ${firstItemId}`);
+                } else {
+                    // No fallback item found either. This is the error condition.
+                    logger.error({
+                        message: "Error in getDriveStatus: Active session has no current_user_active_drive_item_id and no fallback active items found.",
+                        userId: userId,
+                        driveSessionId: driveSessionId,
+                        retrievedSessionState: session, // Log the session object as retrieved by the initial query
+                        context: "This error occurs when session.current_user_active_drive_item_id is effectively null AND no 'CURRENT' or 'PENDING' items are found in user_active_drive_items for this session."
+                    });
+                    // Original log: logger.error(`Active session ${driveSessionId} for user ${userId} has no current_user_active_drive_item_id and no active items found.`);
+                    client.release();
+                    return res.status(500).json({ 
+                        code: 1, 
+                        info: `Active session ${driveSessionId} for user ${userId} has no current_user_active_drive_item_id and no active items found.` 
+                    });
+                }
+            }            // Fetch details for the current_user_active_drive_item and its products
+            let currentItemProductsResult;
+            try {                currentItemProductsResult = await client.query(
+                    `SELECT
+                       uadi.id as user_active_drive_item_id,
+                       uadi.product_id_1, p1.name as p1_name, p1.price as p1_price, p1.image_url as p1_image_url, p1.description as p1_description,
+                       uadi.product_id_2, p2.name as p2_name, p2.price as p2_price, p2.image_url as p2_image_url, p2.description as p2_description,
+                       uadi.product_id_3, p3.name as p3_name, p3.price as p3_price, p3.image_url as p3_image_url, p3.description as p3_description
+                     FROM user_active_drive_items uadi
+                     LEFT JOIN products p1 ON uadi.product_id_1 = p1.id
+                     LEFT JOIN products p2 ON uadi.product_id_2 = p2.id
+                     LEFT JOIN products p3 ON uadi.product_id_3 = p3.id
+                     WHERE uadi.id = $1`,
+                    [session.current_user_active_drive_item_id]
+                );
+            } catch (productQueryError) {
+                logger.error(`Error fetching product details for item ${session.current_user_active_drive_item_id}: ${productQueryError.message}`);
+                
+                // Fallback to a simpler query that gets just the basic drive item info
+                try {
+                    currentItemProductsResult = await client.query(
+                        `SELECT
+                           uadi.id as user_active_drive_item_id,
+                           uadi.product_id_1, uadi.product_id_2, uadi.product_id_3
+                         FROM user_active_drive_items uadi
+                         WHERE uadi.id = $1`,
+                        [session.current_user_active_drive_item_id]
+                    );
+                    
+                    // If we have product IDs but not product details, fetch the products separately
+                    if (currentItemProductsResult.rows.length > 0) {
+                        const item = currentItemProductsResult.rows[0];
+                        if (item.product_id_1) {                            const p1Result = await client.query(
+                                'SELECT id, name as p1_name, price as p1_price, image_url as p1_image_url, description as p1_description FROM products WHERE id = $1',
+                                [item.product_id_1]
+                            );
+                            if (p1Result.rows.length > 0) {
+                                Object.assign(item, p1Result.rows[0]);
+                            }
+                        }
+                    }
+                } catch (fallbackError) {
+                    logger.error(`Fallback product query also failed: ${fallbackError.message}`);
+                    client.release();
+                    return res.status(500).json({ code: 1, info: 'Failed to retrieve product details for current drive item.' });
+                }
             }
-
-            // Fetch details for the current_user_active_drive_item and its products
-            const currentItemProductsResult = await client.query(
-                `SELECT
-                   uadi.id as user_active_drive_item_id,
-                   uadi.product_id_1, p1.name as p1_name, p1.price as p1_price, p1.image_url as p1_image_url, p1.description as p1_description, p1.commission_rate as p1_commission_rate,
-                   uadi.product_id_2, p2.name as p2_name, p2.price as p2_price, p2.image_url as p2_image_url, p2.description as p2_description, p2.commission_rate as p2_commission_rate,
-                   uadi.product_id_3, p3.name as p3_name, p3.price as p3_price, p3.image_url as p3_image_url, p3.description as p3_description, p3.commission_rate as p3_commission_rate
-                 FROM user_active_drive_items uadi
-                 LEFT JOIN products p1 ON uadi.product_id_1 = p1.id
-                 LEFT JOIN products p2 ON uadi.product_id_2 = p2.id
-                 LEFT JOIN products p3 ON uadi.product_id_3 = p3.id
-                 WHERE uadi.id = $1`,
-                [session.current_user_active_drive_item_id]
-            );
 
             if (currentItemProductsResult.rows.length === 0) {
                 client.release();
@@ -475,18 +853,14 @@ const getDriveStatus = async (req, res) => {
                     id: itemDetails.product_id_3, name: itemDetails.p3_name, price: price3,
                     image_url: itemDetails.p3_image_url, description: itemDetails.p3_description
                 });
-            }
-
-            // Simplified commission: if more than one product, apply a "combo" rate (e.g. 4.5% of total).
-            // Otherwise, apply standard commission to the single product.
-            // This needs to align with how `saveOrder` calculates it.
+            }            // Simplified commission: Use tier-based commission calculation
             // For `getDriveStatus`, we are showing the *potential* commission.
-            if (productsInItem.length > 1) { // It's a combo
-                currentItemTotalCommission = currentItemTotalPrice * 0.045; // Example combo rate
-            } else if (productsInItem.length === 1) { // Single product
-                // Use the product's own commission rate field if available, or fallback to tiered.
-                // For now, stick to tiered for single product for consistency with old `calculateCommission`.
-                currentItemTotalCommission = calculateCommission(currentItemTotalPrice, tier, 'single');
+            if (productsInItem.length > 1) { // It's a combo - use merge data rate
+                const commissionData = await tierCommissionService.calculateCommissionForUser(userId, currentItemTotalPrice, true);
+                currentItemTotalCommission = commissionData.commissionAmount;
+            } else if (productsInItem.length === 1) { // Single product - use per data rate
+                const commissionData = await tierCommissionService.calculateCommissionForUser(userId, currentItemTotalPrice, false);
+                currentItemTotalCommission = commissionData.commissionAmount;
             }
 
 
@@ -641,13 +1015,32 @@ const getOrder = async (req, res) => {
                 success: false, code: 3, status: 'frozen',
                 info: 'Your drive session is frozen. Please resolve any outstanding issues.'
             });
-        }
-
-        if (session.session_status === 'active') {
+        }        if (session.session_status === 'active') {
             if (!session.current_user_active_drive_item_id) {
-                client.release();
-                logger.error(`getOrder: Active session ${driveSessionId} for user ${userId} has no current_user_active_drive_item_id.`);
-                return res.status(500).json({ success: false, code: 1, info: 'Error: Active session is in an inconsistent state.' });
+                // Handle missing current_user_active_drive_item_id by fetching the first active item
+                const firstItemResult = await client.query(
+                    `SELECT id FROM user_active_drive_items 
+                     WHERE drive_session_id = $1 AND user_status != 'COMPLETED'
+                     ORDER BY order_in_drive ASC LIMIT 1`,
+                    [driveSessionId]
+                );
+                
+                if (firstItemResult.rows.length > 0) {
+                    // Update the session with the first active item
+                    const firstItemId = firstItemResult.rows[0].id;
+                    await client.query(
+                        'UPDATE drive_sessions SET current_user_active_drive_item_id = $1 WHERE id = $2',
+                        [firstItemId, driveSessionId]
+                    );
+                    
+                    // Set session.current_user_active_drive_item_id for further processing
+                    session.current_user_active_drive_item_id = firstItemId;
+                    logger.info(`getOrder: Updated session ${driveSessionId} with missing current_user_active_drive_item_id to ${firstItemId}`);
+                } else {
+                    client.release();
+                    logger.error(`getOrder: Active session ${driveSessionId} for user ${userId} has no current_user_active_drive_item_id and no active items found.`);
+                    return res.status(500).json({ success: false, code: 1, info: 'Error: Active session is in an inconsistent state.' });
+                }
             }
 
             const currentItemProductsResult = await client.query(
@@ -687,12 +1080,12 @@ const getOrder = async (req, res) => {
             if (itemDetails.product_id_3 && itemDetails.p3_price) {
                 totalPrice += parseFloat(itemDetails.p3_price);
                 productsInItem.push({ id: itemDetails.product_id_3, name: itemDetails.p3_name, price: parseFloat(itemDetails.p3_price), image_url: itemDetails.p3_image_url });
-            }
-
-            if (productsInItem.length > 1) {
-                commission = totalPrice * 0.045; // Combo rate
+            }            if (productsInItem.length > 1) {
+                const commissionData = await tierCommissionService.calculateCommissionForUser(userId, totalPrice, true);
+                commission = commissionData.commissionAmount;
             } else if (productsInItem.length === 1) {
-                commission = calculateCommission(totalPrice, tier, 'single');
+                const commissionData = await tierCommissionService.calculateCommissionForUser(userId, totalPrice, false);
+                commission = commissionData.commissionAmount;
             }
             
             client.release();
@@ -983,9 +1376,7 @@ const saveOrder = async (req, res) => {
             await client.query('ROLLBACK'); client.release();
             logger.warn(`saveOrder: Attempt to save non-current user_active_drive_item. User: ${userId}, Submitted: ${parsedUserActiveDriveItemId}, Session Current: ${session.current_user_active_drive_item_id}`);
             return res.status(400).json({ code: 1, info: 'Submitted item is not the current active task for this session.' });
-        }
-
-        // 2. Fetch details of the user_active_drive_item being processed (products, prices)
+        }        // 2. Fetch details of the user_active_drive_item being processed (products, prices)
         const currentItemDetailsResult = await client.query(
             `SELECT uadi.id, uadi.user_status,
                     uadi.product_id_1, p1.price as p1_price, p1.id as p1_id,
@@ -995,7 +1386,8 @@ const saveOrder = async (req, res) => {
              LEFT JOIN products p1 ON uadi.product_id_1 = p1.id
              LEFT JOIN products p2 ON uadi.product_id_2 = p2.id
              LEFT JOIN products p3 ON uadi.product_id_3 = p3.id
-             WHERE uadi.id = $1 AND uadi.drive_session_id = $2 FOR UPDATE`, // Lock the item row
+             WHERE uadi.id = $1 AND uadi.drive_session_id = $2
+             FOR UPDATE OF uadi`, // Lock only the main table row, not the joined tables
             [parsedUserActiveDriveItemId, driveSessionId]
         );
 
@@ -1017,12 +1409,10 @@ const saveOrder = async (req, res) => {
         const productsProcessedInItem = [];
         if (currentItem.p1_price) { itemTotalPrice += parseFloat(currentItem.p1_price); productsProcessedInItem.push(currentItem.p1_id); }
         if (currentItem.p2_price) { itemTotalPrice += parseFloat(currentItem.p2_price); productsProcessedInItem.push(currentItem.p2_id); }
-        if (currentItem.p3_price) { itemTotalPrice += parseFloat(currentItem.p3_price); productsProcessedInItem.push(currentItem.p3_id); }
-
-        // 3. Check balance and update account
+        if (currentItem.p3_price) { itemTotalPrice += parseFloat(currentItem.p3_price); productsProcessedInItem.push(currentItem.p3_id); }        // 3. Check balance and update account
         const accountResult = await client.query(
-            'SELECT id, balance FROM accounts WHERE user_id = $1 AND type = \\\'main\\\' FOR UPDATE',
-            [userId]
+            'SELECT id, balance FROM accounts WHERE user_id = $1 AND type = $2 FOR UPDATE',
+            [userId, 'main']
         );
         if (accountResult.rows.length === 0) {
             await client.query('ROLLBACK'); client.release();
@@ -1032,9 +1422,8 @@ const saveOrder = async (req, res) => {
         const currentBalance = parseFloat(account.balance);
 
         if (currentBalance < itemTotalPrice) {
-            const frozenAmountNeeded = (itemTotalPrice - currentBalance).toFixed(2);
-            await client.query(
-                "UPDATE drive_sessions SET status = 'frozen', frozen_amount_needed = $1, updated_at = NOW() WHERE id = $2",
+            const frozenAmountNeeded = (itemTotalPrice - currentBalance).toFixed(2);            await client.query(
+                "UPDATE drive_sessions SET status = 'frozen', frozen_amount_needed = $1 WHERE id = $2",
                 [frozenAmountNeeded, driveSessionId]
             );
             // Also mark the current item as PENDING or FAILED_BALANCE? For now, session freeze handles it.
@@ -1046,15 +1435,14 @@ const saveOrder = async (req, res) => {
                 info: `Insufficient balance. Session frozen. Please deposit at least ${frozenAmountNeeded} USDT to continue.`,
                 frozen_amount_needed: frozenAmountNeeded
             });
-        }
-
-        // 4. Calculate commission
+        }        // 4. Calculate commission using tier-based rates
         let calculatedItemCommission;
-        const { tier } = await getUserDriveInfo(userId, client); // Pass client
-        if (productsProcessedInItem.length > 1) { // Combo
-            calculatedItemCommission = itemTotalPrice * 0.045; // Example combo rate
-        } else if (productsProcessedInItem.length === 1) { // Single product
-            calculatedItemCommission = calculateCommission(itemTotalPrice, tier, 'single');
+        if (productsProcessedInItem.length > 1) { // Combo - use merge data rate
+            const commissionData = await tierCommissionService.calculateCommissionForUser(userId, itemTotalPrice, true);
+            calculatedItemCommission = commissionData.commissionAmount;
+        } else if (productsProcessedInItem.length === 1) { // Single product - use per data rate
+            const commissionData = await tierCommissionService.calculateCommissionForUser(userId, itemTotalPrice, false);
+            calculatedItemCommission = commissionData.commissionAmount;
         } else { // Should not happen if item has products
             calculatedItemCommission = 0;
         }
@@ -1106,7 +1494,7 @@ const saveOrder = async (req, res) => {
         if (itemsCompletedSoFar >= totalStepsInDrive) {
             sessionCompleted = true;
             await client.query(
-                "UPDATE drive_sessions SET status = 'pending_reset', completed_at = NOW(), current_user_active_drive_item_id = NULL, updated_at = NOW() WHERE id = $1",
+                "UPDATE drive_sessions SET status = 'pending_reset', completed_at = NOW(), current_user_active_drive_item_id = NULL WHERE id = $1",
                 [driveSessionId]
             );
         } else {
@@ -1121,7 +1509,7 @@ const saveOrder = async (req, res) => {
             if (nextItemResult.rows.length > 0) {
                 nextUserActiveDriveItemId = nextItemResult.rows[0].id;
                 await client.query(
-                    "UPDATE drive_sessions SET current_user_active_drive_item_id = $1, updated_at = NOW() WHERE id = $2",
+                    "UPDATE drive_sessions SET current_user_active_drive_item_id = $1 WHERE id = $2",
                     [nextUserActiveDriveItemId, driveSessionId]
                 );
                 await client.query(
@@ -1131,8 +1519,6 @@ const saveOrder = async (req, res) => {
             } else {
                 // This case implies itemsCompletedSoFar < totalStepsInDrive, but no PENDING items found.
                 // This could be an error state or mean the drive is effectively over if remaining items are SKIPPED/FAILED.
-                // For now, if no PENDING, and not all COMPLETED, it's an issue.
-                // Or, if all remaining are SKIPPED/FAILED, the drive might also end.
                 // Let's assume for now this means an issue if not all are completed.
                 await client.query('ROLLBACK'); client.release();
                 logger.error(`saveOrder: Inconsistent state. ${itemsCompletedSoFar}/${totalStepsInDrive} items completed, but no next PENDING item found for session ${driveSessionId}.`);
@@ -1190,10 +1576,13 @@ const saveOrder = async (req, res) => {
                 const price = parseFloat(nextDetails.p3_price);
                 nextItemTotalPrice += price;
                 nextProductsInItem.push({ id: nextDetails.p3_id, name: nextDetails.p3_name, price: price, image_url: nextDetails.p3_image_url });
+            }            if (nextProductsInItem.length > 1) {
+                const commissionData = await tierCommissionService.calculateCommissionForUser(userId, nextItemTotalPrice, true);
+                nextItemCommission = commissionData.commissionAmount;
+            } else if (nextProductsInItem.length === 1) {
+                const commissionData = await tierCommissionService.calculateCommissionForUser(userId, nextItemTotalPrice, false);
+                nextItemCommission = commissionData.commissionAmount;
             }
-
-            if (nextProductsInItem.length > 1) nextItemCommission = nextItemTotalPrice * 0.045;
-            else if (nextProductsInItem.length === 1) nextItemCommission = calculateCommission(nextItemTotalPrice, tier, 'single');
 
             const primaryNextProduct = nextProductsInItem[0];
             responsePayload = {

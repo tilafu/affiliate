@@ -488,6 +488,7 @@ function fetchNextOrder(token) {
 function renderProductCard(productData) {
     if (!productCardContainer) return;
 <<<<<<< HEAD
+<<<<<<< HEAD
     if (!productData || !productData.product_id) {
         productCardContainer.innerHTML = '<p>Error: Product data missing or invalid.</p>';
         return;
@@ -506,6 +507,9 @@ function renderProductCard(productData) {
                 <!-- <p>Est. Commission: <strong>${parseFloat(productData.order_commission || 0).toFixed(2)}</strong> USDT</p> -->
 =======
     // productData now includes is_combo, product_name, product_image, product_price, order_commission, drive_order_id
+=======
+    // productData now includes is_combo, product_name, product_image, product_price, order_commission, user_active_drive_item_id
+>>>>>>> main
     // No specific UI change for is_combo for now, but it's available in productData.is_combo
     productCardContainer.innerHTML = `
         <div class="card">
@@ -524,8 +528,12 @@ function renderProductCard(productData) {
 // --- API Call: Save Order (Purchase) ---
 async function handlePurchase(token, productData) {
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
     console.log('Purchase button clicked for product (now using drive_order_id):', productData.drive_order_id);
+>>>>>>> main
+=======
+    console.log('Purchase button clicked for product (now using user_active_drive_item_id):', productData.user_active_drive_item_id);
 >>>>>>> main
     const purchaseButton = document.getElementById('purchase-button');
     if (purchaseButton) {
@@ -555,9 +563,13 @@ async function handlePurchase(token, productData) {
         // Backend calculates price/commission based on product_id and user tier
 =======
     
-    // Create the request payload - simplified to only drive_order_id
+    // Create the request payload - simplified to only user_active_drive_item_id
     const payload = {
+<<<<<<< HEAD
         drive_order_id: productData.drive_order_id 
+>>>>>>> main
+=======
+        user_active_drive_item_id: productData.user_active_drive_item_id 
 >>>>>>> main
     };
 

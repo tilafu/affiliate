@@ -54,12 +54,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize DriveModule functionality from admin-drives.js
     if (DriveModuleAPI && typeof DriveModuleAPI.initDependencies === 'function') {
         DriveModuleAPI.initDependencies({ fetchWithAuth, showNotification }); // Pass dependencies
-
-        if (typeof DriveModuleAPI.setupDrivePolling === 'function') {
-            DriveModuleAPI.setupDrivePolling();
-        } else {
-            console.warn('DriveModuleAPI.setupDrivePolling function not found in imported module.');
-        }
+        // Removed call to DriveModuleAPI.setupDrivePolling as it does not exist.
+        // Polling will be handled by loadSection.
     } else {
         console.error('DriveModuleAPI or its initDependencies function is not available. Ensure admin-drives.js is loaded as a module and exports correctly.');
     }
@@ -245,6 +241,12 @@ function initializeSidebar() {
 }
 
 function loadSection(sectionName) {
+    // Clear any existing drive update interval when changing sections
+    if (driveUpdateInterval) {
+        clearInterval(driveUpdateInterval);
+        driveUpdateInterval = null; // Reset the variable
+    }
+
     // Hide all sections
     document.querySelectorAll('.section').forEach(section => {
         section.style.display = 'none';
@@ -272,10 +274,22 @@ function loadSection(sectionName) {
             break;
         case 'drives': 
             if (DriveModuleAPI && typeof DriveModuleAPI.loadDrives === 'function') {
-                DriveModuleAPI.loadDrives();
+                DriveModuleAPI.loadDrives(); // Load drives data immediately
+                // Setup polling for the drives list when this section is active
+                driveUpdateInterval = setInterval(() => {
+                    if (document.getElementById('drives-section')?.style.display === 'block') {
+                        console.log('Polling for drive updates...');
+                        DriveModuleAPI.loadDrives();
+                    } else {
+                        // If drives section is not visible, clear interval (should be caught by section change too)
+                        if (driveUpdateInterval) clearInterval(driveUpdateInterval);
+                        driveUpdateInterval = null;
+                    }
+                }, 30000); // Poll every 30 seconds
             } else {
                 console.error('DriveModuleAPI.loadDrives function is not available.');
             }
+<<<<<<< HEAD
             break;
 <<<<<<< HEAD
         case 'drive-configurations': // New section
@@ -285,10 +299,18 @@ function loadSection(sectionName) {
             loadSupportMessages();
 =======
         case 'drive-configurations':
+=======
+            break;        case 'drive-configurations':
+>>>>>>> main
             // This section's initial data is loaded by DriveModuleAPI.initDependencies.
             // If a reload is needed upon navigating here, loadDriveConfigurations should be exported from admin-drives.js and called here.
             if (DriveModuleAPI && typeof DriveModuleAPI.loadDriveConfigurations === 'function') {
                  DriveModuleAPI.loadDriveConfigurations(); // This will currently not run as it's not exported.
+                 
+                 // Initialize the drive configuration handlers
+                 if (typeof DriveModuleAPI.initializeDriveConfigHandlers === 'function') {
+                     DriveModuleAPI.initializeDriveConfigHandlers();
+                 }
             } else {
                 console.log('Drive configurations section displayed. Initial data loaded by initDependencies.');
             }
@@ -585,13 +607,11 @@ async function loadProducts() {
     try {
         const response = await fetchWithAuth('/admin/products');
         if (response.success) {
-            const productList = document.getElementById('products-list');
-            productList.innerHTML = response.products.map(product => `
+            const productList = document.getElementById('products-list');            productList.innerHTML = response.products.map(product => `
                 <tr>
                     <td>${product.id}</td>
                     <td>${product.name}</td>
                     <td>$${product.price}</td>
-                    <td>${product.commission_rate}%</td>
                     <td>
                         <button class="btn btn-sm btn-danger delete-product-btn" data-id="${product.id}">
                             Delete
@@ -616,9 +636,9 @@ async function createProduct(event) {
     const productData = {
         name: formData.get('name'),
         price: parseFloat(formData.get('price')),
-        commission_rate: parseFloat(formData.get('commission_rate')),
-        min_balance_required: parseFloat(formData.get('min_balance_required')) || 0
-        // image_url might be added here if the form includes it
+        description: formData.get('description') || null,
+        min_balance_required: parseFloat(formData.get('min_balance_required')) || 0,
+        image_url: formData.get('image_url') || null
     };
 
     try {
@@ -650,11 +670,9 @@ async function editProduct(productId) { // This function populates the edit form
         if (response.success) {
             // Populate edit form with product data
             const product = response.product;
-            document.getElementById('edit-product-id').value = product.id;
-            // Populate relevant fields only
+            document.getElementById('edit-product-id').value = product.id;            // Populate relevant fields only
             document.getElementById('edit-product-name').value = product.name;
             document.getElementById('edit-product-price').value = product.price;
-            document.getElementById('edit-commission-rate').value = product.commission_rate;
             // Assuming min_balance_required is still needed/editable
             document.getElementById('edit-min-balance').value = product.min_balance_required || 0; 
             // Add image_url if needed: document.getElementById('edit-image-url').value = product.image_url || '';
@@ -685,9 +703,9 @@ async function updateProduct(event) {
     const productData = {
         name: formData.get('name'),
         price: parseFloat(formData.get('price')),
-        commission_rate: parseFloat(formData.get('commission_rate')),
-        min_balance_required: parseFloat(formData.get('min_balance_required')) || 0
-        // Add image_url if needed: image_url: formData.get('image_url')
+        description: formData.get('description') || null,
+        min_balance_required: parseFloat(formData.get('min_balance_required')) || 0,
+        image_url: formData.get('image_url') || null
     };
 
     try {
@@ -880,9 +898,19 @@ function initializeHandlers() {
         const target = event.target;
 >>>>>>> main
 
-        // --- Drive Configuration & Task Set Modals ---
+    // --- Drive Configuration & Task Set Modals ---
+        // Handler for "Create New Configuration" button in the Drive Configurations section
+        if (target.id === 'show-create-config-modal-btn') {
+            event.preventDefault();
+            if (DriveModuleAPI && typeof DriveModuleAPI.showCreateDriveConfigurationModal === 'function') {
+                DriveModuleAPI.showCreateDriveConfigurationModal();
+            } else {
+                console.error('DriveModuleAPI.showCreateDriveConfigurationModal is not available. Ensure admin-drives.js is loaded and exports this function.');
+                showNotification('Error: Cannot open the form to create a new drive configuration.', 'error');
+            }
+        }
         // Handler for "Add New Task Set" button within the "Manage Task Sets Modal"
-        if (target.id === 'show-create-taskset-modal-btn') {
+        else if (target.id === 'show-create-taskset-modal-btn') {
             event.preventDefault();
             const configIdInput = document.getElementById('current-config-id-for-taskset');
             const configNameElement = document.getElementById('tasksetConfigName');
@@ -989,6 +1017,7 @@ function initializeHandlers() {
     const addProductForm = document.getElementById('add-product-form');
     if (addProductForm) {
         addProductForm.addEventListener('submit', async (e) => {
+<<<<<<< HEAD
             e.preventDefault();
             const productData = {
                 name: document.getElementById('product-name').value,
@@ -998,6 +1027,21 @@ function initializeHandlers() {
 
             if (!productData.name || isNaN(productData.price) || isNaN(productData.commission_rate)) {
                  showNotification('Please fill in Name, Price, and Commission Rate correctly.', 'error');
+=======
+            e.preventDefault();            // Construct data only from relevant fields expected by the updated backend
+            const productData = {
+                name: document.getElementById('product-name').value,
+                price: parseFloat(document.getElementById('product-price').value),
+                // Add min_balance_required if it's in the add form
+                // min_balance_required: parseFloat(document.getElementById('product-min-balance').value) || 0, 
+                // Add image_url if it's in the add form
+                // image_url: document.getElementById('product-image-url').value || null 
+            };
+
+            // Validate data before sending (basic example)
+            if (!productData.name || isNaN(productData.price)) {
+                 showNotification('Please fill in Name and Price correctly.', 'error');
+>>>>>>> main
                  return;
             }
 
@@ -1023,6 +1067,46 @@ function initializeHandlers() {
          console.warn("Add product form ('add-product-form') not found.");
     }
 
+<<<<<<< HEAD
+=======
+
+    // EDIT Product Button Click
+     document.addEventListener('click', async (e) => {
+        if (e.target.matches('.edit-product-btn')) {
+            const productId = e.target.dataset.id;
+            try {
+                // Fetch specific product details
+                 const response = await fetchWithAuth(`/admin/products/${productId}`); // Assuming endpoint exists
+                 if (response.success && response.product) {
+                     const product = response.product;                     // Populate the edit form modal
+                     document.getElementById('edit-product-id').value = product.id;
+                     document.getElementById('edit-product-name').value = product.name;
+                     document.getElementById('edit-product-price').value = product.price;
+                     // Populate other relevant fields if they exist in the modal form
+                     // document.getElementById('edit-min-balance').value = product.min_balance_required || 0;
+                     // document.getElementById('edit-image-url').value = product.image_url || '';
+
+                     // Show the modal
+                     const editModalElement = document.getElementById('edit-product-modal');
+                     if (editModalElement) {
+                         const editModal = new bootstrap.Modal(editModalElement);
+                         editModal.show();
+                     } else {
+                         console.error("Edit product modal ('edit-product-modal') not found.");
+                         showNotification('UI Error: Edit modal not found.', 'error');
+                     }
+                 } else {
+                     showNotification(response.message || 'Failed to load product details for editing.', 'error');
+                 }
+            } catch (error) {
+                 console.error('Error fetching product for edit:', error);
+                 showNotification('Error fetching product details: ' + error.message, 'error');
+            }
+        }
+    });
+
+    // EDIT Product Form Submission
+>>>>>>> main
     const editProductForm = document.getElementById('edit-product-form');
      if (editProductForm) {
         editProductForm.addEventListener('submit', async (e) => {
@@ -1033,16 +1117,25 @@ function initializeHandlers() {
             if (!productId) {
                  showNotification('Error: Product ID missing from edit form.', 'error');
                  return;
-            }
-
-            const productData = {
+            }            const productData = {
                 name: formData.get('name'),
                 price: parseFloat(formData.get('price')),
+<<<<<<< HEAD
                 commission_rate: parseFloat(formData.get('commission_rate')),
             };
 
             if (!productData.name || isNaN(productData.price) || isNaN(productData.commission_rate)) {
                  showNotification('Please fill in Name, Price, and Commission Rate correctly.', 'error');
+=======
+                 // Add other fields if they are in the edit form
+                 // min_balance_required: parseFloat(formData.get('min_balance_required')) || 0,
+                 // image_url: formData.get('image_url') || null
+            };
+
+             // Validate data before sending (basic example)
+            if (!productData.name || isNaN(productData.price)) {
+                 showNotification('Please fill in Name and Price correctly.', 'error');
+>>>>>>> main
                  return;
             }
 

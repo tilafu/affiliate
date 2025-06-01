@@ -3,12 +3,21 @@
 <head>    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Panel</title>
+    
+    <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="./assets/css/bootstrap.min.css">
+    
+    <!-- jQuery UI CSS -->
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
+    
+    <!-- Custom CSS -->
     <link rel="stylesheet" href="./assets/css/style.css">
     <link rel="stylesheet" href="./css/debug.css">
-    <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
+    
+    <!-- jQuery and jQuery UI Scripts -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
+    
     <style>
         .main-sidebar {
             height: 100vh;
@@ -348,16 +357,9 @@
                                 <div class="form-group">
                                     <label for="product-price">Price</label>
                                     <input type="number" id="product-price" class="form-control" step="0.01" required>
-                                </div>
-                            </div>
-                            <div class="col-md-3">
-                                <div class="form-group">
-                                    <label for="product-commission">Commission Rate (%)</label>
-                                    <input type="number" id="product-commission" name="commission_rate" class="form-control" step="0.01" required>
-                                </div>
-                            </div>
+                                </div>                            </div>
                             
-                            <!-- /* Removed Minimum Tier input */ -->
+                            <!-- /* Removed Commission Rate and Minimum Tier inputs */ -->
 
                         </div>
                         <button type="submit" class="btn btn-primary mt-3">Add Product</button>
@@ -366,13 +368,11 @@
             </div>
             <div class="table-responsive">
                 <table class="table">
-                    <thead>
-                        <tr>
+                    <thead>                        <tr>
                             <th>ID</th> 
                             <th>Name</th>
                             <th>Price</th>
-                            <th>Commission Rate</th>
-                            <!-- {/* Removed Min Tier and Status columns */} -->
+                            <!-- {/* Removed Commission Rate, Min Tier and Status columns */} -->
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -394,14 +394,9 @@
                                 <div class="mb-3">
                                     <label for="edit-product-name" class="form-label">Name</label>
                                     <input type="text" class="form-control" id="edit-product-name" name="name" required>
-                                </div>
-                                <div class="mb-3">
+                                </div>                                <div class="mb-3">
                                     <label for="edit-product-price" class="form-label">Price</label>
                                     <input type="number" class="form-control" id="edit-product-price" name="price" step="0.01" required>
-                                </div>
-                                <div class="mb-3">
-                                    <label for="edit-commission-rate" class="form-label">Commission Rate (%)</label>
-                                    <input type="number" class="form-control" id="edit-commission-rate" name="commission_rate" step="0.01" required>
                                 </div>
                                  {/* Add other editable fields here if needed, e.g., min_balance_required, image_url */}
                                  {/* <div class="mb-3">
@@ -544,5 +539,47 @@
     <script src="./assets/js/bootstrap.bundle.min.js"></script>
     <script type="module" src="./js/admin.js"></script>
     <script type="module" src="./js/admin-drives.js"></script> <!-- Ensure admin-drives.js is loaded as a module if not already -->
+
+    <!-- Modal for User Drive Progress -->
+<div class="modal fade" id="userDriveProgressModal" tabindex="-1" aria-labelledby="userDriveProgressModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="userDriveProgressModalLabel">User Drive Progress</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" id="userDriveProgressModalBody">
+        <!-- Content will be populated by JavaScript -->
+        <div id="userDriveProgressDetailsPlaceholder">
+            <p>Loading progress details...</p>
+        </div>
+        <div id="userDriveProgressDetails" style="display: none;">
+            <p><strong>User:</strong> <span id="progress-user-info"></span></p>
+            <p><strong>Drive Configuration:</strong> <span id="progress-drive-config-name"></span></p>
+            <p><strong>Overall Progress:</strong> <span id="progress-summary"></span></p>
+            <h5>Task Items:</h5>
+            <div class="table-responsive">
+                <table class="table table-sm table-bordered table-hover">
+                    <thead>
+                        <tr>
+                            <th>Order</th>
+                            <th>Products</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="progress-task-items-list">
+                        <!-- Task items will be listed here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>

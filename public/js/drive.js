@@ -48,14 +48,14 @@ document.addEventListener('DOMContentLoaded', () => {
         startDriveButton.addEventListener('click', handleStartDrive);
     }
 
-    // TODO: Add event listener for the Purchase button (will be inside the dynamically created card)
-
-    // Function to handle the Start Drive button click
+    // TODO: Add event listener for the Purchase button (will be inside the dynamically created card)    // Function to handle the Start Drive button click
     async function handleStartDrive() {
         console.log('Start Drive button clicked');
         // Disable the button and show loading state
         startDriveButton.disabled = true;
-        startDriveButton.textContent = 'Starting...';        try {
+        startDriveButton.textContent = 'Starting...';
+        
+        try {
             const response = await fetch(`${API_BASE_URL}/api/drive/start`, {
                 method: 'POST',
                 headers: {
@@ -77,21 +77,41 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error(`Server error (status ${response.status}). Please try again later.`);
             }
 
-            if (response.ok && data.code === 0) { // Assuming code 0 is success
-                console.log('Drive started successfully:', data.info);
-                // Hide start button, show drive content area
+            // If there's an existing session already managed by admin, the API now returns a 200 status with existing_session = true
+            if (response.ok && data.code === 0) {
+                console.log('Drive started or existing session found:', data.message);
+                
+                // Whether new or existing session, hide start button and show drive content
                 startDriveButton.style.display = 'none';
-                driveContentArea.style.display = 'block'; // Assuming this area is initially hidden
-                // Fetch and display the first product
-                fetchNextOrder();
-            } else {
-                // Handle errors (e.g., existing session, insufficient balance)
+                driveContentArea.style.display = 'block';
+                
+                // If this is an existing session, we need to check the status
+                if (data.existing_session) {
+                    console.log('Using existing session with ID:', data.session_id);
+                    // Use the drive status API to get the current state
+                    checkDriveStatus(token);
+                } else {
+                    // New drive started, fetch the first order
+                    fetchNextOrder();
+                }            } else {
+                // Handle errors (e.g., insufficient balance, configuration issues)
                 console.error('Failed to start drive:', data.info || data.message || 'Unknown error');
-                alert('Failed to start drive: ' + (data.info || data.message || 'Unknown error')); // Basic error display
-                 // Re-enable button on failure
-                startDriveButton.disabled = false;
-                startDriveButton.textContent = 'Start Drive';
-            }        } catch (error) {
+                
+                // Check if this is a 409 conflict (existing session)
+                if (response.status === 409) {
+                    console.log('Existing session detected from 409 response, checking drive status...');
+                    
+                    // Hide the start button, show content area, and check status to resume
+                    startDriveButton.style.display = 'none';
+                    driveContentArea.style.display = 'block';
+                    checkDriveStatus(token);
+                } else {
+                    // Other error, show message and reset button
+                    alert('Failed to start drive: ' + (data.info || data.message || 'Unknown error'));
+                    startDriveButton.disabled = false;
+                    startDriveButton.textContent = 'Start Drive';
+                }
+            }} catch (error) {
             console.error('Error starting drive:', error);
             
             // Create a more detailed error message
@@ -386,12 +406,28 @@ async function checkDriveStatus(token) {
                  console.warn('checkDriveStatus: Received unexpected status:', data.status, 'with data:', data);
                  startDriveButton.style.display = 'block';
                  driveContentArea.style.display = 'none';
-            }
-        } else {
+            }        } else {
             console.error('checkDriveStatus: Failed to check drive status:', data.info || data.message || 'Unknown error', 'Response:', response);
-            // Optionally display an error message to the user
-             startDriveButton.style.display = 'block'; // Show start button on error
-             driveContentArea.style.display = 'none';
+            
+            // If we got a 500 error but have data, try to recover
+            if (response.status === 500 && data.code === 1) {
+                console.log('Detected a server error. Attempting to recover by fetching an order directly...');
+                
+                // Try fetching the order directly as a fallback
+                try {
+                    startDriveButton.style.display = 'none';
+                    driveContentArea.style.display = 'block';
+                    fetchNextOrder();
+                    return;
+                } catch (fallbackError) {
+                    console.error('Fallback recovery also failed:', fallbackError);
+                }
+            }
+            
+            // Show an error message
+            alert('Error checking drive status: ' + (data.info || data.message || 'Unknown error'));
+            startDriveButton.style.display = 'block'; // Show start button on error
+            driveContentArea.style.display = 'none';
         }
     } catch (error) {
         console.error('checkDriveStatus: Error checking drive status:', error);
