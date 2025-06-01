@@ -1754,10 +1754,8 @@ async function showUserDriveProgressModal(userId, username) {
     document.getElementById('userDriveProgressDetails').style.display = 'none';
     document.getElementById('progress-task-items-list').innerHTML = ''; // Clear previous items
 
-    modal.show();
-
-    try {
-        const response = await fetchWithAuth(`/api/admin/users/${userId}/drive-progress`);
+    modal.show();    try {
+        const response = await fetchWithAuth(`/api/admin/drive-management/users/${userId}/drive-progress`);
         document.getElementById('userDriveProgressDetailsPlaceholder').style.display = 'none';
         document.getElementById('userDriveProgressDetails').style.display = 'block';
 

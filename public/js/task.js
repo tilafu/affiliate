@@ -448,7 +448,7 @@ function fetchNextOrder(token) {
 
 function renderProductCard(productData) {
     if (!productCardContainer) return;
-    // productData now includes is_combo, product_name, product_image, product_price, order_commission, drive_order_id
+    // productData now includes is_combo, product_name, product_image, product_price, order_commission, user_active_drive_item_id
     // No specific UI change for is_combo for now, but it's available in productData.is_combo
     productCardContainer.innerHTML = `
         <div class="card">
@@ -464,7 +464,7 @@ function renderProductCard(productData) {
 }
 
 async function handlePurchase(token, productData) {
-    console.log('Purchase button clicked for product (now using drive_order_id):', productData.drive_order_id);
+    console.log('Purchase button clicked for product (now using user_active_drive_item_id):', productData.user_active_drive_item_id);
     const purchaseButton = document.getElementById('purchase-button');
     if (purchaseButton) {
         purchaseButton.disabled = true;
@@ -472,9 +472,9 @@ async function handlePurchase(token, productData) {
     }
     if (orderLoadingOverlay) orderLoadingOverlay.style.display = 'flex';
     
-    // Create the request payload - simplified to only drive_order_id
+    // Create the request payload - simplified to only user_active_drive_item_id
     const payload = {
-        drive_order_id: productData.drive_order_id 
+        user_active_drive_item_id: productData.user_active_drive_item_id 
     };
     console.log('Sending payload to saveorder:', payload);
       try {

@@ -1068,11 +1068,36 @@ exports.getUserDriveProgress = async (req, res) => {
             AND ds.status = 'active'
         ORDER BY
             ds.started_at DESC, uadi.order_in_drive ASC
-    `;
-
-    try {
+    `;    try {
         const result = await pool.query(query, [userId]);
-        res.status(200).json(result.rows);
+        
+        if (result.rows.length === 0) {
+            return res.status(404).json({ message: 'No active drive session found for this user.' });
+        }
+
+        // Transform the data to match frontend expectations
+        const firstRow = result.rows[0];
+        const response = {
+            user_id: firstRow.user_id,
+            drive_session_id: firstRow.drive_session_id,
+            drive_configuration_id: firstRow.drive_configuration_id,
+            drive_configuration_name: firstRow.drive_configuration_name,
+            total_task_items: firstRow.total_task_items,
+            completed_task_items: result.rows.filter(row => row.user_status === 'COMPLETED').length,
+            current_task_item_id: result.rows.find(row => row.user_status === 'CURRENT')?.task_item_id || null,
+            task_items: result.rows.map(row => ({
+                task_item_id: row.task_item_id,
+                order_in_drive: row.order_in_drive,
+                user_status: row.user_status,
+                products: [
+                    row.product_1_name && { name: row.product_1_name },
+                    row.product_2_name && { name: row.product_2_name },
+                    row.product_3_name && { name: row.product_3_name }
+                ].filter(Boolean)
+            }))
+        };
+
+        res.status(200).json(response);
     } catch (error) {
         logger.error(`Error fetching drive progress for user ${userId}:`, error);
         res.status(500).json({ message: 'Failed to fetch drive progress', error: error.message });

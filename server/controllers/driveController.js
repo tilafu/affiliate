@@ -835,9 +835,7 @@ const saveOrder = async (req, res) => {
             await client.query('ROLLBACK'); client.release();
             logger.warn(`saveOrder: Attempt to save non-current user_active_drive_item. User: ${userId}, Submitted: ${parsedUserActiveDriveItemId}, Session Current: ${session.current_user_active_drive_item_id}`);
             return res.status(400).json({ code: 1, info: 'Submitted item is not the current active task for this session.' });
-        }
-
-        // 2. Fetch details of the user_active_drive_item being processed (products, prices)
+        }        // 2. Fetch details of the user_active_drive_item being processed (products, prices)
         const currentItemDetailsResult = await client.query(
             `SELECT uadi.id, uadi.user_status,
                     uadi.product_id_1, p1.price as p1_price, p1.id as p1_id,
@@ -847,7 +845,8 @@ const saveOrder = async (req, res) => {
              LEFT JOIN products p1 ON uadi.product_id_1 = p1.id
              LEFT JOIN products p2 ON uadi.product_id_2 = p2.id
              LEFT JOIN products p3 ON uadi.product_id_3 = p3.id
-             WHERE uadi.id = $1 AND uadi.drive_session_id = $2 FOR UPDATE`, // Lock the item row
+             WHERE uadi.id = $1 AND uadi.drive_session_id = $2
+             FOR UPDATE OF uadi`, // Lock only the main table row, not the joined tables
             [parsedUserActiveDriveItemId, driveSessionId]
         );
 
@@ -869,12 +868,10 @@ const saveOrder = async (req, res) => {
         const productsProcessedInItem = [];
         if (currentItem.p1_price) { itemTotalPrice += parseFloat(currentItem.p1_price); productsProcessedInItem.push(currentItem.p1_id); }
         if (currentItem.p2_price) { itemTotalPrice += parseFloat(currentItem.p2_price); productsProcessedInItem.push(currentItem.p2_id); }
-        if (currentItem.p3_price) { itemTotalPrice += parseFloat(currentItem.p3_price); productsProcessedInItem.push(currentItem.p3_id); }
-
-        // 3. Check balance and update account
+        if (currentItem.p3_price) { itemTotalPrice += parseFloat(currentItem.p3_price); productsProcessedInItem.push(currentItem.p3_id); }        // 3. Check balance and update account
         const accountResult = await client.query(
-            'SELECT id, balance FROM accounts WHERE user_id = $1 AND type = \\\'main\\\' FOR UPDATE',
-            [userId]
+            'SELECT id, balance FROM accounts WHERE user_id = $1 AND type = $2 FOR UPDATE',
+            [userId, 'main']
         );
         if (accountResult.rows.length === 0) {
             await client.query('ROLLBACK'); client.release();
@@ -884,9 +881,8 @@ const saveOrder = async (req, res) => {
         const currentBalance = parseFloat(account.balance);
 
         if (currentBalance < itemTotalPrice) {
-            const frozenAmountNeeded = (itemTotalPrice - currentBalance).toFixed(2);
-            await client.query(
-                "UPDATE drive_sessions SET status = 'frozen', frozen_amount_needed = $1, updated_at = NOW() WHERE id = $2",
+            const frozenAmountNeeded = (itemTotalPrice - currentBalance).toFixed(2);            await client.query(
+                "UPDATE drive_sessions SET status = 'frozen', frozen_amount_needed = $1 WHERE id = $2",
                 [frozenAmountNeeded, driveSessionId]
             );
             // Also mark the current item as PENDING or FAILED_BALANCE? For now, session freeze handles it.
@@ -957,7 +953,7 @@ const saveOrder = async (req, res) => {
         if (itemsCompletedSoFar >= totalStepsInDrive) {
             sessionCompleted = true;
             await client.query(
-                "UPDATE drive_sessions SET status = 'pending_reset', completed_at = NOW(), current_user_active_drive_item_id = NULL, updated_at = NOW() WHERE id = $1",
+                "UPDATE drive_sessions SET status = 'pending_reset', completed_at = NOW(), current_user_active_drive_item_id = NULL WHERE id = $1",
                 [driveSessionId]
             );
         } else {
@@ -972,7 +968,7 @@ const saveOrder = async (req, res) => {
             if (nextItemResult.rows.length > 0) {
                 nextUserActiveDriveItemId = nextItemResult.rows[0].id;
                 await client.query(
-                    "UPDATE drive_sessions SET current_user_active_drive_item_id = $1, updated_at = NOW() WHERE id = $2",
+                    "UPDATE drive_sessions SET current_user_active_drive_item_id = $1 WHERE id = $2",
                     [nextUserActiveDriveItemId, driveSessionId]
                 );
                 await client.query(

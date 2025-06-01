@@ -189,8 +189,7 @@ const forgotPassword = async (req, res) => {
     return res.status(400).json({ success: false, message: 'Email address is required' });
   }
 
-  // Placeholder logic: In a real application, you would generate a token,
-  // save it to the database, and send an email to the user with a reset link.
+  // Placeholder logic: 
   console.log(`Received forgot password request for email: ${email}`);
 
   // Simulate success for now
