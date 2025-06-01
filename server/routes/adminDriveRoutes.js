@@ -40,4 +40,7 @@ router.post('/users/:userId/drive/active-items/:driveItemId/add-combo', authMidd
 // New route for user drive progress
 router.get('/users/:userId/drive-progress', authMiddleware.protect, authMiddleware.admin, adminDriveController.getUserDriveProgress);
 
+// New route for adding combo to user's drive sequence
+router.post('/users/:userId/drive/add-combo', authMiddleware.protect, authMiddleware.admin, adminDriveController.addComboToUserDrive);
+
 module.exports = router;

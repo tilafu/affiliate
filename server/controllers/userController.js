@@ -657,6 +657,274 @@ const markNotificationAsRead = async (req, res) => {
     }
 };
 
+/**
+ * @desc    Get current user's drive progress
+ * @route   GET /api/user/drive-progress
+ * @access  Private (requires token)
+ */
+const getDriveProgress = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    // Get user's active drive session
+    const sessionResult = await pool.query(
+      `SELECT ds.id as drive_session_id, ds.drive_configuration_id, 
+              dc.name as drive_configuration_name, ds.status as session_status
+       FROM drive_sessions ds
+       JOIN drive_configurations dc ON ds.drive_configuration_id = dc.id
+       WHERE ds.user_id = $1 AND ds.status IN ('active', 'pending_reset', 'frozen')
+       ORDER BY ds.started_at DESC LIMIT 1`,
+      [userId]
+    );
+
+    if (sessionResult.rows.length === 0) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'No active drive session found.' 
+      });
+    }
+
+    const session = sessionResult.rows[0];
+    const driveSessionId = session.drive_session_id;
+
+    // Get user's task items and progress
+    const itemsResult = await pool.query(
+      `SELECT uadi.id as task_item_id, uadi.order_in_drive, uadi.user_status, uadi.task_type,
+              p1.name as product_1_name, p1.price as product_1_price,
+              p2.name as product_2_name, p2.price as product_2_price,
+              p3.name as product_3_name, p3.price as product_3_price
+       FROM user_active_drive_items uadi
+       LEFT JOIN products p1 ON uadi.product_id_1 = p1.id
+       LEFT JOIN products p2 ON uadi.product_id_2 = p2.id
+       LEFT JOIN products p3 ON uadi.product_id_3 = p3.id
+       WHERE uadi.drive_session_id = $1
+       ORDER BY uadi.order_in_drive ASC`,
+      [driveSessionId]
+    );
+
+    const taskItems = itemsResult.rows.map(row => ({
+      task_item_id: row.task_item_id,
+      order_in_drive: row.order_in_drive,
+      task_item_name: row.product_1_name + (row.product_2_name ? ` + ${row.product_2_name}` : '') + (row.product_3_name ? ` + ${row.product_3_name}` : ''),
+      user_status: row.user_status,
+      task_type: row.task_type,
+      products: [
+        row.product_1_name && { name: row.product_1_name, price: row.product_1_price },
+        row.product_2_name && { name: row.product_2_name, price: row.product_2_price },
+        row.product_3_name && { name: row.product_3_name, price: row.product_3_price }
+      ].filter(Boolean)
+    }));
+
+    const completedCount = taskItems.filter(item => item.user_status === 'COMPLETED').length;
+    const currentTask = taskItems.find(item => item.user_status === 'CURRENT');
+
+    const response = {
+      success: true,
+      drive_session_id: driveSessionId,
+      drive_configuration_id: session.drive_configuration_id,
+      drive_configuration_name: session.drive_configuration_name,
+      session_status: session.session_status,
+      completed_task_items: completedCount,
+      total_task_items: taskItems.length,
+      current_task_item_name: currentTask ? currentTask.task_item_name : null,
+      task_items: taskItems
+    };
+
+    res.json(response);
+  } catch (error) {
+    logger.error(`Error fetching drive progress for user ${req.user.id}:`, error);
+    res.status(500).json({ success: false, message: 'Failed to fetch drive progress', error: error.message });
+  }
+};
+
+/**
+ * @desc    Get active products available for combo creation
+ * @route   GET /api/user/products/active
+ * @access  Private (requires token)
+ */
+const getActiveProducts = async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT id, name, price, description, image_url
+       FROM products 
+       WHERE status = 'active'
+       ORDER BY name ASC`
+    );
+
+    res.json({
+      success: true,
+      products: result.rows
+    });
+  } catch (error) {
+    logger.error('Error fetching active products:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch active products', error: error.message });
+  }
+};
+
+/**
+ * @desc    Create a combo for current user
+ * @route   POST /api/user/combo/create
+ * @access  Private (requires token)
+ */
+const createCombo = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { comboName, comboDescription, productIds, insertAfterTaskSetId, insertAtOrder } = req.body;
+
+    // Validate required fields
+    if (!comboName || !productIds || !Array.isArray(productIds) || productIds.length === 0) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'comboName and productIds (array with at least one product) are required.' 
+      });
+    }
+
+    // Validate insertion point - must have either insertAfterTaskSetId or insertAtOrder
+    if (!insertAfterTaskSetId && insertAtOrder === undefined) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'Either insertAfterTaskSetId or insertAtOrder must be specified.' 
+      });
+    }
+
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      // 1. Verify user has active drive session
+      const sessionResult = await client.query(
+        `SELECT ds.id as drive_session_id, ds.drive_configuration_id, dc.name as drive_configuration_name
+         FROM drive_sessions ds
+         JOIN drive_configurations dc ON ds.drive_configuration_id = dc.id
+         WHERE ds.user_id = $1 AND ds.status IN ('active', 'pending_reset', 'frozen')
+         ORDER BY ds.started_at DESC LIMIT 1`,
+        [userId]
+      );
+
+      if (sessionResult.rows.length === 0) {
+        await client.query('ROLLBACK');
+        return res.status(404).json({ 
+          success: false,
+          message: 'No active drive session found.' 
+        });
+      }
+
+      const { drive_session_id } = sessionResult.rows[0];
+      
+      // 2. Validate all product IDs exist and are active
+      const productsResult = await client.query(
+        'SELECT id, name, price FROM products WHERE id = ANY($1) AND status = $2',
+        [productIds, 'active']
+      );
+
+      if (productsResult.rows.length !== productIds.length) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({ 
+          success: false,
+          message: 'One or more product IDs are invalid or inactive.' 
+        });
+      }
+
+      // 3. Determine insertion order for the new combo
+      let newOrderInDrive;
+      
+      if (insertAtOrder !== undefined) {
+        // Direct insertion at specified order
+        newOrderInDrive = parseInt(insertAtOrder);
+        
+        // Shift existing items at this position and after
+        await client.query(
+          `UPDATE user_active_drive_items 
+           SET order_in_drive = order_in_drive + 1, updated_at = NOW()
+           WHERE drive_session_id = $1 AND order_in_drive >= $2`,
+          [drive_session_id, newOrderInDrive]
+        );
+        
+      } else if (insertAfterTaskSetId) {
+        // Insert after a specific task item
+        const targetItemResult = await client.query(
+          'SELECT order_in_drive FROM user_active_drive_items WHERE id = $1 AND drive_session_id = $2',
+          [insertAfterTaskSetId, drive_session_id]
+        );
+        
+        if (targetItemResult.rows.length === 0) {
+          await client.query('ROLLBACK');
+          return res.status(400).json({ 
+            success: false,
+            message: 'Target task item not found for insertion.' 
+          });
+        }
+        
+        newOrderInDrive = targetItemResult.rows[0].order_in_drive + 1;
+        
+        // Shift existing items after the insertion point
+        await client.query(
+          `UPDATE user_active_drive_items 
+           SET order_in_drive = order_in_drive + 1, updated_at = NOW()
+           WHERE drive_session_id = $1 AND order_in_drive >= $2`,
+          [drive_session_id, newOrderInDrive]
+        );
+      }
+
+      // 4. Create the combo as a new user_active_drive_item
+      const product1 = productIds[0];
+      const product2 = productIds.length > 1 ? productIds[1] : null;
+      const product3 = productIds.length > 2 ? productIds[2] : null;
+      
+      if (productIds.length > 3) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({ 
+          success: false,
+          message: 'Combos cannot contain more than 3 products with current schema.' 
+        });
+      }
+
+      // Calculate total price for the combo
+      const totalPrice = productsResult.rows.reduce((sum, product) => sum + parseFloat(product.price), 0);
+
+      const comboItemResult = await client.query(
+        `INSERT INTO user_active_drive_items (
+            user_id, drive_session_id, product_id_1, product_id_2, product_id_3,
+            order_in_drive, user_status, task_type, created_at, updated_at
+         ) VALUES ($1, $2, $3, $4, $5, $6, 'PENDING', 'combo', NOW(), NOW()) 
+         RETURNING *`,
+        [userId, drive_session_id, product1, product2, product3, newOrderInDrive]
+      );
+
+      // 5. Log the combo creation for audit purposes
+      logger.info(`User ${userId} created combo "${comboName}" with products [${productIds.join(', ')}] at order ${newOrderInDrive}`);
+
+      await client.query('COMMIT');
+
+      // 6. Prepare response with combo details
+      const response = {
+        success: true,
+        message: 'Combo successfully added to your drive',
+        combo: {
+          id: comboItemResult.rows[0].id,
+          name: comboName,
+          description: comboDescription,
+          products: productsResult.rows,
+          totalPrice: totalPrice.toFixed(2),
+          orderInDrive: newOrderInDrive,
+          driveSessionId: drive_session_id
+        }
+      };
+
+      res.status(201).json(response);
+
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+
+  } catch (error) {
+    logger.error(`Error creating combo for user ${req.user.id}:`, error);
+    res.status(500).json({ success: false, message: 'Failed to create combo', error: error.message });
+  }
+};
 
 module.exports = {
   getUserDeposits,
@@ -674,6 +942,9 @@ module.exports = {
   createSupportMessage,
   getUserSupportMessages,
   getUserNotifications,
-  markNotificationAsRead
+  markNotificationAsRead,
+  getDriveProgress, // Export new function
+  getActiveProducts, // Export new function
+  createCombo // Export new function
   // Other user-related functions
 };

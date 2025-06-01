@@ -50,14 +50,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initialize all section handlers
     initializeHandlers();
-    
-    // Initialize DriveModule functionality from admin-drives.js
+      // Initialize DriveModule functionality from admin-drives.js
     if (DriveModuleAPI && typeof DriveModuleAPI.initDependencies === 'function') {
         DriveModuleAPI.initDependencies({ fetchWithAuth, showNotification }); // Pass dependencies
         // Removed call to DriveModuleAPI.setupDrivePolling as it does not exist.
         // Polling will be handled by loadSection.
     } else {
         console.error('DriveModuleAPI or its initDependencies function is not available. Ensure admin-drives.js is loaded as a module and exports correctly.');
+    }
+    
+    // Initialize Enhanced Combo Creation module dependencies
+    if (window.initEnhancedComboCreationDependencies && typeof window.initEnhancedComboCreationDependencies === 'function') {
+        window.initEnhancedComboCreationDependencies({ fetchWithAuth, showNotification });
+        console.log('Enhanced combo creation dependencies initialized successfully.');
+    } else {
+        console.error('Enhanced combo creation initialization function not available. Ensure enhanced-combo-creation.js is loaded.');
     }
 });
 
