@@ -52,6 +52,9 @@ router.post('/combos/insert', authMiddleware.protect, authMiddleware.admin, admi
 router.get('/tasksets/:taskSetId/available-slots', authMiddleware.protect, authMiddleware.admin, adminDriveController.getAvailableComboSlots);
 router.put('/active-items/:itemId/add-combo', authMiddleware.protect, authMiddleware.admin, adminDriveController.addComboToActiveItem);
 
+// Enhanced Combo Creation Route - for creating combos directly in user's drive sequence
+router.post('/users/:userId/drive/add-combo', authMiddleware.protect, authMiddleware.admin, adminDriveController.addComboToUserDrive);
+
 // Tier Quantity Configuration Routes
 router.get('/tier-configs', authMiddleware.protect, authMiddleware.admin, adminDriveController.getTierQuantityConfigs);
 router.put('/tier-configs', authMiddleware.protect, authMiddleware.admin, adminDriveController.updateTierQuantityConfigs);

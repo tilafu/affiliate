@@ -1796,6 +1796,172 @@ const addComboToActiveItem = async (req, res) => {
     }
 };
 
+// Enhanced Combo Creation - Add combo directly to user's drive sequence
+const addComboToUserDrive = async (req, res) => {
+    const { userId } = req.params;
+    const { comboName, comboDescription, productIds, insertAtOrder, insertAfterTaskSetId } = req.body;
+
+    if (!comboName || !Array.isArray(productIds) || productIds.length === 0) {
+        return res.status(400).json({ 
+            success: false,
+            message: 'comboName and productIds (array) are required.' 
+        });
+    }
+
+    if (productIds.length > 3) {
+        return res.status(400).json({ 
+            success: false,
+            message: 'Maximum 3 products allowed per combo.' 
+        });
+    }
+
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+
+        // 1. Verify user exists and has an active drive session
+        const userResult = await client.query('SELECT id FROM users WHERE id = $1', [userId]);
+        if (userResult.rows.length === 0) {
+            await client.query('ROLLBACK');
+            return res.status(404).json({ success: false, message: 'User not found.' });
+        }
+
+        const sessionResult = await client.query(
+            `SELECT id, drive_configuration_id FROM drive_sessions 
+             WHERE user_id = $1 AND status IN ('active', 'pending_reset', 'frozen') 
+             ORDER BY created_at DESC LIMIT 1`,
+            [userId]
+        );
+
+        if (sessionResult.rows.length === 0) {
+            await client.query('ROLLBACK');
+            return res.status(404).json({ 
+                success: false,
+                message: 'No active drive session found for this user.' 
+            });
+        }
+
+        const { id: driveSessionId, drive_configuration_id: driveConfigId } = sessionResult.rows[0];
+
+        // 2. Verify all products exist
+        for (const productId of productIds) {
+            const productExists = await client.query('SELECT id FROM products WHERE id = $1', [productId]);
+            if (productExists.rows.length === 0) {
+                await client.query('ROLLBACK');
+                return res.status(404).json({ 
+                    success: false,
+                    message: `Product with ID ${productId} not found.` 
+                });
+            }
+        }
+
+        // 3. Create a new combo task set for this drive configuration
+        const taskSetResult = await client.query(
+            'INSERT INTO drive_task_sets (drive_configuration_id, name, description, order_in_drive, is_combo, created_at) VALUES ($1, $2, $3, $4, $5, NOW()) RETURNING *',
+            [driveConfigId, comboName, comboDescription || `Enhanced combo: ${comboName}`, insertAtOrder || 999, true]
+        );
+        
+        const newTaskSetId = taskSetResult.rows[0].id;
+
+        // 4. Add products to the new task set
+        for (let i = 0; i < productIds.length; i++) {
+            await client.query(
+                'INSERT INTO drive_task_set_products (task_set_id, product_id, order_in_set, created_at) VALUES ($1, $2, $3, NOW())',
+                [newTaskSetId, productIds[i], i + 1]
+            );
+        }
+
+        // 5. Update the order_in_drive for existing task sets if needed
+        let targetOrder = insertAtOrder;
+        
+        if (insertAfterTaskSetId) {
+            // Find the order of the specified task set
+            const targetTaskResult = await client.query(
+                `SELECT uadi.order_in_drive FROM user_active_drive_items uadi 
+                 JOIN drive_task_sets dts ON dts.id = $1
+                 WHERE uadi.drive_session_id = $2 AND uadi.order_in_drive IS NOT NULL
+                 ORDER BY uadi.order_in_drive LIMIT 1`,
+                [insertAfterTaskSetId, driveSessionId]
+            );
+            
+            if (targetTaskResult.rows.length > 0) {
+                targetOrder = targetTaskResult.rows[0].order_in_drive + 1;
+            }
+        }
+
+        if (targetOrder && targetOrder !== 999) {
+            // Shift existing items to make room for the new combo
+            await client.query(
+                `UPDATE user_active_drive_items 
+                 SET order_in_drive = order_in_drive + 1 
+                 WHERE drive_session_id = $1 AND order_in_drive >= $2`,
+                [driveSessionId, targetOrder]
+            );
+
+            // Update the task set with the correct order
+            await client.query(
+                'UPDATE drive_task_sets SET order_in_drive = $1 WHERE id = $2',
+                [targetOrder, newTaskSetId]
+            );
+        } else {
+            // Insert at the end - find the max order and add 1
+            const maxOrderResult = await client.query(
+                'SELECT COALESCE(MAX(order_in_drive), 0) + 1 as next_order FROM user_active_drive_items WHERE drive_session_id = $1',
+                [driveSessionId]
+            );
+            targetOrder = maxOrderResult.rows[0].next_order;
+            
+            await client.query(
+                'UPDATE drive_task_sets SET order_in_drive = $1 WHERE id = $2',
+                [targetOrder, newTaskSetId]
+            );
+        }
+
+        // 6. Create the user_active_drive_item for this combo
+        const productId1 = productIds[0] || null;
+        const productId2 = productIds[1] || null;
+        const productId3 = productIds[2] || null;
+
+        const activeItemResult = await client.query(
+            `INSERT INTO user_active_drive_items 
+                (user_id, drive_session_id, product_id_1, product_id_2, product_id_3, 
+                 order_in_drive, user_status, task_type, created_at, updated_at)
+             VALUES ($1, $2, $3, $4, $5, $6, 'PENDING', 'combo_order', NOW(), NOW()) RETURNING id`,
+            [userId, driveSessionId, productId1, productId2, productId3, targetOrder]
+        );
+
+        const newActiveItemId = activeItemResult.rows[0].id;
+
+        await client.query('COMMIT');
+        
+        logger.info(`Enhanced combo "${comboName}" created and added to user ${userId}'s drive at order ${targetOrder}. TaskSet ID: ${newTaskSetId}, ActiveItem ID: ${newActiveItemId}`);
+        
+        res.status(201).json({
+            success: true,
+            message: 'Combo created and added to user\'s drive successfully!',
+            data: {
+                taskSetId: newTaskSetId,
+                activeItemId: newActiveItemId,
+                comboName: comboName,
+                productIds: productIds,
+                orderInDrive: targetOrder,
+                driveSessionId: driveSessionId
+            }
+        });
+
+    } catch (error) {
+        await client.query('ROLLBACK');
+        logger.error(`Error adding combo to user ${userId}'s drive:`, error);
+        res.status(500).json({ 
+            success: false,
+            message: 'Failed to add combo to user\'s drive', 
+            error: error.message 
+        });
+    } finally {
+        client.release();
+    }
+};
+
 
 module.exports = {
     createDriveConfiguration,
@@ -1825,6 +1991,7 @@ module.exports = {
     insertComboToTaskSet,
     getAvailableComboSlots,
     addComboToActiveItem,
+    addComboToUserDrive,
     getTierQuantityConfigs, 
     updateTierQuantityConfigs
 };

@@ -508,11 +508,11 @@
     </div>
 
     <!-- Background Overlay for Mobile -->
-    <div class="bg-overlay"></div>    <!-- Scripts -->
-    <script src="./assets/js/jquery.min.js"></script>
+    <div class="bg-overlay"></div>    <!-- Scripts -->    <script src="./assets/js/jquery.min.js"></script>
     <script src="./assets/js/bootstrap.bundle.min.js"></script>
     <script type="module" src="./js/admin.js"></script>
     <script type="module" src="./js/admin-drives.js"></script> <!-- Ensure admin-drives.js is loaded as a module if not already -->
+    <script type="module" src="./js/enhanced-combo-creation.js"></script>
 
     <!-- Modal for User Drive Progress -->
 <div class="modal fade" id="userDriveProgressModal" tabindex="-1" aria-labelledby="userDriveProgressModalLabel" aria-hidden="true">
@@ -546,10 +546,191 @@
                     </tbody>
                 </table>
             </div>
+        </div>      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" id="create-combo-from-progress-btn" style="display: none;">
+          <i class="fas fa-plus me-2"></i>Create Combo
+        </button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>  </div>
+</div>
+
+<!-- Enhanced Combo Creation Modal -->
+<div class="modal fade" id="enhancedComboCreationModal" tabindex="-1" aria-labelledby="enhancedComboCreationModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title" id="enhancedComboCreationModalLabel">
+          <i class="fas fa-magic me-2"></i>Create Combo for User
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <!-- User Progress Section -->
+        <div class="card mb-4">
+          <div class="card-header">
+            <h6 class="mb-0"><i class="fas fa-user me-2"></i>User Progress Overview</h6>
+          </div>
+          <div class="card-body">
+            <div id="user-progress-loading" style="display: none;">
+              <div class="text-center">
+                <div class="spinner-border" role="status">
+                  <span class="visually-hidden">Loading...</span>
+                </div>
+                <p>Loading user progress...</p>
+              </div>
+            </div>
+            <div id="user-progress-content" style="display: none;">
+              <div class="row">
+                <div class="col-md-6">
+                  <p><strong>User:</strong> <span id="combo-user-info"></span></p>
+                  <p><strong>Drive Configuration:</strong> <span id="combo-drive-config"></span></p>
+                  <p><strong>Current Task:</strong> <span id="combo-current-task"></span></p>
+                </div>
+                <div class="col-md-6">
+                  <p><strong>Progress:</strong> <span id="combo-progress-summary"></span></p>
+                  <div class="progress mb-2">
+                    <div class="progress-bar" role="progressbar" id="combo-progress-bar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+                  </div>
+                  <button class="btn btn-sm btn-outline-secondary" id="refresh-progress-btn">
+                    <i class="fas fa-sync-alt me-1"></i>Refresh
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
+
+        <!-- Combo Creation Form -->
+        <form id="enhanced-combo-creation-form">
+          <div class="row">
+            <!-- Left Column: Combo Details -->
+            <div class="col-md-6">
+              <div class="card">
+                <div class="card-header">
+                  <h6 class="mb-0"><i class="fas fa-edit me-2"></i>Combo Details</h6>
+                </div>
+                <div class="card-body">
+                  <div class="mb-3">
+                    <label for="combo-name" class="form-label">Combo Name <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="combo-name" required placeholder="Enter combo name">
+                  </div>
+                  <div class="mb-3">
+                    <label for="combo-description" class="form-label">Description</label>
+                    <textarea class="form-control" id="combo-description" rows="3" placeholder="Optional description"></textarea>
+                  </div>
+                  <div class="mb-3">
+                    <label for="insertion-point" class="form-label">Insertion Point <span class="text-danger">*</span></label>
+                    <select class="form-select" id="insertion-point" required>
+                      <option value="">Select insertion point...</option>
+                      <option value="beginning">At the beginning</option>
+                      <option value="after-current">After current task</option>
+                      <option value="end">At the end</option>
+                      <option value="custom">Custom position...</option>
+                    </select>
+                  </div>
+                  <div class="mb-3" id="custom-position-group" style="display: none;">
+                    <label for="custom-position" class="form-label">Custom Position</label>
+                    <input type="number" class="form-control" id="custom-position" min="1" placeholder="Position number">
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Right Column: Product Selection -->
+            <div class="col-md-6">
+              <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                  <h6 class="mb-0"><i class="fas fa-box me-2"></i>Product Selection</h6>
+                  <span class="badge bg-secondary" id="selected-products-count">0 selected</span>
+                </div>
+                <div class="card-body">
+                  <!-- Search and Filters -->
+                  <div class="row mb-3">
+                    <div class="col-md-8">
+                      <input type="text" class="form-control form-control-sm" id="product-search" placeholder="Search products...">
+                    </div>
+                    <div class="col-md-4">
+                      <button type="button" class="btn btn-sm btn-outline-secondary w-100" id="clear-search-btn">Clear</button>
+                    </div>
+                  </div>
+                  <div class="row mb-3">
+                    <div class="col-md-6">
+                      <input type="number" class="form-control form-control-sm" id="price-filter-min" placeholder="Min price" step="0.01">
+                    </div>
+                    <div class="col-md-6">
+                      <input type="number" class="form-control form-control-sm" id="price-filter-max" placeholder="Max price" step="0.01">
+                    </div>
+                  </div>
+                  <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" id="select-all-products">
+                    <label class="form-check-label" for="select-all-products">
+                      Select All Visible
+                    </label>
+                  </div>
+
+                  <!-- Products List -->
+                  <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
+                    <table class="table table-sm table-hover">
+                      <thead class="table-light sticky-top">
+                        <tr>
+                          <th width="50">Select</th>
+                          <th>Product</th>
+                          <th width="80">Price</th>
+                        </tr>
+                      </thead>
+                      <tbody id="enhanced-products-list">
+                        <tr>
+                          <td colspan="3" class="text-center">
+                            <div class="spinner-border spinner-border-sm" role="status">
+                              <span class="visually-hidden">Loading...</span>
+                            </div>
+                            Loading products...
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sequence Preview -->
+          <div class="card mt-4">
+            <div class="card-header">
+              <h6 class="mb-0"><i class="fas fa-list me-2"></i>Sequence Preview</h6>
+            </div>
+            <div class="card-body">
+              <div id="sequence-preview-loading">
+                <span class="text-muted">Select insertion point to preview sequence...</span>
+              </div>
+              <div id="sequence-preview-content" style="display: none;">
+                <div class="table-responsive">
+                  <table class="table table-sm">
+                    <thead>
+                      <tr>
+                        <th>Order</th>
+                        <th>Task Name</th>
+                        <th>Type</th>
+                        <th>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody id="sequence-preview-list">
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </form>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" id="create-combo-btn" disabled>
+          <i class="fas fa-magic me-2"></i>Create Combo
+        </button>
       </div>
     </div>
   </div>

@@ -18,6 +18,11 @@ export function initDependencies(dependencies) {
     isInitialized = true;
     console.log("admin-drives.js initialized with dependencies.");
 
+    // Initialize enhanced combo creation dependencies
+    if (window.initEnhancedComboCreationDependencies) {
+        window.initEnhancedComboCreationDependencies(dependencies);
+    }
+
     // Initialize Drive Configuration UI elements and event listeners if the section is visible
     // This part of the code was removed as per the latest requirements
 }
@@ -1496,16 +1501,28 @@ async function _loadAndRenderUserDriveProgress(userId, username) {
                     </td>
                 </tr>
             `;
-        });
-
-        tableHtml += `
+        });        tableHtml += `
                 </tbody>
             </table>        `;
         modalBody.innerHTML = tableHtml;
 
+        // Show the "Create Combo" button if there are task items (allowing combo creation)
+        const createComboBtn = document.getElementById('create-combo-from-progress-btn');
+        if (createComboBtn && data.task_items && data.task_items.length > 0) {
+            createComboBtn.style.display = 'inline-block';
+        } else if (createComboBtn) {
+            createComboBtn.style.display = 'none';
+        }
+
     } catch (error) {
         console.error('Error fetching or rendering user drive progress:', error);
         modalBody.innerHTML = `<p class="text-danger">Error loading drive progress: ${error.message}</p>`;
+        
+        // Hide the button on error
+        const createComboBtn = document.getElementById('create-combo-from-progress-btn');
+        if (createComboBtn) {
+            createComboBtn.style.display = 'none';
+        }
     }
 }
 
