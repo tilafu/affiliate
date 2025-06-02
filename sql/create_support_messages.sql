@@ -2,7 +2,7 @@
 DROP TABLE IF EXISTS support_messages;
 
 -- Create Support Messages table
-CREATE TABLE support_messages (
+CREATE TABLE IF NOT EXISTS support_messages (
     id SERIAL PRIMARY KEY,
     sender_id INTEGER NOT NULL REFERENCES users(id),
     sender_role VARCHAR(10) NOT NULL CHECK (sender_role IN ('user', 'admin')),

@@ -1,6 +1,7 @@
 const pool = require('../config/db');
 const logger = require('../logger');
 const tierCommissionService = require('../services/tierCommissionService');
+const balanceBasedFilterService = require('../services/balanceBasedFilterService');
 
 // --- Drive Configuration Management ---
 
@@ -741,86 +742,6 @@ exports.getActiveDriveItemsForUser = async (req, res) => {
     }
 };
 
-// Add a product to a combo for a specific user_active_drive_item
-exports.addProductToDriveItemCombo = async (req, res) => {
-    const { userId, driveItemId } = req.params; // driveItemId is user_active_drive_items.id
-    const { product_id } = req.body;
-
-    if (!product_id) {
-        return res.status(400).json({ message: 'product_id is mandatory.' });
-    }
-
-    const client = await pool.connect();
-    try {
-        await client.query('BEGIN');
-
-        // 1. Verify user_active_drive_item exists, belongs to the user, and is part of an active session
-        const itemResult = await client.query(
-            `SELECT uadi.*, ds.status as session_status
-             FROM user_active_drive_items uadi
-             JOIN drive_sessions ds ON uadi.drive_session_id = ds.id
-             WHERE uadi.id = $1 AND uadi.user_id = $2`,
-            [driveItemId, userId]
-        );
-
-        if (itemResult.rows.length === 0) {
-            await client.query('ROLLBACK');
-            return res.status(404).json({ message: 'Active drive item not found for this user.' });
-        }
-
-        const driveItem = itemResult.rows[0];
-        if (!['active', 'pending_reset', 'frozen'].includes(driveItem.session_status)) {
-            await client.query('ROLLBACK');
-            return res.status(403).json({ message: 'Drive session is not active. Cannot modify items.' });
-        }
-        // Optional: Add check for driveItem.user_status if items can only be modified when PENDING/CURRENT
-        if (driveItem.user_status !== 'PENDING' && driveItem.user_status !== 'CURRENT') {
-            await client.query('ROLLBACK');
-            return res.status(403).json({ message: `Cannot modify item with status ${driveItem.user_status}.` });
-        }
-
-        // 2. Verify product exists
-        const productExists = await client.query('SELECT id FROM products WHERE id = $1', [product_id]);
-        if (productExists.rows.length === 0) {
-            await client.query('ROLLBACK');
-            return res.status(404).json({ message: 'Product to add not found.' });
-        }
-
-        // 3. Determine which slot to add the product to (product_id_2 or product_id_3)
-        let updateColumn = null;
-        if (driveItem.product_id_1 == product_id || driveItem.product_id_2 == product_id || driveItem.product_id_3 == product_id) {
-            await client.query('ROLLBACK');
-            return res.status(409).json({ message: 'Product already exists in this drive item.' });
-        }
-
-        if (driveItem.product_id_2 === null) {
-            updateColumn = 'product_id_2';
-        } else if (driveItem.product_id_3 === null) {
-            updateColumn = 'product_id_3';
-        } else {
-            await client.query('ROLLBACK');
-            return res.status(400).json({ message: 'Cannot add more than two additional products (3 total) to this drive item.' });
-        }
-
-        // 4. Update the user_active_drive_item
-        const updateResult = await client.query(
-            `UPDATE user_active_drive_items SET ${updateColumn} = $1, updated_at = NOW() WHERE id = $2 RETURNING *`,
-            [product_id, driveItemId]
-        );
-
-        await client.query('COMMIT');
-        logger.info(`Product ${product_id} added to drive item ${driveItemId} for user ${userId} in slot ${updateColumn}`);
-        res.status(200).json(updateResult.rows[0]);
-
-    } catch (error) {
-        await client.query('ROLLBACK');
-        logger.error(`Error adding product to drive item combo for user ${userId}, item ${driveItemId}:`, error);
-        res.status(500).json({ message: 'Failed to add product to drive item combo', error: error.message });
-    } finally {
-        client.release();
-    }
-};
-
 // Assign a Drive Configuration to a User (for admin override or direct assignment)
 exports.assignDriveConfigurationToUser = async (req, res) => {
     const { userId } = req.params;
@@ -1033,8 +954,7 @@ exports.getUserDriveProgress = async (req, res) => {
 
     if (!userId) {
         return res.status(400).json({ message: "User ID is required." });
-    }
-
+    }    // Updated SQL query to fetch more details for task items
     const query = `
         SELECT
             ds.user_id,
@@ -1045,18 +965,18 @@ exports.getUserDriveProgress = async (req, res) => {
             uadi.order_in_drive,
             uadi.user_status,
             uadi.product_id_1,
-            p1.name AS product_1_name,
+            p1.id AS product_1_id, p1.name AS product_1_name,
             uadi.product_id_2,
-            p2.name AS product_2_name,
+            p2.id AS product_2_id, p2.name AS product_2_name,
             uadi.product_id_3,
-            p3.name AS product_3_name,
-            (SELECT COUNT(*) FROM user_active_drive_items uadi_count WHERE uadi_count.drive_session_id = ds.id) AS total_task_items
+            p3.id AS product_3_id, p3.name AS product_3_name,
+            (SELECT COUNT(*) FROM user_active_drive_items uadi_count WHERE uadi_count.drive_session_id = ds.id AND uadi_count.user_id = ds.user_id) AS total_task_items
         FROM
             drive_sessions ds
         JOIN
             drive_configurations dc ON ds.drive_configuration_id = dc.id
         LEFT JOIN
-            user_active_drive_items uadi ON ds.id = uadi.drive_session_id
+            user_active_drive_items uadi ON ds.id = uadi.drive_session_id AND uadi.user_id = ds.user_id
         LEFT JOIN
             products p1 ON uadi.product_id_1 = p1.id
         LEFT JOIN
@@ -1068,33 +988,53 @@ exports.getUserDriveProgress = async (req, res) => {
             AND ds.status = 'active'
         ORDER BY
             ds.started_at DESC, uadi.order_in_drive ASC
-    `;    try {
+    `;
+    try {
         const result = await pool.query(query, [userId]);
         
         if (result.rows.length === 0) {
             return res.status(404).json({ message: 'No active drive session found for this user.' });
         }
 
-        // Transform the data to match frontend expectations
-        const firstRow = result.rows[0];
+        const firstRowWithSessionData = result.rows[0]; // All rows share same session info if result.rows is not empty
+
+        // Filter out rows that don't represent actual task items (e.g., session exists but no items yet)
+        const taskItemsData = result.rows.filter(row => row.task_item_id !== null);
+
         const response = {
-            user_id: firstRow.user_id,
-            drive_session_id: firstRow.drive_session_id,
-            drive_configuration_id: firstRow.drive_configuration_id,
-            drive_configuration_name: firstRow.drive_configuration_name,
-            total_task_items: firstRow.total_task_items,
-            completed_task_items: result.rows.filter(row => row.user_status === 'COMPLETED').length,
-            current_task_item_id: result.rows.find(row => row.user_status === 'CURRENT')?.task_item_id || null,
-            task_items: result.rows.map(row => ({
-                task_item_id: row.task_item_id,
-                order_in_drive: row.order_in_drive,
-                user_status: row.user_status,
-                products: [
-                    row.product_1_name && { name: row.product_1_name },
-                    row.product_2_name && { name: row.product_2_name },
-                    row.product_3_name && { name: row.product_3_name }
-                ].filter(Boolean)
-            }))
+            user_id: firstRowWithSessionData.user_id,
+            drive_session_id: firstRowWithSessionData.drive_session_id,
+            drive_configuration_id: firstRowWithSessionData.drive_configuration_id,
+            drive_configuration_name: firstRowWithSessionData.drive_configuration_name,
+            total_task_items: firstRowWithSessionData.total_task_items, // From subquery, accurate count in DB
+            completed_task_items: taskItemsData.filter(row => row.user_status === 'COMPLETED').length,
+            current_task_item_id: taskItemsData.find(row => row.user_status === 'CURRENT')?.task_item_id || null,            task_items: taskItemsData.map(row => {
+                // Since override functionality has been removed, treat all items as regular product-based tasks
+                let taskNameDisplay = 'Task'; // Default task name
+                let itemProducts = [];
+                
+                // Populate products based on available product_id_X and product_X_name fields
+                if (row.product_id_1 && row.product_1_name) itemProducts.push({ id: row.product_1_id, name: row.product_1_name });
+                if (row.product_id_2 && row.product_2_name) itemProducts.push({ id: row.product_2_id, name: row.product_2_name });
+                if (row.product_id_3 && row.product_3_name) itemProducts.push({ id: row.product_3_id, name: row.product_3_name });
+
+                if (itemProducts.length > 0) {
+                    taskNameDisplay = itemProducts.map(p => p.name).join(' / ');
+                } else {
+                    // Fallback if no products are found
+                    taskNameDisplay = 'Unnamed Task'; 
+                }
+                
+                return {
+                    task_item_id: row.task_item_id,
+                    order_in_drive: row.order_in_drive,
+                    user_status: row.user_status,
+                    task_name: taskNameDisplay, 
+                    task_description: null, // No specific description for product sets
+                    products: itemProducts,
+                    is_combo: false // Override functionality removed, so no combos
+                };
+            })
         };
 
         res.status(200).json(response);
@@ -1103,3 +1043,5 @@ exports.getUserDriveProgress = async (req, res) => {
         res.status(500).json({ message: 'Failed to fetch drive progress', error: error.message });
     }
 };
+
+

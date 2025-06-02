@@ -35,9 +35,18 @@ router.put('/users/:userId/assign-drive-config', authMiddleware.protect, authMid
 
 // User Active Drive Item Routes
 router.get('/users/:userId/drive/active-items', authMiddleware.protect, authMiddleware.admin, adminDriveController.getActiveDriveItemsForUser);
-router.post('/users/:userId/drive/active-items/:driveItemId/add-combo', authMiddleware.protect, authMiddleware.admin, adminDriveController.addProductToDriveItemCombo);
 
 // New route for user drive progress
 router.get('/users/:userId/drive-progress', authMiddleware.protect, authMiddleware.admin, adminDriveController.getUserDriveProgress);
+
+// Balance-based Drive Configuration Routes
+router.post('/balance-config/create', authMiddleware.protect, authMiddleware.admin, adminDriveController.createBalanceBasedDriveConfig);
+router.get('/balance-config/products/:userId', authMiddleware.protect, authMiddleware.admin, adminDriveController.getBalanceFilteredProducts);
+router.post('/balance-config/validate', authMiddleware.protect, authMiddleware.admin, adminDriveController.validateUserBalance);
+
+// Admin Combo Creation Routes
+router.post('/combos/insert', authMiddleware.protect, authMiddleware.admin, adminDriveController.insertComboToTaskSet);
+router.get('/tasksets/:taskSetId/available-slots', authMiddleware.protect, authMiddleware.admin, adminDriveController.getAvailableComboSlots);
+router.put('/active-items/:itemId/add-combo', authMiddleware.protect, authMiddleware.admin, adminDriveController.addComboToActiveItem);
 
 module.exports = router;
