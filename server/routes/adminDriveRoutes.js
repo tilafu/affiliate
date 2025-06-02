@@ -33,6 +33,9 @@ router.post('/users/:userId/drive/assign', authMiddleware.protect, authMiddlewar
 // Route for admin to directly assign/update a user's drive configuration (e.g. for override)
 router.put('/users/:userId/assign-drive-config', authMiddleware.protect, authMiddleware.admin, adminDriveController.assignDriveConfigurationToUser);
 
+// New route for tier-based auto-assignment of drive configuration
+router.post('/users/:userId/assign-tier-based-drive', authMiddleware.protect, authMiddleware.admin, adminDriveController.assignTierBasedDriveToUser);
+
 // User Active Drive Item Routes
 router.get('/users/:userId/drive/active-items', authMiddleware.protect, authMiddleware.admin, adminDriveController.getActiveDriveItemsForUser);
 
@@ -40,13 +43,17 @@ router.get('/users/:userId/drive/active-items', authMiddleware.protect, authMidd
 router.get('/users/:userId/drive-progress', authMiddleware.protect, authMiddleware.admin, adminDriveController.getUserDriveProgress);
 
 // Balance-based Drive Configuration Routes
-router.post('/balance-config/create', authMiddleware.protect, authMiddleware.admin, adminDriveController.createBalanceBasedDriveConfig);
-router.get('/balance-config/products/:userId', authMiddleware.protect, authMiddleware.admin, adminDriveController.getBalanceFilteredProducts);
-router.post('/balance-config/validate', authMiddleware.protect, authMiddleware.admin, adminDriveController.validateUserBalance);
+router.post('/balance-config/create', authMiddleware.protect, authMiddleware.admin, adminDriveController.createBalanceBasedConfiguration);
+router.get('/balance-config/products/:userId', authMiddleware.protect, authMiddleware.admin, adminDriveController.getBalanceBasedProducts);
+router.post('/balance-config/validate', authMiddleware.protect, authMiddleware.admin, adminDriveController.validateBalanceConfig);
 
 // Admin Combo Creation Routes
 router.post('/combos/insert', authMiddleware.protect, authMiddleware.admin, adminDriveController.insertComboToTaskSet);
 router.get('/tasksets/:taskSetId/available-slots', authMiddleware.protect, authMiddleware.admin, adminDriveController.getAvailableComboSlots);
 router.put('/active-items/:itemId/add-combo', authMiddleware.protect, authMiddleware.admin, adminDriveController.addComboToActiveItem);
+
+// Tier Quantity Configuration Routes
+router.get('/tier-configs', authMiddleware.protect, authMiddleware.admin, adminDriveController.getTierQuantityConfigs);
+router.put('/tier-configs', authMiddleware.protect, authMiddleware.admin, adminDriveController.updateTierQuantityConfigs);
 
 module.exports = router;

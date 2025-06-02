@@ -294,33 +294,69 @@ async function loadDashboardStats() {
 // Users Management
 async function loadUsers() {
     try {
-        const response = await fetchWithAuth('/admin/users');
-        if (response.success) {
-            const usersList = document.getElementById('users-list');
-            usersList.innerHTML = response.users.map(user => `
-                <tr>
-                    <td>${user.id}</td>
-                    <td>${user.username}</td>
-                    <td>${user.email}</td>
-                    <td>${user.tier}</td>
-                    <td>${user.role}</td>
-                    <td>$${user.balance}</td>
-                    <td>
-                        <button class="btn btn-sm btn-primary manage-user-btn" 
-                                data-user-id="${user.id}" 
-                                data-username="${user.username}"
-                                data-tier="${user.tier}"
-                                data-assigned-config-id="${user.assigned_drive_configuration_id || ''}"
-                                data-assigned-config-name="${user.assigned_drive_configuration_name || 'N/A'}">
-                            Manage
-                        </button>
-                    </td>
-                </tr>
-            `).join('');
+        const data = await fetchWithAuth('/admin/users'); // Uses GET by default
+
+        // fetchWithAuth throws an error for non-ok responses,
+        // so we can assume 'data' is present if we reach here.
+        // It also parses JSON, so 'data' is the parsed response.
+
+        // The previous implementation checked data.success.
+        // Assuming the API returns { success: true, users: [...] } or { success: false, message: "..." }
+        // If fetchWithAuth returns the parsed body directly, and the body itself indicates success/failure:
+        if (data && data.users) { // Assuming successful response has a users array. Adjust if API structure is different.
+            const usersList = $('#users-list');
+            usersList.empty(); // Clear previous entries
+
+            if (data.users.length === 0) {
+                usersList.append('<tr><td colspan="6" class="text-center">No users found.</td></tr>');
+            } else {
+                data.users.forEach(user => {
+                    const userRow = `
+                        <tr>
+                            <td>${user.id}</td>
+                            <td>${user.username}</td>
+                            <td>${user.email}</td>
+                            <td>${user.tier || 'N/A'}</td>
+                            <td>${user.main_balance !== undefined ? parseFloat(user.main_balance).toFixed(2) : 'N/A'}</td>
+                            <td>
+                                <button class="btn btn-sm btn-primary manage-user-btn" data-user-id="${user.id}" data-bs-toggle="modal" data-bs-target="#manageUserModal">Manage</button>
+                            </td>
+                        </tr>
+                    `;
+                    usersList.append(userRow);
+                });
+            }
+            // Re-attach event listeners for manage buttons if needed, or ensure event delegation is used.
+            // If not using event delegation, this might be a place to call a function that sets up listeners on .manage-user-btn
+        } else {
+            // If 'data.users' is not present, it implies an issue or a different response structure.
+            // The old code checked 'data.success'. If your API returns { success: false, message: '...' }
+            // then fetchWithAuth would have returned that object.
+            const errorMessage = data && data.message ? data.message : 'Failed to load users or no users data received.';
+            showAlert(errorMessage, 'danger');
+            // Clear the list if data is not as expected
+            const usersList = $('#users-list');
+            usersList.empty();
+            usersList.append('<tr><td colspan="6" class="text-center">' + errorMessage + '</td></tr>');
         }
+
     } catch (error) {
         console.error('Error loading users:', error);
-        showNotification('Failed to load users', 'error');
+        let errorMessage = 'An error occurred while loading users.';
+        if (error.data && error.data.message) {
+            errorMessage = error.data.message;
+        } else if (error.message) {
+            errorMessage = error.message;
+        }
+
+        showAlert(errorMessage, 'danger');
+
+        // fetchWithAuth throws an error object that includes 'status'
+        if (error.status === 401 || error.status === 403) {
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('user_data'); // Also clear user_data
+            window.location.href = 'login.html';
+        }
     }
 }
 
@@ -789,11 +825,13 @@ function initializeHandlers() {
             const currentTier = target.dataset.tier;
             const assignedConfigId = target.dataset.assignedConfigId;
             const assignedConfigName = target.dataset.assignedConfigName;
+            const userBalance = target.dataset.userBalance; // Get balance from data attribute
             
             const userDetails = document.getElementById('user-details');
             document.getElementById('manage-username').textContent = username;
             document.getElementById('manage-user-id').textContent = userId; // This is a hidden input or span to store the ID
             document.getElementById('user-tier-select').value = currentTier;
+            document.getElementById('manage-user-balance').textContent = userBalance !== undefined ? parseFloat(userBalance).toFixed(2) : 'N/A'; // Populate balance
             
             // Populate drive configuration dropdown
             await populateDriveConfigurationDropdown(assignedConfigId, assignedConfigName);
@@ -1065,6 +1103,72 @@ function initializeHandlers() {
     window.addEventListener('beforeunload', () => {
         clearInterval(driveUpdateInterval);
     });
+
+    // Event listener for the manual transaction button
+    $(document).on('click', '#manual-transaction-button', async function() {
+        const userId = $('#manage-user-id').text();
+        const type = $('#manual-transaction-type').val();
+        const amount = parseFloat($('#manual-transaction-amount').val());
+        const description = $('#manual-transaction-description').val().trim();
+
+        if (!userId) {
+            showAlert('User ID not found. Please select a user to manage first.', 'danger');
+            return;
+        }
+
+        if (isNaN(amount) || amount <= 0) {
+            showAlert('Please enter a valid positive amount.', 'danger');
+            return;
+        }
+
+        const token = localStorage.getItem('token');
+        if (!token) {
+            showAlert('Authentication error. Please log in again.', 'danger');
+            window.location.href = 'login.html';
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/admin/users/${userId}/transactions`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ type, amount, description })
+            });
+
+            const result = await response.json();
+
+            if (response.ok && result.success) {
+                showAlert(`Balance adjusted successfully for user ${userId}. New balance: ${result.newBalance || 'N/A'}.`, 'success');
+                // Clear input fields
+                $('#manual-transaction-amount').val('');
+                $('#manual-transaction-description').val('');
+                // Refresh user list to show updated balance
+                loadUsers(); 
+                // Optionally, re-select the current user if needed or close/reset the manage section
+                // For now, just clear and refresh
+            } else {
+                showAlert(result.message || 'Failed to adjust balance.', 'danger');
+            }
+        } catch (error) {
+            console.error('Error adjusting balance:', error);
+            showAlert('An error occurred while adjusting balance. Check console for details.', 'danger');
+        }
+    });
+}
+
+// Helper function to display alerts
+function showAlert(message, type = 'info') {
+    const alertsContainer = $('#alerts-container');
+    const alertHtml = `
+        <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    `;
+    alertsContainer.html(alertHtml); // Replace previous alert if any, or use .append() to stack them
 }
 
 // Initial load for the default or active section

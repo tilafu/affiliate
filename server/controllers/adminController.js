@@ -776,12 +776,182 @@ const endDrive = async (req, res) => {
     res.status(501).json({ success: false, message: `Drive ending for ${driveId} not yet implemented.` });
 };
 
-console.log({
-  approveDeposit: typeof approveDeposit,
-  rejectDeposit: typeof rejectDeposit,
-  approveWithdrawal: typeof approveWithdrawal,
-  rejectWithdrawal: typeof rejectWithdrawal
-});
+// Membership Tiers Management
+
+/**
+ * @desc    Get all membership tiers
+ * @route   GET /api/admin/membership-tiers
+ * @access  Private/Admin
+ */
+const getMembershipTiers = async (req, res) => {
+    try {
+        const result = await pool.query(
+            'SELECT * FROM membership_tiers ORDER BY price_usd ASC'
+        );
+        res.json({ success: true, tiers: result.rows });
+    } catch (error) {
+        logger.error('Error fetching membership tiers:', { error: error.message, stack: error.stack });
+        res.status(500).json({ message: 'Server error fetching membership tiers' });
+    }
+};
+
+/**
+ * @desc    Create a new membership tier
+ * @route   POST /api/admin/membership-tiers
+ * @access  Private/Admin
+ */
+const createMembershipTier = async (req, res) => {
+    const {
+        tier_name,
+        price_usd,
+        commission_per_data_percent,
+        commission_merge_data_percent,
+        data_per_set_limit,
+        sets_per_day_limit,
+        withdrawal_limit_usd,
+        max_daily_withdrawals,
+        handling_fee_percent
+    } = req.body;
+
+    // Basic validation
+    if (!tier_name || !price_usd || !commission_per_data_percent || !commission_merge_data_percent) {
+        return res.status(400).json({ message: 'Missing required fields' });
+    }
+
+    try {
+        const result = await pool.query(
+            `INSERT INTO membership_tiers 
+            (tier_name, price_usd, commission_per_data_percent, commission_merge_data_percent,
+             data_per_set_limit, sets_per_day_limit, withdrawal_limit_usd, max_daily_withdrawals, handling_fee_percent)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
+            [tier_name, price_usd, commission_per_data_percent, commission_merge_data_percent,
+             data_per_set_limit, sets_per_day_limit, withdrawal_limit_usd, max_daily_withdrawals, handling_fee_percent]
+        );
+
+        logger.info(`Admin ${req.user.id} created membership tier ${tier_name}`);
+        res.status(201).json({ success: true, message: 'Membership tier created successfully', tier: result.rows[0] });
+    } catch (error) {
+        logger.error('Error creating membership tier:', { error: error.message, stack: error.stack });
+        res.status(500).json({ message: 'Server error creating membership tier' });
+    }
+};
+
+/**
+ * @desc    Update a membership tier
+ * @route   PUT /api/admin/membership-tiers/:id
+ * @access  Private/Admin
+ */
+const updateMembershipTier = async (req, res) => {
+    const { id } = req.params;
+    const {
+        tier_name,
+        price_usd,
+        commission_per_data_percent,
+        commission_merge_data_percent,
+        data_per_set_limit,
+        sets_per_day_limit,
+        withdrawal_limit_usd,
+        max_daily_withdrawals,
+        handling_fee_percent,
+        is_active
+    } = req.body;
+
+    try {
+        const result = await pool.query(
+            `UPDATE membership_tiers SET 
+            tier_name = $1, price_usd = $2, commission_per_data_percent = $3, commission_merge_data_percent = $4,
+            data_per_set_limit = $5, sets_per_day_limit = $6, withdrawal_limit_usd = $7, 
+            max_daily_withdrawals = $8, handling_fee_percent = $9, is_active = $10, updated_at = CURRENT_TIMESTAMP
+            WHERE id = $11 RETURNING *`,
+            [tier_name, price_usd, commission_per_data_percent, commission_merge_data_percent,
+             data_per_set_limit, sets_per_day_limit, withdrawal_limit_usd, max_daily_withdrawals, 
+             handling_fee_percent, is_active, id]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ message: 'Membership tier not found' });
+        }
+
+        logger.info(`Admin ${req.user.id} updated membership tier ${id}`);
+        res.json({ success: true, message: 'Membership tier updated successfully', tier: result.rows[0] });
+    } catch (error) {
+        logger.error('Error updating membership tier:', { error: error.message, stack: error.stack });
+        res.status(500).json({ message: 'Server error updating membership tier' });
+    }
+};
+
+/**
+ * @desc    Delete a membership tier
+ * @route   DELETE /api/admin/membership-tiers/:id
+ * @access  Private/Admin
+ */
+const deleteMembershipTier = async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const result = await pool.query('DELETE FROM membership_tiers WHERE id = $1 RETURNING *', [id]);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ message: 'Membership tier not found' });
+        }
+
+        logger.info(`Admin ${req.user.id} deleted membership tier ${id}`);
+        res.json({ success: true, message: 'Membership tier deleted successfully' });
+    } catch (error) {
+        logger.error('Error deleting membership tier:', { error: error.message, stack: error.stack });
+        res.status(500).json({ message: 'Server error deleting membership tier' });
+    }
+};
+
+// Tier Quantity Configuration Management
+
+/**
+ * @desc    Get all tier quantity configurations
+ * @route   GET /api/admin/tier-quantity-configs
+ * @access  Private/Admin
+ */
+const getTierQuantityConfigs = async (req, res) => {
+    try {
+        const result = await pool.query(
+            'SELECT * FROM tier_quantity_configs ORDER BY tier_name ASC'
+        );
+        res.json({ success: true, configs: result.rows });
+    } catch (error) {
+        logger.error('Error fetching tier quantity configs:', { error: error.message, stack: error.stack });
+        res.status(500).json({ message: 'Server error fetching tier quantity configurations' });
+    }
+};
+
+/**
+ * @desc    Update a tier quantity configuration
+ * @route   PUT /api/admin/tier-quantity-configs/:id
+ * @access  Private/Admin
+ */
+const updateTierQuantityConfig = async (req, res) => {
+    const { id } = req.params;
+    const { quantity_limit, is_active } = req.body;
+
+    if (!quantity_limit || quantity_limit <= 0) {
+        return res.status(400).json({ message: 'Quantity limit must be a positive number' });
+    }
+
+    try {
+        const result = await pool.query(
+            'UPDATE tier_quantity_configs SET quantity_limit = $1, is_active = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3 RETURNING *',
+            [quantity_limit, is_active, id]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ message: 'Tier quantity configuration not found' });
+        }
+
+        logger.info(`Admin ${req.user.id} updated tier quantity config ${id}`);
+        res.json({ success: true, message: 'Tier quantity configuration updated successfully', config: result.rows[0] });
+    } catch (error) {
+        logger.error('Error updating tier quantity config:', { error: error.message, stack: error.stack });
+        res.status(500).json({ message: 'Server error updating tier quantity configuration' });
+    }
+};
 
 module.exports = {
     // User Management
@@ -816,5 +986,15 @@ module.exports = {
     sendNotification,
     
     // Dashboard
-    getDashboardStats
+    getDashboardStats,
+    
+    // Membership Tiers Management
+    getMembershipTiers,
+    createMembershipTier,
+    updateMembershipTier,
+    deleteMembershipTier,
+    
+    // Tier Quantity Configuration Management
+    getTierQuantityConfigs,
+    updateTierQuantityConfig
 };

@@ -3,8 +3,47 @@ const logger = require('../logger');
 
 /**
  * Balance-based product filtering service
- * Filters products based on user balance (80%-99% of balance range)
+ * Filters products based on user balance (75%-99% of balance range)
  */
+
+/**
+ * Get filtered products based on balance and tier
+ * @param {number} userBalance - User's current balance
+ * @param {string} userTier - User's tier
+ * @param {number} driveConfigId - Drive configuration ID (optional)
+ * @param {number} limit - Maximum number of products to return
+ * @returns {Array} Array of filtered products
+ */
+async function getFilteredProducts(userBalance, userTier, driveConfigId = null, limit = null) {
+    const minPrice = userBalance * 0.75;  // 75% of balance
+    const maxPrice = userBalance * 0.99; // 99% of balance
+
+    logger.info(`Balance-based filtering: balance=${userBalance}, tier=${userTier}, range=${minPrice}-${maxPrice}`);
+
+    let query = `
+        SELECT id, name, price, description, image_url, is_active
+        FROM products 
+        WHERE is_active = TRUE 
+        AND price >= $1 
+        AND price <= $2
+        ORDER BY RANDOM()`;
+    
+    const queryParams = [minPrice.toFixed(2), maxPrice.toFixed(2)];
+    
+    if (limit && limit > 0) {
+        query += ` LIMIT $3`;
+        queryParams.push(limit);
+    }
+
+    try {
+        const result = await pool.query(query, queryParams);
+        logger.info(`Found ${result.rows.length} products in balance range`);
+        return result.rows;
+    } catch (error) {
+        logger.error(`Error filtering products by balance:`, error);
+        throw error;
+    }
+}
 
 /**
  * Get products within balance range for a user
@@ -15,7 +54,7 @@ const logger = require('../logger');
  * @returns {Array} Array of filtered products
  */
 async function getProductsInBalanceRange(userId, userBalance, limit = null, client = pool) {
-    const minPrice = userBalance * 0.8;  // 80% of balance
+    const minPrice = userBalance * 0.75;  // 75% of balance
     const maxPrice = userBalance * 0.99; // 99% of balance
 
     logger.info(`Balance-based filtering for user ${userId}: balance=${userBalance}, range=${minPrice}-${maxPrice}`);
@@ -46,19 +85,75 @@ async function getProductsInBalanceRange(userId, userBalance, limit = null, clie
 }
 
 /**
- * Get tier-based product quantity
- * @param {string} tier - User tier (bronze, silver, gold, platinum)
- * @returns {number} Number of products for the tier
+ * Get tier-based quantity limits
+ * @returns {Object} Tier quantity mapping
  */
-function getTierProductQuantity(tier) {
-    const tierMap = {
-        'bronze': 40,
-        'silver': 40,
-        'gold': 45,
-        'platinum': 50
+function getTierQuantityLimits() {
+    return {
+        'Bronze': 40,
+        'Silver': 40,
+        'Gold': 45,
+        'Platinum': 50
+    };
+}
+
+/**
+ * Get tier-based product quantity from database or defaults
+ * @param {string} tier - User tier (bronze, silver, gold, platinum)
+ * @returns {Promise<number>} Number of products for the tier
+ */
+async function getTierProductQuantity(tier) {
+    try {
+        // Try to get from database first
+        const result = await pool.query(
+            'SELECT quantity_limit FROM tier_quantity_configs WHERE tier_name = $1 AND is_active = TRUE',
+            [tier]
+        );
+        
+        if (result.rows.length > 0) {
+            return result.rows[0].quantity_limit;
+        }
+        
+        // Fallback to default mapping
+        const tierMap = {
+            'bronze': 40,
+            'silver': 40,
+            'gold': 45,
+            'platinum': 50
+        };
+        
+        return tierMap[tier?.toLowerCase()] || 40; // Default to bronze
+    } catch (error) {
+        logger.error('Error getting tier quantity from database, using defaults:', error);
+        const tierMap = {
+            'bronze': 40,
+            'silver': 40,
+            'gold': 45,
+            'platinum': 50
+        };
+        return tierMap[tier?.toLowerCase()] || 40;
+    }
+}
+
+/**
+ * Validate balance range (75%-99%)
+ * @param {number} balance - Balance to validate
+ * @returns {Object} Validation result
+ */
+function validateBalanceRange(balance) {
+    const minBalance = 0; // Minimum balance to participate
+    const isValidBalance = balance >= minBalance;
+    const priceRange = {
+        min: balance * 0.75,
+        max: balance * 0.99
     };
     
-    return tierMap[tier?.toLowerCase()] || 40; // Default to bronze
+    return {
+        inRange: isValidBalance,
+        balance: balance,
+        priceRange: priceRange,
+        message: isValidBalance ? 'Balance is valid for filtering' : `Balance must be at least ${minBalance}`
+    };
 }
 
 /**
@@ -69,12 +164,11 @@ function getTierProductQuantity(tier) {
  * @param {Object} client - Database client for transactions
  * @returns {Object} Drive configuration details
  */
-async function createBalanceBasedDriveConfiguration(userId, tier, userBalance, client = pool) {
-    const productQuantity = getTierProductQuantity(tier);
+async function createBalanceBasedDriveConfiguration(userId, tier, userBalance, client = pool) {    const productQuantity = await getTierProductQuantity(tier);
     const filteredProducts = await getProductsInBalanceRange(userId, userBalance, productQuantity, client);
 
     if (filteredProducts.length === 0) {
-        throw new Error(`No products found within balance range (${(userBalance * 0.8).toFixed(2)} - ${(userBalance * 0.99).toFixed(2)}) for user ${userId}`);
+        throw new Error(`No products found within balance range (${(userBalance * 0.75).toFixed(2)} - ${(userBalance * 0.99).toFixed(2)}) for user ${userId}`);
     }
 
     logger.info(`Creating balance-based drive configuration for user ${userId}: tier=${tier}, quantity=${productQuantity}, found=${filteredProducts.length} products`);
@@ -85,7 +179,7 @@ async function createBalanceBasedDriveConfiguration(userId, tier, userBalance, c
         tier,
         userBalance,
         priceRange: {
-            min: userBalance * 0.8,
+            min: userBalance * 0.75,
             max: userBalance * 0.99
         }
     };
@@ -113,8 +207,11 @@ async function getRecommendedProductsForBalance(targetBalance, limit = 100, clie
 }
 
 module.exports = {
+    getFilteredProducts,
     getProductsInBalanceRange,
     getTierProductQuantity,
+    getTierQuantityLimits,
+    validateBalanceRange,
     createBalanceBasedDriveConfiguration,
     canAffordDrive,
     getRecommendedProductsForBalance

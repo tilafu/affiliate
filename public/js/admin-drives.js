@@ -488,6 +488,7 @@ async function showAssignDriveConfigModal(userId, username) {
                 </select>
               </div>
               <button type="submit" class="btn btn-primary">Assign Configuration</button>
+              <button type="button" class="btn btn-success ms-2" id="assign-tier-based-config-btn">Auto</button>
             </form>
           </div>
         </div>
@@ -531,6 +532,43 @@ async function showAssignDriveConfigModal(userId, username) {
             console.error('Error in assign-drive-config-to-user-form submit:', error);
         }
     });
+
+    // Event listener for the new button
+    document.getElementById('assign-tier-based-config-btn').addEventListener('click', async () => {
+        const currentUserId = document.getElementById('assign-dc-user-id').value;
+        if (!currentUserId) {
+            showNotification('User ID is missing.', 'error');
+            return;
+        }
+
+        // Confirmation dialog
+        if (!confirm(`This will generate and assign a new drive configuration based on user ${username}\\'s tier. Any existing active drive for this user will be replaced. Continue?`)) {
+            return;
+        }
+
+        showNotification('Generating and assigning tier-based configuration...', 'info');
+
+        try {
+            const response = await fetchWithAuth(`/api/admin/drive-management/users/${currentUserId}/assign-tier-based-drive`, {
+                method: 'POST', // Assuming POST to create/assign
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+                // No body needed if the backend derives everything from userId and their tier
+            });
+
+            if (response.success && response.drive_session_id) {
+                showNotification(response.message || 'Tier-based drive configuration assigned successfully!', 'success');
+                modal.hide();
+                await loadDrives(); // Refresh the drives list
+            } else {
+                throw new Error(response.message || 'Failed to assign tier-based drive configuration.');
+            }
+        } catch (error) {
+            showNotification(error.message || 'Error assigning tier-based drive configuration', 'error');
+            console.error('Error in assign-tier-based-config-btn click:', error);
+        }
+    });
 }
 
 
@@ -554,7 +592,6 @@ export async function getDriveConfigurations() {
         // Ensure the response structure is as expected, often it's response.data or similar
         // For this example, assuming fetchWithAuth directly returns the array or an object with a property.
         // If fetchWithAuth returns a more complex object (e.g., { success: true, configurations: [...] }), adjust here.
-        // Based on previous usage, fetchWithAuth seems to return the data directly or an object that can be treated as such.
         const configurations = response; // Adjust if fetchWithAuth wraps data, e.g., response.data or response.configurations
 
         if (Array.isArray(configurations)) {
@@ -1421,23 +1458,38 @@ async function _loadAndRenderUserDriveProgress(userId, username) {
 
         data.task_items.forEach(item => {
             let productDisplay = 'N/A';
-            if (item.is_combo && item.task_name) {
-                productDisplay = `<strong>${item.task_name}</strong> (Combo)`;
-                if (item.task_description) {
-                    productDisplay += `<br><small><em>${item.task_description}</em></small>`;
+            const products = [];
+            if (item.product_1_name) products.push(item.product_1_name);
+            if (item.product_2_name) products.push(item.product_2_name);
+            if (item.product_3_name) products.push(item.product_3_name);
+
+            if (item.is_combo) {
+                productDisplay = `<strong>${item.task_name || 'Combo Task'}</strong> (Combo)`;
+                if (products.length > 0) {
+                    productDisplay += `<br><small>Contains: ${products.join(' / ')}</small>`;
+                } else {
+                    productDisplay += `<br><small>No products listed for this combo.</small>`;
                 }
-                if (item.products && item.products.length > 0) {
-                     productDisplay += `<br><small>Contains: ${item.products.map(p => p.name).join(', ')}</small>`;
+            } else { // Single task
+                if (products.length > 0) {
+                    // For single tasks, product_1_name is primary.
+                    // If task_name is different and provides more context, we can include it.
+                    if (item.task_name && item.task_name !== products[0]) {
+                        productDisplay = `${item.task_name}: ${products[0]}`;
+                    } else {
+                        productDisplay = products[0];
+                    }
+                } else if (item.task_name) {
+                    productDisplay = item.task_name; // Fallback to task_name if no product
+                } else {
+                    productDisplay = 'N/A'; // Default if no product or task name
                 }
-            } else if (item.products && item.products.length > 0) {
-                productDisplay = item.products.map(p => p.name).join(' / ');
-            } else if (item.task_name) { // Fallback to task_name if no products but name exists (e.g. non-product task)
-                productDisplay = item.task_name;
             }
 
             tableHtml += `
                 <tr>
-                    <td>${item.order_in_drive}</td>                    <td>${productDisplay}</td>
+                    <td>${item.order_in_drive}</td>
+                    <td>${productDisplay}</td>
                     <td><span class="badge bg-${item.user_status === 'COMPLETED' ? 'success' : (item.user_status === 'CURRENT' ? 'primary' : 'secondary')}">${item.user_status}</span></td>
                     <td>
                         <!-- Actions removed -->
@@ -1454,6 +1506,383 @@ async function _loadAndRenderUserDriveProgress(userId, username) {
     } catch (error) {
         console.error('Error fetching or rendering user drive progress:', error);
         modalBody.innerHTML = `<p class="text-danger">Error loading drive progress: ${error.message}</p>`;
+    }
+}
+
+// Balance-based Drive Configuration Functions
+export async function createBalanceBasedConfiguration() {
+    if (!isInitialized) {
+        showNotification('Drive module is not ready. Please wait or refresh.', 'error');
+        return;
+    }
+
+    const modalId = 'balanceConfigModal';
+    removeExistingModal(modalId);
+
+    const modalHTML = `
+        <div class="modal fade" id="${modalId}" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header bg-primary text-white">
+                        <h5 class="modal-title">Create Balance-Based Drive Configuration</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="balanceConfigForm">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Configuration Name</label>
+                                        <input type="text" class="form-control" id="configName" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Description</label>
+                                        <textarea class="form-control" id="configDescription" rows="3"></textarea>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Tasks Required</label>
+                                        <input type="number" class="form-control" id="tasksRequired" min="1" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="balanceFilterEnabled" checked>
+                                            <label class="form-check-label" for="balanceFilterEnabled">
+                                                Enable Balance Filtering (75%-99%)
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="tierQuantityEnabled" checked>
+                                            <label class="form-check-label" for="tierQuantityEnabled">
+                                                Enable Tier-Based Quantities
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="isActive" checked>
+                                            <label class="form-check-label" for="isActive">
+                                                Active Configuration
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="alert alert-info">
+                                <strong>Balance Filtering:</strong> Products will be filtered to 75%-99% of user balance<br>
+                                <strong>Tier Quantities:</strong> Bronze/Silver: 40, Gold: 45, Platinum: 50 products
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-primary" onclick="submitBalanceBasedConfiguration()">Create Configuration</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    const modal = new bootstrap.Modal(document.getElementById(modalId));
+    modal.show();
+}
+
+export async function submitBalanceBasedConfiguration() {
+    const formData = {
+        name: document.getElementById('configName').value,
+        description: document.getElementById('configDescription').value,
+        tasks_required: parseInt(document.getElementById('tasksRequired').value),
+        balance_filter_enabled: document.getElementById('balanceFilterEnabled').checked,
+        tier_quantity_enabled: document.getElementById('tierQuantityEnabled').checked,
+        is_active: document.getElementById('isActive').checked
+    };
+
+    try {
+        const response = await fetchWithAuth('/admin/drives/balance-config/create', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(formData)
+        });
+
+        if (response.success) {
+            showNotification('Balance-based configuration created successfully', 'success');
+            bootstrap.Modal.getInstance(document.getElementById('balanceConfigModal')).hide();
+            loadDriveConfigurations(); // Refresh the configurations list
+        } else {
+            showNotification(response.message || 'Failed to create configuration', 'error');
+        }
+    } catch (error) {
+        console.error('Error creating balance-based configuration:', error);
+        showNotification('Error creating configuration', 'error');
+    }
+}
+
+// Combo Creation Functions
+export async function showComboCreationModal(taskSetId) {
+    if (!isInitialized) {
+        showNotification('Drive module is not ready. Please wait or refresh.', 'error');
+        return;
+    }
+
+    const modalId = 'comboCreationModal';
+    removeExistingModal(modalId);
+
+    // First, get available products
+    try {
+        const productsResponse = await fetchWithAuth('/admin/products');
+        const products = productsResponse.products || [];
+
+        const modalHTML = `
+            <div class="modal fade" id="${modalId}" tabindex="-1">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content" style="border: 2px solid #007bff; background: linear-gradient(135deg, #f8f9ff 0%, #e3f2fd 100%);">
+                        <div class="modal-header" style="background: linear-gradient(135deg, #007bff 0%, #0056b3 100%); color: white;">
+                            <h5 class="modal-title">
+                                <i class="fas fa-cube me-2"></i>Create Combo Products
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="alert alert-info" style="border-left: 4px solid #007bff; background-color: #e3f2fd;">
+                                <i class="fas fa-info-circle me-2"></i>
+                                <strong>Combo Creation:</strong> Add 1-2 products to existing task sets. 
+                                Combo products will have a <span style="color: #007bff; font-weight: bold;">blue hue</span> 
+                                and <strong>4.5%</strong> commission rate.
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Select Products (1-2 maximum)</label>
+                                <div class="product-selection-grid" style="max-height: 300px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 8px; padding: 15px;">
+                                    ${products.map(product => `
+                                        <div class="form-check product-option" style="margin-bottom: 10px; padding: 10px; border-radius: 6px; transition: all 0.3s; cursor: pointer;" 
+                                             onmouseover="this.style.backgroundColor='#e3f2fd'" onmouseout="this.style.backgroundColor='transparent'">
+                                            <input class="form-check-input product-checkbox" type="checkbox" value="${product.id}" 
+                                                   id="product-${product.id}" style="border-color: #007bff;">
+                                            <label class="form-check-label" for="product-${product.id}" style="cursor: pointer; width: 100%;">
+                                                <strong style="color: #007bff;">${product.name}</strong>
+                                                <div class="text-muted small">Price: $${product.price}</div>
+                                                ${product.description ? `<div class="text-muted small">${product.description.substring(0, 100)}...</div>` : ''}
+                                            </label>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Description (Optional)</label>
+                                <textarea class="form-control" id="comboDescription" rows="2" 
+                                         placeholder="Description for this combo creation..."></textarea>
+                            </div>
+
+                            <div class="combo-preview" id="comboPreview" style="display: none; padding: 15px; background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%); border-radius: 8px; border: 1px solid #007bff;">
+                                <h6 style="color: #007bff;"><i class="fas fa-eye me-2"></i>Combo Preview</h6>
+                                <div id="selectedProductsList"></div>
+                                <div class="mt-2">
+                                    <small class="text-muted">Commission Rate: <strong style="color: #007bff;">4.5%</strong></small>
+                                </div>
+                            </div>
+                        </div>
+                                                                                             <div class="modal-footer" style="background-color: #f8f9ff;">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="button" class="btn" id="createComboBtn" onclick="createCombo(${taskSetId})" 
+                                    style="background: linear-gradient(135deg, #007bff 0%, #0056b3 100%); color: white; border: none;"
+                                    disabled>
+                                <i class="fas fa-plus me-2"></i>Create Combo
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+        
+        // Add event listeners for product selection
+        const checkboxes = document.querySelectorAll('.product-checkbox');
+        checkboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', updateComboPreview);
+        });
+
+        const modal = new bootstrap.Modal(document.getElementById(modalId));
+        modal.show();
+
+    } catch (error) {
+        console.error('Error loading products for combo creation:', error);
+        showNotification('Error loading products', 'error');
+    }
+}
+
+function updateComboPreview() {
+    const selectedProducts = Array.from(document.querySelectorAll('.product-checkbox:checked'));
+    const preview = document.getElementById('comboPreview');
+    const createBtn = document.getElementById('createComboBtn');
+    const productsList = document.getElementById('selectedProductsList');
+
+    if (selectedProducts.length === 0) {
+        preview.style.display = 'none';
+        createBtn.disabled = true;
+        return;
+    }
+
+    if (selectedProducts.length > 2) {
+        // Uncheck the last selected if more than 2
+        selectedProducts[selectedProducts.length - 1].checked = false;
+        showNotification('Maximum 2 products allowed for combo', 'warning');
+        return;
+    }
+
+    preview.style.display = 'block';
+    createBtn.disabled = false;
+
+    const productNames = selectedProducts.map(checkbox => {
+
+        const label = document.querySelector(`label[for="${checkbox.id}"]`);
+        return label.querySelector('strong').textContent;
+    });
+
+    productsList.innerHTML = `
+        <div class="selected-products">
+            ${productNames.map((name, index) => `
+                <div class="badge" style="background-color: #007bff; margin-right: 8px; margin-bottom: 4px;">
+                    <i class="fas fa-cube me-1"></i>${name}
+                </div>
+            `).join('')}
+        </div>
+    `;
+}
+
+export async function createCombo(taskSetId) {
+    const selectedProducts = Array.from(document.querySelectorAll('.product-checkbox:checked'));
+    const description = document.getElementById('comboDescription').value;
+
+    if (selectedProducts.length === 0 || selectedProducts.length > 2) {
+        showNotification('Please select 1-2 products for the combo', 'error');
+        return;
+    }
+
+    const productIds = selectedProducts.map(checkbox => parseInt(checkbox.value));
+
+    try {
+        const response = await fetchWithAuth('/admin/drives/combos/insert', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                taskSetId: taskSetId,
+                productIds: productIds,
+                description: description || 'Admin combo creation',
+                commissionRate: 4.5
+            })
+        });
+
+        if (response.success) {
+            showNotification('Combo created successfully with blue hue and 4.5% commission!', 'success');
+            bootstrap.Modal.getInstance(document.getElementById('comboCreationModal')).hide();
+            // Refresh the task sets or relevant view
+            loadDriveConfigurations();
+        } else {
+            showNotification(response.message || 'Failed to create combo', 'error');
+        }
+    } catch (error) {
+        console.error('Error creating combo:', error);
+        showNotification('Error creating combo', 'error');
+    }
+}
+
+// Tier Configuration Management
+export async function showTierConfigModal() {
+    if (!isInitialized) {
+        showNotification('Drive module is not ready. Please wait or refresh.', 'error');
+        return;
+    }
+
+    const modalId = 'tierConfigModal';
+    removeExistingModal(modalId);
+
+    try {
+        // Get current tier configurations
+        const response = await fetchWithAuth('/admin/drives/tier-configs');
+        const tierConfigs = response.data || [];
+
+        const modalHTML = `
+            <div class="modal fade" id="${modalId}" tabindex="-1">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header bg-success text-white">
+                            <h5 class="modal-title">
+                                <i class="fas fa-cog me-2"></i>Tier Quantity Configuration
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                Configure the maximum number of products per tier level.
+                            </div>
+                            
+                            <form id="tierConfigForm">
+                                ${tierConfigs.map(config => `
+                                    <div class="mb-3">
+                                        <label class="form-label">
+                                            <strong>${config.tier_name}</strong> Tier - Product Quantity Limit
+                                        </label>
+                                        <input type="number" class="form-control" 
+                                               data-tier="${config.tier_name}" 
+                                               value="${config.quantity_limit}" 
+                                               min="1" max="100" required>
+                                    </div>
+                                `).join('')}
+                            </form>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="button" class="btn btn-success" onclick="updateTierConfigs()">
+                                <i class="fas fa-save me-2"></i>Save Changes
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+        const modal = new bootstrap.Modal(document.getElementById(modalId));
+        modal.show();
+
+    } catch (error) {
+        console.error('Error loading tier configurations:', error);
+        showNotification('Error loading tier configurations', 'error');
+    }
+}
+
+export async function updateTierConfigs() {
+    const form = document.getElementById('tierConfigForm');
+    const inputs = form.querySelectorAll('input[data-tier]');
+    
+    const tierConfigs = Array.from(inputs).map(input => ({
+        tier_name: input.dataset.tier,
+        quantity_limit: parseInt(input.value)
+    }));
+
+    try {
+        const response = await fetchWithAuth('/admin/drives/tier-configs', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tierConfigs })
+        });
+
+        if (response.success) {
+            showNotification('Tier configurations updated successfully', 'success');
+            bootstrap.Modal.getInstance(document.getElementById('tierConfigModal')).hide();
+        } else {
+            showNotification(response.message || 'Failed to update tier configurations', 'error');
+        }
+    } catch (error) {
+        console.error('Error updating tier configurations:', error);
+        showNotification('Error updating tier configurations', 'error');
     }
 }
 
