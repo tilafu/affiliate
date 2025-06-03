@@ -325,6 +325,43 @@ const getUsers = async (req, res) => {
 };
 
 /**
+ * @desc    Get all users with frozen drive sessions
+ * @route   GET /api/admin/users/frozen
+ * @access  Private/Admin
+ */
+const getFrozenUsers = async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT DISTINCT
+                u.id,
+                u.username,
+                u.email,
+                COALESCE(a.balance, 0) AS current_balance,
+                ds.id as drive_session_id,
+                ds.frozen_amount_needed,
+                ds.created_at as session_created_at,
+                COUNT(ds.id) as frozen_sessions_count
+            FROM users u
+            LEFT JOIN accounts a ON u.id = a.user_id AND a.type = 'main'
+            INNER JOIN drive_sessions ds ON u.id = ds.user_id
+            WHERE ds.status = 'frozen'
+            GROUP BY u.id, u.username, u.email, a.balance, ds.id, ds.frozen_amount_needed, ds.created_at
+            ORDER BY ds.created_at DESC
+        `);
+
+        // Format the data for better readability
+        const frozenUsers = result.rows.map(user => ({
+            ...user,
+            current_balance: parseFloat(user.current_balance),
+            frozen_amount_needed: user.frozen_amount_needed ? parseFloat(user.frozen_amount_needed) : 0
+        }));        res.json({ success: true, frozenUsers: frozenUsers });
+    } catch (error) {
+        logger.error('Error fetching frozen users:', { error: error.message, stack: error.stack });
+        res.status(500).json({ success: false, message: 'Server error fetching frozen users' });
+    }
+};
+
+/**
  * @desc    Reset a user's drive session status
  * @route   POST /api/admin/users/:userId/reset-drive
  * @access  Private/Admin
@@ -864,8 +901,7 @@ const updateMembershipTier = async (req, res) => {
             max_daily_withdrawals = $8, handling_fee_percent = $9, is_active = $10, updated_at = CURRENT_TIMESTAMP
             WHERE id = $11 RETURNING *`,
             [tier_name, price_usd, commission_per_data_percent, commission_merge_data_percent,
-             data_per_set_limit, sets_per_day_limit, withdrawal_limit_usd, max_daily_withdrawals, 
-             handling_fee_percent, is_active, id]
+             data_per_set_limit, sets_per_day_limit, withdrawal_limit_usd, max_daily_withdrawals, handling_fee_percent, is_active, id]
         );
 
         if (result.rows.length === 0) {
@@ -953,9 +989,90 @@ const updateTierQuantityConfig = async (req, res) => {
     }
 };
 
-module.exports = {
-    // User Management
+/**
+ * @desc    Unfreeze a user's account by reactivating frozen drive sessions
+ * @route   POST /api/admin/users/:userId/unfreeze
+ * @access  Private/Admin
+ */
+const unfreezeUser = async (req, res) => {
+    const { userId } = req.params;
+    const adminUserId = req.user.id;
+
+    logger.info(`Admin ${adminUserId} attempting to unfreeze user ${userId}`);
+
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+
+        // Check if user exists
+        const userResult = await client.query('SELECT username FROM users WHERE id = $1', [userId]);
+        if (userResult.rows.length === 0) {
+            await client.query('ROLLBACK');
+            return res.status(404).json({ success: false, message: 'User not found' });
+        }
+
+        const username = userResult.rows[0].username;
+
+        // Find all frozen drive sessions for this user
+        const frozenSessionsResult = await client.query(
+            'SELECT id FROM drive_sessions WHERE user_id = $1 AND status = $2',
+            [userId, 'frozen']
+        );
+
+        if (frozenSessionsResult.rows.length === 0) {
+            await client.query('ROLLBACK');
+            return res.status(400).json({ success: false, message: 'No frozen sessions found for this user' });
+        }
+
+        const sessionIds = frozenSessionsResult.rows.map(row => row.id);
+
+        // Reactivate frozen drive sessions
+        await client.query(
+            'UPDATE drive_sessions SET status = $1, frozen_amount_needed = NULL WHERE user_id = $2 AND status = $3',
+            ['active', userId, 'frozen']
+        );
+
+        // Reactivate any pending drive items for these sessions
+        await client.query(
+            'UPDATE drives SET status = $1 WHERE session_id = ANY($2::int[]) AND status = $3',
+            ['pending', sessionIds, 'frozen']
+        );
+
+        // Create admin notification for the unfreeze action
+        const notificationMessage = `Admin unfroze account for user ${username} (ID: ${userId}). Reactivated ${sessionIds.length} drive session(s).`;
+        await client.query(
+            'INSERT INTO admin_notifications (message, type, created_at) VALUES ($1, $2, NOW())',
+            [notificationMessage, 'user_management']
+        );
+
+        // Log the successful unfreeze operation
+        await client.query(
+            `INSERT INTO commission_logs 
+             (user_id, source_user_id, account_type, commission_amount, commission_type, description)
+             VALUES ($1, $2, $3, $4, $5, $6)`,
+            [userId, adminUserId, 'main', 0, 'admin_action', `Account unfrozen by admin - reactivated ${sessionIds.length} session(s)`]
+        );
+
+        await client.query('COMMIT');
+
+        logger.info(`Admin ${adminUserId} successfully unfroze user ${userId}. Reactivated ${sessionIds.length} session(s).`);
+        res.json({ 
+            success: true, 
+            message: `Successfully unfroze account for user "${username}". Reactivated ${sessionIds.length} drive session(s).`
+        });
+
+    } catch (error) {
+        await client.query('ROLLBACK');
+        logger.error(`Error unfreezing user ${userId}:`, { error: error.message, stack: error.stack });
+        res.status(500).json({ success: false, message: 'Server error unfreezing user account' });
+    } finally {
+        client.release();
+    }
+};
+
+module.exports = {    // User Management
     getUsers,
+    getFrozenUsers,
     updateUserTier,
     manualTransaction,
     
@@ -996,5 +1113,8 @@ module.exports = {
     
     // Tier Quantity Configuration Management
     getTierQuantityConfigs,
-    updateTierQuantityConfig
+    updateTierQuantityConfig,
+
+    // Unfreeze User Account
+    unfreezeUser
 };

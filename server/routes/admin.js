@@ -8,8 +8,10 @@ router.get('/stats', protect, admin, adminController.getDashboardStats);
 
 // User Management
 router.get('/users', protect, admin, adminController.getUsers);
+router.get('/users/frozen', protect, admin, adminController.getFrozenUsers);
 router.put('/users/:userId/tier', protect, admin, adminController.updateUserTier);
 router.post('/users/:userId/transactions', protect, admin, adminController.manualTransaction);
+router.post('/users/:userId/unfreeze', protect, admin, adminController.unfreezeUser);
 
 // Product Management
 router.get('/products', protect, admin, adminController.getProducts);

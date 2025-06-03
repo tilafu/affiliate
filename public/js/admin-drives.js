@@ -50,6 +50,7 @@ function removeExistingModal(modalId) {
                 if (document.body.contains(existingModalElement)) {
                     existingModalElement.remove();
                 }
+                
             }, { once: true });
             modalInstance.hide();
         } else {

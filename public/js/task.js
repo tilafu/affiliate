@@ -25,21 +25,20 @@ let currentProductData = null; // Store data of the currently displayed product
 // --- Drive Animation/Start Logic ---
 let countDown = 5; // Reset countdown for each start attempt
 let animationTimeout = null; // To store the timeout ID for animation
+let globalAuthData = null; // Global auth data
 
 // --- Initialization ---
 function initializeTaskPage() {
-  const token = localStorage.getItem('auth_token');
-
-  if (!token) {
-    // Use showNotification if available, otherwise alert
-    if (typeof showNotification === 'function') {
-        showNotification('Authentication token not found. Redirecting to login.', 'error');
-    } else {
-        alert('Authentication token not found. Redirecting to login.');
-    }
-    window.location.href = 'login.html';
-    return false; // Indicate initialization failed
-  }  // Get references to key elements
+  // Use centralized authentication check
+  const authData = requireAuth();
+  if (!authData) {
+    return false; // requireAuth will handle redirect
+  }
+  
+  // Store auth data globally for use in other functions
+  globalAuthData = authData;
+  
+  // Get references to key elements
   autoStartButton = document.getElementById('autoStart');
   productCardContainer = document.getElementById('product-card-container'); // Get reference to the new container
   walletBalanceElement = document.querySelector('.datadrive-balance strong');  // Select the strong element directly
@@ -60,7 +59,6 @@ function initializeTaskPage() {
 
   // Initial balance fetch
   refreshWalletBalance();
-
   // --- Event Listeners ---
   // Attach listener for the Start button
   if (autoStartButton) {
@@ -69,17 +67,30 @@ function initializeTaskPage() {
           console.log("#autoStart button clicked.");
           if (!isStartingDrive) { // Only start if not already in the process
               isStartingDrive = true; // Set flag
-              startDriveProcess(token);
+              startDriveProcess(authData.token);
           } else {
               console.log("Start Drive button clicked, but process is already starting.");
           }
       });
   } else {
       console.error('Could not find #autoStart button to attach listener.');
+  }  // Check drive status on page load for persistence - Moved below event listeners
+  // First check if user is resuming a specific order from orders page
+  const resumeOrderId = sessionStorage.getItem('resumeOrderId');
+  const resumeProductId = sessionStorage.getItem('resumeProductId');
+  
+  if (resumeOrderId && resumeProductId) {
+    console.log('Resuming order:', resumeOrderId, 'Product:', resumeProductId);
+    // Clear the session data so it doesn't interfere with future visits
+    sessionStorage.removeItem('resumeOrderId');
+    sessionStorage.removeItem('resumeProductId');
+    
+    // Load the specific order and start the drive
+    resumeSpecificOrder(authData.token, resumeOrderId, resumeProductId);
+  } else {
+    // Normal flow - check current drive status
+    checkDriveStatus(authData.token);
   }
-
-  // Check drive status on page load for persistence - Moved below event listeners
-  checkDriveStatus(token);
 
   // Event delegation for dynamically added Purchase button
   // Using productCardContainer ensures listener is within the relevant area
@@ -88,7 +99,7 @@ function initializeTaskPage() {
           if (event.target && event.target.id === 'purchase-button') {
               console.log("#purchase-button clicked.");
               if (currentProductData) {
-                  handlePurchase(token, currentProductData); // Pass token and current product data
+                  handlePurchase(authData.token, currentProductData); // Pass token and current product data
               } else {
                   console.error("Purchase button clicked but no current product data available.");
                   if (typeof showNotification === 'function') {
@@ -114,37 +125,76 @@ function fetchBalance(token) {
     if (!token) return;
 
     const balanceElement = document.querySelector('.datadrive-balance');
+    const balanceLabel = document.querySelector('.datadrive-balance').closest('.item-card').querySelector('span');
     if (!balanceElement) return;
 
-    fetch(`${API_BASE_URL}/api/user/balances`, {
+    // First check drive status to see if account is frozen
+    fetch(`${API_BASE_URL}/api/drive/status`, {
         method: 'GET',
         headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',
         },
     })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        return response.json();
-    })
-    .then(data => {
-        if (data.success && data.balances) {
-            const mainBalance = parseFloat(data.balances.main_balance || 0);
-            balanceElement.innerHTML = `<strong>${mainBalance.toFixed(2)}<small style="font-size:14px"> USDT</small></strong>`;
-        } else {
-            console.error('Failed to fetch balance:', data.message);
+    .then(response => response.json())
+    .then(statusData => {
+        const isFrozen = statusData.success && statusData.status === 'frozen';
+        
+        // Then fetch balances
+        return fetch(`${API_BASE_URL}/api/user/balances`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success && data.balances) {
+                const mainBalance = parseFloat(data.balances.main_balance || 0);
+                const frozenBalance = parseFloat(data.balances.frozen_balance || 0);
+                
+                if (isFrozen && frozenBalance > 0) {
+                    // Show frozen balance when account is frozen
+                    if (balanceLabel) {
+                        balanceLabel.textContent = 'Frozen Balance';
+                        balanceLabel.style.color = '#dc3545'; // Red color to indicate frozen
+                    }
+                    balanceElement.innerHTML = `<strong style="color: #dc3545">${frozenBalance.toFixed(2)}<small style="font-size:14px"> USDT</small></strong>`;
+                    balanceElement.title = `Your balance of ${frozenBalance.toFixed(2)} USDT is currently frozen. Please deposit funds to continue.`;
+                } else {
+                    // Show normal wallet balance
+                    if (balanceLabel) {
+                        balanceLabel.textContent = 'Wallet balance';
+                        balanceLabel.style.color = ''; // Reset color
+                    }
+                    balanceElement.innerHTML = `<strong>${mainBalance.toFixed(2)}<small style="font-size:14px"> USDT</small></strong>`;
+                    balanceElement.title = ''; // Clear title
+                }            } else {
+                console.error('Failed to fetch balance:', data.message);
+                if (typeof showNotification === 'function') {
+                    showNotification(`Failed to fetch balance: ${data.message}`, 'error');
+                }
+                balanceElement.innerHTML = '<strong>Error</strong>';
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching balance:', error);
             if (typeof showNotification === 'function') {
-                showNotification(`Failed to fetch balance: ${data.message}`, 'error');
+                showNotification(`Error fetching balance: ${error.message}`, 'error');
             }
             balanceElement.innerHTML = '<strong>Error</strong>';
-        }
+        });
     })
     .catch(error => {
-        console.error('Error fetching balance:', error);
+        console.error('Error checking drive status:', error);
         if (typeof showNotification === 'function') {
-            showNotification(`Error fetching balance: ${error.message}`, 'error');
+            showNotification(`Error checking drive status: ${error.message}`, 'error');
         }
         balanceElement.innerHTML = '<strong>Error</strong>';
     });
@@ -152,9 +202,8 @@ function fetchBalance(token) {
 
 // --- Helper to safely update wallet balance everywhere ---
 function refreshWalletBalance() {
-    const token = localStorage.getItem('auth_token');
-    if (token) {
-        fetchBalance(token);
+    if (globalAuthData && globalAuthData.token) {
+        fetchBalance(globalAuthData.token);
     }
 }
 
@@ -607,6 +656,16 @@ function displayFrozenState(message, amountNeeded) {
             </div>
         </div>
     `;
+     
+     // Add event listener for contact support button
+     const contactSupportButton = document.getElementById('contact-support-button');
+     if (contactSupportButton) {
+         contactSupportButton.addEventListener('click', () => {
+             // Redirect to support page
+             window.location.href = './support.html';
+         });
+     }
+     
      if (autoStartButton) autoStartButton.style.display = 'none';
      refreshWalletBalance();
 }
@@ -733,6 +792,152 @@ function checkDriveStatus(token) {
         if (productCardContainer) productCardContainer.style.display = 'none';
         return false;
     });
+}
+
+// --- Resume Specific Order Function ---
+/**
+ * Resumes a specific order when user clicks "Continue Drive" from orders page
+ */
+function resumeSpecificOrder(token, orderId, productId) {
+    console.log('Attempting to resume order:', orderId, 'for product:', productId);
+    
+    // Show loading state
+    if (orderLoadingOverlay) {
+        orderLoadingOverlay.style.display = 'flex';
+    }
+    
+    // First try to fetch the specific order details
+    fetch(`${API_BASE_URL}/api/drive/order/${orderId}`, {
+        method: 'GET',
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success && data.order) {
+            console.log('Order details retrieved:', data.order);
+            
+            // Set the current product data for the drive
+            currentProductData = {
+                id: productId,
+                name: data.order.product_name,
+                price: data.order.product_price,
+                image: data.order.product_image,
+                order_id: orderId
+            };
+            
+            // Check if there's an active drive session for this order
+            checkDriveStatusForOrder(token, orderId);
+            
+        } else {
+            console.error('Failed to retrieve order details:', data.message);
+            alert('Failed to load order details. Please try again.');
+            // Fall back to normal drive status check
+            checkDriveStatus(token);
+        }
+    })
+    .catch(error => {
+        console.error('Error fetching order details:', error);
+        alert('Error loading order. Please try again.');
+        // Fall back to normal drive status check
+        checkDriveStatus(token);
+    })
+    .finally(() => {
+        // Hide loading overlay
+        if (orderLoadingOverlay) {
+            orderLoadingOverlay.style.display = 'none';
+        }
+    });
+}
+
+/**
+ * Check drive status for a specific order
+ */
+function checkDriveStatusForOrder(token, orderId) {
+    fetch(`${API_BASE_URL}/api/drive/status?orderId=${orderId}`, {
+        method: 'GET',
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Handle the drive status similar to normal checkDriveStatus
+            if (data.status === 'active' && data.currentOrder) {
+                console.log('Active drive session found for order:', orderId);
+                handleActiveSession(data);
+            } else if (data.status === 'no_active_session') {
+                console.log('No active session for order. Starting new drive session.');
+                // Start the drive process for this specific order
+                startDriveProcessForOrder(token, orderId);
+            } else {
+                console.log('Drive status:', data.status);
+                // Fall back to normal status check
+                checkDriveStatus(token);
+            }
+        } else {
+            console.error('Failed to check drive status for order:', data.message);
+            // Fall back to normal drive status check
+            checkDriveStatus(token);
+        }
+    })
+    .catch(error => {
+        console.error('Error checking drive status for order:', error);
+        // Fall back to normal drive status check
+        checkDriveStatus(token);
+    });
+}
+
+/**
+ * Start drive process for a specific order
+ */
+function startDriveProcessForOrder(token, orderId) {
+    console.log('Starting drive process for order:', orderId);
+    
+    // Call the start drive API with the specific order ID
+    fetch(`${API_BASE_URL}/api/drive/start`, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ orderId: orderId })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            console.log('Drive started successfully for order:', orderId);
+            // Update UI to show active drive state
+            handleActiveSession(data);
+        } else {
+            console.error('Failed to start drive for order:', data.message);
+            alert(`Failed to start drive: ${data.message}`);
+        }
+    })
+    .catch(error => {
+        console.error('Error starting drive for order:', error);
+        alert('Error starting drive. Please try again.');
+    });
+}
+
+function handleActiveSession(data) {
+    if (autoStartButton) autoStartButton.style.display = 'none';
+    if (productCardContainer) {
+        productCardContainer.style.display = 'block';
+        renderProductCard(data.currentOrder);
+        currentProductData = data.currentOrder;
+    }
+    
+    // tasks_completed and tasks_required now refer to Task Sets
+    if (data.tasks_completed !== undefined && data.tasks_required !== undefined) {
+        totalTasksRequired = data.tasks_required;
+        tasksCompleted = data.tasks_completed;
+        updateProgressBar(tasksCompleted, totalTasksRequired);
+    }
 }
 
 // --- Helper to update progress bar ---

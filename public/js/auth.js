@@ -166,8 +166,17 @@ function attachLogoutHandlers() {
     el.addEventListener('click', function(e) {
       e.preventDefault();
       console.log('Logging out...');
+      
+      // Preserve drive session data before clearing localStorage
+      const driveSessionData = localStorage.getItem('current_drive_session');
+      
       localStorage.removeItem('auth_token');
       localStorage.removeItem('user_data');
+      
+      // Restore drive session data after clearing auth data
+      if (driveSessionData) {
+        localStorage.setItem('current_drive_session', driveSessionData);
+      }
       
       // If you have a showNotification function:
       if (typeof showNotification === 'function') {
@@ -248,3 +257,7 @@ async function handleForgotPasswordSubmit(event) {
         resetButton.disabled = false;
     }
 }
+
+// Make functions available globally
+window.handleLoginSubmit = handleLoginSubmit;
+window.handleForgotPasswordSubmit = handleForgotPasswordSubmit;

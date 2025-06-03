@@ -3,9 +3,11 @@
 <head>    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Panel</title>
-    
-    <!-- Bootstrap CSS -->
+      <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="./assets/css/bootstrap.min.css">
+    
+    <!-- Font Awesome CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     
     <!-- jQuery UI CSS -->
     <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
@@ -107,12 +109,12 @@
         <div class="px-3 mb-4">
             <h4>Admin Panel</h4>
         </div>
-        <nav class="nav flex-column">
-            <div class="has-submenu">
+        <nav class="nav flex-column">            <div class="has-submenu">
                 <a href="#" class="nav-link">General</a>
                 <div class="sub-menu">
                     <a href="#" class="nav-link" data-section="dashboard">Dashboard</a>
                     <a href="#" class="nav-link" data-section="users">User Management</a>
+                    <a href="#" class="nav-link" data-section="frozen-users">Frozen Users</a>
                 </div>
             </div>
             <div class="has-submenu">
@@ -131,7 +133,7 @@
                 </div>
             </div>
             <a href="#" class="nav-link" data-section="support">Support Messages</a>
-            <a href="#" class="nav-link mt-4" id="logout-button">Logout</a>
+            <a href="#" class="nav-link logout mt-4" id="logout-button">Logout</a>
         </nav>
     </div>
 
@@ -283,9 +285,41 @@
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
+        </div>    </div>
 </section>
+
+        <!-- Frozen Users Section -->
+        <section id="frozen-users-section" class="section" style="display: none;">
+            <h2>Frozen Users Management</h2>
+            <p class="text-muted mb-4">Users whose accounts have been frozen due to insufficient balance during drive operations.</p>
+            
+            <div class="mb-3">
+                <button class="btn btn-primary" onclick="loadFrozenUsers()">
+                    <i class="fas fa-sync-alt"></i> Refresh List
+                </button>
+            </div>
+            
+            <div class="table-responsive mt-4">
+                <table class="table table-striped">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>User ID</th>
+                            <th>Username</th>
+                            <th>Email</th>
+                            <th>Current Balance</th>
+                            <th>Frozen Sessions</th>
+                            <th>Last Frozen</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="frozen-users-list">
+                        <tr>
+                            <td colspan="7" class="text-center">Loading frozen users...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
 
         <!-- Deposits Section -->
         <section id="deposits-section" class="section" style="display: none;">
@@ -509,7 +543,9 @@
 
     <!-- Background Overlay for Mobile -->
     <div class="bg-overlay"></div>    <!-- Scripts -->    <script src="./assets/js/jquery.min.js"></script>
-    <script src="./assets/js/bootstrap.bundle.min.js"></script>
+    <script src="./assets/js/bootstrap.bundle.min.js"></script>    <script src="./js/main.js"></script>
+    <script src="./js/auth.js"></script> <!-- Add centralized logout handling -->
+    <script src="./js/auth-check.js"></script> <!-- Centralized authentication -->
     <script type="module" src="./js/admin.js"></script>
     <script type="module" src="./js/admin-drives.js"></script> <!-- Ensure admin-drives.js is loaded as a module if not already -->
     <script type="module" src="./js/enhanced-combo-creation.js"></script>

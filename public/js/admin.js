@@ -32,18 +32,19 @@ window.viewDriveDetails = viewDriveDetails; // Make it globally accessible
 // Add polling interval reference
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Check authentication
-    const token = localStorage.getItem('auth_token');
-    const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
-
-    if (!token || !userData || userData.role !== 'admin') {
-        showNotification('Not authorized as admin. Redirecting...', 'error');
-        window.location.href = 'login.html';
-        return;
+    // Use centralized authentication check for admin
+    const authData = requireAuth(true); // true for admin required
+    if (!authData) {
+        return; // requireAuth will handle redirect
     }
-
+    
     // Initialize sidebar navigation
     initializeSidebar();
+    
+    // Attach centralized logout handlers if available
+    if (typeof attachLogoutHandlers === 'function') {
+        attachLogoutHandlers();
+    }
     
     // Load initial section
     loadSection('dashboard');
@@ -191,21 +192,41 @@ function initializeSidebar() {
             e.preventDefault();
             loadSection(e.target.dataset.section);
         });
-    });
-
-    // Mobile menu toggle
+    });    // Mobile menu toggle
     document.querySelector('.navbar-btn')?.addEventListener('click', () => {
         document.querySelector('.main-sidebar').classList.toggle('active');
         document.querySelector('.bg-overlay').classList.toggle('active');
     });
 
     // Handle logout
-    document.getElementById('logout-button').addEventListener('click', (e) => {
-        e.preventDefault();
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('user_data');
-        window.location.href = 'login.html';
-    });
+    const logoutButton = document.getElementById('logout-button');
+    if (logoutButton) {
+        logoutButton.addEventListener('click', (e) => {
+            e.preventDefault();            console.log('Admin logout clicked');
+            
+            // Preserve drive session data before clearing localStorage
+            const driveSessionData = localStorage.getItem('current_drive_session');
+            
+            // Clear authentication data
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('user_data');
+            
+            // Restore drive session data after clearing auth data
+            if (driveSessionData) {
+                localStorage.setItem('current_drive_session', driveSessionData);
+            }
+            
+            // Show logout notification if available
+            if (typeof showNotification === 'function') {
+                showNotification('Logged out successfully', 'success');
+            }
+            
+            // Redirect to login page
+            window.location.href = 'login.html';
+        });
+    } else {
+        console.error('Logout button not found');
+    }
 }
 
 function loadSection(sectionName) {
@@ -230,9 +251,11 @@ function loadSection(sectionName) {
     switch (sectionName) {
         case 'dashboard':
             loadDashboardStats();
-            break;
-        case 'users':
+            break;        case 'users':
             loadUsers();
+            break;
+        case 'frozen-users':
+            loadFrozenUsers();
             break;
         case 'deposits':
             loadDeposits();
@@ -360,10 +383,111 @@ async function loadUsers() {
 
         // fetchWithAuth throws an error object that includes 'status'
         if (error.status === 401 || error.status === 403) {
+            // Preserve drive session data before clearing localStorage
+            const driveSessionData = localStorage.getItem('current_drive_session');
+            
             localStorage.removeItem('auth_token');
             localStorage.removeItem('user_data'); // Also clear user_data
+            
+            // Restore drive session data after clearing auth data
+            if (driveSessionData) {
+                localStorage.setItem('current_drive_session', driveSessionData);
+            }
+            
+            window.location.href = 'login.html';
+        }    }
+}
+
+// Frozen Users Management
+async function loadFrozenUsers() {
+    try {
+        const response = await fetchWithAuth('/admin/users/frozen');
+        if (response.success) {
+            const frozenUsersList = document.getElementById('frozen-users-list');
+            if (frozenUsersList) {
+                if (response.users && response.users.length > 0) {
+                    frozenUsersList.innerHTML = response.users.map(user => `
+                        <tr>
+                            <td>${user.id}</td>
+                            <td>${user.username}</td>
+                            <td>${user.email}</td>
+                            <td>$${parseFloat(user.main_balance || 0).toFixed(2)}</td>
+                            <td>${user.frozen_sessions_count || 0}</td>
+                            <td>${user.last_frozen ? new Date(user.last_frozen).toLocaleDateString() : 'N/A'}</td>
+                            <td>
+                                <button class="btn btn-sm btn-success unfreeze-user-btn" 
+                                        data-user-id="${user.id}" 
+                                        data-username="${user.username}">
+                                    <i class="fas fa-unlock"></i> Unfreeze
+                                </button>
+                            </td>
+                        </tr>
+                    `).join('');
+                } else {
+                    frozenUsersList.innerHTML = '<tr><td colspan="7" class="text-center text-muted">No frozen users found.</td></tr>';
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Error loading frozen users:', error);
+        const frozenUsersList = document.getElementById('frozen-users-list');
+        if (frozenUsersList) {
+            frozenUsersList.innerHTML = '<tr><td colspan="7" class="text-center text-danger">Failed to load frozen users.</td></tr>';
+        }
+        
+        let errorMessage = 'Failed to load frozen users.';
+        if (error.data && error.data.message) {
+            errorMessage = error.data.message;
+        } else if (error.message) {
+            errorMessage = error.message;
+        }
+        
+        showNotification(errorMessage, 'error');
+        
+        if (error.status === 401 || error.status === 403) {
+            // Preserve drive session data before clearing localStorage
+            const driveSessionData = localStorage.getItem('current_drive_session');
+            
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('user_data');
+            
+            // Restore drive session data after clearing auth data
+            if (driveSessionData) {
+                localStorage.setItem('current_drive_session', driveSessionData);
+            }
+            
             window.location.href = 'login.html';
         }
+    }
+}
+
+// Function to unfreeze a user account
+async function unfreezeUser(userId, username) {
+    if (!confirm(`Are you sure you want to unfreeze the account for user "${username}"? This will reactivate their frozen drive sessions.`)) {
+        return;
+    }
+    
+    try {
+        const response = await fetchWithAuth(`/admin/users/${userId}/unfreeze`, {
+            method: 'POST'
+        });
+        
+        if (response.success) {
+            showNotification(`Successfully unfroze account for user "${username}".`, 'success');
+            // Reload the frozen users list to reflect changes
+            loadFrozenUsers();
+        }
+    } catch (error) {
+        console.error('Error unfreezing user:', error);
+        
+        let errorMessage = `Failed to unfreeze account for user "${username}".`;
+        if (error.data && error.data.message) {
+            errorMessage = error.data.message;
+        } else if (error.message) {
+            errorMessage = error.message;
+        }
+        
+        showNotification(errorMessage, 'error');
     }
 }
 
@@ -871,9 +995,16 @@ function initializeHandlers() {
                 } else {
                     throw new Error(response.message || 'Failed to assign drive configuration.');
                 }
-            } catch (error) {
-                console.error('Error assigning drive configuration:', error);
+            } catch (error) {                console.error('Error assigning drive configuration:', error);
                 showNotification(error.message || 'Error assigning drive configuration', 'error');
+            }
+        }
+        // Unfreeze User Button
+        else if (target.matches('.unfreeze-user-btn')) {
+            const userId = target.dataset.userId;
+            const username = target.dataset.username;
+            if (userId && username) {
+                await unfreezeUser(userId, username);
             }
         }
     });

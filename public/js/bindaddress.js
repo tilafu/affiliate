@@ -1,9 +1,8 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const token = getToken(); // Assumes getToken() is available globally (from main.js or auth.js)
-    if (!token) {
-        console.error('No auth token found, redirecting to login.');
-        window.location.href = 'login.html';
-        return;
+    // Use centralized authentication check
+    const authData = requireAuth();
+    if (!authData) {
+        return; // requireAuth will handle redirect
     }
 
     const currentAddressElem = document.getElementById('current-wallet-address');

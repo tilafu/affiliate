@@ -114,8 +114,17 @@ async function fetchWithAuth(url, options = {}) {
 
         // Handle 401 (Unauthorized) upfront
         if (response.status === 401) {
+            // Preserve drive session data before clearing localStorage
+            const driveSessionData = localStorage.getItem('current_drive_session');
+            
             localStorage.removeItem('auth_token');
             localStorage.removeItem('user_data');
+            
+            // Restore drive session data after clearing auth data
+            if (driveSessionData) {
+                localStorage.setItem('current_drive_session', driveSessionData);
+            }
+            
             window.location.href = 'login.html';
             throw new Error('Unauthorized');
         }

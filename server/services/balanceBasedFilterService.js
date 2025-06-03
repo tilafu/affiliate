@@ -144,8 +144,8 @@ function validateBalanceRange(balance) {
     const minBalance = 0; // Minimum balance to participate
     const isValidBalance = balance >= minBalance;
     const priceRange = {
-        min: balance * 0.75,
-        max: balance * 0.99
+        min: balance * 0.30,
+        max: balance * 0.70
     };
     
     return {

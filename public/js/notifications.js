@@ -1,6 +1,8 @@
 document.addEventListener('DOMContentLoaded', () => {
-  const token = localStorage.getItem('auth_token');
-  if (!token) return window.location.href = 'login.html';
+  const authData = requireAuth();
+  if (!authData) {
+    return; // requireAuth will handle redirect
+  }
 
   // Tab switching logic
   const tabGeneral = document.getElementById('tab-general');

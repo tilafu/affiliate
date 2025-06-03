@@ -1,5 +1,10 @@
 // Membership page translation support
 document.addEventListener('DOMContentLoaded', () => {
+  const authData = requireAuth();
+  if (!authData) {
+    return; // requireAuth will handle redirect
+  }
+  
   // Initialize i18next if not already initialized
   if (typeof initI18next === 'function') {
     initI18next().then(() => {
