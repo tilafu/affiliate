@@ -1853,25 +1853,7 @@ const addComboToUserDrive = async (req, res) => {
                     message: `Product with ID ${productId} not found.` 
                 });
             }
-        }
-
-        // 3. Create a new combo task set for this drive configuration
-        const taskSetResult = await client.query(
-            'INSERT INTO drive_task_sets (drive_configuration_id, name, description, order_in_drive, is_combo, created_at) VALUES ($1, $2, $3, $4, $5, NOW()) RETURNING *',
-            [driveConfigId, comboName, comboDescription || `Enhanced combo: ${comboName}`, insertAtOrder || 999, true]
-        );
-        
-        const newTaskSetId = taskSetResult.rows[0].id;
-
-        // 4. Add products to the new task set
-        for (let i = 0; i < productIds.length; i++) {
-            await client.query(
-                'INSERT INTO drive_task_set_products (task_set_id, product_id, order_in_set, created_at) VALUES ($1, $2, $3, NOW())',
-                [newTaskSetId, productIds[i], i + 1]
-            );
-        }
-
-        // 5. Update the order_in_drive for existing task sets if needed
+        }        // 3. Determine the correct order position before creating the task set
         let targetOrder = insertAtOrder;
         
         if (insertAfterTaskSetId) {
@@ -1889,35 +1871,84 @@ const addComboToUserDrive = async (req, res) => {
             }
         }
 
-        if (targetOrder && targetOrder !== 999) {
-            // Shift existing items to make room for the new combo
-            await client.query(
-                `UPDATE user_active_drive_items 
-                 SET order_in_drive = order_in_drive + 1 
-                 WHERE drive_session_id = $1 AND order_in_drive >= $2`,
-                [driveSessionId, targetOrder]
-            );
-
-            // Update the task set with the correct order
-            await client.query(
-                'UPDATE drive_task_sets SET order_in_drive = $1 WHERE id = $2',
-                [targetOrder, newTaskSetId]
-            );
-        } else {
+        if (!targetOrder || targetOrder === 999) {
             // Insert at the end - find the max order and add 1
             const maxOrderResult = await client.query(
                 'SELECT COALESCE(MAX(order_in_drive), 0) + 1 as next_order FROM user_active_drive_items WHERE drive_session_id = $1',
                 [driveSessionId]
             );
             targetOrder = maxOrderResult.rows[0].next_order;
-            
+        }        // Find a unique order position for the task set using INSERT with conflict resolution
+        // This approach is more robust against race conditions
+        let uniqueTaskSetOrder;
+        let insertAttempts = 0;
+        const maxAttempts = 10;
+        
+        while (insertAttempts < maxAttempts) {
+            try {
+                const findUniqueOrderResult = await client.query(
+                    'SELECT COALESCE(MAX(order_in_drive), 0) + 1 + $1 as next_order FROM drive_task_sets WHERE drive_configuration_id = $2',
+                    [insertAttempts, driveConfigId] // Add attempt number to avoid conflicts
+                );
+                uniqueTaskSetOrder = findUniqueOrderResult.rows[0].next_order;
+                break; // Found a unique order, exit loop
+            } catch (error) {
+                insertAttempts++;
+                if (insertAttempts >= maxAttempts) {
+                    throw new Error(`Failed to find unique order position after ${maxAttempts} attempts`);
+                }
+                // Small delay before retry
+                await new Promise(resolve => setTimeout(resolve, 10));
+            }
+        }
+
+        // 4. Shift existing items to make room for the new combo if needed
+        if (targetOrder && insertAfterTaskSetId) {
             await client.query(
-                'UPDATE drive_task_sets SET order_in_drive = $1 WHERE id = $2',
-                [targetOrder, newTaskSetId]
+                `UPDATE user_active_drive_items 
+                 SET order_in_drive = order_in_drive + 1 
+                 WHERE drive_session_id = $1 AND order_in_drive >= $2`,
+                [driveSessionId, targetOrder]
+            );
+        }        // 5. Create a new combo task set for this drive configuration with retry logic
+        let taskSetResult;
+        let taskSetAttempts = 0;
+        const maxTaskSetAttempts = 5;
+        
+        while (taskSetAttempts < maxTaskSetAttempts) {
+            try {
+                taskSetResult = await client.query(
+                    'INSERT INTO drive_task_sets (drive_configuration_id, name, order_in_drive, is_combo, created_at) VALUES ($1, $2, $3, $4, NOW()) RETURNING *',
+                    [driveConfigId, comboName, uniqueTaskSetOrder, true]
+                );
+                break; // Success, exit loop
+            } catch (error) {
+                if (error.constraint === 'uq_drive_config_order' && taskSetAttempts < maxTaskSetAttempts - 1) {
+                    // Unique constraint violation, try with next order number
+                    uniqueTaskSetOrder++;
+                    taskSetAttempts++;
+                    logger.warn(`Unique constraint violation on attempt ${taskSetAttempts}, retrying with order ${uniqueTaskSetOrder}`);
+                } else {
+                    throw error; // Re-throw if it's not a constraint violation or we've exhausted attempts
+                }
+            }
+        }
+        
+        if (!taskSetResult) {
+            throw new Error(`Failed to create task set after ${maxTaskSetAttempts} attempts`);
+        }
+        
+        const newTaskSetId = taskSetResult.rows[0].id;
+
+        // 6. Add products to the new task set
+        for (let i = 0; i < productIds.length; i++) {
+            await client.query(
+                'INSERT INTO drive_task_set_products (task_set_id, product_id, order_in_set, created_at) VALUES ($1, $2, $3, NOW())',
+                [newTaskSetId, productIds[i], i + 1]
             );
         }
 
-        // 6. Create the user_active_drive_item for this combo
+        // 7. Create the user_active_drive_item for this combo
         const productId1 = productIds[0] || null;
         const productId2 = productIds[1] || null;
         const productId3 = productIds[2] || null;

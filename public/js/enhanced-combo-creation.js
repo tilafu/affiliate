@@ -570,7 +570,7 @@ async function handleCreateCombo() {
         console.log('Creating combo with payload:', payload);
         
         // Make API call to create combo (we'll need to implement this endpoint)
-        const response = await fetchWithAuth(`/api/admin/users/${currentComboUserId}/drive/add-combo`, {
+        const response = await fetchWithAuth(`/api/admin/drive-management/users/${currentComboUserId}/drive/add-combo`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
