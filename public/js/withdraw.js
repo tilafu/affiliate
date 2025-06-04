@@ -1,10 +1,8 @@
 document.addEventListener('DOMContentLoaded', () => {
-  const token = localStorage.getItem('auth_token');
-
-  if (!token) {
-    alert('Not authenticated. Redirecting to login.');
-    window.location.href = 'login.html';
-    return;
+  // Use centralized authentication check
+  const authData = requireAuth();
+  if (!authData) {
+    return; // requireAuth will handle redirect
   }
 
   // Initialize i18next if not already initialized

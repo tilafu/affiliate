@@ -18,6 +18,11 @@ export function initDependencies(dependencies) {
     isInitialized = true;
     console.log("admin-drives.js initialized with dependencies.");
 
+    // Initialize enhanced combo creation dependencies
+    if (window.initEnhancedComboCreationDependencies) {
+        window.initEnhancedComboCreationDependencies(dependencies);
+    }
+
     // Initialize Drive Configuration UI elements and event listeners if the section is visible
     // This part of the code was removed as per the latest requirements
 }
@@ -31,6 +36,41 @@ function getStatusBadgeColor(status) {
         case 'failed': return 'danger';
         default: return 'secondary';
     }
+}
+
+// Helper function to remove existing modals and prevent duplicates/overlaps
+function removeExistingModal(modalId) {
+    const existingModalElement = document.getElementById(modalId);
+    if (existingModalElement) {
+        const modalInstance = bootstrap.Modal.getInstance(existingModalElement);
+        if (modalInstance) {
+            // Listen for the hidden event to ensure Bootstrap cleanup is done before removing
+            existingModalElement.addEventListener('hidden.bs.modal', function onModalHidden() {
+                // Check if the element is still in the body before attempting to remove
+                if (document.body.contains(existingModalElement)) {
+                    existingModalElement.remove();
+                }
+                
+            }, { once: true });
+            modalInstance.hide();
+        } else {
+            // If no Bootstrap instance (e.g., modal was not properly initialized or already partly removed),
+            // attempt to remove directly if it's still in the DOM.
+            if (document.body.contains(existingModalElement)) {
+                existingModalElement.remove();
+            }
+        }
+    }
+
+    // Clean up any orphaned backdrops.
+    // This timeout gives Bootstrap a moment to finish its hide animations and backdrop removal.
+    setTimeout(() => {
+        // Only remove backdrops if no other Bootstrap modals are currently shown.
+        if (document.querySelectorAll('.modal.show[data-bs-backdrop]').length === 0 && document.querySelectorAll('.modal-backdrop.show').length > 0) {
+             const backdrops = document.querySelectorAll('.modal-backdrop');
+             backdrops.forEach(backdrop => backdrop.remove());
+        }
+    }, 350); // 350ms should be slightly longer than typical Bootstrap fade animations (e.g., .modal.fade has 0.15s transition)
 }
 
 // Data Drives Management - Load all drives
@@ -107,15 +147,6 @@ export async function loadDrives() {
                             data-username="${username}">
                         Assign Drive Config
                     </button>
-                    <button class="btn btn-sm btn-success assign-combos-btn"
-                            data-user-id="${userId}"
-                            data-username="${username}"
-                            data-assigned-config-id="${assignedConfigId}"
-                            data-assigned-config-name="${assignedConfigName}"
-                            ${!assignedConfigId ? 'disabled' : ''}
-                            title="${!assignedConfigId ? 'Assign a Drive Config first' : 'Assign Task Sets (Combos)'}">
-                        Assign Combos
-                    </button>
                     <button class="btn btn-sm btn-warning reset-drive-btn" 
                             data-user-id="${userId}"
                             data-username="${username}">
@@ -136,28 +167,6 @@ export async function loadDrives() {
                 </td>
             </tr>`;
         }).join('');
-
-        // Add a new "View Progress" button to each row
-        const rows = drivesList.querySelectorAll('tr');
-        rows.forEach(row => {
-            const userId = row.dataset.userId;
-            const username = row.querySelector('td:nth-child(2)').textContent; // Assuming username is in the second cell
-            if (userId) {
-                const actionsCell = row.querySelector('td:last-child');
-                if (actionsCell) {
-                    const progressButton = document.createElement('button');
-                    progressButton.className = 'btn btn-sm btn-secondary view-user-drive-progress-btn';
-                    progressButton.textContent = 'View Progress';
-                    progressButton.dataset.userId = userId;
-                    progressButton.dataset.username = username;
-                    // Add a small margin to the left if there are other buttons
-                    if (actionsCell.hasChildNodes()) {
-                        progressButton.style.marginLeft = '5px';
-                    }
-                    actionsCell.appendChild(progressButton);
-                }
-            }
-        });
 
         // Initialize handlers after updating the table
         initializeDriveHandlers();
@@ -453,6 +462,7 @@ export function initializeDriveHandlers() {
                 }
                 target.setAttribute('data-processing', 'true');
                 console.log('Assign Drive Config clicked for:', { userId, username });
+<<<<<<< HEAD
                 await showAssignDriveConfigModal(userId, username);
             }
             // Assign Combos button handler
@@ -471,6 +481,9 @@ export function initializeDriveHandlers() {
                 await showAssignCombosModal(userId, username, assignedConfigId, assignedConfigName);
 >>>>>>> main
             }
+=======
+                await showAssignDriveConfigModal(userId, username);            }
+>>>>>>> post
             // View User Drive Progress button handler
             else if (target.matches('.view-user-drive-progress-btn')) {
                 event.preventDefault();
@@ -712,6 +725,7 @@ async function showAssignDriveConfigModal(userId, username) {
                 </select>
               </div>
               <button type="submit" class="btn btn-primary">Assign Configuration</button>
+              <button type="button" class="btn btn-success ms-2" id="assign-tier-based-config-btn">Auto</button>
             </form>
           </div>
         </div>
@@ -756,129 +770,49 @@ async function showAssignDriveConfigModal(userId, username) {
             console.error('Error in assign-drive-config-to-user-form submit:', error);
         }
     });
-}
 
-
-// Function to show the modal for assigning combos (Task Sets)
-async function showAssignCombosModal(userId, username, assignedConfigId, assignedConfigName) {
-    console.log(`showAssignCombosModal for user: ${username} (ID: ${userId}), Config: ${assignedConfigName} (ID: ${assignedConfigId})`);
-    
-    const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('manageTaskSetsModal'));
-    
-    // Populate user and config info in the modal
-    document.getElementById('modal-taskset-username').textContent = username;
-    document.getElementById('modal-taskset-configname').textContent = assignedConfigName;
-    // Store for later use, e.g., when creating a task set for this user/config
-    document.getElementById('modal-taskset-user-id').value = userId;
-    document.getElementById('modal-taskset-config-id').value = assignedConfigId;
-
-
-    await loadProductsForTaskSetCreationModal(assignedConfigId);
-    
-    modal.show();
-}
-
-// New function to load products for the "Assign Combos" modal
-async function loadProductsForTaskSetCreationModal(configId) {
-    const productListDiv = document.getElementById('products-for-task-set-creation-list');
-    if (!productListDiv) {
-        console.error('Product list div for task set creation not found.');
-        showNotification('UI element missing for product list.', 'error');
-        return;
-    }
-    productListDiv.innerHTML = '<p>Loading products...</p>';
-
-    try {        // API: GET /api/admin/drive-management/configurations/:configId/products
-        // This endpoint should return all products associated with the drive configuration,
-        // not products already in task sets for this config, but all products defined within the config.
-        const response = await fetchWithAuth(`/api/admin/drive-management/configurations/${configId}/products`);
-
-        if (!response.success || !Array.isArray(response.products)) {
-            throw new Error(response.message || 'Failed to load products for the configuration or invalid format.');
-        }
-        
-        const products = response.products;
-
-        if (products.length === 0) {
-            productListDiv.innerHTML = '<p>No products found in this drive configuration. Add products to the configuration first.</p>';
+    // Event listener for the new button
+    document.getElementById('assign-tier-based-config-btn').addEventListener('click', async () => {
+        const currentUserId = document.getElementById('assign-dc-user-id').value;
+        if (!currentUserId) {
+            showNotification('User ID is missing.', 'error');
             return;
         }
 
-        // Display products with an "Add Combo" button for each
-        productListDiv.innerHTML = products.map(product => `
-            <div class="list-group-item d-flex justify-content-between align-items-center">
-                <span>${product.name} (ID: ${product.id}, Price: $${product.price})</span>
-                <button class="btn btn-sm btn-primary add-combo-from-product-btn" 
-                        data-product-id="${product.id}" 
-                        data-product-name="${product.name}">
-                    + Add Combo
-                </button>
-            </div>
-        `).join('');
+        // Confirmation dialog
+        if (!confirm(`This will generate and assign a new drive configuration based on user ${username}\\'s tier. Any existing active drive for this user will be replaced. Continue?`)) {
+            return;
+        }
 
-        // Add event listeners for the "Add Combo" buttons
-        productListDiv.querySelectorAll('.add-combo-from-product-btn').forEach(button => {
-            button.addEventListener('click', async (e) => {                const productId = e.target.dataset.productId;
-                const productName = e.target.dataset.productName;
-                const currentUserId = document.getElementById('modal-taskset-user-id').value;
-                const currentConfigId = document.getElementById('modal-taskset-config-id').value;
+        showNotification('Generating and assigning tier-based configuration...', 'info');
 
-                if (!currentUserId || !currentConfigId) {
-                    showNotification('Missing user ID or configuration ID. Please try again.', 'error');
-                    console.error('Missing data:', { currentUserId, currentConfigId, productId, productName });
-                    return;
+        try {
+            const response = await fetchWithAuth(`/api/admin/drive-management/users/${currentUserId}/assign-tier-based-drive`, {
+                method: 'POST', // Assuming POST to create/assign
+                headers: {
+                    'Content-Type': 'application/json'
                 }
-
-                // For simplicity, let's auto-generate a task set name and order for now.
-                // In a real scenario, you might prompt the user for these.
-                const taskSetName = `Combo for ${productName} (User: ${currentUserId})`;
-                // A more robust way to determine order would be to count existing task sets for the user/config.
-                const displayOrder = 1; // Placeholder
-
-                console.log('Creating task set with:', { currentUserId, currentConfigId, productId, taskSetName, displayOrder });
-
-                // API Call: POST /api/admin/drive-management/tasksets
-                // Body should include: name, order_in_drive, is_combo (false for single product), 
-                // drive_configuration_id, user_id, and product_ids (array with single product_id)
-                try {
-                    const creationResponse = await fetchWithAuth('/api/admin/drive-management/tasksets', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            name: taskSetName,
-                            order_in_drive: displayOrder,
-                            is_combo: false, // A "combo" from a single product is essentially a single task set
-                            drive_configuration_id: currentConfigId,
-                            user_id: currentUserId, 
-                            product_ids: [productId] // Send as an array
-                        })
-                    });
-
-                    if (creationResponse && creationResponse.id) {
-                        showNotification(`Task Set "${taskSetName}" created successfully for product "${productName}"!`, 'success');
-                        // Optionally, refresh or update UI. For now, just a notification.
-                        // You might want to close the modal or refresh a list of user's task sets if displayed elsewhere.
-                        const modalInstance = bootstrap.Modal.getInstance(document.getElementById('manageTaskSetsModal'));
-                        if (modalInstance) {
-                            modalInstance.hide();
-                        }
-                        await loadDrives(); // Refresh drives to reflect any changes (e.g. if task set count is shown)
-                    } else {
-                        throw new Error(creationResponse.message || 'Failed to create task set.');
-                    }
-                } catch (error) {
-                    showNotification(error.message || 'Error creating task set.', 'error');
-                    console.error('Error creating task set from product:', error);
-                }
+                // No body needed if the backend derives everything from userId and their tier
             });
-        });
 
-    } catch (error) {
-        productListDiv.innerHTML = `<p class="text-danger">Error loading products: ${error.message}</p>`;
-        showNotification(error.message, 'error');
-        console.error('Error in loadProductsForTaskSetCreationModal:', error);
-    }
+            if (response.success && response.drive_session_id) {
+                showNotification(response.message || 'Tier-based drive configuration assigned successfully!', 'success');
+                modal.hide();
+                await loadDrives(); // Refresh the drives list
+            } else {
+                throw new Error(response.message || 'Failed to assign tier-based drive configuration.');
+            }
+        } catch (error) {
+            showNotification(error.message || 'Error assigning tier-based drive configuration', 'error');
+            console.error('Error in assign-tier-based-config-btn click:', error);
+        }
+    });
 }
+
+
+
+
+
 
 // --- Drive Configuration Management ---
 
@@ -896,7 +830,6 @@ export async function getDriveConfigurations() {
         // Ensure the response structure is as expected, often it's response.data or similar
         // For this example, assuming fetchWithAuth directly returns the array or an object with a property.
         // If fetchWithAuth returns a more complex object (e.g., { success: true, configurations: [...] }), adjust here.
-        // Based on previous usage, fetchWithAuth seems to return the data directly or an object that can be treated as such.
         const configurations = response; // Adjust if fetchWithAuth wraps data, e.g., response.data or response.configurations
 
         if (Array.isArray(configurations)) {
@@ -1187,8 +1120,7 @@ async function showEditDriveConfigurationModal(configId) {
             }
         } catch (fetchError) {
             console.error('Error fetching products for edit modal:', fetchError);
-            showNotification('Error fetching products. Please try again.', 'error');
-            // Decide if the modal should still open or not
+            showNotification('Failed to load products for editing.', 'error');
         }
 
         const modalHtml = `
@@ -1196,7 +1128,7 @@ async function showEditDriveConfigurationModal(configId) {
           <div class="modal-dialog modal-lg">
             <div class="modal-content">
               <div class="modal-header">
-                <h5 class="modal-title" id="editDriveConfigModalLabel">Edit Drive Configuration: ${config.name}</h5>
+                <h5 class="modal-title" id="editDriveConfigModalLabel">Edit Drive Configuration</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
               </div>
               <div class="modal-body">
@@ -1220,7 +1152,7 @@ async function showEditDriveConfigurationModal(configId) {
                   </div>
                   
                   <hr>
-                  <h5>Product Selection</h5>
+                  <h5>Product Selection <span class="badge bg-secondary" id="edit-selected-products-count">0 selected</span></h5>
                   
                   <div class="row mb-3">
                     <div class="col-md-6">
@@ -1241,7 +1173,8 @@ async function showEditDriveConfigurationModal(configId) {
                   <div class="mb-3">
                     <label class="form-label">Available Products</label>
                     <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
-                      <table class="table table-sm table-hover">                        <thead>
+                      <table class="table table-sm table-hover">
+                        <thead>
                           <tr>
                             <th>Select</th>
                             <th>ID</th>
@@ -1269,6 +1202,8 @@ async function showEditDriveConfigurationModal(configId) {
             </div>
           </div>
         </div>`;
+
+        removeExistingModal('editDriveConfigModal');
 
         document.body.insertAdjacentHTML('beforeend', modalHtml);
         const modalElement = document.getElementById('editDriveConfigModal');
@@ -1384,22 +1319,6 @@ async function handleDeleteDriveConfiguration(configId) {
         }
     } catch (error) {
         showNotification(error.message || 'Error deleting configuration', 'error');
-    }
-}
-
-function removeExistingModal(modalId) {
-    const existingModal = document.getElementById(modalId);
-    if (existingModal) {
-        const modalInstance = bootstrap.Modal.getInstance(existingModal);
-        if (modalInstance) {
-            modalInstance.hide();
-        }
-        existingModal.remove(); // Remove the modal HTML from the DOM
-    }
-    // Also remove backdrop if any stuck
-    const backdrop = document.querySelector('.modal-backdrop');
-    if (backdrop) {
-        backdrop.remove();
     }
 }
 
@@ -1685,267 +1604,7 @@ async function handleDeleteTaskSet(taskSetId, configId, configName) {
     }
 }
 
-// Updated to accept configId and configName for context when adding products or other operations that might need it
-function showManageProductsModal(taskSetId, taskSetName, configId, configName) { 
-    console.log('showManageProductsModal called for', { taskSetId, taskSetName, configId, configName });
-    // Implementation will involve:
-    // 1. Setting modal title.
-    // 2. Fetching products for the task set: GET /api/admin/drive-management/task-sets/${taskSetId}/products
-    // 3. Displaying products in a list/table with options to add, edit order/overrides, remove.
-    // 4. "Add Product" would likely open another modal/form to select a product and set its properties for this task set.
-    const modalElement = document.getElementById('manageProductsInTaskSetModal');
-    if (!modalElement) {
-        console.error('Manage Products modal element not found.');
-        showNotification('UI Error: Manage products modal not found.', 'error');
-        return;
-    }
-
-    document.getElementById('manageProductsModalLabel').textContent = `Manage Products for: ${taskSetName}`;
-    // Store taskSetId and other context for use by other functions within this modal
-    modalElement.dataset.taskSetId = taskSetId;
-    modalElement.dataset.taskSetName = taskSetName;
-    modalElement.dataset.configId = configId; 
-    modalElement.dataset.configName = configName;
-
-    const addProductBtn = document.getElementById('show-add-product-to-task-set-modal-btn');
-    if (addProductBtn) {
-        const newBtn = addProductBtn.cloneNode(true);
-        addProductBtn.parentNode.replaceChild(newBtn, addProductBtn);
-        newBtn.onclick = () => showAddProductToTaskSetModal(taskSetId, taskSetName, configId, configName);
-    } else {
-        console.error('Add product to task set button not found in modal');
-    }
-    
-    const saveOrderBtn = document.getElementById('save-product-order-btn');
-    if (saveOrderBtn) {
-        const newSaveOrderBtn = saveOrderBtn.cloneNode(true);
-        saveOrderBtn.parentNode.replaceChild(newSaveOrderBtn, saveOrderBtn);
-        newSaveOrderBtn.onclick = () => handleSaveProductOrder(taskSetId, taskSetName, configId, configName);
-    } else {
-        console.error('Save product order button not found in modal');
-    }
-
-    loadProductsForTaskSet(taskSetId, taskSetName, configId, configName); // Pass configId and configName
-
-    const modal = bootstrap.Modal.getOrCreateInstance(modalElement);
-    modal.show();
-}
-
-async function loadProductsForTaskSet(taskSetId, taskSetName, configId, configName) {
-    const productsList = document.getElementById('products-in-task-set-list');
-    if (!productsList) {
-        console.error('Products in task set list element not found.');
-        return;
-    }
-    productsList.innerHTML = '<tr><td colspan="5" class="text-center">Loading products...</td></tr>';
-
-    try {
-        const products = await fetchWithAuth(`/api/admin/drive-management/task-sets/${taskSetId}/products`); 
-
-        if (!products || !Array.isArray(products)) { 
-             throw new Error('Invalid data received for products in task set.');
-        }
-
-        if (products.length === 0) {
-            productsList.innerHTML = '<tr><td colspan="5" class="text-center">No products added to this task set yet.</td></tr>';
-        } else {
-            // Sort products by display_order before rendering
-            products.sort((a, b) => a.display_order - b.display_order);
-            renderProductsInModal(products, taskSetId, taskSetName, configId, configName);
-        }
-    } catch (error) {
-        productsList.innerHTML = `<tr><td colspan="4" class="text-center text-danger">Error: ${error.message}</td></tr>`;
-        showNotification(error.message, 'error');
-    }
-}
-
-function renderProductsInModal(products, taskSetId, taskSetName, configId, configName) {
-    const productsList = document.getElementById('products-in-task-set-list');
-    productsList.innerHTML = products.map((p, index) => `
-        <tr data-product-id="${p.product_id}" data-original-order="${p.display_order}">
-            <td>${p.product_name}</td>
-            <td>$${p.product_price}</td>
-            <td>
-                <button class="btn btn-sm btn-outline-secondary product-order-up-btn" ${index === 0 ? 'disabled' : ''} title="Move Up">
-                    <i class="fas fa-arrow-up"></i>
-                </button>
-                <button class="btn btn-sm btn-outline-secondary product-order-down-btn" ${index === products.length - 1 ? 'disabled' : ''} title="Move Down">
-                    <i class="fas fa-arrow-down"></i>
-                </button>
-            </td>
-            <td>
-                <button class="btn btn-sm btn-danger remove-product-from-task-set-btn" data-product-id="${p.product_id}" data-product-name="${p.product_name}">Remove</button>
-            </td>
-        </tr>
-    `).join('');
-
-    // Add event listeners for reorder and remove buttons
-    productsList.querySelectorAll('.remove-product-from-task-set-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            const productId = e.currentTarget.dataset.productId;
-            const productName = e.currentTarget.dataset.productName;
-            handleRemoveProductFromTaskSet(taskSetId, productId, productName, taskSetName, configId, configName);
-        });
-    });
-
-    productsList.querySelectorAll('.product-order-up-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            const row = e.currentTarget.closest('tr');
-            if (row.previousElementSibling) {
-                row.parentNode.insertBefore(row, row.previousElementSibling);
-                updateProductReorderButtonStates(productsList);
-            }
-        });
-    });
-
-    productsList.querySelectorAll('.product-order-down-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            const row = e.currentTarget.closest('tr');
-            if (row.nextElementSibling) {
-                row.parentNode.insertBefore(row.nextElementSibling, row);
-                updateProductReorderButtonStates(productsList);
-            }
-        });
-    });
-    updateProductReorderButtonStates(productsList); // Initial state update
-}
-
-function updateProductReorderButtonStates(productListElement) {
-    const rows = productListElement.querySelectorAll('tr');
-    rows.forEach((row, index) => {
-        const upButton = row.querySelector('.product-order-up-btn');
-        const downButton = row.querySelector('.product-order-down-btn');
-        if (upButton) upButton.disabled = index === 0;
-        if (downButton) downButton.disabled = index === rows.length - 1;
-    });
-}
-
-async function handleSaveProductOrder(taskSetId, taskSetName, configId, configName) {
-    const productsListElement = document.getElementById('products-in-task-set-list');
-    const productRows = productsListElement.querySelectorAll('tr[data-product-id]');
-    const orderedProductIds = Array.from(productRows).map(row => row.dataset.productId);
-
-    if (orderedProductIds.length === 0) {
-        showNotification('No products to order.', 'info');
-        return;
-    }
-
-    try {
-        const response = await fetchWithAuth(`/api/admin/drive-management/task-sets/${taskSetId}/products/reorder`, { 
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ products: productsOrder })
-        });
-        if (response && response.success) {
-            showNotification('Product order saved successfully!', 'success');
-            loadProductsForTaskSet(taskSetId, taskSetName, configId, configName); 
-        } else {
-            throw new Error(response.message || 'Failed to save product order.');
-        }
-    } catch (error) {
-        showNotification(error.message || 'Error saving product order', 'error');
-    }
-}
-
-async function showAddProductToTaskSetModal(taskSetId, taskSetName, configId, configName) {
-    const modalId = 'addProductToTaskSetModal';
-    removeExistingModal(modalId);
-
-    // Fetch available products to populate the select dropdown
-    let availableProducts = [];
-    try {
-        const productsResponse = await fetchWithAuth('/api/products'); // Assuming a general products endpoint
-        if (!productsResponse.ok) {
-            throw new Error('Failed to load available products.');
-        }
-        availableProducts = await productsResponse.json();
-        if (availableProducts.success === false) { // If API wraps in {success: ..., products: ...}
-             availableProducts = availableProducts.products || [];
-        }
-    } catch (error) {
-        showNotification(error.message, 'error');
-        return; // Don't show modal if products can't be loaded
-    }
-
-    if (!Array.isArray(availableProducts)) {
-        console.error('Available products data is not an array:', availableProducts);
-        showNotification('Could not load products for selection (invalid format).', 'error');
-        return;
-    }
-
-    const productOptions = availableProducts.map(p => `<option value="${p.id}">${p.name} ($${p.price})</option>`).join('');
-
-    const modalHtml = `
-    <div class="modal fade" id="${modalId}" tabindex="-1" aria-labelledby="${modalId}Label" aria-hidden="true">
-      <div class="modal-dialog">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title" id="${modalId}Label">Add Product to: ${taskSetName}</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-          </div>
-          <div class="modal-body">
-            <form id="add-product-to-task-set-form">
-              <div class="mb-3">
-                <label for="select-product-to-add" class="form-label">Select Product*</label>
-                <select class="form-select" id="select-product-to-add" required>
-                  <option value="" disabled selected>Choose a product...</option>
-                  ${productOptions}
-                </select>
-              </div>
-              <button type="submit" class="btn btn-primary">Add Product</button>
-            </form>
-          </div>
-        </div>
-      </div>
-    </div>`;
-
-    document.body.insertAdjacentHTML('beforeend', modalHtml);
-    const modalElement = document.getElementById(modalId);
-    const modal = new bootstrap.Modal(modalElement);
-    modal.show();
-
-    document.getElementById('add-product-to-task-set-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const productId = document.getElementById('select-product-to-add').value;
-
-        if (!productId) {
-            showNotification('Please select a product to add.', 'error');
-            return;
-        }
-
-        try {
-            const response = await fetchWithAuth(`/api/admin/drive-management/task-sets/${taskSetId}/products`, { 
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ product_id: productId })
-            });
-            if (response && response.success) {
-
-                showNotification('Product added to task set successfully!', 'success');
-                modal.hide();
-                loadProductsForTaskSet(taskSetId, taskSetName, configId, configName); 
-            } else {
-                throw new Error(response.message || 'Failed to add product to task set.');
-            }
-        } catch (error) {
-            showNotification(error.message || 'Error adding product to task set', 'error');
-        }
-    });
-}
-
-// Initialize Drive Configuration Handlers
-export function initializeDriveConfigHandlers() {
-    // Initialize the "Create New Configuration" button
-    const createConfigBtn = document.getElementById('show-create-config-modal-btn');
-    if (createConfigBtn) {
-        createConfigBtn.addEventListener('click', () => {
-            showCreateDriveConfigurationModal();
-        });
-        console.log('Create new configuration button handler initialized');
-    } else {
-        console.warn('Create new configuration button not found in the DOM');
-    }
-}
+// --- User Drive Progress Management --- // Coming from admin-drives.js
 
 // Function to show user drive progress modal
 async function showUserDriveProgressModal(userId, username) {
@@ -1955,62 +1614,1022 @@ async function showUserDriveProgressModal(userId, username) {
         showNotification('Could not display progress: Modal component missing.', 'error');
         return;
     }
-    const modal = new bootstrap.Modal(modalElement);
+    const modal = bootstrap.Modal.getOrCreateInstance(modalElement);
 
-    // Set title and show loading state
-    const modalTitle = document.getElementById('userDriveProgressModalLabel');
-    if (modalTitle) {
-        modalTitle.textContent = `Drive Progress for ${username || 'User ' + userId}`;
+    // Store userId and username on the modal for other functions to access
+    modalElement.dataset.userId = userId;
+    modalElement.dataset.username = username;
+
+    const modalTitleElement = document.getElementById('userDriveProgressModalLabel');
+    if (modalTitleElement) {
+        modalTitleElement.textContent = `Drive Progress for ${username || 'User ' + userId}`;
+        
+        // Add refresh button if it doesn't exist
+        let refreshBtnContainer = modalTitleElement.querySelector('.refresh-btn-container');
+        if (!refreshBtnContainer) {
+            refreshBtnContainer = document.createElement('span');
+            refreshBtnContainer.className = 'refresh-btn-container ms-2'; // Added ms-2 for spacing
+            modalTitleElement.appendChild(refreshBtnContainer);
+        }
+        refreshBtnContainer.innerHTML = ''; // Clear previous button if any
+
+        const refreshBtn = document.createElement('button');
+        refreshBtn.type = 'button';
+        refreshBtn.className = 'btn btn-sm btn-outline-secondary';
+        refreshBtn.id = 'refreshUserDriveProgressBtn';
+        refreshBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Refresh';
+        
+        refreshBtn.addEventListener('click', async () => {
+            const currentUserId = modalElement.dataset.userId;
+            const currentUsername = modalElement.dataset.username;
+            if (currentUserId && currentUsername) {
+                showNotification('Refreshing progress...', 'info');
+                await _loadAndRenderUserDriveProgress(currentUserId, currentUsername);
+            } else {
+                showNotification('Could not refresh: User context lost.', 'error');
+            }
+        });
+        refreshBtnContainer.appendChild(refreshBtn);
     }
-    document.getElementById('userDriveProgressDetailsPlaceholder').style.display = 'block';
-    document.getElementById('userDriveProgressDetails').style.display = 'none';
-    document.getElementById('progress-task-items-list').innerHTML = ''; // Clear previous items
+    
+    modal.show();
+    await _loadAndRenderUserDriveProgress(userId, username); // Initial load
+}
 
-    modal.show();    try {
-        const response = await fetchWithAuth(`/api/admin/drive-management/users/${userId}/drive-progress`);
-        document.getElementById('userDriveProgressDetailsPlaceholder').style.display = 'none';
-        document.getElementById('userDriveProgressDetails').style.display = 'block';
+// --- Helper function to load and render user drive progress ---
+async function _loadAndRenderUserDriveProgress(userId, username) {
+    const modalBody = document.getElementById('userDriveProgressModalBody');
+    const modalTitle = document.getElementById('userDriveProgressModalLabel');
+    if (!modalBody || !modalTitle) {
+        console.error('Modal elements not found for rendering progress.');
+        return;
+    }
 
-        if (!response || !response.drive_session_id) { // Check for a key field from the expected response
-            const message = response && response.message ? response.message : 'No active drive progress found or an error occurred.';
-            document.getElementById('progress-user-info').textContent = `${username} (ID: ${userId})`;
-            document.getElementById('progress-drive-config-name').textContent = 'N/A';
-            document.getElementById('progress-summary').textContent = 'N/A';
-            document.getElementById('progress-task-items-list').innerHTML = `<tr><td colspan="3" class="text-center">${message}</td></tr>`;
-            if (response && response.message) showNotification(response.message, response.message.includes('No active drive session') ? 'info' : 'warning');
-            else showNotification('Failed to load progress details.', 'warning');
+    modalTitle.textContent = `Drive Progress for ${username}`;
+    modalBody.innerHTML = '<p>Loading progress...</p>'; // Show loading state
+    
+    try {
+        const data = await fetchWithAuth(`/api/admin/drive-management/users/${userId}/drive-progress`);
+        if (!data || !data.task_items) {
+            modalBody.innerHTML = `<p>No active drive or task items found for ${username}.</p>`;
             return;
         }
 
-        // Populate modal with data
-        document.getElementById('progress-user-info').textContent = `${username} (ID: ${response.user_id})`;
-        document.getElementById('progress-drive-config-name').textContent = response.drive_configuration_name;
-        document.getElementById('progress-summary').textContent = `${response.completed_task_items} of ${response.total_task_items} tasks completed.`;
+        // Fetch available products for combo creation
+        let availableProducts = [];
+        try {
+            const productsResponse = await fetchWithAuth('/admin/products');
+            availableProducts = productsResponse.products || [];
+        } catch (error) {
+            console.warn('Failed to load products for combo creation:', error);
+        }
 
-        const taskItemsList = document.getElementById('progress-task-items-list');
-        if (response.task_items && response.task_items.length > 0) {
-            response.task_items.forEach(item => {
-                const products = item.products.map(p => p.name).join(', ');
-                const row = document.createElement('tr');
-                if (item.task_item_id === response.current_task_item_id) {
-                    row.classList.add('table-info'); // Highlight current task
+        let tableHtml = `
+            <div id="progress-user-info" style="display: none;">${username} (ID: ${userId})</div>
+            <p><strong>Drive:</strong> ${data.drive_configuration_name} (Session ID: ${data.drive_session_id})</p>
+            <p><strong>Progress:</strong> ${data.completed_task_items} / ${data.total_task_items} tasks completed.</p>
+            <table class="table table-sm table-striped" id="drive-progress-table">
+                <thead>
+                    <tr>
+                        <th style="width: 60px;">Order</th>
+                        <th>Task Name / Products</th>
+                        <th style="width: 100px;">Status</th>
+                        <th style="width: 120px;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+
+        if (data.task_items.length === 0) {
+            tableHtml += '<tr><td colspan="4">No tasks in this drive session.</td></tr>';
+        }
+
+        data.task_items.forEach((item, index) => {
+            let productDisplay = 'N/A';
+            const products = [];
+            if (item.product_1_name) products.push(item.product_1_name);
+            if (item.product_2_name) products.push(item.product_2_name);
+            if (item.product_3_name) products.push(item.product_3_name);
+
+            if (item.is_combo) {
+                productDisplay = `<strong>${item.task_name || 'Combo Task'}</strong> (Combo)`;
+                if (products.length > 0) {
+                    productDisplay += `<br><small class="text-primary">Contains: ${products.join(' / ')}</small>`;
+                } else {
+                    productDisplay += `<br><small class="text-muted">No products listed for this combo.</small>`;
                 }
-                row.innerHTML = `
+            } else { // Single task
+                if (products.length > 0) {
+                    if (item.task_name && item.task_name !== products[0]) {
+                        productDisplay = `${item.task_name}: ${products[0]}`;
+                    } else {
+                        productDisplay = products[0];
+                    }
+                } else if (item.task_name) {
+                    productDisplay = item.task_name;
+                } else {
+                    productDisplay = 'N/A';
+                }
+            }            const canAddCombo = item.user_status === 'PENDING' && products.length < 3;
+            const showComboButton = canAddCombo && availableProducts.length > 0;
+
+            tableHtml += `
+                <tr id="task-row-${item.id}">
                     <td>${item.order_in_drive}</td>
-                    <td>${products}</td>
-                    <td><span class="badge bg-${getStatusBadgeColor(item.user_status)}">${item.user_status}</span></td>
+                    <td>${productDisplay}</td>
+                    <td><span class="badge bg-${item.user_status === 'COMPLETED' ? 'success' : (item.user_status === 'CURRENT' ? 'primary' : 'secondary')}">${item.user_status}</span></td>
+                    <td>
+                        ${showComboButton ? `
+                            <button type="button" class="btn btn-sm btn-outline-primary" 
+                                    onclick="toggleComboCreationRow('${item.id}', ${userId}, '${username}', ${item.order_in_drive})"
+                                    id="combo-btn-${item.id}">
+                                <i class="fas fa-plus me-1"></i>Combo
+                            </button>
+                        ` : ''}
+                    </td>
+                </tr>
+            `;// Add hidden combo creation row
+            if (showComboButton) {
+                tableHtml += `
+                    <tr id="combo-row-${item.id}" style="display: none; background-color: #f8f9ff;">
+                        <td colspan="4">
+                            <div class="combo-creation-form p-3 border rounded" style="background: linear-gradient(135deg, #f8f9ff 0%, #e3f2fd 100%);">
+                                <h6 class="text-primary mb-3">
+                                    <i class="fas fa-cube me-2"></i>Add Combo Products (Task ${item.order_in_drive})
+                                </h6>
+                                  <!-- Price Filter -->
+                                <div class="row mb-3">
+                                    <div class="col-md-4">
+                                        <label class="form-label small">Min Price ($)</label>
+                                        <input type="number" class="form-control form-control-sm" 
+                                               id="min-price-${item.id}" 
+                                               placeholder="0.00" min="0" step="0.01">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label small">Max Price ($)</label>
+                                        <input type="number" class="form-control form-control-sm" 
+                                               id="max-price-${item.id}" 
+                                               placeholder="1000.00" min="0" step="0.01">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label small">Search Products</label>
+                                        <input type="text" class="form-control form-control-sm" 
+                                               id="search-products-${item.id}" 
+                                               placeholder="Search by name..."
+                                               onkeyup="searchProducts('${item.id}')">
+                                    </div>
+                                </div><!-- Product Selection -->
+                                <div class="mb-3">
+                                    <label class="form-label small">Select Products (Max 2 additional)</label>                                    <div class="product-selection-container" style="max-height: 300px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 6px;">
+                                        <div class="table-responsive">
+                                            <table class="table table-sm table-hover mb-0" id="products-table-${item.id}" style="font-size: 0.85rem;">
+                                                <thead class="table-light sticky-top" style="top: 0; z-index: 10;">
+                                                    <tr>
+                                                        <th style="width: 60px; text-align: center; background-color: #f8f9fa; border-bottom: 2px solid #dee2e6;">Select</th>
+                                                        <th style="width: auto; background-color: #f8f9fa; border-bottom: 2px solid #dee2e6;">Product Name</th>
+                                                        <th style="width: 100px; text-align: right; background-color: #f8f9fa; border-bottom: 2px solid #dee2e6;">Price</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="products-list-${item.id}">
+                                                    ${availableProducts.map(product => `
+                                                        <tr class="product-item" data-price="${product.price}" data-product-id="${product.id}" style="cursor: pointer;" onmouseover="this.style.backgroundColor='#f5f5f5'" onmouseout="this.style.backgroundColor=''">
+                                                            <td style="text-align: center; vertical-align: middle; padding: 8px;">
+                                                                <input class="form-check-input" type="checkbox" 
+                                                                       value="${product.id}" 
+                                                                       id="product-${item.id}-${product.id}"
+                                                                       onchange="updateComboProductSelection('${item.id}')"
+                                                                       style="cursor: pointer;">
+                                                            </td>
+                                                            <td style="vertical-align: middle; padding: 8px;">
+                                                                <label class="form-check-label small mb-0" for="product-${item.id}-${product.id}" style="cursor: pointer; font-weight: 500;">
+                                                                    ${product.name}
+                                                                </label>
+                                                            </td>
+                                                            <td style="text-align: right; vertical-align: middle; padding: 8px;">
+                                                                <span class="badge bg-primary text-white" style="font-size: 0.75rem;">$${parseFloat(product.price).toFixed(2)}</span>
+                                                            </td>
+                                                        </tr>
+                                                    `).join('')}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        <div id="no-results-${item.id}" class="text-center p-3 text-muted small" style="display: none;">
+                                            <i class="fas fa-search"></i> No products match the current filter
+                                        </div>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center mt-2">
+                                        <small id="filter-status-${item.id}" class="text-muted">Showing ${availableProducts.length} products</small>
+                                        <small class="text-muted">Selected: <span id="selected-count-${item.id}">0</span>/2</small>
+                                    </div>
+                                </div>
+
+                                <!-- Action Buttons -->
+                                <div class="d-flex gap-2">
+                                    <button type="button" class="btn btn-primary btn-sm" 
+                                            onclick="createComboForTaskItem('${item.id}', ${userId})"
+                                            id="create-btn-${item.id}">
+                                        <i class="fas fa-plus me-1"></i>Add Combo
+                                    </button>
+                                    <button type="button" class="btn btn-secondary btn-sm" 
+                                            onclick="toggleComboCreationRow('${item.id}')">
+                                        Cancel
+                                    </button>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
                 `;
-                taskItemsList.appendChild(row);
-            });
-        } else {
-            taskItemsList.innerHTML = '<tr><td colspan="3" class="text-center">No task items found for this drive session.</td></tr>';
+            }
+        });
+
+        tableHtml += `
+                </tbody>
+            </table>
+        `;
+        modalBody.innerHTML = tableHtml;        // Set up price filtering for each combo creation form
+        data.task_items.forEach(item => {
+            if (item.user_status === 'PENDING' && item.products?.length < 3) {
+                setupPriceFiltering(item.id, availableProducts);
+            }
+        });
+
+        // Hide the old combo button since we now have inline buttons
+        const createComboBtn = document.getElementById('create-combo-from-progress-btn');
+        if (createComboBtn) {
+            createComboBtn.style.display = 'none';
         }
 
     } catch (error) {
-        console.error('Error fetching user drive progress:', error);
-        showNotification('Failed to fetch user drive progress: ' + (error.message || 'Unknown error'), 'error');
-        document.getElementById('userDriveProgressDetailsPlaceholder').style.display = 'none';
-        document.getElementById('userDriveProgressDetails').style.display = 'block'; // Show the details section to display error message inside
-        document.getElementById('progress-task-items-list').innerHTML = `<tr><td colspan="3" class="text-center text-danger">Error loading data.</td></tr>`;
+        console.error('Error fetching or rendering user drive progress:', error);
+        modalBody.innerHTML = `<p class="text-danger">Error loading drive progress: ${error.message}</p>`;
+        const createComboBtn = document.getElementById('create-combo-from-progress-btn');
+        if (createComboBtn) {
+            createComboBtn.style.display = 'none';
+        }
     }
 }
+
+// Balance-based Drive Configuration Functions
+export async function createBalanceBasedConfiguration() {
+    if (!isInitialized) {
+        showNotification('Drive module is not ready. Please wait or refresh.', 'error');
+        return;
+    }
+
+    const modalId = 'balanceConfigModal';
+    removeExistingModal(modalId);
+
+    const modalHTML = `
+        <div class="modal fade" id="${modalId}" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header bg-primary text-white">
+                        <h5 class="modal-title">Create Balance-Based Drive Configuration</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="balanceConfigForm">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Configuration Name</label>
+                                        <input type="text" class="form-control" id="configName" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Description</label>
+                                        <textarea class="form-control" id="configDescription" rows="3"></textarea>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Tasks Required</label>
+                                        <input type="number" class="form-control" id="tasksRequired" min="1" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="balanceFilterEnabled" checked>
+                                            <label class="form-check-label" for="balanceFilterEnabled">
+                                                Enable Balance Filtering (75%-99%)
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="tierQuantityEnabled" checked>
+                                            <label class="form-check-label" for="tierQuantityEnabled">
+                                                Enable Tier-Based Quantities
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="isActive" checked>
+                                            <label class="form-check-label" for="isActive">
+                                                Active Configuration
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="alert alert-info">
+                                <strong>Balance Filtering:</strong> Products will be filtered to 75%-99% of user balance<br>
+                                <strong>Tier Quantities:</strong> Bronze/Silver: 40, Gold: 45, Platinum: 50 products
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-primary" onclick="submitBalanceBasedConfiguration()">Create Configuration</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    const modal = new bootstrap.Modal(document.getElementById(modalId));
+    modal.show();
+}
+
+export async function submitBalanceBasedConfiguration() {
+    const formData = {
+        name: document.getElementById('configName').value,
+        description: document.getElementById('configDescription').value,
+        tasks_required: parseInt(document.getElementById('tasksRequired').value),
+        balance_filter_enabled: document.getElementById('balanceFilterEnabled').checked,
+        tier_quantity_enabled: document.getElementById('tierQuantityEnabled').checked,
+        is_active: document.getElementById('isActive').checked
+    };
+
+    try {
+        const response = await fetchWithAuth('/admin/drives/balance-config/create', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(formData)
+        });
+
+        if (response.success) {
+            showNotification('Balance-based configuration created successfully', 'success');
+            bootstrap.Modal.getInstance(document.getElementById('balanceConfigModal')).hide();
+            loadDriveConfigurations(); // Refresh the configurations list
+        } else {
+            showNotification(response.message || 'Failed to create configuration', 'error');
+        }
+    } catch (error) {
+        console.error('Error creating balance-based configuration:', error);
+        showNotification('Error creating configuration', 'error');
+    }
+}
+
+// Combo Creation Functions
+export async function showComboCreationModal(taskSetId) {
+    if (!isInitialized) {
+        showNotification('Drive module is not ready. Please wait or refresh.', 'error');
+        return;
+    }
+
+    const modalId = 'comboCreationModal';
+    removeExistingModal(modalId);
+
+    // First, get available products
+    try {
+        const productsResponse = await fetchWithAuth('/admin/products');
+        const products = productsResponse.products || [];
+
+        const modalHTML = `
+            <div class="modal fade" id="${modalId}" tabindex="-1">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content" style="border: 2px solid #007bff; background: linear-gradient(135deg, #f8f9ff 0%, #e3f2fd 100%);">
+                        <div class="modal-header" style="background: linear-gradient(135deg, #007bff 0%, #0056b3 100%); color: white;">
+                            <h5 class="modal-title">
+                                <i class="fas fa-cube me-2"></i>Create Combo Products
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="alert alert-info" style="border-left: 4px solid #007bff; background-color: #e3f2fd;">
+                                <i class="fas fa-info-circle me-2"></i>
+                                <strong>Combo Creation:</strong> Add 1-2 products to existing task sets. 
+                                Combo products will have a <span style="color: #007bff; font-weight: bold;">blue hue</span> 
+                                and <strong>4.5%</strong> commission rate.
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Select Products (1-2 maximum)</label>
+                                <div class="product-selection-grid" style="max-height: 300px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 8px; padding: 15px;">
+                                    ${products.map(product => `
+                                        <div class="form-check product-option" style="margin-bottom: 10px; padding: 10px; border-radius: 6px; transition: all 0.3s; cursor: pointer;" 
+                                             onmouseover="this.style.backgroundColor='#e3f2fd'" onmouseout="this.style.backgroundColor='transparent'">
+                                            <input class="form-check-input product-checkbox" type="checkbox" value="${product.id}" 
+                                                   id="product-${product.id}" style="border-color: #007bff;">
+                                            <label class="form-check-label" for="product-${product.id}" style="cursor: pointer; width: 100%;">
+                                                <strong style="color: #007bff;">${product.name}</strong>
+                                                <div class="text-muted small">Price: $${product.price}</div>
+                                                ${product.description ? `<div class="text-muted small">${product.description.substring(0, 100)}...</div>` : ''}
+                                            </label>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Description (Optional)</label>
+                                <textarea class="form-control" id="comboDescription" rows="2" 
+                                         placeholder="Description for this combo creation..."></textarea>
+                            </div>
+
+                            <div class="combo-preview" id="comboPreview" style="display: none; padding: 15px; background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%); border-radius: 8px; border: 1px solid #007bff;">
+                                <h6 style="color: #007bff;"><i class="fas fa-eye me-2"></i>Combo Preview</h6>
+                                <div id="selectedProductsList"></div>
+                                <div class="mt-2">
+                                    <small class="text-muted">Commission Rate: <strong style="color: #007bff;">4.5%</strong></small>
+                                </div>
+                            </div>
+                        </div>
+                                                                                             <div class="modal-footer" style="background-color: #f8f9ff;">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="button" class="btn" id="createComboBtn" onclick="createCombo(${taskSetId})" 
+                                    style="background: linear-gradient(135deg, #007bff 0%, #0056b3 100%); color: white; border: none;"
+                                    disabled>
+                                <i class="fas fa-plus me-2"></i>Create Combo
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+        
+        // Add event listeners for product selection
+        const checkboxes = document.querySelectorAll('.product-checkbox');
+        checkboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', updateComboPreview);
+        });
+
+        const modal = new bootstrap.Modal(document.getElementById(modalId));
+        modal.show();
+
+    } catch (error) {
+        console.error('Error loading products for combo creation:', error);
+        showNotification('Error loading products', 'error');
+    }
+}
+
+function updateComboPreview() {
+    const selectedProducts = Array.from(document.querySelectorAll('.product-checkbox:checked'));
+    const preview = document.getElementById('comboPreview');
+    const createBtn = document.getElementById('createComboBtn');
+    const productsList = document.getElementById('selectedProductsList');
+
+    if (selectedProducts.length === 0) {
+        preview.style.display = 'none';
+        createBtn.disabled = true;
+        return;
+    }
+
+    if (selectedProducts.length > 2) {
+        // Uncheck the last selected if more than 2
+        selectedProducts[selectedProducts.length - 1].checked = false;
+        showNotification('Maximum 2 products allowed for combo', 'warning');
+        return;
+    }
+
+    preview.style.display = 'block';
+    createBtn.disabled = false;
+
+    const productNames = selectedProducts.map(checkbox => {
+
+        const label = document.querySelector(`label[for="${checkbox.id}"]`);
+        return label.querySelector('strong').textContent;
+    });
+
+    productsList.innerHTML = `
+        <div class="selected-products">
+            ${productNames.map((name, index) => `
+                <div class="badge" style="background-color: #007bff; margin-right: 8px; margin-bottom: 4px;">
+                    <i class="fas fa-cube me-1"></i>${name}
+                </div>
+            `).join('')}
+        </div>
+    `;
+}
+
+export async function createCombo(taskSetId) {
+    const selectedProducts = Array.from(document.querySelectorAll('.product-checkbox:checked'));
+    const description = document.getElementById('comboDescription').value;
+
+    if (selectedProducts.length === 0 || selectedProducts.length > 2) {
+        showNotification('Please select 1-2 products for the combo', 'error');
+        return;
+    }
+
+    const productIds = selectedProducts.map(checkbox => parseInt(checkbox.value));
+
+    try {
+        const response = await fetchWithAuth('/admin/drives/combos/insert', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                taskSetId: taskSetId,
+                productIds: productIds,
+                description: description || 'Admin combo creation',
+                commissionRate: 4.5
+            })
+        });
+
+        if (response.success) {
+            showNotification('Combo created successfully with blue hue and 4.5% commission!', 'success');
+            bootstrap.Modal.getInstance(document.getElementById('comboCreationModal')).hide();
+            // Refresh the task sets or relevant view
+            loadDriveConfigurations();
+        } else {
+            showNotification(response.message || 'Failed to create combo', 'error');
+        }
+    } catch (error) {
+        console.error('Error creating combo:', error);
+        showNotification('Error creating combo', 'error');
+    }
+}
+
+// Tier Configuration Management
+export async function showTierConfigModal() {
+    if (!isInitialized) {
+        showNotification('Drive module is not ready. Please wait or refresh.', 'error');
+        return;
+    }
+
+    const modalId = 'tierConfigModal';
+    removeExistingModal(modalId);
+
+    try {
+        // Get current tier configurations
+        const response = await fetchWithAuth('/admin/drives/tier-configs');
+        const tierConfigs = response.data || [];
+
+        const modalHTML = `
+            <div class="modal fade" id="${modalId}" tabindex="-1">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header bg-success text-white">
+                            <h5 class="modal-title">
+                                <i class="fas fa-cog me-2"></i>Tier Quantity Configuration
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                Configure the maximum number of products per tier level.
+                            </div>
+                            
+                            <form id="tierConfigForm">
+                                ${tierConfigs.map(config => `
+                                    <div class="mb-3">
+                                        <label class="form-label">
+                                            <strong>${config.tier_name}</strong> Tier - Product Quantity Limit
+                                        </label>
+                                        <input type="number" class="form-control" 
+                                               data-tier="${config.tier_name}" 
+                                               value="${config.quantity_limit}" 
+                                               min="1" max="100" required>
+                                    </div>
+                                `).join('')}
+                            </form>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="button" class="btn btn-success" onclick="updateTierConfigs()">
+                                <i class="fas fa-save me-2"></i>Save Changes
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+        const modal = new bootstrap.Modal(document.getElementById(modalId));
+        modal.show();
+
+    } catch (error) {
+        console.error('Error loading tier configurations:', error);
+        showNotification('Error loading tier configurations', 'error');
+    }
+}
+
+export async function updateTierConfigs() {
+    const form = document.getElementById('tierConfigForm');
+    const inputs = form.querySelectorAll('input[data-tier]');
+    
+    const tierConfigs = Array.from(inputs).map(input => ({
+        tier_name: input.dataset.tier,
+        quantity_limit: parseInt(input.value)
+    }));
+
+    try {
+        const response = await fetchWithAuth('/admin/drives/tier-configs', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tierConfigs })
+        });
+
+        if (response.success) {
+            showNotification('Tier configurations updated successfully', 'success');
+            bootstrap.Modal.getInstance(document.getElementById('tierConfigModal')).hide();
+        } else {
+            showNotification(response.message || 'Failed to update tier configurations', 'error');
+        }
+    } catch (error) {
+        console.error('Error updating tier configurations:', error);
+        showNotification('Error updating tier configurations', 'error');
+    }
+}
+
+// --- Inline Combo Creation Functions ---
+
+/**
+ * Toggle the combo creation row for a specific task item
+ */
+window.toggleComboCreationRow = function(taskItemId, userId, username, orderInDrive) {
+    const comboRow = document.getElementById(`combo-row-${taskItemId}`);
+    const comboBtn = document.getElementById(`combo-btn-${taskItemId}`);
+    
+    if (!comboRow) return;
+    
+    if (comboRow.style.display === 'none') {
+        // Close any other open combo rows
+        document.querySelectorAll('[id^="combo-row-"]').forEach(row => {
+            if (row.id !== `combo-row-${taskItemId}`) {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Show this combo row
+        comboRow.style.display = 'table-row';
+        comboBtn.innerHTML = '<i class="fas fa-minus me-1"></i>Cancel';
+        comboBtn.classList.remove('btn-outline-primary');
+        comboBtn.classList.add('btn-outline-secondary');
+        
+        // Focus on the first input
+        const firstInput = comboRow.querySelector('input[type="number"]');
+        if (firstInput) firstInput.focus();
+    } else {
+        // Hide combo row
+        comboRow.style.display = 'none';
+        comboBtn.innerHTML = '<i class="fas fa-plus me-1"></i>Combo';
+        comboBtn.classList.remove('btn-outline-secondary');
+        comboBtn.classList.add('btn-outline-primary');
+        
+        // Reset form
+        resetComboForm(taskItemId);
+    }
+};
+
+/**
+ * Set up price filtering for a specific task item's combo creation
+ */
+function setupPriceFiltering(taskItemId, availableProducts) {
+    const minPriceInput = document.getElementById(`min-price-${taskItemId}`);
+    const maxPriceInput = document.getElementById(`max-price-${taskItemId}`);
+    
+    if (!minPriceInput || !maxPriceInput) {
+        console.warn(`Price filter inputs not found for task ${taskItemId}`);
+        return;
+    }
+
+    // Add price range suggestions
+    const prices = availableProducts.map(p => parseFloat(p.price)).filter(p => !isNaN(p)).sort((a, b) => a - b);
+    const minSuggested = prices[0] || 0;
+    const maxSuggested = prices[prices.length - 1] || 1000;
+    const midRange = prices[Math.floor(prices.length / 2)] || 50;
+
+    // Set placeholder values based on available products
+    minPriceInput.placeholder = `Min: $${minSuggested.toFixed(2)}`;
+    maxPriceInput.placeholder = `Max: $${maxSuggested.toFixed(2)}`;
+
+    // Add quick filter buttons
+    const filterContainer = minPriceInput.closest('.row');
+    if (filterContainer && !document.getElementById(`quick-filters-${taskItemId}`)) {
+        const quickFilters = document.createElement('div');
+        quickFilters.id = `quick-filters-${taskItemId}`;
+        quickFilters.className = 'col-12 mt-2';
+        quickFilters.innerHTML = `
+            <div class="d-flex gap-1 flex-wrap">
+                <small class="text-muted me-2">Quick filters:</small>
+                <button type="button" class="btn btn-outline-secondary btn-sm px-2 py-0" 
+                        onclick="setQuickFilter('${taskItemId}', 0, ${midRange})">
+                    <$${midRange.toFixed(0)}
+                </button>
+                <button type="button" class="btn btn-outline-secondary btn-sm px-2 py-0" 
+                        onclick="setQuickFilter('${taskItemId}', ${midRange}, ${maxSuggested})">
+                    $${midRange.toFixed(0)}+
+                </button>
+                <button type="button" class="btn btn-outline-success btn-sm px-2 py-0" 
+                        onclick="setQuickFilter('${taskItemId}', 0, 0)">
+                    <i class="fas fa-times"></i> Clear
+                </button>
+            </div>
+        `;
+        filterContainer.appendChild(quickFilters);
+    }
+      function filterProducts() {
+        const minPrice = parseFloat(minPriceInput.value) || 0;
+        const maxPrice = parseFloat(maxPriceInput.value) || Infinity;
+        const searchTerm = (document.getElementById(`search-products-${taskItemId}`)?.value || '').toLowerCase().trim();
+        
+        console.log(`Filtering products for task ${taskItemId}: min=${minPrice}, max=${maxPrice}, search="${searchTerm}"`);
+        
+        // Get all product rows from the table
+        const productRows = document.querySelectorAll(`#products-list-${taskItemId} .product-item`);
+        const noResultsMsg = document.getElementById(`no-results-${taskItemId}`);
+        const filterStatus = document.getElementById(`filter-status-${taskItemId}`);
+        
+        let visibleCount = 0;
+        
+        productRows.forEach(row => {
+            const priceText = row.dataset.price;
+            const price = parseFloat(priceText);
+            const productName = row.querySelector('label').textContent.toLowerCase();
+            
+            const priceMatch = !isNaN(price) && price >= minPrice && price <= maxPrice;
+            const nameMatch = searchTerm === '' || productName.includes(searchTerm);
+            
+            if (priceMatch && nameMatch) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+                // Uncheck hidden items and update selection count
+                const checkbox = row.querySelector('input[type="checkbox"]');
+                if (checkbox && checkbox.checked) {
+                    checkbox.checked = false;
+                    updateComboProductSelection(taskItemId);
+                }
+            }
+        });
+        
+        // Show/hide no results message
+        if (visibleCount === 0) {
+            if (noResultsMsg) {
+                noResultsMsg.style.display = 'block';
+                noResultsMsg.innerHTML = `<i class="fas fa-search"></i> No products match the current filters${searchTerm ? ` for "${searchTerm}"` : ''}`;
+            }
+            // Hide the table header when no results
+            const tableHeader = document.querySelector(`#products-table-${taskItemId} thead`);
+            if (tableHeader) {
+                tableHeader.style.display = 'none';
+            }
+        } else {
+            if (noResultsMsg) {
+                noResultsMsg.style.display = 'none';
+            }
+            // Show the table header when there are results
+            const tableHeader = document.querySelector(`#products-table-${taskItemId} thead`);
+            if (tableHeader) {
+                tableHeader.style.display = '';
+            }
+        }
+
+        // Update filter status
+        if (filterStatus) {
+            const hasFilters = minPrice > 0 || maxPrice < Infinity || searchTerm !== '';
+            if (hasFilters) {
+                let statusText = `Showing ${visibleCount} of ${availableProducts.length} products`;
+                if (searchTerm) {
+                    statusText += ` matching "${searchTerm}"`;
+                }
+                filterStatus.textContent = statusText;
+                filterStatus.style.display = 'block';
+            } else {
+                filterStatus.textContent = `Showing ${availableProducts.length} products`;
+            }
+        }
+        
+        console.log(`Filtered ${visibleCount} products visible for task ${taskItemId}`);
+    }    // Add event listeners for instant filtering
+    minPriceInput.addEventListener('input', filterProducts);
+    maxPriceInput.addEventListener('input', filterProducts);
+    
+    // Add search input listener
+    const searchInput = document.getElementById(`search-products-${taskItemId}`);
+    if (searchInput) {
+        searchInput.addEventListener('input', filterProducts);
+        searchInput.addEventListener('keyup', (e) => {
+            if (e.key === 'Escape') {
+                searchInput.value = '';
+                filterProducts();
+            }
+        });
+    }
+    
+    // Add clear button functionality to price inputs
+    minPriceInput.addEventListener('keyup', (e) => {
+        if (e.key === 'Escape') {
+            minPriceInput.value = '';
+            filterProducts();
+        }
+    });
+    
+    maxPriceInput.addEventListener('keyup', (e) => {
+        if (e.key === 'Escape') {
+            maxPriceInput.value = '';
+            filterProducts();
+        }
+    });
+    
+    // Initial filter (show all products)
+    filterProducts();
+}
+
+/**
+ * Search products by name (called directly from onkeyup)
+ */
+window.searchProducts = function(taskItemId) {
+    // This function is called directly from the onkeyup event
+    // The actual filtering is handled by the debouncedFilter in setupPriceFiltering
+    const searchInput = document.getElementById(`search-products-${taskItemId}`);
+    if (searchInput) {
+        // Trigger the input event to use the same debounced filtering
+        searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+};
+
+/**
+ * Set quick filter values for price filtering
+ */
+window.setQuickFilter = function(taskItemId, minPrice, maxPrice) {
+    const minPriceInput = document.getElementById(`min-price-${taskItemId}`);
+    const maxPriceInput = document.getElementById(`max-price-${taskItemId}`);
+    const searchInput = document.getElementById(`search-products-${taskItemId}`);
+    
+    if (minPriceInput && maxPriceInput) {
+        if (minPrice === 0 && maxPrice === 0) {
+            // Clear all filters
+            minPriceInput.value = '';
+            maxPriceInput.value = '';
+            if (searchInput) {
+                searchInput.value = '';
+            }
+        } else {
+            minPriceInput.value = minPrice > 0 ? minPrice.toFixed(2) : '';
+            maxPriceInput.value = maxPrice < Infinity && maxPrice > 0 ? maxPrice.toFixed(2) : '';
+            // Keep search as is when applying price filters
+        }
+        
+        // Trigger filter update with a small delay to ensure DOM is updated
+        setTimeout(() => {
+            minPriceInput.dispatchEvent(new Event('input', { bubbles: true }));
+        }, 50);
+        
+        // Add visual feedback
+        const quickFilterButtons = document.querySelectorAll(`#quick-filters-${taskItemId} .btn`);
+        quickFilterButtons.forEach(btn => btn.classList.remove('active'));
+        
+        // Highlight the active filter button
+        if (minPrice === 0 && maxPrice === 0) {
+            // Clear button was clicked - no highlight needed
+        } else {
+            const clickedBtn = event ? event.target : null;
+            if (clickedBtn) {
+                clickedBtn.classList.add('active');
+                setTimeout(() => clickedBtn.classList.remove('active'), 2000);
+            }
+        }
+    }
+};
+
+/**
+ * Update combo product selection count and validation
+ */
+window.updateComboProductSelection = function(taskItemId) {
+    const selectedCheckboxes = document.querySelectorAll(`#products-list-${taskItemId} input[type="checkbox"]:checked`);
+    const selectedCount = selectedCheckboxes.length;
+    const maxAllowed = 2;
+    
+    // Update count display
+    const countElement = document.getElementById(`selected-count-${taskItemId}`);
+    if (countElement) {
+        countElement.textContent = selectedCount;
+        countElement.style.color = selectedCount > maxAllowed ? 'red' : '';
+    }
+    
+    // Disable/enable unchecked checkboxes if at max
+    const allCheckboxes = document.querySelectorAll(`#products-list-${taskItemId} input[type="checkbox"]`);
+    allCheckboxes.forEach(checkbox => {
+        if (!checkbox.checked) {
+            checkbox.disabled = selectedCount >= maxAllowed;
+        }
+    });
+    
+    // Update create button state
+    const createBtn = document.getElementById(`create-btn-${taskItemId}`);
+    if (createBtn) {
+        createBtn.disabled = selectedCount === 0 || selectedCount > maxAllowed;
+    }
+};
+
+/**
+ * Create combo for a specific task item
+ */
+window.createComboForTaskItem = async function(taskItemId, userId) {
+    const createBtn = document.getElementById(`create-btn-${taskItemId}`);
+    const originalText = createBtn.innerHTML;
+    
+    try {
+        createBtn.disabled = true;
+        createBtn.innerHTML = '<div class="spinner-border spinner-border-sm me-1"></div>Creating...';
+        
+        // Collect selected products
+        const selectedCheckboxes = document.querySelectorAll(`#products-list-${taskItemId} input[type="checkbox"]:checked`);
+        const selectedProductIds = Array.from(selectedCheckboxes).map(cb => parseInt(cb.value));
+        
+        if (selectedProductIds.length === 0 || selectedProductIds.length > 2) {
+            throw new Error('Please select 1-2 products for the combo');
+        }
+          // Get the user's active drive item ID and drive session
+        const userProgressData = await fetchWithAuth(`/api/admin/drive-management/users/${userId}/drive-progress`);
+        const taskItem = userProgressData.task_items?.find(item => item.id == taskItemId);
+        
+        if (!taskItem) {
+            throw new Error('Task item not found');
+        }
+          // Call the backend API to add combo products to the existing task set
+        const response = await fetchWithAuth(`/api/admin/drive-management/users/${userId}/drive/add-combo`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                comboName: `Enhanced Task ${taskItem.order_in_drive}`,
+                comboDescription: `Combo products added to task ${taskItem.order_in_drive}`,
+                productIds: selectedProductIds,
+                insertAfterTaskSetId: taskItem.id,
+                insertAtOrder: taskItem.order_in_drive
+            })
+        });
+        
+        if (response && response.success) {
+            showNotification(`Combo products added successfully to Task ${taskItem.order_in_drive}!`, 'success');
+            
+            // Hide the combo creation row
+            toggleComboCreationRow(taskItemId);
+            
+            // Refresh the progress display
+            const modal = document.getElementById('userDriveProgressModal');
+            if (modal && modal.classList.contains('show')) {
+                const userInfoElement = document.getElementById('progress-user-info');
+                if (userInfoElement && userInfoElement.textContent) {
+                    const userText = userInfoElement.textContent.trim();
+                    const userIdMatch = userText.match(/\(ID:\s*(\d+)\)/);
+                    const extractedUserId = userIdMatch ? userIdMatch[1] : userId;
+                    const usernameMatch = userText.match(/^(.+?)\s*\(ID:/);
+                    const username = usernameMatch ? usernameMatch[1].trim() : 'User';
+                    
+                    await _loadAndRenderUserDriveProgress(extractedUserId, username);
+                }
+            }
+        } else {
+            throw new Error(response?.message || 'Failed to create combo');
+        }
+        
+    } catch (error) {
+        console.error('Error creating combo for task item:', error);
+        showNotification('Failed to create combo: ' + error.message, 'error');
+    } finally {
+        createBtn.disabled = false;
+        createBtn.innerHTML = originalText;
+    }
+};
+
+/**
+ * Reset combo creation form for a task item
+ */
+function resetComboForm(taskItemId) {
+    // Reset price inputs
+    const minPriceInput = document.getElementById(`min-price-${taskItemId}`);
+    const maxPriceInput = document.getElementById(`max-price-${taskItemId}`);
+    if (minPriceInput) minPriceInput.value = '';
+    if (maxPriceInput) maxPriceInput.value = '';
+    
+    // Uncheck all products
+    const checkboxes = document.querySelectorAll(`#products-list-${taskItemId} input[type="checkbox"]`);
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = false;
+        checkbox.disabled = false;
+    });
+    
+    // Show all products
+    const productItems = document.querySelectorAll(`#products-list-${taskItemId} .product-item`);
+    productItems.forEach(item => {
+        item.style.display = 'block';
+    });
+    
+    // Remove no results message
+    const noResultsMsg = document.getElementById(`no-results-${taskItemId}`);
+    if (noResultsMsg) noResultsMsg.remove();
+    
+    // Update selection count
+    updateComboProductSelection(taskItemId);
+}
+
+// --- End Inline Combo Creation Functions ---
+

@@ -36,10 +36,10 @@ function showNotification(message, type = 'info') {
 
 // Function to initialize dashboard logic (fetching data, setting up listeners)
 async function initializeDashboard() {
-    const token = localStorage.getItem('auth_token');
-    if (!token) {
-        window.location.href = 'login.html';
-        return;
+    // Use centralized authentication check
+    const authData = requireAuth();
+    if (!authData) {
+        return; // requireAuth will handle redirect
     }
 
     const usernameEl = document.getElementById('dashboard-username');
@@ -47,12 +47,10 @@ async function initializeDashboard() {
     const balancesEl = document.getElementById('dashboard-balances');
 
     // Try to use cached data first
-    const cachedUserData = localStorage.getItem('user_data');
-
-    try {
+    const cachedUserData = localStorage.getItem('user_data');    try {
         // Fetch fresh data
         const response = await fetch(`${API_BASE_URL}/api/user/profile`, {
-            headers: { 'Authorization': `Bearer ${token}` }
+            headers: { 'Authorization': `Bearer ${authData.token}` }
         });
         const data = await response.json();
 
@@ -63,7 +61,7 @@ async function initializeDashboard() {
             
             // Fetch balances separately for real-time accuracy
             const balancesResponse = await fetch(`${API_BASE_URL}/api/user/balances`, {
-                headers: { 'Authorization': `Bearer ${token}` }
+                headers: { 'Authorization': `Bearer ${authData.token}` }
             });
             const balancesData = await balancesResponse.json();
             
@@ -76,9 +74,8 @@ async function initializeDashboard() {
             
             // Update membership tier display
             updateMembershipTier(user.tier || 'bronze');
-            
-            // Fetch and update drive progress
-            await fetchDriveProgress(token);
+              // Fetch and update drive progress
+            await fetchDriveProgress(authData.token);
         } else {
             console.error('Profile API call failed:', data.message);
             showNotification(data.message || 'Failed to load profile data.', 'error');

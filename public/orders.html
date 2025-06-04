@@ -23,8 +23,7 @@
         }
         .order-list {
             /* Styling for the container */
-        }
-        .order-item {
+        }        .order-item {
             border: 1px solid #ccc;
             margin-bottom: 10px;
             padding: 10px;
@@ -48,6 +47,21 @@
             font-size: 0.9em;
             color: #555;
         }
+        .order-actions {
+            margin-left: 15px;
+        }
+        .continue-drive-btn {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9em;
+        }
+        .continue-drive-btn:hover {
+            background-color: #218838;
+        }
     </style>
 </head>
 <body>
@@ -65,10 +79,9 @@
         <div class="order-list">
             <!-- Order items will be loaded here by JavaScript -->
         </div>
-    </div>
-
-    <script src="./assets/js/jquery.min.js"></script> <!-- Link to jQuery -->
+    </div>    <script src="./assets/js/jquery.min.js"></script> <!-- Link to jQuery -->
     <script src="./assets/js/bootstrap.bundle.min.js"></script> <!-- Link to Bootstrap JS -->
+    <script src="./js/auth-check.js"></script> <!-- Authentication check -->
     <script src="./js/orders.js"></script> <!-- Link to your new JS file -->
 </body>
 </html>

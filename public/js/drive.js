@@ -1,9 +1,8 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const token = localStorage.getItem('auth_token');
-    if (!token) {
-        // Redirect to login if not authenticated
-        window.location.href = 'login.html'; // Assuming login page is login.html
-        return;
+    // Use centralized authentication check
+    const authData = requireAuth();
+    if (!authData) {
+        return; // requireAuth will handle redirect
     }
 
     // Get references to key elements
@@ -309,8 +308,7 @@ document.addEventListener('DOMContentLoaded', () => {
              startDriveButton.disabled = false;
              startDriveButton.textContent = 'Start Drive';
              updateWalletBalance(); // Final balance update
-         });
-    }
+         });    }
 
      // Function to display frozen state message
     function displayFrozenState(message, amountNeeded) {
@@ -325,7 +323,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
             </div>
         `;
-         // TODO: Add event listener for contact support button if needed
+         
+         // Add event listener for contact support button
+         const contactSupportButton = document.getElementById('contact-support-button');
+         if (contactSupportButton) {
+             contactSupportButton.addEventListener('click', () => {
+                 // Redirect to support page
+                 window.location.href = './support.html';
+             });
+         }
     }
 
      // Function to display a generic drive error

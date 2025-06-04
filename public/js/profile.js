@@ -30,12 +30,11 @@ function updateProfileTranslations() {
 // Function to initialize profile page logic
 async function initializeProfilePage() {
     console.log('Initializing profile page logic...');
-    const token = getToken(); // From main.js
-
-    if (!token) {
-        console.log('No token found, redirecting to login.');
-        window.location.href = 'login.html';
-        return;
+    
+    // Use centralized authentication check
+    const authData = requireAuth();
+    if (!authData) {
+        return; // requireAuth will handle redirect
     }
 
     // Make sure i18n content is translated
