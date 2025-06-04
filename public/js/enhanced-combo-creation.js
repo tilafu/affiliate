@@ -145,12 +145,15 @@ async function loadUserProgressForCombo(userId, username) {
             progressBar.setAttribute('aria-valuenow', progressPercent);
             progressBar.textContent = progressPercent + '%';
             
+<<<<<<< HEAD
             // Show the "Create Combo" button in progress modal
             const createComboBtn = document.getElementById('create-combo-from-progress-btn');
             if (createComboBtn) {
                 createComboBtn.style.display = 'inline-block';
             }
             
+=======
+>>>>>>> post
             // Populate insertion point options
             populateInsertionPoints(response.task_items || []);
             
@@ -172,6 +175,7 @@ async function loadUserProgressForCombo(userId, username) {
  * Load products for combo creation
  */
 async function loadProductsForCombo() {
+<<<<<<< HEAD
     const productsList = document.getElementById('enhanced-products-list');
     productsList.innerHTML = '<tr><td colspan="3" class="text-center"><div class="spinner-border spinner-border-sm"></div> Loading products...</td></tr>';
     
@@ -196,6 +200,17 @@ async function loadProductsForCombo() {
     } catch (error) {
         console.error('Error loading products for combo:', error);
         productsList.innerHTML = '<tr><td colspan="3" class="text-center text-danger">Error loading products</td></tr>';
+=======
+    try {
+        const response = await fetchWithAuth('/admin/products');
+        availableProductsForCombo = response.products || [];
+        renderProductsForCombo(availableProductsForCombo);
+    } catch (error) {
+        console.error('Error loading products for combo:', error);
+        document.getElementById('enhanced-products-list').innerHTML = `
+            <tr><td colspan="3" class="text-center text-danger">Error loading products: ${error.message}</td></tr>
+        `;
+>>>>>>> post
         showNotification('Failed to load products for combo creation', 'error');
     }
 }
@@ -303,11 +318,18 @@ function initializeEnhancedComboModalHandlers() {
     if (clearSearchBtn) {
         clearSearchBtn.addEventListener('click', () => {
             document.getElementById('product-search').value = '';
+<<<<<<< HEAD
             filterProducts('');
+=======
+            document.getElementById('price-filter-min').value = '';
+            document.getElementById('price-filter-max').value = '';
+            filterProducts();
+>>>>>>> post
         });
     }
     
     // Price filter handlers
+<<<<<<< HEAD
     const priceFilterMin = document.getElementById('price-filter-min');
     const priceFilterMax = document.getElementById('price-filter-max');
     if (priceFilterMin && priceFilterMax) {
@@ -319,6 +341,18 @@ function initializeEnhancedComboModalHandlers() {
     }
     
     // Select all products handler
+=======
+    const minPriceFilter = document.getElementById('price-filter-min');
+    const maxPriceFilter = document.getElementById('price-filter-max');
+    if (minPriceFilter) {
+        minPriceFilter.addEventListener('input', () => filterProducts());
+    }
+    if (maxPriceFilter) {
+        maxPriceFilter.addEventListener('input', () => filterProducts());
+    }
+    
+    // Select all handler
+>>>>>>> post
     const selectAllCheckbox = document.getElementById('select-all-products');
     if (selectAllCheckbox) {
         selectAllCheckbox.addEventListener('change', (e) => {
@@ -358,6 +392,7 @@ function initializeEnhancedComboModalHandlers() {
  * Filter products based on search and price criteria
  */
 function filterProducts(searchTerm = null) {
+<<<<<<< HEAD
     const searchText = searchTerm !== null ? searchTerm : document.getElementById('product-search').value.toLowerCase();
     const minPrice = parseFloat(document.getElementById('price-filter-min').value) || 0;
     const maxPrice = parseFloat(document.getElementById('price-filter-max').value) || Number.MAX_SAFE_INTEGER;
@@ -370,10 +405,24 @@ function filterProducts(searchTerm = null) {
         const productPrice = parseFloat(row.dataset.productPrice) || 0;
         
         const matchesSearch = !searchText || productName.includes(searchText);
+=======
+    const search = searchTerm || document.getElementById('product-search').value.toLowerCase();
+    const minPrice = parseFloat(document.getElementById('price-filter-min').value) || 0;
+    const maxPrice = parseFloat(document.getElementById('price-filter-max').value) || Infinity;
+    
+    const productRows = document.querySelectorAll('#enhanced-products-list tr[data-product-id]');
+    
+    productRows.forEach(row => {
+        const productName = row.querySelector('.fw-semibold').textContent.toLowerCase();
+        const productPrice = parseFloat(row.dataset.productPrice) || 0;
+        
+        const matchesSearch = !search || productName.includes(search);
+>>>>>>> post
         const matchesPrice = productPrice >= minPrice && productPrice <= maxPrice;
         
         if (matchesSearch && matchesPrice) {
             row.style.display = '';
+<<<<<<< HEAD
             visibleCount++;
         } else {
             row.style.display = 'none';
@@ -382,15 +431,33 @@ function filterProducts(searchTerm = null) {
     
     // Update select all checkbox state
     updateSelectAllCheckboxState();
+=======
+        } else {
+            row.style.display = 'none';
+            // Uncheck hidden products
+            const checkbox = row.querySelector('.product-checkbox');
+            if (checkbox) checkbox.checked = false;
+        }
+    });
+    
+    updateSelectedProductsCount();
+    updateSelectAllCheckboxState();
+    validateComboForm();
+>>>>>>> post
 }
 
 /**
  * Update the selected products count
  */
 function updateSelectedProductsCount() {
+<<<<<<< HEAD
     const selectedCheckboxes = document.querySelectorAll('#enhanced-products-list .product-checkbox:checked');
     const count = selectedCheckboxes.length;
     document.getElementById('selected-products-count').textContent = `${count} selected`;
+=======
+    const selectedCount = document.querySelectorAll('#enhanced-products-list .product-checkbox:checked').length;
+    document.getElementById('selected-products-count').textContent = `${selectedCount} selected`;
+>>>>>>> post
 }
 
 /**
@@ -402,6 +469,7 @@ function updateSelectAllCheckboxState() {
     const checkedVisibleCheckboxes = document.querySelectorAll('#enhanced-products-list .product-checkbox:checked:not([style*="display: none"])');
     
     if (visibleCheckboxes.length === 0) {
+<<<<<<< HEAD
         selectAllCheckbox.checked = false;
         selectAllCheckbox.indeterminate = false;
     } else if (checkedVisibleCheckboxes.length === visibleCheckboxes.length) {
@@ -413,6 +481,19 @@ function updateSelectAllCheckboxState() {
     } else {
         selectAllCheckbox.checked = false;
         selectAllCheckbox.indeterminate = false;
+=======
+        selectAllCheckbox.indeterminate = false;
+        selectAllCheckbox.checked = false;
+    } else if (checkedVisibleCheckboxes.length === visibleCheckboxes.length) {
+        selectAllCheckbox.indeterminate = false;
+        selectAllCheckbox.checked = true;
+    } else if (checkedVisibleCheckboxes.length > 0) {
+        selectAllCheckbox.indeterminate = true;
+        selectAllCheckbox.checked = false;
+    } else {
+        selectAllCheckbox.indeterminate = false;
+        selectAllCheckbox.checked = false;
+>>>>>>> post
     }
 }
 
@@ -589,7 +670,11 @@ async function handleCreateCombo() {
         console.log('Creating combo with payload:', payload);
         
         // Make API call to create combo (we'll need to implement this endpoint)
+<<<<<<< HEAD
         const response = await fetchWithAuth(`/api/admin/users/${currentComboUserId}/drive/add-combo`, {
+=======
+        const response = await fetchWithAuth(`/api/admin/drive-management/users/${currentComboUserId}/drive/add-combo`, {
+>>>>>>> post
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
@@ -624,11 +709,18 @@ async function handleCreateCombo() {
  * Helper function to get status badge color
  */
 function getStatusBadgeColor(status) {
+<<<<<<< HEAD
     switch (status?.toLowerCase()) {
         case 'completed': return 'success';
         case 'active': case 'in_progress': return 'primary';
         case 'pending': return 'secondary';
         case 'failed': case 'error': return 'danger';
+=======
+    switch (status?.toUpperCase()) {
+        case 'COMPLETED': return 'success';
+        case 'CURRENT': return 'primary';
+        case 'PENDING': return 'secondary';
+>>>>>>> post
         default: return 'secondary';
     }
 }
@@ -649,4 +741,7 @@ if (document.readyState === 'loading') {
 window.showEnhancedComboCreationModal = showEnhancedComboCreationModal;
 window.loadProductsForCombo = loadProductsForCombo;
 window.resetEnhancedComboForm = resetEnhancedComboForm;
+<<<<<<< HEAD
 window.updateSelectedProductsCount = updateSelectedProductsCount;
+=======
+>>>>>>> post

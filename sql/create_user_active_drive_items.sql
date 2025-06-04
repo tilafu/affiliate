@@ -21,6 +21,8 @@ CREATE TABLE user_active_drive_items (
     user_status VARCHAR(10) DEFAULT 'PENDING' NOT NULL, -- Changed from ENUM
     
     task_type VARCHAR(50) DEFAULT 'order',
+
+    drive_task_set_id_override INT NULL, -- For linking to a specific combo drive_task_set
     
     -- Timestamps
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -32,6 +34,7 @@ CREATE TABLE user_active_drive_items (
     FOREIGN KEY (product_id_2) REFERENCES products(id) ON DELETE RESTRICT,
     FOREIGN KEY (product_id_3) REFERENCES products(id) ON DELETE RESTRICT,
     FOREIGN KEY (drive_session_id) REFERENCES drive_sessions(id) ON DELETE CASCADE,
+    FOREIGN KEY (drive_task_set_id_override) REFERENCES drive_task_sets(id) ON DELETE SET NULL, -- Added FK for override
     
     -- Constraints and Indexes
     CONSTRAINT chk_user_status CHECK (user_status IN ('PENDING', 'CURRENT', 'COMPLETED', 'SKIPPED', 'FAILED'))
@@ -50,7 +53,8 @@ COMMENT ON COLUMN user_active_drive_items.product_id_2 IS 'Optional second produ
 COMMENT ON COLUMN user_active_drive_items.product_id_3 IS 'Optional third product for a combo';
 COMMENT ON COLUMN user_active_drive_items.order_in_drive IS 'The sequence number of this item in the user\'s active drive';
 COMMENT ON COLUMN user_active_drive_items.user_status IS 'Status of this specific item for the user (e.g., PENDING, CURRENT, COMPLETED, SKIPPED, FAILED)';
-COMMENT ON COLUMN user_active_drive_items.task_type IS 'Type of task, e.g., \'order\', \'survey\'';
+COMMENT ON COLUMN user_active_drive_items.task_type IS 'Type of task, e.g., \\'order\\', \\'survey\\'';
+COMMENT ON COLUMN user_active_drive_items.drive_task_set_id_override IS 'FK to drive_task_sets.id, used when this item represents a user-specific combo or overridden task set.';
 
 -- Trigger function to update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()

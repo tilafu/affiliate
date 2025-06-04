@@ -878,23 +878,50 @@ const saveOrder = async (req, res) => {
             throw new Error('User main account not found');
         }
         const account = accountResult.rows[0];
-        const currentBalance = parseFloat(account.balance);
-
-        if (currentBalance < itemTotalPrice) {
-            const frozenAmountNeeded = (itemTotalPrice - currentBalance).toFixed(2);            await client.query(
+        const currentBalance = parseFloat(account.balance);        if (currentBalance < itemTotalPrice) {
+            // Freeze the user's current balance (not the deficit or total needed)
+            const frozenBalance = currentBalance.toFixed(2);
+            const amountNeeded = (itemTotalPrice - currentBalance).toFixed(2);            await client.query(
                 "UPDATE drive_sessions SET status = 'frozen', frozen_amount_needed = $1 WHERE id = $2",
-                [frozenAmountNeeded, driveSessionId]
+                [frozenBalance, driveSessionId]
             );
-            // Also mark the current item as PENDING or FAILED_BALANCE? For now, session freeze handles it.
+            // Mark the current item as PENDING since balance is insufficient
             await client.query("UPDATE user_active_drive_items SET user_status = 'PENDING', updated_at = NOW() WHERE id = $1", [parsedUserActiveDriveItemId]);
+
+            // Create notification for admin when user balance is frozen
+            try {
+                await client.query(
+                    `INSERT INTO admin_notifications (type, title, message, data, created_at)
+                     VALUES ($1, $2, $3, $4, NOW())`,
+                    [
+                        'balance_frozen',
+                        'User Balance Frozen - Requires Manual Intervention',
+                        `User ${userId} balance has been frozen at ${frozenBalance} USDT. They need ${amountNeeded} USDT more to continue their drive. User must top up externally and admin must manually unfreeze.`,
+                        JSON.stringify({ 
+                            userId, 
+                            driveSessionId,
+                            frozenBalance: frozenBalance,
+                            currentBalance: frozenBalance,
+                            amountNeeded: amountNeeded,
+                            itemTotalPrice: itemTotalPrice.toFixed(2),
+                            freezeReason: 'insufficient_balance'
+                        })
+                    ]
+                );
+            } catch (notificationError) {
+                // Log error but don't fail the transaction
+                console.error('Failed to create admin notification for frozen balance:', notificationError);
+            }
 
             await client.query('COMMIT'); client.release();
             return res.status(400).json({
                 code: 3,
-                info: `Insufficient balance. Session frozen. Please deposit at least ${frozenAmountNeeded} USDT to continue.`,
-                frozen_amount_needed: frozenAmountNeeded
+                info: `Insufficient balance. Your current balance of ${frozenBalance} USDT has been frozen. You need ${amountNeeded} USDT more to continue. Please top up externally and contact admin to unfreeze your account.`,
+                frozen_balance: frozenBalance,
+                amount_needed: amountNeeded,
+                status: 'frozen'
             });
-        }        // 4. Calculate commission using tier-based rates
+        }// 4. Calculate commission using tier-based rates
         let calculatedItemCommission;
         if (productsProcessedInItem.length > 1) { // Combo - use merge data rate
             const commissionData = await tierCommissionService.calculateCommissionForUser(userId, itemTotalPrice, true);

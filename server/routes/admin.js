@@ -8,8 +8,10 @@ router.get('/stats', protect, admin, adminController.getDashboardStats);
 
 // User Management
 router.get('/users', protect, admin, adminController.getUsers);
+router.get('/users/frozen', protect, admin, adminController.getFrozenUsers);
 router.put('/users/:userId/tier', protect, admin, adminController.updateUserTier);
 router.post('/users/:userId/transactions', protect, admin, adminController.manualTransaction);
+router.post('/users/:userId/unfreeze', protect, admin, adminController.unfreezeUser);
 
 // Product Management
 router.get('/products', protect, admin, adminController.getProducts);
@@ -40,5 +42,15 @@ router.post('/support/messages/reply', protect, admin, adminController.replyToSu
 
 // Notifications
 router.post('/notifications', protect, admin, adminController.sendNotification);
+
+// Membership Tiers Management
+router.get('/membership-tiers', protect, admin, adminController.getMembershipTiers);
+router.post('/membership-tiers', protect, admin, adminController.createMembershipTier);
+router.put('/membership-tiers/:id', protect, admin, adminController.updateMembershipTier);
+router.delete('/membership-tiers/:id', protect, admin, adminController.deleteMembershipTier);
+
+// Tier Quantity Configuration Management
+router.get('/tier-quantity-configs', protect, admin, adminController.getTierQuantityConfigs);
+router.put('/tier-quantity-configs/:id', protect, admin, adminController.updateTierQuantityConfig);
 
 module.exports = router;

@@ -32,18 +32,19 @@ window.viewDriveDetails = viewDriveDetails; // Make it globally accessible
 // Add polling interval reference
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Check authentication
-    const token = localStorage.getItem('auth_token');
-    const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
-
-    if (!token || !userData || userData.role !== 'admin') {
-        showNotification('Not authorized as admin. Redirecting...', 'error');
-        window.location.href = 'login.html';
-        return;
+    // Use centralized authentication check for admin
+    const authData = requireAuth(true); // true for admin required
+    if (!authData) {
+        return; // requireAuth will handle redirect
     }
-
+    
     // Initialize sidebar navigation
     initializeSidebar();
+    
+    // Attach centralized logout handlers if available
+    if (typeof attachLogoutHandlers === 'function') {
+        attachLogoutHandlers();
+    }
     
     // Load initial section
     loadSection('dashboard');
@@ -58,6 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
         console.error('DriveModuleAPI or its initDependencies function is not available. Ensure admin-drives.js is loaded as a module and exports correctly.');
     }
+<<<<<<< HEAD
     
     // Initialize Enhanced Combo Creation module dependencies
     if (window.initEnhancedComboCreationDependencies && typeof window.initEnhancedComboCreationDependencies === 'function') {
@@ -65,6 +67,15 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('Enhanced combo creation dependencies initialized successfully.');
     } else {
         console.error('Enhanced combo creation initialization function not available. Ensure enhanced-combo-creation.js is loaded.');
+=======
+
+    // Initialize Enhanced Combo Creation dependencies
+    if (typeof window.initEnhancedComboCreationDependencies === 'function') {
+        window.initEnhancedComboCreationDependencies({ fetchWithAuth, showNotification });
+        console.log('Enhanced combo creation dependencies initialized');
+    } else {
+        console.warn('Enhanced combo creation module not available or not properly loaded');
+>>>>>>> post
     }
 });
 
@@ -191,21 +202,41 @@ function initializeSidebar() {
             e.preventDefault();
             loadSection(e.target.dataset.section);
         });
-    });
-
-    // Mobile menu toggle
+    });    // Mobile menu toggle
     document.querySelector('.navbar-btn')?.addEventListener('click', () => {
         document.querySelector('.main-sidebar').classList.toggle('active');
         document.querySelector('.bg-overlay').classList.toggle('active');
     });
 
     // Handle logout
-    document.getElementById('logout-button').addEventListener('click', (e) => {
-        e.preventDefault();
-        localStorage.removeItem('auth_token');
-        localStorage.removeItem('user_data');
-        window.location.href = 'login.html';
-    });
+    const logoutButton = document.getElementById('logout-button');
+    if (logoutButton) {
+        logoutButton.addEventListener('click', (e) => {
+            e.preventDefault();            console.log('Admin logout clicked');
+            
+            // Preserve drive session data before clearing localStorage
+            const driveSessionData = localStorage.getItem('current_drive_session');
+            
+            // Clear authentication data
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('user_data');
+            
+            // Restore drive session data after clearing auth data
+            if (driveSessionData) {
+                localStorage.setItem('current_drive_session', driveSessionData);
+            }
+            
+            // Show logout notification if available
+            if (typeof showNotification === 'function') {
+                showNotification('Logged out successfully', 'success');
+            }
+            
+            // Redirect to login page
+            window.location.href = 'login.html';
+        });
+    } else {
+        console.error('Logout button not found');
+    }
 }
 
 function loadSection(sectionName) {
@@ -230,9 +261,11 @@ function loadSection(sectionName) {
     switch (sectionName) {
         case 'dashboard':
             loadDashboardStats();
-            break;
-        case 'users':
+            break;        case 'users':
             loadUsers();
+            break;
+        case 'frozen-users':
+            loadFrozenUsers();
             break;
         case 'deposits':
             loadDeposits();
@@ -301,33 +334,170 @@ async function loadDashboardStats() {
 // Users Management
 async function loadUsers() {
     try {
-        const response = await fetchWithAuth('/admin/users');
-        if (response.success) {
-            const usersList = document.getElementById('users-list');
-            usersList.innerHTML = response.users.map(user => `
-                <tr>
-                    <td>${user.id}</td>
-                    <td>${user.username}</td>
-                    <td>${user.email}</td>
-                    <td>${user.tier}</td>
-                    <td>${user.role}</td>
-                    <td>$${user.balance}</td>
-                    <td>
-                        <button class="btn btn-sm btn-primary manage-user-btn" 
-                                data-user-id="${user.id}" 
-                                data-username="${user.username}"
-                                data-tier="${user.tier}"
-                                data-assigned-config-id="${user.assigned_drive_configuration_id || ''}"
-                                data-assigned-config-name="${user.assigned_drive_configuration_name || 'N/A'}">
-                            Manage
-                        </button>
-                    </td>
-                </tr>
-            `).join('');
+        const data = await fetchWithAuth('/admin/users'); // Uses GET by default
+
+        // fetchWithAuth throws an error for non-ok responses,
+        // so we can assume 'data' is present if we reach here.
+        // It also parses JSON, so 'data' is the parsed response.
+
+        // The previous implementation checked data.success.
+        // Assuming the API returns { success: true, users: [...] } or { success: false, message: "..." }
+        // If fetchWithAuth returns the parsed body directly, and the body itself indicates success/failure:
+        if (data && data.users) { // Assuming successful response has a users array. Adjust if API structure is different.
+            const usersList = $('#users-list');
+            usersList.empty(); // Clear previous entries
+
+            if (data.users.length === 0) {
+                usersList.append('<tr><td colspan="6" class="text-center">No users found.</td></tr>');
+            } else {
+                data.users.forEach(user => {
+                    const userRow = `
+                        <tr>
+                            <td>${user.id}</td>
+                            <td>${user.username}</td>
+                            <td>${user.email}</td>
+                            <td>${user.tier || 'N/A'}</td>
+                            <td>${user.main_balance !== undefined ? parseFloat(user.main_balance).toFixed(2) : 'N/A'}</td>
+                            <td>
+                                <button class="btn btn-sm btn-primary manage-user-btn" data-user-id="${user.id}" data-bs-toggle="modal" data-bs-target="#manageUserModal">Manage</button>
+                            </td>
+                        </tr>
+                    `;
+                    usersList.append(userRow);
+                });
+            }
+            // Re-attach event listeners for manage buttons if needed, or ensure event delegation is used.
+            // If not using event delegation, this might be a place to call a function that sets up listeners on .manage-user-btn
+        } else {
+            // If 'data.users' is not present, it implies an issue or a different response structure.
+            // The old code checked 'data.success'. If your API returns { success: false, message: '...' }
+            // then fetchWithAuth would have returned that object.
+            const errorMessage = data && data.message ? data.message : 'Failed to load users or no users data received.';
+            showAlert(errorMessage, 'danger');
+            // Clear the list if data is not as expected
+            const usersList = $('#users-list');
+            usersList.empty();
+            usersList.append('<tr><td colspan="6" class="text-center">' + errorMessage + '</td></tr>');
         }
+
     } catch (error) {
         console.error('Error loading users:', error);
-        showNotification('Failed to load users', 'error');
+        let errorMessage = 'An error occurred while loading users.';
+        if (error.data && error.data.message) {
+            errorMessage = error.data.message;
+        } else if (error.message) {
+            errorMessage = error.message;
+        }
+
+        showAlert(errorMessage, 'danger');
+
+        // fetchWithAuth throws an error object that includes 'status'
+        if (error.status === 401 || error.status === 403) {
+            // Preserve drive session data before clearing localStorage
+            const driveSessionData = localStorage.getItem('current_drive_session');
+            
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('user_data'); // Also clear user_data
+            
+            // Restore drive session data after clearing auth data
+            if (driveSessionData) {
+                localStorage.setItem('current_drive_session', driveSessionData);
+            }
+            
+            window.location.href = 'login.html';
+        }    }
+}
+
+// Frozen Users Management
+async function loadFrozenUsers() {
+    try {
+        const response = await fetchWithAuth('/admin/users/frozen');
+        if (response.success) {
+            const frozenUsersList = document.getElementById('frozen-users-list');
+            if (frozenUsersList) {
+                if (response.users && response.users.length > 0) {
+                    frozenUsersList.innerHTML = response.users.map(user => `
+                        <tr>
+                            <td>${user.id}</td>
+                            <td>${user.username}</td>
+                            <td>${user.email}</td>
+                            <td>$${parseFloat(user.main_balance || 0).toFixed(2)}</td>
+                            <td>${user.frozen_sessions_count || 0}</td>
+                            <td>${user.last_frozen ? new Date(user.last_frozen).toLocaleDateString() : 'N/A'}</td>
+                            <td>
+                                <button class="btn btn-sm btn-success unfreeze-user-btn" 
+                                        data-user-id="${user.id}" 
+                                        data-username="${user.username}">
+                                    <i class="fas fa-unlock"></i> Unfreeze
+                                </button>
+                            </td>
+                        </tr>
+                    `).join('');
+                } else {
+                    frozenUsersList.innerHTML = '<tr><td colspan="7" class="text-center text-muted">No frozen users found.</td></tr>';
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Error loading frozen users:', error);
+        const frozenUsersList = document.getElementById('frozen-users-list');
+        if (frozenUsersList) {
+            frozenUsersList.innerHTML = '<tr><td colspan="7" class="text-center text-danger">Failed to load frozen users.</td></tr>';
+        }
+        
+        let errorMessage = 'Failed to load frozen users.';
+        if (error.data && error.data.message) {
+            errorMessage = error.data.message;
+        } else if (error.message) {
+            errorMessage = error.message;
+        }
+        
+        showNotification(errorMessage, 'error');
+        
+        if (error.status === 401 || error.status === 403) {
+            // Preserve drive session data before clearing localStorage
+            const driveSessionData = localStorage.getItem('current_drive_session');
+            
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('user_data');
+            
+            // Restore drive session data after clearing auth data
+            if (driveSessionData) {
+                localStorage.setItem('current_drive_session', driveSessionData);
+            }
+            
+            window.location.href = 'login.html';
+        }
+    }
+}
+
+// Function to unfreeze a user account
+async function unfreezeUser(userId, username) {
+    if (!confirm(`Are you sure you want to unfreeze the account for user "${username}"? This will reactivate their frozen drive sessions.`)) {
+        return;
+    }
+    
+    try {
+        const response = await fetchWithAuth(`/admin/users/${userId}/unfreeze`, {
+            method: 'POST'
+        });
+        
+        if (response.success) {
+            showNotification(`Successfully unfroze account for user "${username}".`, 'success');
+            // Reload the frozen users list to reflect changes
+            loadFrozenUsers();
+        }
+    } catch (error) {
+        console.error('Error unfreezing user:', error);
+        
+        let errorMessage = `Failed to unfreeze account for user "${username}".`;
+        if (error.data && error.data.message) {
+            errorMessage = error.data.message;
+        } else if (error.message) {
+            errorMessage = error.message;
+        }
+        
+        showNotification(errorMessage, 'error');
     }
 }
 
@@ -796,11 +966,13 @@ function initializeHandlers() {
             const currentTier = target.dataset.tier;
             const assignedConfigId = target.dataset.assignedConfigId;
             const assignedConfigName = target.dataset.assignedConfigName;
+            const userBalance = target.dataset.userBalance; // Get balance from data attribute
             
             const userDetails = document.getElementById('user-details');
             document.getElementById('manage-username').textContent = username;
             document.getElementById('manage-user-id').textContent = userId; // This is a hidden input or span to store the ID
             document.getElementById('user-tier-select').value = currentTier;
+            document.getElementById('manage-user-balance').textContent = userBalance !== undefined ? parseFloat(userBalance).toFixed(2) : 'N/A'; // Populate balance
             
             // Populate drive configuration dropdown
             await populateDriveConfigurationDropdown(assignedConfigId, assignedConfigName);
@@ -833,9 +1005,16 @@ function initializeHandlers() {
                 } else {
                     throw new Error(response.message || 'Failed to assign drive configuration.');
                 }
-            } catch (error) {
-                console.error('Error assigning drive configuration:', error);
+            } catch (error) {                console.error('Error assigning drive configuration:', error);
                 showNotification(error.message || 'Error assigning drive configuration', 'error');
+            }
+        }
+        // Unfreeze User Button
+        else if (target.matches('.unfreeze-user-btn')) {
+            const userId = target.dataset.userId;
+            const username = target.dataset.username;
+            if (userId && username) {
+                await unfreezeUser(userId, username);
             }
         }
     });
@@ -1072,6 +1251,72 @@ function initializeHandlers() {
     window.addEventListener('beforeunload', () => {
         clearInterval(driveUpdateInterval);
     });
+
+    // Event listener for the manual transaction button
+    $(document).on('click', '#manual-transaction-button', async function() {
+        const userId = $('#manage-user-id').text();
+        const type = $('#manual-transaction-type').val();
+        const amount = parseFloat($('#manual-transaction-amount').val());
+        const description = $('#manual-transaction-description').val().trim();
+
+        if (!userId) {
+            showAlert('User ID not found. Please select a user to manage first.', 'danger');
+            return;
+        }
+
+        if (isNaN(amount) || amount <= 0) {
+            showAlert('Please enter a valid positive amount.', 'danger');
+            return;
+        }
+
+        const token = localStorage.getItem('token');
+        if (!token) {
+            showAlert('Authentication error. Please log in again.', 'danger');
+            window.location.href = 'login.html';
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/admin/users/${userId}/transactions`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ type, amount, description })
+            });
+
+            const result = await response.json();
+
+            if (response.ok && result.success) {
+                showAlert(`Balance adjusted successfully for user ${userId}. New balance: ${result.newBalance || 'N/A'}.`, 'success');
+                // Clear input fields
+                $('#manual-transaction-amount').val('');
+                $('#manual-transaction-description').val('');
+                // Refresh user list to show updated balance
+                loadUsers(); 
+                // Optionally, re-select the current user if needed or close/reset the manage section
+                // For now, just clear and refresh
+            } else {
+                showAlert(result.message || 'Failed to adjust balance.', 'danger');
+            }
+        } catch (error) {
+            console.error('Error adjusting balance:', error);
+            showAlert('An error occurred while adjusting balance. Check console for details.', 'danger');
+        }
+    });
+}
+
+// Helper function to display alerts
+function showAlert(message, type = 'info') {
+    const alertsContainer = $('#alerts-container');
+    const alertHtml = `
+        <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    `;
+    alertsContainer.html(alertHtml); // Replace previous alert if any, or use .append() to stack them
 }
 
 // Initial load for the default or active section

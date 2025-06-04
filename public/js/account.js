@@ -1,13 +1,8 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const token = localStorage.getItem('auth_token');
-
-    if (!token) {
-        console.error('Authentication token not found. Redirecting to login.');
-        if (typeof showNotification === 'function') {
-            showNotification('Authentication token not found. Redirecting to login.', 'error');
-        }
-        window.location.href = 'login.html';
-        return;
+    // Use centralized authentication check
+    const authData = requireAuth();
+    if (!authData) {
+        return; // requireAuth will handle redirect
     }
 
     // API Endpoints

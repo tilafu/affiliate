@@ -3,9 +3,11 @@
 <head>    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Panel</title>
-    
-    <!-- Bootstrap CSS -->
+      <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="./assets/css/bootstrap.min.css">
+    
+    <!-- Font Awesome CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     
     <!-- jQuery UI CSS -->
     <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
@@ -107,12 +109,12 @@
         <div class="px-3 mb-4">
             <h4>Admin Panel</h4>
         </div>
-        <nav class="nav flex-column">
-            <div class="has-submenu">
+        <nav class="nav flex-column">            <div class="has-submenu">
                 <a href="#" class="nav-link">General</a>
                 <div class="sub-menu">
                     <a href="#" class="nav-link" data-section="dashboard">Dashboard</a>
                     <a href="#" class="nav-link" data-section="users">User Management</a>
+                    <a href="#" class="nav-link" data-section="frozen-users">Frozen Users</a>
                 </div>
             </div>
             <div class="has-submenu">
@@ -131,7 +133,7 @@
                 </div>
             </div>
             <a href="#" class="nav-link" data-section="support">Support Messages</a>
-            <a href="#" class="nav-link mt-4" id="logout-button">Logout</a>
+            <a href="#" class="nav-link logout mt-4" id="logout-button">Logout</a>
         </nav>
     </div>
 
@@ -197,33 +199,125 @@
             </div>
 
             <!-- User Details Modal -->
-    <div id="user-details" class="card mt-3" style="display: none;">
-        <div class="card-body">
-            <h5>Manage User: <span id="manage-username"></span></h5>
-            <p class="mb-2">User ID: <span id="manage-user-id"></span></p>
-            <div class="form-group">
-                <label for="user-tier-select">Change Tier:</label>
-                        <select id="user-tier-select" class="form-control">
-                            <option value="bronze">Bronze</option>
-                            <option value="silver">Silver</option>
-                            <option value="gold">Gold</option>
-                            <option value="platinum">Platinum</option>
-                        </select>
-                    </div>
-                    <button id="update-tier-button" class="btn btn-primary mt-3 mb-3">Update Tier</button> <!-- Added mb-3 for spacing -->
+    <div id="user-details" class="mt-3" style="display: none;"> <!-- Removed card class from here -->
+        <h5>Manage User: <span id="manage-username"></span></h5>
+        <p class="mb-1">User ID: <span id="manage-user-id"></span></p>
+        <p class="mb-3">Current Balance: <strong id="manage-user-balance">N/A</strong></p> <!-- Added to display balance in manage section -->
 
-                    <hr> <!-- Separator -->
-
-                    <div class="form-group mt-3"> <!-- Added mt-3 for spacing -->
-                        <label for="user-drive-config-select">Assign Drive Configuration:</label>
-                        <select id="user-drive-config-select" class="form-control">
-                            <!-- Options will be populated by JavaScript -->
-                            <option value="">None</option> 
-                        </select>
-                        <small id="current-assigned-config" class="form-text text-muted"></small> <!-- To show current assignment -->
-                    </div>
-                    <button id="assign-drive-config-button" class="btn btn-success mt-3">Assign Configuration</button>
+        <div class="accordion" id="manageUserAccordion">
+            <!-- Card 1: Update Tier -->
+            <div class="card">
+                <div class="card-header" id="headingOne">
+                    <h2 class="mb-0">
+                        <button class="btn btn-link btn-block text-left" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
+                            Update Tier
+                        </button>
+                    </h2>
                 </div>
+                <div id="collapseOne" class="collapse" aria-labelledby="headingOne" data-bs-parent="#manageUserAccordion">
+                    <div class="card-body">
+                        <div class="form-group">
+                            <label for="user-tier-select">Change Tier:</label>
+                            <select id="user-tier-select" class="form-control">
+                                <option value="bronze">Bronze</option>
+                                <option value="silver">Silver</option>
+                                <option value="gold">Gold</option>
+                                <option value="platinum">Platinum</option>
+                            </select>
+                        </div>
+                        <button id="update-tier-button" class="btn btn-primary mt-3">Update Tier</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 2: Assign Drive Configuration -->
+            <div class="card">
+                <div class="card-header" id="headingTwo">
+                    <h2 class="mb-0">
+                        <button class="btn btn-link btn-block text-left collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
+                            Assign Drive Configuration
+                        </button>
+                    </h2>
+                </div>
+                <div id="collapseTwo" class="collapse" aria-labelledby="headingTwo" data-bs-parent="#manageUserAccordion">
+                    <div class="card-body">
+                        <div class="form-group">
+                            <label for="user-drive-config-select">Assign Drive Configuration:</label>
+                            <select id="user-drive-config-select" class="form-control">
+                                <!-- Options will be populated by JavaScript -->
+                                <option value="">None</option> 
+                            </select>
+                            <small id="current-assigned-config" class="form-text text-muted"></small> <!-- To show current assignment -->
+                        </div>
+                        <button id="assign-drive-config-button" class="btn btn-success mt-3">Assign Configuration</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 3: Adjust Balance -->
+            <div class="card">
+                <div class="card-header" id="headingThree">
+                    <h2 class="mb-0">
+                        <button class="btn btn-link btn-block text-left collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree">
+                            Adjust Balance
+                        </button>
+                    </h2>
+                </div>
+                <div id="collapseThree" class="collapse" aria-labelledby="headingThree" data-bs-parent="#manageUserAccordion">
+                    <div class="card-body">
+                        <h6 class="mt-1">Manual Balance Adjustment:</h6>
+                        <div class="form-group mt-2">
+                            <label for="manual-transaction-type">Transaction Type:</label>
+                            <select id="manual-transaction-type" class="form-control">
+                                <option value="deposit">Deposit</option>
+                                <option value="withdrawal">Withdrawal</option>
+                            </select>
+                        </div>
+                        <div class="form-group mt-2">
+                            <label for="manual-transaction-amount">Amount:</label>
+                            <input type="number" id="manual-transaction-amount" class="form-control" placeholder="Enter amount" step="0.01" min="0.01">
+                        </div>
+                        <div class="form-group mt-2">
+                            <label for="manual-transaction-description">Description (Optional):</label>
+                            <input type="text" id="manual-transaction-description" class="form-control" placeholder="E.g., Bonus, Correction">
+                        </div>
+                        <button id="manual-transaction-button" class="btn btn-warning mt-3">Adjust Balance</button>
+                    </div>
+                </div>
+            </div>
+        </div>    </div>
+</section>
+
+        <!-- Frozen Users Section -->
+        <section id="frozen-users-section" class="section" style="display: none;">
+            <h2>Frozen Users Management</h2>
+            <p class="text-muted mb-4">Users whose accounts have been frozen due to insufficient balance during drive operations.</p>
+            
+            <div class="mb-3">
+                <button class="btn btn-primary" onclick="loadFrozenUsers()">
+                    <i class="fas fa-sync-alt"></i> Refresh List
+                </button>
+            </div>
+            
+            <div class="table-responsive mt-4">
+                <table class="table table-striped">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>User ID</th>
+                            <th>Username</th>
+                            <th>Email</th>
+                            <th>Current Balance</th>
+                            <th>Frozen Sessions</th>
+                            <th>Last Frozen</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="frozen-users-list">
+                        <tr>
+                            <td colspan="7" class="text-center">Loading frozen users...</td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
         </section>
 
@@ -448,11 +542,21 @@
     </div>
 
     <!-- Background Overlay for Mobile -->
+<<<<<<< HEAD
     <div class="bg-overlay"></div>    <!-- Scripts -->
     <script src="./assets/js/jquery.min.js"></script>
     <script src="./assets/js/bootstrap.bundle.min.js"></script>    <script type="module" src="./js/admin.js"></script>
     <script type="module" src="./js/admin-drives.js"></script> <!-- Ensure admin-drives.js is loaded as a module if not already -->
     <script type="module" src="./js/enhanced-combo-creation.js"></script> <!-- Enhanced combo creation functionality -->
+=======
+    <div class="bg-overlay"></div>    <!-- Scripts -->    <script src="./assets/js/jquery.min.js"></script>
+    <script src="./assets/js/bootstrap.bundle.min.js"></script>    <script src="./js/main.js"></script>
+    <script src="./js/auth.js"></script> <!-- Add centralized logout handling -->
+    <script src="./js/auth-check.js"></script> <!-- Centralized authentication -->
+    <script type="module" src="./js/admin.js"></script>
+    <script type="module" src="./js/admin-drives.js"></script> <!-- Ensure admin-drives.js is loaded as a module if not already -->
+    <script type="module" src="./js/enhanced-combo-creation.js"></script>
+>>>>>>> post
 
     <!-- Modal for User Drive Progress -->
 <div class="modal fade" id="userDriveProgressModal" tabindex="-1" aria-labelledby="userDriveProgressModalLabel" aria-hidden="true">
@@ -493,7 +597,15 @@
                     </tbody>
                 </table>
             </div>
+<<<<<<< HEAD
         </div>      </div>      <div class="modal-footer">
+=======
+        </div>      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" id="create-combo-from-progress-btn" style="display: none;">
+          <i class="fas fa-plus me-2"></i>Create Combo
+        </button>
+>>>>>>> post
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
       </div>
     </div>  </div>
@@ -501,6 +613,7 @@
 
 <!-- Enhanced Combo Creation Modal -->
 <div class="modal fade" id="enhancedComboCreationModal" tabindex="-1" aria-labelledby="enhancedComboCreationModalLabel" aria-hidden="true">
+<<<<<<< HEAD
   <div class="modal-dialog modal-xl">
     <div class="modal-content">
       <div class="modal-header">
@@ -539,6 +652,46 @@
                   <div class="progress mb-2">
                     <div id="combo-progress-bar" class="progress-bar bg-info" role="progressbar" style="width: 0%"></div>
                   </div>
+=======
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title" id="enhancedComboCreationModalLabel">
+          <i class="fas fa-magic me-2"></i>Create Combo for User
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <!-- User Progress Section -->
+        <div class="card mb-4">
+          <div class="card-header">
+            <h6 class="mb-0"><i class="fas fa-user me-2"></i>User Progress Overview</h6>
+          </div>
+          <div class="card-body">
+            <div id="user-progress-loading" style="display: none;">
+              <div class="text-center">
+                <div class="spinner-border" role="status">
+                  <span class="visually-hidden">Loading...</span>
+                </div>
+                <p>Loading user progress...</p>
+              </div>
+            </div>
+            <div id="user-progress-content" style="display: none;">
+              <div class="row">
+                <div class="col-md-6">
+                  <p><strong>User:</strong> <span id="combo-user-info"></span></p>
+                  <p><strong>Drive Configuration:</strong> <span id="combo-drive-config"></span></p>
+                  <p><strong>Current Task:</strong> <span id="combo-current-task"></span></p>
+                </div>
+                <div class="col-md-6">
+                  <p><strong>Progress:</strong> <span id="combo-progress-summary"></span></p>
+                  <div class="progress mb-2">
+                    <div class="progress-bar" role="progressbar" id="combo-progress-bar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+                  </div>
+                  <button class="btn btn-sm btn-outline-secondary" id="refresh-progress-btn">
+                    <i class="fas fa-sync-alt me-1"></i>Refresh
+                  </button>
+>>>>>>> post
                 </div>
               </div>
             </div>
@@ -552,6 +705,7 @@
             <div class="col-md-6">
               <div class="card">
                 <div class="card-header">
+<<<<<<< HEAD
                   <h6 class="card-title mb-0"><i class="fas fa-box"></i> Combo Details</h6>
                 </div>
                 <div class="card-body">
@@ -565,6 +719,21 @@
                   </div>
                   <div class="mb-3">
                     <label for="insertion-point" class="form-label">Insert Position *</label>
+=======
+                  <h6 class="mb-0"><i class="fas fa-edit me-2"></i>Combo Details</h6>
+                </div>
+                <div class="card-body">
+                  <div class="mb-3">
+                    <label for="combo-name" class="form-label">Combo Name <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="combo-name" required placeholder="Enter combo name">
+                  </div>
+                  <div class="mb-3">
+                    <label for="combo-description" class="form-label">Description</label>
+                    <textarea class="form-control" id="combo-description" rows="3" placeholder="Optional description"></textarea>
+                  </div>
+                  <div class="mb-3">
+                    <label for="insertion-point" class="form-label">Insertion Point <span class="text-danger">*</span></label>
+>>>>>>> post
                     <select class="form-select" id="insertion-point" required>
                       <option value="">Select insertion point...</option>
                       <option value="beginning">At the beginning</option>
@@ -574,8 +743,13 @@
                     </select>
                   </div>
                   <div class="mb-3" id="custom-position-group" style="display: none;">
+<<<<<<< HEAD
                     <label for="custom-position" class="form-label">Custom Position (Order)</label>
                     <input type="number" class="form-control" id="custom-position" min="1" placeholder="Enter position number">
+=======
+                    <label for="custom-position" class="form-label">Custom Position</label>
+                    <input type="number" class="form-control" id="custom-position" min="1" placeholder="Position number">
+>>>>>>> post
                   </div>
                 </div>
               </div>
@@ -584,6 +758,7 @@
             <!-- Right Column: Product Selection -->
             <div class="col-md-6">
               <div class="card">
+<<<<<<< HEAD
                 <div class="card-header">
                   <h6 class="card-title mb-0">
                     <i class="fas fa-shopping-cart"></i> Product Selection
@@ -609,11 +784,43 @@
                     </div>
                   </div>
                   
+=======
+                <div class="card-header d-flex justify-content-between align-items-center">
+                  <h6 class="mb-0"><i class="fas fa-box me-2"></i>Product Selection</h6>
+                  <span class="badge bg-secondary" id="selected-products-count">0 selected</span>
+                </div>
+                <div class="card-body">
+                  <!-- Search and Filters -->
+                  <div class="row mb-3">
+                    <div class="col-md-8">
+                      <input type="text" class="form-control form-control-sm" id="product-search" placeholder="Search products...">
+                    </div>
+                    <div class="col-md-4">
+                      <button type="button" class="btn btn-sm btn-outline-secondary w-100" id="clear-search-btn">Clear</button>
+                    </div>
+                  </div>
+                  <div class="row mb-3">
+                    <div class="col-md-6">
+                      <input type="number" class="form-control form-control-sm" id="price-filter-min" placeholder="Min price" step="0.01">
+                    </div>
+                    <div class="col-md-6">
+                      <input type="number" class="form-control form-control-sm" id="price-filter-max" placeholder="Max price" step="0.01">
+                    </div>
+                  </div>
+                  <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" id="select-all-products">
+                    <label class="form-check-label" for="select-all-products">
+                      Select All Visible
+                    </label>
+                  </div>
+
+>>>>>>> post
                   <!-- Products List -->
                   <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
                     <table class="table table-sm table-hover">
                       <thead class="table-light sticky-top">
                         <tr>
+<<<<<<< HEAD
                           <th width="50">
                             <input type="checkbox" id="select-all-products" class="form-check-input">
                           </th>
@@ -623,6 +830,22 @@
                       </thead>
                       <tbody id="enhanced-products-list">
                         <!-- Products will be loaded here -->
+=======
+                          <th width="50">Select</th>
+                          <th>Product</th>
+                          <th width="80">Price</th>
+                        </tr>
+                      </thead>
+                      <tbody id="enhanced-products-list">
+                        <tr>
+                          <td colspan="3" class="text-center">
+                            <div class="spinner-border spinner-border-sm" role="status">
+                              <span class="visually-hidden">Loading...</span>
+                            </div>
+                            Loading products...
+                          </td>
+                        </tr>
+>>>>>>> post
                       </tbody>
                     </table>
                   </div>
@@ -631,6 +854,7 @@
             </div>
           </div>
 
+<<<<<<< HEAD
           <!-- Task Sequence Preview -->
           <div class="row mt-4">
             <div class="col-12">
@@ -659,6 +883,31 @@
                       </table>
                     </div>
                   </div>
+=======
+          <!-- Sequence Preview -->
+          <div class="card mt-4">
+            <div class="card-header">
+              <h6 class="mb-0"><i class="fas fa-list me-2"></i>Sequence Preview</h6>
+            </div>
+            <div class="card-body">
+              <div id="sequence-preview-loading">
+                <span class="text-muted">Select insertion point to preview sequence...</span>
+              </div>
+              <div id="sequence-preview-content" style="display: none;">
+                <div class="table-responsive">
+                  <table class="table table-sm">
+                    <thead>
+                      <tr>
+                        <th>Order</th>
+                        <th>Task Name</th>
+                        <th>Type</th>
+                        <th>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody id="sequence-preview-list">
+                    </tbody>
+                  </table>
+>>>>>>> post
                 </div>
               </div>
             </div>
@@ -668,7 +917,11 @@
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
         <button type="button" class="btn btn-primary" id="create-combo-btn" disabled>
+<<<<<<< HEAD
           <i class="fas fa-plus"></i> Create Combo
+=======
+          <i class="fas fa-magic me-2"></i>Create Combo
+>>>>>>> post
         </button>
       </div>
     </div>

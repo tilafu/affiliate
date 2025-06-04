@@ -183,8 +183,13 @@
          <div class="card"> <!-- Corrected 'carsd' to 'card' -->
             <div class="card-body"> <!-- Corrected 'card-bsody' to 'card-body' -->
                <div data-v-c26261c6="" class="col-span-1 flex flex-col p-3 bg-[#F6F5F7] mr-3">                  <h4 class="mb-3">Data Drive 
-                     <span style="float: right; font-size: 15px"><a href="./orders.html">
-                        <img src="./assets/uploads/img/4.png" style="margin-right: 2px;" width="20px"> Records <i class="fas fa-angle-right"></i></a>
+                     <span style="float: right; font-size: 15px">
+                        <button id="refresh-drive-button" class="btn btn-outline-primary btn-sm me-2" style="padding: 2px 8px; font-size: 12px;" title="Refresh Drive Data">
+                           <i class="fas fa-sync-alt"></i>
+                        </button>
+                        <a href="./orders.html">
+                           <img src="./assets/uploads/img/4.png" style="margin-right: 2px;" width="20px"> Records <i class="fas fa-angle-right"></i>
+                        </a>
                      </span>
                   </h4>
                   <div class="item-card">
@@ -407,12 +412,19 @@
 <!-- Session data management -->
 <script src="./js/session-data.js"></script>
 
+<!-- Load Helper/Auth Scripts -->
+<script src="./js/main.js"></script>
+<script src="./js/auth-check.js"></script> <!-- Centralized authentication -->
+
 <!-- Withdrawable balance -->
 <script src="./js/task.js"></script>
 
+<<<<<<< HEAD
 
 <!-- Load Helper/Auth Scripts -->
 <script src="./js/main.js"></script>
+=======
+>>>>>>> post
 <script src="./js/auth.js"></script>
 
 <!-- Initialize Owl Carousel -->
