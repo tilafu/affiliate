@@ -21,10 +21,9 @@
     <link rel="stylesheet" href="./assets/frontend/css/animate.min.css" type="text/css" media="all"/>
     <link rel="stylesheet" href="./assets/frontend/css/owl.carousel.min.css" type="text/css" media="all"/>
     <link rel="stylesheet" href="./assets/frontend/css/style.css" type="text/css" media="all"/>
-    <link rel="stylesheet" href="./assets/frontend/main/css/other1.css">
-    <!-- i18next and app scripts -->
-    <script src="https://unpkg.com/i18next/i18next.min.js"></script>
-    <script src="https://unpkg.com/i18next-http-backend/i18nextHttpBackend.min.js"></script>
+    <link rel="stylesheet" href="./assets/frontend/main/css/other1.css">    <!-- i18next scripts REMOVED - using fallback text only -->
+    <!-- <script src="https://unpkg.com/i18next/i18next.min.js"></script> -->
+    <!-- <script src="https://unpkg.com/i18next-http-backend/i18nextHttpBackend.min.js"></script> -->
     <script src="./js/i18n.js"></script>
 </head>
 <body>
@@ -241,16 +240,10 @@
 <script src="./assets/frontend/js/script.js"></script>
 <!-- Important: i18n.js must be loaded before other scripts -->
 <script src="./js/i18n.js"></script>
-<!-- Wait for i18n to initialize before loading other scripts -->
+<!-- i18n initialization is now handled automatically by i18n.js -->
 <script>
-    // Ensure i18next is properly initialized
-    if (typeof initI18next === 'function') {
-        initI18next().then(() => {
-            console.log('i18next initialized from dashboard.html');
-        }).catch(err => {
-            console.error('Error initializing i18next:', err);
-        });
-    }
+    // i18n system is now simplified and initializes automatically
+    console.log('i18n system loaded (using fallback text conversion)');
 </script>
 <script src="./js/components.js"></script>
 <script src="./js/main.js"></script> <!-- Contains fetchWithAuth, etc. -->

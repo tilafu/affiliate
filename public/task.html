@@ -29,9 +29,12 @@
 
 <link rel="stylesheet" href="./assets/frontend/css/style.css" type="text/css" media="all"/>
 
-<!-- i18next scripts -->
-<script src="https://unpkg.com/i18next/i18next.min.js"></script>
-<script src="https://unpkg.com/i18next-http-backend/i18nextHttpBackend.min.js"></script>
+<!-- Jivo Site chat plugin -->
+<script src="//code.jivosite.com/widget/GIDIPDmldK" async></script>
+
+<!-- i18next scripts REMOVED - using fallback text only -->
+<!-- <script src="https://unpkg.com/i18next/i18next.min.js"></script> -->
+<!-- <script src="https://unpkg.com/i18next-http-backend/i18nextHttpBackend.min.js"></script> -->
         
    <style type="text/css">
      .cardd {
@@ -393,17 +396,6 @@
 
 <!-- Important: i18n.js must be loaded before other scripts -->
 <script src="./js/i18n.js"></script>
-<!-- Wait for i18n to initialize before loading other scripts -->
-<script>
-    // Ensure i18next is properly initialized
-    if (typeof initI18next === 'function') {
-        initI18next().then(() => {
-            console.log('i18next initialized from task.html');
-        }).catch(err => {
-            console.error('Error initializing i18next:', err);
-        });
-    }
-</script>
 
 <!-- Load Component Loader -->
 <script src="./js/components.js"></script>
@@ -426,6 +418,8 @@
 =======
 >>>>>>> post
 <script src="./js/auth.js"></script>
+
+
 
 <!-- Initialize Owl Carousel -->
 <script>

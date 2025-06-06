@@ -4,14 +4,12 @@ document.addEventListener('DOMContentLoaded', () => {
   if (!authData) {
     return; // requireAuth will handle redirect
   }
-
-  // Initialize i18next if not already initialized
-  if (typeof initI18next === 'function') {
-    initI18next().then(() => {
-      updateWithdrawalTranslations();
-    });
+  // Initialize i18n (simplified - no longer using i18next)
+  if (typeof updateContent === 'function') {
+    updateContent(); // Apply text conversions immediately
+    console.log('Applied text conversions to withdrawal page');
   } else {
-    console.warn('i18next initialization function not found');
+    console.warn('updateContent function not found');
   }
 
   // Helper function to fetch data
@@ -176,23 +174,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
 });
 
-// Function to update translations on the withdrawal page
+// Function to update text conversions on the withdrawal page
 function updateWithdrawalTranslations() {
-  // Only run if i18next is available and initialized
-  if (window.i18next && window.i18next.isInitialized) {
-    // Call the global updateContent function from i18n.js
-    if (typeof updateContent === 'function') {
-      updateContent();
-      console.log('Updated withdrawal page translations');
-    } else {
-      console.warn('updateContent function not available');
-    }
+  // Use the global updateContent function from i18n.js
+  if (typeof updateContent === 'function') {
+    updateContent();
+    console.log('Updated withdrawal page text conversions');
   } else {
-    console.warn('i18next not initialized yet for withdrawal page');
+    console.warn('updateContent function not available');
   }
 }
 
-// Listen for language changes
+// Listen for language changes (even though we're not using translations now)
 document.addEventListener('languageChanged', () => {
   updateWithdrawalTranslations();
 });

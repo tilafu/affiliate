@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title data-i18n-title="pageTitle">Login to Digistore24</title>
-    <script src="https://unpkg.com/i18next/i18next.min.js"></script>
-    <script src="https://unpkg.com/i18next-http-backend/i18nextHttpBackend.min.js"></script>
+    <title data-i18n-title="pageTitle">Login to Digistore24</title>    <!-- i18next scripts REMOVED - using fallback text only -->
+    <!-- <script src="https://unpkg.com/i18next/i18next.min.js"></script> -->
+    <!-- <script src="https://unpkg.com/i18next-http-backend/i18nextHttpBackend.min.js"></script> -->
     <style>
         * {
             margin: 0;
@@ -232,28 +232,17 @@
                     console.error("Auth check error:", error);
                 }
             }
-            */
-
-            // Check if user just registered
+            */            // Check if user just registered
             const registeredUsername = sessionStorage.getItem('registered_username');
             if (registeredUsername) {
                 document.getElementById('username').value = registeredUsername;
-                // Ensure i18next is initialized before calling t()
-                if (window.i18next && window.i18next.isInitialized) {
-                    showNotification(i18next.t('registrationSuccessNotification'), 'success');
-                } else {
-                    // Fallback or wait for initialization
-                    i18next.on('initialized', () => {
-                         showNotification(i18next.t('registrationSuccessNotification'), 'success');
-                    });
-                    // Fallback if i18next fails or is slow
-                    // setTimeout(() => showNotification(i18next.t('registrationSuccessNotification', 'Registration successful! Please login with your new account.'), 'success'), 500);
-                }
+                // Show simple success message
+                showNotification('Registration successful! Please login with your new account.', 'success');
                 sessionStorage.removeItem('registered_username');
             }
             
-            function showNotification(messageKey, type, options = {}) { // Modified to accept key and options
-                const message = i18next.t(messageKey, options); // Use i18next.t()
+            function showNotification(message, type, options = {}) { // Modified to accept direct message
+                // message is now a direct string, no translation needed
                 let notification = document.getElementById('notification');
                 if (!notification) {
                     notification = document.createElement('div');

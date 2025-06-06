@@ -888,6 +888,20 @@ const saveOrder = async (req, res) => {
             // Mark the current item as PENDING since balance is insufficient
             await client.query("UPDATE user_active_drive_items SET user_status = 'PENDING', updated_at = NOW() WHERE id = $1", [parsedUserActiveDriveItemId]);
 
+            // Get session progress data before returning frozen response
+            const itemsCompletedResult = await client.query(
+                'SELECT COUNT(*) as completed_count FROM user_active_drive_items WHERE drive_session_id = $1 AND user_status = $2',
+                [driveSessionId, 'COMPLETED']
+            );
+            const itemsCompletedCount = parseInt(itemsCompletedResult.rows[0].completed_count, 10);
+
+            // Get total commission earned so far for this session
+            const totalCommissionResult = await client.query(
+                'SELECT COALESCE(SUM(commission_amount), 0) as total_commission FROM commission_logs WHERE drive_session_id = $1 AND user_id = $2',
+                [driveSessionId, userId]
+            );
+            const totalCommission = parseFloat(totalCommissionResult.rows[0].total_commission);
+
             // Create notification for admin when user balance is frozen
             try {
                 await client.query(
@@ -919,7 +933,10 @@ const saveOrder = async (req, res) => {
                 info: `Insufficient balance. Your current balance of ${frozenBalance} USDT has been frozen. You need ${amountNeeded} USDT more to continue. Please top up externally and contact admin to unfreeze your account.`,
                 frozen_balance: frozenBalance,
                 amount_needed: amountNeeded,
-                status: 'frozen'
+                status: 'frozen',
+                tasks_completed: itemsCompletedCount,
+                tasks_required: totalStepsInDrive,
+                total_session_commission: totalCommission.toFixed(2)
             });
         }// 4. Calculate commission using tier-based rates
         let calculatedItemCommission;

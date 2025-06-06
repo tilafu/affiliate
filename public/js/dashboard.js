@@ -47,9 +47,8 @@ async function initializeDashboard() {
     const balancesEl = document.getElementById('dashboard-balances');
 
     // Try to use cached data first
-    const cachedUserData = localStorage.getItem('user_data');    try {
-        // Fetch fresh data
-        const response = await fetch(`${API_BASE_URL}/api/user/profile`, {
+    const cachedUserData = localStorage.getItem('user_data');    try {        // Fetch fresh data
+        const response = await fetch(`${window.API_BASE_URL || API_BASE_URL}/api/user/profile`, {
             headers: { 'Authorization': `Bearer ${authData.token}` }
         });
         const data = await response.json();
@@ -58,9 +57,8 @@ async function initializeDashboard() {
             const user = data.user;
             if (usernameEl) usernameEl.textContent = user.username;
             if (refcodeEl) refcodeEl.textContent = `REFERRAL CODE: ${user.referral_code}`;
-            
-            // Fetch balances separately for real-time accuracy
-            const balancesResponse = await fetch(`${API_BASE_URL}/api/user/balances`, {
+              // Fetch balances separately for real-time accuracy
+            const balancesResponse = await fetch(`${window.API_BASE_URL || API_BASE_URL}/api/user/balances`, {
                 headers: { 'Authorization': `Bearer ${authData.token}` }
             });
             const balancesData = await balancesResponse.json();
@@ -168,8 +166,7 @@ if (window.i18next) {
 async function fetchDriveProgress(token) {
     if (!token) return;
     
-    try {
-        const response = await fetch(`${API_BASE_URL}/api/drive/progress`, {
+    try {        const response = await fetch(`${window.API_BASE_URL || API_BASE_URL}/api/drive/progress`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         
@@ -234,10 +231,9 @@ function updateMembershipTier(tier) {
     tier = tier || 'bronze';
     
     // Define tier-specific information
-    const tierInfo = {
-        bronze: {
+    const tierInfo = {        bronze: {
             displayName: 'Bronze Member',
-            imageSrc: './assets/uploads/packages/bronze.png',
+            imageSrc: './assets/uploads/packages/bronze_665c04ea981d91717306602.PNG',
             commissionPerData: 1.0,
             commissionMergeData: 3.0,
             dataLimit: 40,
@@ -248,7 +244,7 @@ function updateMembershipTier(tier) {
         },
         silver: {
             displayName: 'Silver Member',
-            imageSrc: './assets/uploads/packages/silver.png',
+            imageSrc: './assets/uploads/packages/silver_665c0568227141717306728.PNG',
             commissionPerData: 1.2,
             commissionMergeData: 3.5,
             dataLimit: 40,
@@ -270,7 +266,7 @@ function updateMembershipTier(tier) {
         },
         platinum: {
             displayName: 'Platinum Member',
-            imageSrc: './assets/uploads/packages/platinum.png',
+            imageSrc: './assets/uploads/packages/platinum_665c064b7faf81717306955.PNG',
             commissionPerData: 2.0,
             commissionMergeData: 5.0,
             dataLimit: 50,

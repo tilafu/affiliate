@@ -602,7 +602,7 @@ const getUserSupportMessages = async (req, res) => {
 };
 
 /**
- * @desc    Get notifications for the logged-in user
+ * @desc    Get notifications for the logged-in user (enhanced with categories)
  * @route   GET /api/user/notifications
  * @access  Private
  */
@@ -610,15 +610,61 @@ const getUserNotifications = async (req, res) => {
     const userId = req.user.id;
 
     try {
+        // Enhanced query to include category information
         const result = await pool.query(
-            `SELECT id, message, created_at, is_read
-             FROM notifications
-             WHERE user_id = $1
-             ORDER BY created_at DESC`,
+            `SELECT 
+                n.id, 
+                n.title,
+                n.message, 
+                n.image_url,
+                n.priority,
+                n.created_at, 
+                n.is_read,
+                nc.name as category_name,
+                nc.color as category_color,
+                nc.icon as category_icon,
+                nc.description as category_description
+             FROM notifications n
+             LEFT JOIN notification_categories nc ON n.category_id = nc.id
+             WHERE n.user_id = $1
+             ORDER BY n.priority DESC, n.created_at DESC`,
             [userId]
         );
 
-        res.json({ success: true, notifications: result.rows });
+        // Also get general notifications that are active and not expired
+        const generalResult = await pool.query(
+            `SELECT 
+                gn.id,
+                gn.title,
+                gn.message,
+                gn.image_url,
+                gn.priority,
+                gn.created_at,
+                true as is_general,
+                nc.name as category_name,
+                nc.color as category_color,
+                nc.icon as category_icon,
+                nc.description as category_description
+             FROM general_notifications gn
+             JOIN notification_categories nc ON gn.category_id = nc.id
+             WHERE gn.is_active = true 
+             AND (gn.expires_at IS NULL OR gn.expires_at > NOW())
+             ORDER BY gn.priority DESC, gn.display_order ASC, gn.created_at DESC`
+        );
+
+        // Combine and sort all notifications
+        const allNotifications = [
+            ...result.rows.map(row => ({ ...row, is_general: false })),
+            ...generalResult.rows
+        ].sort((a, b) => {
+            // Sort by priority first, then by date
+            if (a.priority !== b.priority) {
+                return b.priority - a.priority;
+            }
+            return new Date(b.created_at) - new Date(a.created_at);
+        });
+
+        res.json({ success: true, notifications: allNotifications });
 
     } catch (error) {
         logger.error('Error fetching user notifications:', { userId, error: error.message, stack: error.stack });
