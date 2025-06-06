@@ -43,7 +43,7 @@ async function loadComponent(componentPath, targetElementId) {
 
 // Example of how to initialize scripts specific to the sidebar after it's loaded
 // You might need to move sidebar-specific JS initializations here from other files
-function initializeSidebarScripts() {
+async function initializeSidebarScripts() {
     console.log('Initializing sidebar scripts...');
 
     // Attach logout handlers defined in auth.js to any .logout elements within the sidebar
@@ -53,6 +53,9 @@ function initializeSidebarScripts() {
     } else {
         console.error('attachLogoutHandlers function from auth.js is not available globally.');
     }
+
+    // Initialize sidebar user data population
+    await populateSidebarUserData();
 
     // Explicitly add close button functionality after sidebar loads
     const closeButton = document.getElementById('sidebar-close-button');
@@ -73,6 +76,43 @@ function initializeSidebarScripts() {
 
     // Add any other sidebar-specific initializations below
     // ...
+}
+
+// Function to populate sidebar user data across all pages
+async function populateSidebarUserData() {
+    console.log('Populating sidebar user data...');
+    
+    // Check if user is authenticated
+    const authData = typeof requireAuth === 'function' ? requireAuth() : null;
+    if (!authData || !authData.token) {
+        console.warn('User not authenticated, skipping sidebar data population');
+        return;
+    }
+
+    const usernameEl = document.getElementById('dashboard-username');
+    const refcodeEl = document.getElementById('dashboard-refcode');    try {
+        // Fetch user profile data
+        const response = await fetch(`${window.API_BASE_URL || API_BASE_URL}/api/user/profile`, {
+            headers: { 'Authorization': `Bearer ${authData.token}` }
+        });
+        const data = await response.json();
+
+        if (data.success && data.user) {
+            const user = data.user;
+            if (usernameEl) usernameEl.textContent = user.username || 'N/A';
+            if (refcodeEl) refcodeEl.textContent = `REFERRAL CODE: ${user.referral_code || 'N/A'}`;
+            
+            console.log('Sidebar user data populated successfully');
+        } else {
+            console.error('Failed to fetch user profile for sidebar:', data.message);
+            if (usernameEl) usernameEl.textContent = 'Error';
+            if (refcodeEl) refcodeEl.textContent = 'REFERRAL CODE: Error';
+        }
+    } catch (error) {
+        console.error('Error populating sidebar user data:', error);
+        if (usernameEl) usernameEl.textContent = 'Error';
+        if (refcodeEl) refcodeEl.textContent = 'REFERRAL CODE: Error';
+    }
 }
 
 // Automatically load the sidebar if a placeholder exists

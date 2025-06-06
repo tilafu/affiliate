@@ -1,7 +1,10 @@
 // This should be your API base URL, for example:
 // const API_BASE_URL = ''; // Empty if API is on same origin
 // or
-const API_BASE_URL = 'http://localhost:3000'; // If API is on a different port
+// Only declare API_BASE_URL if it hasn't been declared yet
+if (typeof window.API_BASE_URL === 'undefined') {
+    window.API_BASE_URL = 'http://localhost:3000'; // If API is on a different port
+}
 
 // Function to display notifications on the page
 function showNotification(message, type = 'info', duration = 5000) {

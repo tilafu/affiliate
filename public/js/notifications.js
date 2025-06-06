@@ -1,7 +1,25 @@
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {  // Initialize i18n first before doing anything else
+  if (typeof initI18next === 'function') {
+    try {
+      await initI18next();
+      console.log('i18n initialized successfully');
+      
+      // Update all translations after i18n is ready
+      if (typeof updateContent === 'function') {
+        updateContent();
+      }
+    } catch (error) {
+      console.error('Failed to initialize i18n:', error);
+    }
+  }
+  
   const authData = requireAuth();
   if (!authData) {
     return; // requireAuth will handle redirect
+  }
+  // Populate sidebar with user data
+  if (typeof populateSidebarUserData === 'function') {
+    await populateSidebarUserData();
   }
 
   // Tab switching logic
@@ -164,14 +182,13 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>
     `;
     return div;
-  }
-  // Function to fetch and display user notifications
+  }  // Function to fetch and display user notifications
   function fetchUserNotifications() {
     // Translation for loading message
     const loadingMessage = window.i18next ? window.i18next.t('notificationLoading', 'Loading user notifications...') : 'Loading user notifications...';
     userList.innerHTML = `<div>${loadingMessage}</div>`; // Loading indicator
 
-    fetch('/api/user/notifications', { headers: { Authorization: `Bearer ${token}` } })
+    fetch(`${window.API_BASE_URL || 'http://localhost:3000'}/api/user/notifications`, { headers: { Authorization: `Bearer ${authData.token}` } })
       .then(res => res.json())
       .then(data => {
         if (data.success) {

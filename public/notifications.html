@@ -92,11 +92,10 @@
             <div class="profile-img-item">
                <img src="./assets/uploads/user.jpg" class="rounded-circle" alt="profile">
             </div>
-         </div>
-         <div class="col ps-1">
+         </div>         <div class="col ps-1">
             <div class="profile-details">
-               <h4 class="mb-2">Isabella27</h4>
-               <p class="mb-0 text-grsay">REFERRAL CODE: 17GAHG</p>
+               <h4 class="mb-2" id="dashboard-username"></h4>
+               <p class="mb-0 text-grsay" id="dashboard-refcode"></p>
             </div>
          </div>
       </div>
@@ -198,23 +197,10 @@
     </div>
 </header><main class="main-content">
     <div class="container">
-         <section id=homepage2-sec>
-   <div class="homepage2-third-sec mt-24">
-      <div class="container">
-         <div class="row">
-            <div class="col-md-6 mx-auto">
-               <!-- <marquee direction="up" height="600px"> -->
-                                    
-                                    
-                  		         <!-- </marquee> -->
-            </div>
-			</div>
-		</div>
-	</div>
-</section>   
-      <span class="tab active" id="tab-general" data-i18n="notificationsGeneralTab">General</span>
-      <span class="tab" id="tab-user" data-i18n="notificationsUserTab">User</span>
-    </div>
+        <div class="tab-container">
+            <span class="tab active" id="tab-general" data-i18n="notificationsGeneralTab">General</span>
+            <span class="tab" id="tab-user" data-i18n="notificationsUserTab">User</span>
+        </div>
     <div id="general-content" class="tab-content active">
       <div class="notification-list" id="general-list"></div>
     </div>
@@ -271,6 +257,7 @@
 <script src="./js/i18n.js"></script>
 <script src="./js/auth-check.js"></script>
 <script src="./js/main.js"></script>
+<script src="./js/components.js"></script>
 <script src="./js/notifications.js"></script>
 <script src="./js/notifications-i18n.js"></script>
 

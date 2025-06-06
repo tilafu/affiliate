@@ -1,3 +1,4 @@
+
 /**
  * Loading Overlay Utility
  * Provides functions to show/hide loading overlay with GIF animation

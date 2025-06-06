@@ -575,10 +575,9 @@ function fetchNextOrder(token) {
                 totalDriveCommission = parseFloat(data.total_session_commission);
                 updateDriveCommission();
             }
-            refreshWalletBalance();
-        } else if (data.code === 3) { // Drive Frozen
+            refreshWalletBalance();        } else if (data.code === 3) { // Drive Frozen
             console.warn("Drive Frozen message received from backend (getorder).");
-            displayFrozenState(data.info || "Session frozen due to insufficient balance.", data.frozen_amount_needed);
+            displayFrozenState(data.info || "Session frozen due to insufficient balance.", data.frozen_amount_needed, data);
             if (data.total_session_commission !== undefined) {
                 totalDriveCommission = parseFloat(data.total_session_commission);
                 updateDriveCommission();
@@ -757,12 +756,11 @@ async function handlePurchase(token, productData) {
                      purchaseButton.textContent = 'Purchase';
                  }
                  // fetchNextOrder(token); // Consider if this is a safe fallback
-            }
-        } else if (data.code === 3) { // Frozen state
+            }        } else if (data.code === 3) { // Frozen state
              if (typeof showNotification === 'function') {
                 showNotification(data.info || "Session frozen due to insufficient balance.", 'warning');
              } else { alert(data.info || "Session frozen due to insufficient balance."); }
-             displayFrozenState(data.info || "Session frozen due to insufficient balance.", data.frozen_amount_needed);
+             displayFrozenState(data.info || "Session frozen due to insufficient balance.", data.frozen_amount_needed, data);
              refreshWalletBalance();
         }
         else {            if (typeof showNotification === 'function') {
@@ -982,12 +980,15 @@ function checkDriveStatus(token) {
                     totalDriveCommission = parseFloat(sessionData.totalCommission);
                 } else {
                     totalDriveCommission = 0; // Default if nothing found
-                }
-            }
+                }            }
             updateDriveCommission(); // Update UI and persist
 
             if (data.status === 'active' && data.current_order) {
                 console.log('checkDriveStatus: Active session with current order found. Resuming drive.');
+                
+                // Clean up any frozen state displays when resuming
+                clearFrozenStateDisplay();
+                
                 if (autoStartButton) autoStartButton.style.display = 'none';
                 if (productCardContainer) {
                     productCardContainer.style.display = 'block';
@@ -1001,16 +1002,18 @@ function checkDriveStatus(token) {
                     tasksCompleted = data.tasks_completed;
                     updateProgressBar(tasksCompleted, totalTasksRequired);
                 }
-                return true;
-            } else if (data.status === 'frozen') {
+                return true;            } else if (data.status === 'frozen') {
                 console.log('checkDriveStatus: Frozen session found. Displaying frozen state.');
-                displayFrozenState(data.info || "Session frozen due to insufficient balance.", data.frozen_amount_needed);
-                if (autoStartButton) autoStartButton.style.display = 'none';
-                 if (data.tasks_completed !== undefined && data.tasks_required !== undefined) { // Update progress even if frozen
+                
+                // Extract and set global variables for frozen sessions (missing before)
+                if (data.tasks_completed !== undefined && data.tasks_required !== undefined) {
                     totalTasksRequired = data.tasks_required;
                     tasksCompleted = data.tasks_completed;
                     updateProgressBar(tasksCompleted, totalTasksRequired);
                 }
+                
+                displayFrozenState(data.info || "Session frozen due to insufficient balance.", data.frozen_amount_needed, data);
+                if (autoStartButton) autoStartButton.style.display = 'none';
                 return true;
             } else if (data.status === 'complete') {
                 console.log('checkDriveStatus: Drive complete.');
@@ -1146,11 +1149,25 @@ async function checkDriveStatus(token) {
                         productCardContainer.style.display = 'block';
                         renderProductCard(data.current_order);
                     }
-                }
-            } else if (data.code === 3) {
+                }            } else if (data.code === 3) {
                 // Handle frozen state
                 if (data.frozen_amount_needed) {
-                    displayFrozenState(data.info || "Session frozen due to insufficient balance.", data.frozen_amount_needed);
+                    // Extract and set global variables for frozen sessions
+                    if (data.tasks_completed !== undefined) {
+                        tasksCompleted = data.tasks_completed;
+                    }
+                    if (data.tasks_required !== undefined) {
+                        totalTasksRequired = data.tasks_required;
+                    }
+                    if (data.total_commission !== undefined) {
+                        totalDriveCommission = parseFloat(data.total_commission);
+                    }
+                    
+                    // Update progress and commission
+                    updateProgressBar(tasksCompleted, totalTasksRequired);
+                    updateDriveCommission();
+                    
+                    displayFrozenState(data.info || "Session frozen due to insufficient balance.", data.frozen_amount_needed, data);
                 }
             }
         } else {
@@ -1236,26 +1253,55 @@ function displayDriveError(message) {
     }
 }
 
-function displayFrozenState(message, frozenAmountNeeded) {
-    console.log('displayFrozenState called with message:', message, 'Amount needed:', frozenAmountNeeded);
+function displayFrozenState(message, frozenAmountNeeded, serverData = null) {
+    console.log('displayFrozenState called with message:', message, 'Amount needed:', frozenAmountNeeded, 'Server data:', serverData);
     
-    // Hide product card and start button
+    // Hide product card and start button but KEEP progress and commission visible
     if (productCardContainer) productCardContainer.style.display = 'none';
     if (autoStartButton) autoStartButton.style.display = 'none';
     
-    // Create frozen state display
+    // Extract and update data from server response if available
+    if (serverData) {
+        if (serverData.tasks_completed !== undefined) {
+            tasksCompleted = serverData.tasks_completed;
+        }
+        if (serverData.tasks_required !== undefined) {
+            totalTasksRequired = serverData.tasks_required;
+        }
+        if (serverData.total_commission !== undefined) {
+            totalDriveCommission = parseFloat(serverData.total_commission);
+        } else if (serverData.total_session_commission !== undefined) {
+            totalDriveCommission = parseFloat(serverData.total_session_commission);
+        }
+    }
+    
+    // Ensure commission and progress displays remain visible and updated
+    updateDriveCommission(); // Update commission display
+    updateProgressBar(tasksCompleted, totalTasksRequired); // Update progress display
+    
+    // Create comprehensive frozen state display with progress info
+    const progressInfo = totalTasksRequired > 0 
+        ? `\nProgress: ${tasksCompleted}/${totalTasksRequired} tasks completed`
+        : '';
+    const commissionInfo = totalDriveCommission > 0 
+        ? `\nCommission earned: ${totalDriveCommission.toFixed(2)} USDT`
+        : '';
+    
     const frozenMessage = frozenAmountNeeded 
-        ? `${message} Please deposit ${parseFloat(frozenAmountNeeded).toFixed(2)} USDT to continue.`
-        : message;
+        ? `${message} Please deposit ${parseFloat(frozenAmountNeeded).toFixed(2)} USDT to continue.${progressInfo}${commissionInfo}`
+        : `${message}${progressInfo}${commissionInfo}`;
     
     // Show frozen state notification with contact support option
     if (typeof showNotification === 'function') {
         showNotification(frozenMessage, 'warning');
     } else if (typeof $(document).dialog === 'function') {
-        $(document).dialog({infoText: frozenMessage, autoClose: 6000});
+        $(document).dialog({infoText: frozenMessage, autoClose: 8000}); // Longer display time for more info
     } else {
         alert(frozenMessage);
     }
+    
+    // Create or update frozen state card to show progress and commission
+    createFrozenStateCard(message, frozenAmountNeeded);
     
     // Add contact support button functionality if not already added
     const contactSupportBtn = document.getElementById('contact-support-btn');
@@ -1264,6 +1310,100 @@ function displayFrozenState(message, frozenAmountNeeded) {
             window.location.href = './support.html';
         });
     }
+}
+
+// Create a visual card showing frozen state with progress and commission info
+function createFrozenStateCard(message, frozenAmountNeeded) {
+    // Remove existing frozen state card if any
+    const existingCard = document.getElementById('frozen-state-card');
+    if (existingCard) {
+        existingCard.remove();
+    }
+    
+    // Create new frozen state card
+    const frozenCard = document.createElement('div');
+    frozenCard.id = 'frozen-state-card';
+    frozenCard.className = 'row mb-3';
+    frozenCard.innerHTML = `
+        <div class="col-md-5 mx-auto">
+            <div class="card border-warning">
+                <div class="card-body">
+                    <div class="text-center">
+                        <h5 class="card-title text-warning">
+                            <i class="fas fa-exclamation-triangle"></i> Account Frozen
+                        </h5>
+                        <p class="text-muted">${message}</p>
+                        ${frozenAmountNeeded ? 
+                            `<p class="text-danger"><strong>Amount needed: ${parseFloat(frozenAmountNeeded).toFixed(2)} USDT</strong></p>` : 
+                            ''}
+                        
+                        <div class="mt-3 mb-3">
+                            <h6>Your Drive Progress (Preserved)</h6>
+                            <div class="progress mb-2" style="height: 20px;">
+                                <div class="progress-bar bg-warning" style="width: ${totalTasksRequired > 0 ? (tasksCompleted / totalTasksRequired * 100) : 0}%">
+                                    ${tasksCompleted}/${totalTasksRequired}
+                                </div>
+                            </div>
+                            <p class="small text-muted">Tasks completed: ${tasksCompleted} of ${totalTasksRequired}</p>
+                        </div>
+                        
+                        <div class="mt-3 mb-3">
+                            <h6>Commission Earned (Preserved)</h6>
+                            <p class="text-success"><strong>${totalDriveCommission.toFixed(2)} USDT</strong></p>
+                            <p class="small text-muted">Your earned commission is safe and will be available when you resume</p>
+                        </div>
+                        
+                        <div class="mt-3">
+                            <a href="./deposits.html" class="btn btn-success btn-sm me-2">
+                                <i class="fas fa-plus"></i> Deposit Funds
+                            </a>
+                            <button id="contact-support-btn" class="btn btn-outline-primary btn-sm">
+                                <i class="fas fa-life-ring"></i> Contact Support
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Insert the card after the progress bar container
+    const progressContainer = document.querySelector('.row.mb-3:nth-child(2)'); // Progress bar container
+    if (progressContainer && progressContainer.nextSibling) {
+        progressContainer.parentNode.insertBefore(frozenCard, progressContainer.nextSibling);
+    } else if (progressContainer) {
+        progressContainer.parentNode.appendChild(frozenCard);
+    } else {
+        // Fallback: insert after the main container
+        const mainContainer = document.querySelector('.container');
+        if (mainContainer) {
+            mainContainer.appendChild(frozenCard);
+        }
+    }
+}
+
+// Function to clear frozen state displays when resuming drive
+function clearFrozenStateDisplay() {
+    console.log('clearFrozenStateDisplay called');
+    
+    // Remove frozen state card
+    const existingCard = document.getElementById('frozen-state-card');
+    if (existingCard) {
+        existingCard.remove();
+        console.log('Frozen state card removed');
+    }
+    
+    // Clear any frozen state notifications
+    const notifications = document.querySelectorAll('.alert-warning, .notification-warning');
+    notifications.forEach(notification => {
+        // Only remove if it contains frozen-related text
+        if (notification.textContent && 
+            (notification.textContent.includes('frozen') || 
+             notification.textContent.includes('Frozen') ||
+             notification.textContent.includes('insufficient balance'))) {
+            notification.remove();
+        }
+    });
 }
 
 function resumeSpecificOrder(token, orderId, productId) {
