@@ -212,8 +212,7 @@ document.addEventListener('DOMContentLoaded', async () => {  // Initialize i18n 
   // Function to stop fetching user notifications (no ongoing fetch, just clear the list)
   function stopUserNotifications() {
       userList.innerHTML = ''; // Clear the list when switching away
-  }
-  // Function to render user notifications (with unread indicator)
+  }  // Function to render user notifications (with unread indicator, categories, colors, and images)
   function renderUserNotifications(list, container) {
     container.innerHTML = '';
     if (!list || list.length === 0) {
@@ -223,55 +222,97 @@ document.addEventListener('DOMContentLoaded', async () => {  // Initialize i18n 
     }
     list.forEach(n => {
       const div = document.createElement('div');
-      div.className = 'notification-item user-notification' + (n.is_read ? '' : ' unread'); // Added user-notification class and unread class
-      div.dataset.notificationId = n.id; // Store notification ID
-      div.dataset.isRead = n.is_read; // Store read status
-      div.dataset.message = n.message; // Store full message content
+      div.className = 'card cardd mb-2 notification-item user-notification' + (n.is_read === false && !n.is_general ? ' unread' : '');
+      div.dataset.notificationId = n.id;
+      div.dataset.isRead = n.is_read || n.is_general; // General notifications are always considered "read"
+      div.dataset.message = n.message;
+      div.dataset.title = n.title || '';
+      div.dataset.isGeneral = n.is_general || false;
       
-      // Get translated notification type indicator if available
-      const notificationType = window.i18next && n.type ? 
-        window.i18next.t(n.type === 'system' ? 'notificationSystemMessage' : 'notificationPersonalMessage') : 
-        (n.type === 'system' ? 'System Message' : 'Personal Message');
-        
+      // Determine category color and icon
+      const categoryColor = n.category_color || '#007bff';
+      const categoryIcon = n.category_icon || 'fas fa-bell';
+      const categoryName = n.category_name || 'General';
+      
+      // Prepare image display
+      const imageHtml = n.image_url ? 
+        `<img src="${n.image_url}" alt="Notification" class="notification-image rounded" style="width: 60px; height: 60px; object-fit: cover;">` :
+        `<div class="avatar avatar-30 shadow rounded-circle" style="background-color: ${categoryColor}; color: white; display: flex; align-items: center; justify-content: center; width: 60px; height: 60px;">
+          <i class="${categoryIcon}" style="font-size: 20px;"></i>
+        </div>`;
+      
+      // Priority indicator
+      const priorityClass = n.priority > 3 ? 'high-priority' : n.priority > 1 ? 'medium-priority' : 'normal-priority';
+      const priorityIndicator = n.priority > 3 ? '<span class="badge bg-danger ms-1">!</span>' : '';
+      
       div.innerHTML = `
-        <div class="fw-bold">${notificationType}</div>
-        <div>${n.message}</div>
-        <div style="font-size:12px;color:#888;">${new Date(n.created_at).toLocaleString()}</div>
+        <div class="card-body">
+          <div class="row align-items-center">
+            <div class="col-auto">
+              ${imageHtml}
+            </div>
+            <div class="col">
+              <div class="d-flex align-items-center mb-1">
+                <span class="badge" style="background-color: ${categoryColor}; font-size: 10px;">${categoryName}</span>
+                ${priorityIndicator}
+                ${n.is_general ? '<span class="badge bg-info ms-1" style="font-size: 10px;">Public</span>' : ''}
+              </div>
+              ${n.title ? `<div class="fw-bold ${priorityClass}" style="font-size: 14px;">${n.title}</div>` : ''}
+              <div class="notification-message" style="font-size: 13px; color: #666; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                ${n.message}
+              </div>
+              <div style="font-size: 11px; color: #888; margin-top: 4px;">
+                ${new Date(n.created_at).toLocaleString()}
+              </div>
+            </div>
+          </div>
+        </div>
       `;
+      
       // Add click listener for user notifications
-      div.addEventListener('click', handleUserNotificationClick);
+      if (!n.is_general) {
+        div.addEventListener('click', handleUserNotificationClick);
+        div.style.cursor = 'pointer';
+      } else {
+        // For general notifications, just show in modal without marking as read
+        div.addEventListener('click', handleGeneralNotificationClick);
+        div.style.cursor = 'pointer';
+      }
+      
       container.appendChild(div);
     });
-  }
-  // Function to handle user notification click
+  }  // Function to handle user notification click
   function handleUserNotificationClick(event) {
       const notificationElement = event.currentTarget;
       const notificationId = notificationElement.dataset.notificationId;
-      const isRead = notificationElement.dataset.isRead === 'true'; // Get current read status
-      const messageContent = notificationElement.dataset.message; // Get full message content
+      const isRead = notificationElement.dataset.isRead === 'true';
+      const messageContent = notificationElement.dataset.message;
+      const titleContent = notificationElement.dataset.title || '';
 
-      // Display message in modal with translated date/time labels if i18next is available
-      let dateFormatted = new Date().toLocaleDateString();
-      let timeFormatted = new Date().toLocaleTimeString();
-      
-      let dateLabel = window.i18next ? window.i18next.t('notificationDate', { date: dateFormatted }) : `Date: ${dateFormatted}`;
-      let timeLabel = window.i18next ? window.i18next.t('notificationTime', { time: timeFormatted }) : `Time: ${timeFormatted}`;
+      // Display message in modal with enhanced styling
+      const modalTitle = titleContent || (window.i18next ? window.i18next.t('notificationDetails') : 'Notification Details');
+      document.getElementById('notificationDetailModalLabel').textContent = modalTitle;
       
       notificationModalBody.innerHTML = `
-        <p>${messageContent}</p>
-        <div class="notification-meta mt-3">
-          <div>${dateLabel}</div>
-          <div>${timeLabel}</div>
+        <div class="notification-detail-content">
+          ${titleContent ? `<h6 class="fw-bold mb-3">${titleContent}</h6>` : ''}
+          <p class="notification-message">${messageContent}</p>
+          <div class="notification-meta mt-3 pt-2 border-top">
+            <small class="text-muted">
+              <i class="fas fa-clock me-1"></i>
+              ${new Date().toLocaleString()}
+            </small>
+          </div>
         </div>
       `;
       notificationDetailModal.show();
 
       if (!isRead) {
           // Mark as read on the backend
-          fetch(`/api/user/notifications/${notificationId}/read`, {
+          fetch(`${window.API_BASE_URL || 'http://localhost:3000'}/api/user/notifications/${notificationId}/read`, {
               method: 'PUT',
               headers: {
-                  'Authorization': `Bearer ${token}`,
+                  'Authorization': `Bearer ${authData.token}`,
                   'Content-Type': 'application/json'
               }
           })
@@ -280,7 +321,7 @@ document.addEventListener('DOMContentLoaded', async () => {  // Initialize i18n 
               if (data.success) {
                   // Update UI to show as read
                   notificationElement.classList.remove('unread');
-                  notificationElement.dataset.isRead = 'true'; // Update data attribute
+                  notificationElement.dataset.isRead = 'true';
                   console.log(`Notification ${notificationId} marked as read.`);
               } else {
                   console.error('Failed to mark notification as read:', data.message);
@@ -290,6 +331,35 @@ document.addEventListener('DOMContentLoaded', async () => {  // Initialize i18n 
               console.error('Error marking notification as read:', error);
           });
       }
+  }
+
+  // Function to handle general notification click (no read marking needed)
+  function handleGeneralNotificationClick(event) {
+      const notificationElement = event.currentTarget;
+      const messageContent = notificationElement.dataset.message;
+      const titleContent = notificationElement.dataset.title || '';
+
+      // Display message in modal
+      const modalTitle = titleContent || (window.i18next ? window.i18next.t('notificationDetails') : 'Public Announcement');
+      document.getElementById('notificationDetailModalLabel').textContent = modalTitle;
+      
+      notificationModalBody.innerHTML = `
+        <div class="notification-detail-content">
+          <div class="alert alert-info mb-3">
+            <i class="fas fa-bullhorn me-2"></i>
+            ${window.i18next ? window.i18next.t('publicNotificationLabel') : 'Public Announcement'}
+          </div>
+          ${titleContent ? `<h6 class="fw-bold mb-3">${titleContent}</h6>` : ''}
+          <p class="notification-message">${messageContent}</p>
+          <div class="notification-meta mt-3 pt-2 border-top">
+            <small class="text-muted">
+              <i class="fas fa-clock me-1"></i>
+              ${new Date().toLocaleString()}
+            </small>
+          </div>
+        </div>
+      `;
+      notificationDetailModal.show();
   }
 
 });

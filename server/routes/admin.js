@@ -43,6 +43,20 @@ router.post('/support/messages/reply', protect, admin, adminController.replyToSu
 // Notifications
 router.post('/notifications', protect, admin, adminController.sendNotification);
 
+// Enhanced Notification System
+// Notification Categories
+router.get('/notification-categories', protect, admin, adminController.getNotificationCategories);
+
+// General Notifications
+router.get('/general-notifications', protect, admin, adminController.getGeneralNotifications);
+router.post('/general-notifications', protect, admin, adminController.createGeneralNotification);
+router.put('/general-notifications/:id', protect, admin, adminController.updateGeneralNotification);
+router.delete('/general-notifications/:id', protect, admin, adminController.deleteGeneralNotification);
+
+// Categorized Notifications
+router.post('/notifications/categorized', protect, admin, adminController.sendCategorizedNotification);
+router.post('/notifications/bulk', protect, admin, adminController.sendBulkNotifications);
+
 // Membership Tiers Management
 router.get('/membership-tiers', protect, admin, adminController.getMembershipTiers);
 router.post('/membership-tiers', protect, admin, adminController.createMembershipTier);

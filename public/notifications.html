@@ -14,10 +14,9 @@
       <script charset="utf-8" src="./assets/frontend/shopva/common.js"></script>
       <link rel="stylesheet" href="./assets/frontend/shopva/layer.css">
       <script src="./assets/frontend/shopva/layer.js"></script>
-      <link rel="stylesheet" href="./assets/frontend/shopva/tye.css">
-      <!-- i18next scripts -->
-      <script src="https://unpkg.com/i18next/i18next.min.js"></script>
-      <script src="https://unpkg.com/i18next-http-backend/i18nextHttpBackend.min.js"></script>
+      <link rel="stylesheet" href="./assets/frontend/shopva/tye.css">      <!-- i18next scripts REMOVED - using fallback text only -->
+      <!-- <script src="https://unpkg.com/i18next/i18next.min.js"></script> -->
+      <!-- <script src="https://unpkg.com/i18next-http-backend/i18nextHttpBackend.min.js"></script> -->
     <link href="https://fonts.googleapis.com/css?family=Nunito:300,400,600,700,900" rel="stylesheet">
     <link rel="stylesheet" href="./assets/frontend/css/bootstrap.min.css" type="text/css" media="all"/>
     <link rel="stylesheet" type="text/css" href="./assets/frontend/css/fontawesome-all.min.css">
@@ -58,14 +57,56 @@
       display: flex;
       justify-content: center;
       margin-bottom: 20px; /* Add some space below tabs */
-   }
-   .user-notification.unread {
+   }   .user-notification.unread {
        font-weight: bold;
        background-color: #fff9e6; /* Light yellow background for unread */
        border-left: 4px solid #ffc107; /* Yellow left border */
    }
    .user-notification {
        cursor: pointer; /* Indicate clickable */
+       transition: background-color 0.2s ease;
+   }
+   .user-notification:hover {
+       background-color: #f8f9fa;
+   }
+
+   /* Priority indicators */
+   .high-priority {
+       color: #dc3545 !important;
+   }
+   .medium-priority {
+       color: #fd7e14 !important;
+   }
+   .normal-priority {
+       color: #495057;
+   }
+
+   /* Notification image styling */
+   .notification-image {
+       border: 2px solid #dee2e6;
+   }
+
+   /* Modal enhancements */
+   .notification-detail-content {
+       line-height: 1.6;
+   }
+   .notification-message {
+       font-size: 14px;
+       color: #495057;
+   }
+
+   /* Category badges */
+   .badge {
+       font-weight: 500;
+   }
+
+   /* Enhanced card styling */
+   .cardd {
+       transition: transform 0.2s ease, box-shadow 0.2s ease;
+   }
+   .cardd:hover {
+       transform: translateY(-1px);
+       box-shadow: 0 4px 8px rgba(0,0,0,0.1);
    }
 </style>
 </head>

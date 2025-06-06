@@ -18,11 +18,24 @@ async function loadComponent(componentPath, targetElementId) {
 
         if (!response.ok) {
             throw new Error(`Failed to fetch component ${componentPath}: ${response.status} ${response.statusText}`);
-        }
-
-        const html = await response.text();
+        }        const html = await response.text();
         targetElement.innerHTML = html;
         console.log(`Component "${componentPath}" loaded into "#${targetElementId}".`);
+
+        // Apply i18n translations to the newly loaded component
+        if (typeof updateContent === 'function') {
+            console.log(`Applying i18n translations to component "${componentPath}"...`);
+            updateContent();
+        } else if (typeof i18next !== 'undefined' && i18next.isInitialized) {
+            console.log(`Applying i18n translations to component "${componentPath}" (direct approach)...`);
+            // Apply translations directly if updateContent is not available
+            targetElement.querySelectorAll('[data-i18n]').forEach(element => {
+                const key = element.getAttribute('data-i18n');
+                if (i18next.exists(key)) {
+                    element.innerHTML = i18next.t(key);
+                }
+            });
+        }
 
         // Dispatch a custom event to signal completion
         const event = new CustomEvent('componentLoaded', { detail: { path: componentPath } });
@@ -52,10 +65,25 @@ async function initializeSidebarScripts() {
         window.attachLogoutHandlers();
     } else {
         console.error('attachLogoutHandlers function from auth.js is not available globally.');
-    }
-
-    // Initialize sidebar user data population
+    }    // Initialize sidebar user data population
     await populateSidebarUserData();
+
+    // Apply i18n translations to the newly loaded sidebar
+    if (typeof updateContent === 'function') {
+        console.log('Applying i18n translations to sidebar...');
+        updateContent();
+    } else if (typeof i18next !== 'undefined' && i18next.isInitialized) {
+        console.log('Applying i18n translations to sidebar (direct approach)...');
+        // Apply translations directly if updateContent is not available
+        document.querySelectorAll('[data-i18n]').forEach(element => {
+            const key = element.getAttribute('data-i18n');
+            if (i18next.exists(key)) {
+                element.innerHTML = i18next.t(key);
+            }
+        });
+    } else {
+        console.warn('i18next not available or not initialized when loading sidebar');
+    }
 
     // Explicitly add close button functionality after sidebar loads
     const closeButton = document.getElementById('sidebar-close-button');
@@ -115,8 +143,8 @@ async function populateSidebarUserData() {
     }
 }
 
-// Automatically load the sidebar if a placeholder exists
-document.addEventListener('DOMContentLoaded', () => {
+// Function to load components after i18n is ready
+function loadInitialComponents() {
     if (document.getElementById('sidebar-placeholder')) {
         loadComponent('/components/sidebar.html', 'sidebar-placeholder')
             .catch(err => console.error("Sidebar loading failed:", err));
@@ -125,4 +153,26 @@ document.addEventListener('DOMContentLoaded', () => {
     // if (document.getElementById('header-placeholder')) {
     //     loadComponent('/components/header.html', 'header-placeholder');
     // }
+}
+
+// Automatically load components when both DOM and i18n are ready
+document.addEventListener('DOMContentLoaded', () => {
+    // Check if i18n is already ready
+    if (typeof i18next !== 'undefined' && i18next.isInitialized) {
+        loadInitialComponents();
+    } else {
+        // Wait for i18n to be ready
+        window.addEventListener('i18nReady', () => {
+            loadInitialComponents();
+        });
+        
+        // Fallback: if i18nReady event doesn't fire within 1 second, load anyway
+        setTimeout(() => {
+            if (document.getElementById('sidebar-placeholder') && 
+                document.getElementById('sidebar-placeholder').innerHTML === '') {
+                console.warn('Loading components without i18n ready confirmation');
+                loadInitialComponents();
+            }
+        }, 1000);
+    }
 });
