@@ -200,9 +200,8 @@
                <span data-i18n="sidebarAboutUsLink">ABOUT US</span>
             </a>
          </li>
-         <li class="bottom-border">
-                <a href="./logout.html">  <!-- Updated link to include .html extension -->
-                  <img src="./assets/uploads/img/8.png"  style="margin-right: 5px;" width="20px">
+         <li class="bottom-border">                <a href="#" class="logout">  <!-- Updated to use logout handler -->
+                    <img src="./assets/uploads/img/8.png"  style="margin-right: 5px;" width="20px">
                     <span data-i18n="sidebarLogoutLink">LOGOUT</span>
                 </a>
             </li>
@@ -301,9 +300,17 @@
 <script src="./js/auth-check.js"></script>
 <script src="./js/main.js"></script>
 <script src="./js/components.js"></script>
+<script src="./js/auth.js"></script>
 <script src="./js/notification-badge.js"></script> <!-- Dynamic notification badge functionality -->
 <script src="./js/notifications.js"></script>
 <script src="./js/notifications-i18n.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    if (typeof attachLogoutHandlers === 'function') {
+        attachLogoutHandlers();
+    }
+});
+</script>
 
 <!-- Notification Detail Modal -->
 <div class="modal fade" id="notificationDetailModal" tabindex="-1" aria-labelledby="notificationDetailModalLabel" aria-hidden="true">

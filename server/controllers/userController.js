@@ -703,6 +703,31 @@ const markNotificationAsRead = async (req, res) => {
     }
 };
 
+/**
+ * @desc    Get user's total deposited amount from accounts.deposit field
+ * @route   GET /api/user/deposits/total
+ * @access  Private (requires token)
+ */
+const getUserTotalDeposits = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    // Query to get total deposits from accounts table
+    const result = await pool.query(
+      `SELECT COALESCE(deposit, 0) AS total_deposits
+       FROM accounts
+       WHERE user_id = $1 AND type = 'main'`,
+      [userId]
+    );
+
+    const totalDeposits = result.rows.length > 0 ? parseFloat(result.rows[0].total_deposits) : 0;
+
+    res.json({ success: true, totalDeposits: totalDeposits });
+  } catch (error) {
+    logger.error('Error fetching user total deposits:', { userId, error: error.message, stack: error.stack });
+    res.status(500).json({ success: false, message: 'Server error fetching total deposits' });
+  }
+};
 
 module.exports = {
   getUserDeposits,
@@ -720,6 +745,7 @@ module.exports = {
   createSupportMessage,
   getUserSupportMessages,
   getUserNotifications,
-  markNotificationAsRead
+  markNotificationAsRead,
+  getUserTotalDeposits // Export new function
   // Other user-related functions
 };
