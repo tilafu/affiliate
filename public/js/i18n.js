@@ -55,23 +55,63 @@ function updateContent() {
 
 // Convert camelCase/key to readable text
 function convertKeyToText(key) {
-    // Enhanced conversion from camelCase to readable text
+    // Enhanced conversion from camelCase to readable text with improved prefix/suffix removal
     return key
-        .replace(/^footer/i, '') // Remove "footer" prefix (case insensitive)
-        .replace(/^sidebar/i, '') // Remove "sidebar" prefix (case insensitive) 
-        .replace(/^nav/i, '') // Remove "nav" prefix (case insensitive)
-        .replace(/^menu/i, '') // Remove "menu" prefix (case insensitive)
-        .replace(/([A-Z])/g, ' $1') // Add space before capital letters
-        .replace(/^./, str => str.toUpperCase()) // Capitalize first letter
-        .replace(/Link$/, '') // Remove "Link" suffix
-        .replace(/Title$/, '') // Remove "Title" suffix
-        .replace(/Label$/, '') // Remove "Label" suffix
-        .replace(/Page$/, '') // Remove "Page" suffix
-        .replace(/Button$/, '') // Remove "Button" suffix
-        .replace(/Text$/, '') // Remove "Text" suffix
-        .replace(/Message$/, '') // Remove "Message" suffix
-        .replace(/\s+/g, ' ') // Replace multiple spaces with single space
-        .trim();
+        // Handle special cases first (exact matches)
+        .replace(/^loginHeader$/i, 'Login')
+        .replace(/^noAccountHeader$/i, 'No Account?')
+        .replace(/^signUpPrompt$/i, 'Don\'t have an account?')
+        .replace(/^emailOrUsernameLabel$/i, 'Email or Username')
+        .replace(/^passwordLabel$/i, 'Password')
+        .replace(/^loginButton$/i, 'Login')
+        .replace(/^forgotPasswordLink$/i, 'Forgot Password?')
+        .replace(/^signUpButton$/i, 'Sign Up')
+        .replace(/^registerHeader$/i, 'Create Account')
+        .replace(/^alreadyHaveAccountPrompt$/i, 'Already have an account?')
+        
+        // Remove common prefixes (case insensitive)
+        .replace(/^footer/i, '') // Remove "footer" prefix 
+        .replace(/^sidebar/i, '') // Remove "sidebar" prefix  
+        .replace(/^nav/i, '') // Remove "nav" prefix 
+        .replace(/^menu/i, '') // Remove "menu" prefix 
+        .replace(/^page/i, '') // Remove "page" prefix
+        .replace(/^login/i, 'Login') // Special case: keep "Login" but clean it up
+        .replace(/^signup/i, 'Sign Up') // Special case: convert "signup" to "Sign Up"
+        .replace(/^signin/i, 'Sign In') // Special case: convert "signin" to "Sign In"
+        
+        // Add space before capital letters for camelCase conversion
+        .replace(/([A-Z])/g, ' $1')
+        
+        // Capitalize first letter
+        .replace(/^./, str => str.toUpperCase())
+        
+        // Remove common suffixes (more comprehensive)
+        .replace(/\s+Header$/i, '') // Remove "Header" suffix with spaces
+        .replace(/\s+Link$/i, '') // Remove "Link" suffix with spaces
+        .replace(/\s+Title$/i, '') // Remove "Title" suffix with spaces
+        .replace(/\s+Label$/i, '') // Remove "Label" suffix with spaces
+        .replace(/\s+Page$/i, '') // Remove "Page" suffix with spaces
+        .replace(/\s+Button$/i, '') // Remove "Button" suffix with spaces
+        .replace(/\s+Text$/i, '') // Remove "Text" suffix with spaces
+        .replace(/\s+Message$/i, '') // Remove "Message" suffix with spaces
+        .replace(/\s+Prompt$/i, '') // Remove "Prompt" suffix with spaces
+        .replace(/\s+Error$/i, '') // Remove "Error" suffix with spaces
+        .replace(/\s+Placeholder$/i, '') // Remove "Placeholder" suffix with spaces
+        .replace(/\s+Option$/i, '') // Remove "Option" suffix with spaces
+        
+        // Clean up multiple spaces and trim
+        .replace(/\s+/g, ' ')
+        .trim()
+        
+        // Handle special cases for better readability
+        .replace(/^No Account$/, 'No Account?')
+        .replace(/^Email Or Username$/, 'Email or Username')
+        .replace(/^Repeat Password$/, 'Repeat Password')
+        .replace(/^Referral Code$/, 'Referral Code (Optional)')
+        .replace(/^Field Required$/, 'This field is required')
+        .replace(/^Forgot Password$/, 'Forgot Password?')
+        .replace(/^Continue$/, 'Continue')
+        .replace(/^Sign Up$/, 'Sign Up');
 }
 
 // Simple initialization - NO i18next dependency

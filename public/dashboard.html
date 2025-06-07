@@ -21,7 +21,10 @@
     <link rel="stylesheet" href="./assets/frontend/css/animate.min.css" type="text/css" media="all"/>
     <link rel="stylesheet" href="./assets/frontend/css/owl.carousel.min.css" type="text/css" media="all"/>
     <link rel="stylesheet" href="./assets/frontend/css/style.css" type="text/css" media="all"/>
-    <link rel="stylesheet" href="./assets/frontend/main/css/other1.css">    <!-- i18next scripts REMOVED - using fallback text only -->
+    <link rel="stylesheet" href="./assets/frontend/main/css/other1.css">    
+    <!-- Enhanced marquee and notification badge styling -->
+    <link rel="stylesheet" href="./css/marquee-enhancements.css" type="text/css" media="all"/>
+    <!-- i18next scripts REMOVED - using fallback text only -->
     <!-- <script src="https://unpkg.com/i18next/i18next.min.js"></script> -->
     <!-- <script src="https://unpkg.com/i18next-http-backend/i18nextHttpBackend.min.js"></script> -->
     <script src="./js/i18n.js"></script>
@@ -53,7 +56,7 @@
             </div>
 
             <div class="item-options">
-                                <div class="item-notification icon-effect me-3">
+                <div class="item-notification icon-effect me-3">
                     <a href="./notifications.html" data-i18n="notificationsLink">
                         <svg enable-background="new 0 0 512 512" fill="currentColor"
                              viewBox="0 0 512 512" width="20" height="20"
@@ -62,7 +65,7 @@
                             <path d="m451 215c0 8.284 6.716 15 15 15s15-6.716 15-15c0-60.1-23.404-116.603-65.901-159.1-5.857-5.857-15.355-5.858-21.213 0s-5.858 15.355 0 21.213c36.831 36.831 57.114 85.8 57.114 137.887z"/>
                             <path d="m46 230c8.284 0 15-6.716 15-15 0-52.086 20.284-101.055 57.114-137.886 5.858-5.858 5.858-15.355 0-21.213-5.857-5.858-15.355-5.858-21.213 0-42.497 42.497-65.901 98.999-65.901 159.099 0 8.284 6.716 15 15 15z"/>
                         </svg>
-                        <span class="count-notif"></span>
+                        <span class="count-notif enhanced-notification-badge" id="notificationBadge"></span>
                     </a>
                 </div>
                  
@@ -72,12 +75,21 @@
     </div>
 </header><main class="main-content">
     <div class="container">
-            <div class="container">
-   <div class="row mb-2">
+            <div class="container">   <div class="row mb-2" style="display: none;">
       <div class="col-md-12">
-         <marquee direction="left" data-i18n="marqueeText">
-            All the new users will earn 20% of commission during the training as their starting capitalAll the new users will earn 20% of commission during the training as their starting capital
-         </marquee>
+         <!-- Enhanced modern marquee with CSS animations -->
+         <div class="modern-marquee success-theme">
+            <div class="marquee-content" data-i18n="marqueeText">
+               All the new users will earn 20% of commission during the training as their starting capital
+            </div>
+         </div>
+         
+         <!-- Alternative: Traditional marquee with enhanced styling (commented out) -->
+         <!-- <div class="enhanced-marquee-container">
+            <marquee direction="left" class="enhanced-marquee" data-i18n="marqueeText">
+               All the new users will earn 20% of commission during the training as their starting capital
+            </marquee>
+         </div> -->
       </div>
    </div>
 
@@ -248,6 +260,7 @@
 <script src="./js/components.js"></script>
 <script src="./js/main.js"></script> <!-- Contains fetchWithAuth, etc. -->
 <script src="./js/auth-check.js"></script> <!-- Centralized authentication -->
+<script src="./js/notification-badge.js"></script> <!-- Dynamic notification badge functionality -->
 <script src="./js/dashboard.js"></script> <!-- Script for this page -->
 <script src="./js/auth.js"></script>
 <!-- <script src="./assets/js/script.js"></script> -->
