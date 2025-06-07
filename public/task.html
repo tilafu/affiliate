@@ -29,9 +29,6 @@
 
 <link rel="stylesheet" href="./assets/frontend/css/style.css" type="text/css" media="all"/>
 
-<!-- Enhanced marquee and notification badge styling -->
-<link rel="stylesheet" href="./css/marquee-enhancements.css" type="text/css" media="all"/>
-
 <!-- Jivo Site chat plugin -->
 <script src="//code.jivosite.com/widget/GIDIPDmldK" async></script>
 
@@ -162,7 +159,7 @@
             </div>
 
             <div class="item-options">
-                <div class="item-notification icon-effect me-3">
+                                <div class="item-notification icon-effect me-3">
                     <a href="./notifications.html">
                         <svg enable-background="new 0 0 512 512" fill="currentColor"
                              viewBox="0 0 512 512" width="20" height="20"
@@ -171,7 +168,7 @@
                             <path d="m451 215c0 8.284 6.716 15 15 15s15-6.716 15-15c0-60.1-23.404-116.603-65.901-159.1-5.857-5.857-15.355-5.858-21.213 0s-5.858 15.355 0 21.213c36.831 36.831 57.114 85.8 57.114 137.887z"/>
                             <path d="m46 230c8.284 0 15-6.716 15-15 0-52.086 20.284-101.055 57.114-137.886 5.858-5.858 5.858-15.355 0-21.213-5.857-5.858-15.355-5.858-21.213 0-42.497 42.497-65.901 98.999-65.901 159.099 0 8.284 6.716 15 15 15z"/>
                         </svg>
-                        <span class="count-notif enhanced-notification-badge" id="notificationBadge"></span>
+                        <span class="count-notif"></span>
                     </a>
                 </div>
 
@@ -578,35 +575,5 @@ $(document).ready(function(){
   animation: progress-flash 0.7s ease;
 }
 </style>
-
-<!-- Core JavaScript Libraries -->
-<script> 
-    let baseurl = '.'; // Use relative base URL 
-    // Define API base URL 
-    const API_BASE_URL = 'http://localhost:3000'; // Update for production
-</script>
-
-<script src="./assets/frontend/js/bootstrap.bundle.min.js"></script>
-<script src="./assets/frontend/js/owl.carousel.min.js"></script>
-<script src="./assets/frontend/js/script.js"></script>
-
-<!-- Application Scripts -->
-<script src="./js/i18n.js"></script>
-<script src="./js/main.js"></script> <!-- Contains fetchWithAuth, etc. -->
-<script src="./js/auth-check.js"></script> <!-- Centralized authentication -->
-<script src="./js/components.js"></script>
-<script src="./js/notification-badge.js"></script> <!-- Dynamic notification badge functionality -->
-<script src="./js/task.js"></script> <!-- Script for this page -->
-<script src="./js/auth.js"></script>
-
-<script>
-  document.addEventListener('DOMContentLoaded', function() {
-    // Initialize logout functionality
-    if (typeof attachLogoutHandlers === 'function') {
-      attachLogoutHandlers();
-    }
-  });
-</script>
-
 </body>
 </html>
