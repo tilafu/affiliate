@@ -1265,15 +1265,26 @@ function initializeHandlers() {
             return;
         }
 
-        const token = localStorage.getItem('token');
+        // Standardize to use 'auth_token' as it seems to be the key used elsewhere (e.g., in logout logic)
+        const token = localStorage.getItem('auth_token'); 
+        console.log("[Admin Balance Adjustment] Attempting to retrieve token using key 'auth_token':", token);
+
         if (!token) {
+            console.error("[Admin Balance Adjustment] Auth token (from key 'auth_token') is missing. Redirecting to login.");
             showAlert('Authentication error. Please log in again.', 'danger');
-            window.location.href = 'login.html';
+            // It's possible that a global error handler or fetchWithAuth wrapper handles the actual redirect for 401/403.
+            // If this direct check fails, it's a clear indicator the token isn't found under 'auth_token'.
+            window.location.href = 'login.html'; 
             return;
         }
 
         try {
-            const response = await fetch(`/api/admin/users/${userId}/transactions`, {
+            const apiUrl = `/api/admin/users/${userId}/transactions`;
+            console.log(`[Admin Balance Adjustment] Request Details - User ID: ${userId}, Type: ${type}, Amount: ${amount}, Description: "${description}"`);
+            console.log(`[Admin Balance Adjustment] API URL: ${apiUrl}`);
+            console.log(`[Admin Balance Adjustment] Using token for Authorization header (from key 'auth_token'): Bearer ${token ? token.substring(0, 20) + '...' : 'null'}`); // Log a snippet
+
+            const response = await fetch(apiUrl, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -1282,22 +1293,47 @@ function initializeHandlers() {
                 body: JSON.stringify({ type, amount, description })
             });
 
-            const result = await response.json();
+            console.log(`[Admin Balance Adjustment] Raw Server Response Status: ${response.status}`);
+            const responseBodyText = await response.text(); // Get body as text first
+            console.log(`[Admin Balance Adjustment] Raw Server Response Body:`, responseBodyText);
+
+            let result;
+            try {
+                result = JSON.parse(responseBodyText); // Try to parse
+            } catch (e) {
+                console.error("[Admin Balance Adjustment] Failed to parse response body as JSON. Body was:", responseBodyText, "Error:", e);
+                // If parsing fails, and status was not ok, this is likely an HTML error page (e.g. login page)
+                if (!response.ok) {
+                    showAlert(`Server returned an error (status ${response.status}). Check console for raw response.`, 'danger');
+                    if (response.status === 401 || response.status === 403) {
+                         console.warn("[Admin Balance Adjustment] Server returned 401/403, which usually triggers a redirect to login by auth logic.");
+                         // The redirect might be handled by a global fetch wrapper or error handler.
+                         // If not, and we are here, the page hasn't redirected yet.
+                    }
+                    return; // Stop further processing
+                }
+                // If parsing failed but response.ok was true (unlikely for this API), treat as error
+                result = { success: false, message: "Failed to parse server response. See raw body log." };
+            }
 
             if (response.ok && result.success) {
                 showAlert(`Balance adjusted successfully for user ${userId}. New balance: ${result.newBalance || 'N/A'}.`, 'success');
-                // Clear input fields
                 $('#manual-transaction-amount').val('');
                 $('#manual-transaction-description').val('');
-                // Refresh user list to show updated balance
                 loadUsers(); 
-                // Optionally, re-select the current user if needed or close/reset the manage section
-                // For now, just clear and refresh
             } else {
-                showAlert(result.message || 'Failed to adjust balance.', 'danger');
+                console.error(`[Admin Balance Adjustment] API call failed or returned success:false. Status: ${response.status}, Parsed Result:`, result);
+                showAlert(result.message || `Failed to adjust balance. Server status: ${response.status}`, 'danger');
+                if (response.status === 401 || response.status === 403) {
+                    // If we reach here and it's a 401/403, and no redirect has happened yet,
+                    // it means there isn't a global handler aggressively redirecting for this specific fetch.
+                    // However, the user experience is still a failed operation.
+                    console.warn("[Admin Balance Adjustment] Explicit redirect to login.html due to 401/403 might be needed here if not handled globally.");
+                    // window.location.href = 'login.html'; // Consider if this is the right place for a redirect
+                }
             }
         } catch (error) {
-            console.error('Error adjusting balance:', error);
+            console.error('[Admin Balance Adjustment] Error during fetch operation or subsequent processing:', error);
             showAlert('An error occurred while adjusting balance. Check console for details.', 'danger');
         }
     });
