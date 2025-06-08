@@ -177,8 +177,7 @@ function attachLogoutHandlers() {
       if (driveSessionData) {
         localStorage.setItem('current_drive_session', driveSessionData);
       }
-      
-      // If you have a showNotification function:
+        // If you have a showNotification function:
       if (typeof showNotification === 'function') {
         // Ensure i18next is initialized before calling t()
         if (window.i18next && window.i18next.isInitialized) {
@@ -188,13 +187,15 @@ function attachLogoutHandlers() {
             i18next.on('initialized', () => {
                  showNotification(i18next.t('logoutSuccessNotification'), 'success');
             });
-            // Fallback if i18next fails or is slow
-            // setTimeout(() => showNotification(i18next.t('logoutSuccessNotification', 'Logged out successfully.'), 'success'), 500);
         }
+        // Redirect after a short delay to allow notification to show
+        setTimeout(() => {
+          window.location.href = 'login.html';
+        }, 1000);
+      } else {
+        // Redirect immediately if no notification
+        window.location.href = 'login.html';
       }
-      
-      // Redirect to login page
-      window.location.href = 'login.html';
     });
   });
 }

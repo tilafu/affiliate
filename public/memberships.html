@@ -111,8 +111,7 @@
                <span data-i18n="sidebarAboutUsLink">ABOUT US</span>
             </a>
          </li>
-         <li class="bottom-border">
-            <a href="./logout.html"> <!-- Updated link to include .html -->
+         <li class="bottom-border">            <a href="#" class="logout">
                <img src="./assets/uploads/img/8.png"  style="margin-right: 5px;" width="20px">
                <span data-i18n="sidebarLogoutLink">LOGOUT</span>
             </a>
@@ -286,7 +285,17 @@
 <script src="./js/i18n.js"></script>
 <!-- Import auth-check.js for authentication -->
 <script src="./js/auth-check.js"></script>
+<!-- Import auth.js for logout functionality -->
+<script src="./js/auth.js"></script>
 <!-- Import membership.js script -->
 <script src="./js/membership.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Initialize logout functionality
+    if (typeof attachLogoutHandlers === 'function') {
+      attachLogoutHandlers();
+    }
+  });
+</script>
 </body>
 </html>

@@ -1,16 +1,11 @@
 // Function to ensure i18n content is updated with correct translations
 function updatePageTranslations() {
-    // Only run if i18next is available and initialized
-    if (window.i18next && window.i18next.isInitialized) {
-        // Call the global updateContent function from i18n.js
-        if (typeof updateContent === 'function') {
-            updateContent();
-            console.log('Updated page translations');
-        } else {
-            console.warn('updateContent function not available');
-        }
+    // Use the simplified fallback text conversion system
+    if (typeof updateContent === 'function') {
+        updateContent();
+        console.log('Updated page translations using fallback text conversion');
     } else {
-        console.warn('i18next not initialized yet');
+        console.warn('updateContent function not available');
     }
 }
 
@@ -106,18 +101,8 @@ async function initializeDashboard() {
 document.addEventListener('DOMContentLoaded', () => {
     console.log('Dashboard script loaded');
     
-    // Initialize i18n if not already initialized
-    if (typeof initI18next === 'function' && window.i18next && !window.i18next.isInitialized) {
-        initI18next().then(() => {
-            console.log('i18next initialized');
-            // After i18next initializes, update translations
-            updatePageTranslations();
-        });
-    } else if (window.i18next && window.i18next.isInitialized) {
-        // If already initialized, just update translations
-        console.log('i18next already initialized, updating translations');
-        updatePageTranslations();
-    }
+    // Apply simplified i18n text conversion immediately
+    updatePageTranslations();
     
     const sidebarPlaceholder = document.getElementById('sidebar-placeholder');
 
@@ -127,21 +112,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if (event.detail.path === '/components/sidebar.html') {
                 console.log('Sidebar component loaded, initializing dashboard.');
                 
-                // Setup language switcher after sidebar loads
-                const langSwitcher = document.getElementById('language-switcher');
-                if (langSwitcher) {
-                    // Set initial value
-                    langSwitcher.value = i18next.language || 'en';
-                    
-                    // Add change event listener
-                    langSwitcher.addEventListener('change', (e) => {
-                        setLanguage(e.target.value);
-                    });
-                }
-                
                 // Update translations again after sidebar loads
                 updatePageTranslations();
                 
+                // Initialize dashboard after sidebar loads
                 initializeDashboard();
             }
         });
@@ -152,13 +126,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// Add language change event listener
-if (window.i18next) {
-    window.i18next.on('languageChanged', () => {
-        console.log('Language changed, updating translations');
-        updatePageTranslations();
-    });
-}
+// Remove the old i18next language change listener since it's no longer available
 
 /**
  * Fetch and update the drive progress on the dashboard
@@ -295,50 +263,38 @@ function updateMembershipTier(tier) {
         tierImage.src = currentTier.imageSrc;
         tierImage.alt = currentTier.displayName;
     }
-    
-    // Update title
+      // Update tier information with fallback text
     if (tierTitle) {
         tierTitle.textContent = currentTier.displayName;
-        tierTitle.setAttribute('data-i18n-options', JSON.stringify({ tier: tier }));
     }
-    
-    // Update commission per data
+      // Update commission per data
     if (commissionPerData) {
         commissionPerData.textContent = `● ${currentTier.commissionPerData}% commission per data`;
-        commissionPerData.setAttribute('data-i18n-options', JSON.stringify({ percentage: currentTier.commissionPerData }));
     }
     
     // Update commission for merge data
     if (commissionMergeData) {
         commissionMergeData.textContent = `● ${currentTier.commissionMergeData}% commission for merge data`;
-        commissionMergeData.setAttribute('data-i18n-options', JSON.stringify({ percentage: currentTier.commissionMergeData }));
     }
     
     // Update data limit
     if (dataLimit) {
         dataLimit.textContent = `● Limited to ${currentTier.dataLimit} data per set, ${currentTier.setsPerDay} sets of data everyday`;
-        dataLimit.setAttribute('data-i18n-options', JSON.stringify({ 
-            dataLimit: currentTier.dataLimit, 
-            setsPerDay: currentTier.setsPerDay 
-        }));
     }
     
     // Update withdrawal limit
     if (withdrawalLimit) {
         withdrawalLimit.textContent = `● withdrawal limit: ${currentTier.withdrawalLimit} USDT`;
-        withdrawalLimit.setAttribute('data-i18n-options', JSON.stringify({ limit: currentTier.withdrawalLimit }));
     }
     
     // Update withdrawal times
     if (withdrawalTimes) {
         withdrawalTimes.textContent = `● ${currentTier.withdrawalTimes} times of withdrawal`;
-        withdrawalTimes.setAttribute('data-i18n-options', JSON.stringify({ times: currentTier.withdrawalTimes }));
     }
     
     // Update handling fee
     if (handlingFee) {
         handlingFee.textContent = `● ${currentTier.handlingFee}% handling fee`;
-        handlingFee.setAttribute('data-i18n-options', JSON.stringify({ percentage: currentTier.handlingFee }));
     }
       // If i18next is initialized, update translations
     if (window.i18next && window.i18next.isInitialized) {

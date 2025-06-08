@@ -20,9 +20,7 @@ async function loadComponent(componentPath, targetElementId) {
             throw new Error(`Failed to fetch component ${componentPath}: ${response.status} ${response.statusText}`);
         }        const html = await response.text();
         targetElement.innerHTML = html;
-        console.log(`Component "${componentPath}" loaded into "#${targetElementId}".`);
-
-        // Apply i18n translations to the newly loaded component
+        console.log(`Component "${componentPath}" loaded into "#${targetElementId}".`);        // Apply i18n translations to the newly loaded component
         if (typeof updateContent === 'function') {
             console.log(`Applying i18n translations to component "${componentPath}"...`);
             updateContent();
@@ -35,16 +33,16 @@ async function loadComponent(componentPath, targetElementId) {
                     element.innerHTML = i18next.t(key);
                 }
             });
+        } else {
+            console.log(`i18n completely disabled for component "${componentPath}", skipping translations...`);
         }
 
         // Dispatch a custom event to signal completion
         const event = new CustomEvent('componentLoaded', { detail: { path: componentPath } });
-        targetElement.dispatchEvent(event);
-
-        // Re-initialize any necessary scripts or event listeners for the loaded component
+        targetElement.dispatchEvent(event);        // Re-initialize any necessary scripts or event listeners for the loaded component
         // Example: If the sidebar has interactive elements initialized by another script
-        if (typeof initializeSidebarScripts === 'function') {
-            initializeSidebarScripts(); // You might need to create this function
+        if (componentPath === '/components/sidebar.html') {
+            initializeSidebarScripts();
         }
 
     } catch (error) {
@@ -57,18 +55,29 @@ async function loadComponent(componentPath, targetElementId) {
 // Example of how to initialize scripts specific to the sidebar after it's loaded
 // You might need to move sidebar-specific JS initializations here from other files
 async function initializeSidebarScripts() {
-    console.log('Initializing sidebar scripts...');
-
-    // Attach logout handlers defined in auth.js to any .logout elements within the sidebar
+    console.log('Initializing sidebar scripts...');    // Attach logout handlers defined in auth.js to any .logout elements within the sidebar
     if (typeof window.attachLogoutHandlers === 'function') {
         console.log('Attaching logout handlers from auth.js...');
         window.attachLogoutHandlers();
+    } else if (typeof attachLogoutHandlers === 'function') {
+        console.log('Attaching logout handlers from auth.js (global scope)...');
+        attachLogoutHandlers();
     } else {
-        console.error('attachLogoutHandlers function from auth.js is not available globally.');
-    }    // Initialize sidebar user data population
-    await populateSidebarUserData();
-
-    // Apply i18n translations to the newly loaded sidebar
+        console.warn('attachLogoutHandlers function from auth.js is not available yet. Will retry after a delay.');
+        // Retry after a short delay to allow auth.js to load
+        setTimeout(() => {
+            if (typeof window.attachLogoutHandlers === 'function') {
+                console.log('Attaching logout handlers from auth.js (delayed)...');
+                window.attachLogoutHandlers();
+            } else if (typeof attachLogoutHandlers === 'function') {
+                console.log('Attaching logout handlers from auth.js (delayed, global scope)...');
+                attachLogoutHandlers();
+            } else {
+                console.error('attachLogoutHandlers function is still not available after delay.');
+            }
+        }, 500);
+    }// Initialize sidebar user data population
+    await populateSidebarUserData();    // Apply i18n translations to the newly loaded sidebar
     if (typeof updateContent === 'function') {
         console.log('Applying i18n translations to sidebar...');
         updateContent();
@@ -82,7 +91,7 @@ async function initializeSidebarScripts() {
             }
         });
     } else {
-        console.warn('i18next not available or not initialized when loading sidebar');
+        console.log('i18n completely disabled for sidebar, skipping translations...');
     }
 
     // Explicitly add close button functionality after sidebar loads
@@ -145,10 +154,22 @@ async function populateSidebarUserData() {
 
 // Function to load components after i18n is ready
 function loadInitialComponents() {
-    if (document.getElementById('sidebar-placeholder')) {
+    console.log('Components.js: loadInitialComponents called');
+    
+    const sidebarPlaceholder = document.getElementById('sidebar-placeholder');
+    if (sidebarPlaceholder) {
+        console.log('Components.js: Found sidebar placeholder, loading sidebar...');
         loadComponent('/components/sidebar.html', 'sidebar-placeholder')
-            .catch(err => console.error("Sidebar loading failed:", err));
+            .then(() => {
+                console.log('Components.js: Sidebar loaded successfully');
+            })
+            .catch(err => {
+                console.error("Components.js: Sidebar loading failed:", err);
+            });
+    } else {
+        console.warn('Components.js: No sidebar placeholder found in DOM');
     }
+    
     // Add similar checks for other components like header or footer if needed
     // if (document.getElementById('header-placeholder')) {
     //     loadComponent('/components/header.html', 'header-placeholder');
@@ -157,12 +178,25 @@ function loadInitialComponents() {
 
 // Automatically load components when both DOM and i18n are ready
 document.addEventListener('DOMContentLoaded', () => {
-    // Check if i18n is already ready
-    if (typeof i18next !== 'undefined' && i18next.isInitialized) {
+    console.log('Components.js: DOM loaded, checking i18n status...');
+    
+    // Check if i18n is completely disabled (no updateContent function and no i18next)
+    if (typeof updateContent === 'undefined' && typeof i18next === 'undefined') {
+        console.log('Components.js: i18n completely disabled, loading components immediately...');
+        loadInitialComponents();
+        return;
+    }
+    
+    // Check if i18n is already ready (for the disabled i18n system, check if updateContent function exists)
+    if ((typeof i18next !== 'undefined' && i18next.isInitialized) || 
+        (typeof updateContent === 'function')) {
+        console.log('Components.js: i18n ready, loading components immediately...');
         loadInitialComponents();
     } else {
+        console.log('Components.js: Waiting for i18nReady event...');
         // Wait for i18n to be ready
         window.addEventListener('i18nReady', () => {
+            console.log('Components.js: i18nReady event received, loading components...');
             loadInitialComponents();
         });
         
@@ -170,7 +204,7 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => {
             if (document.getElementById('sidebar-placeholder') && 
                 document.getElementById('sidebar-placeholder').innerHTML === '') {
-                console.warn('Loading components without i18n ready confirmation');
+                console.warn('Components.js: Loading components without i18n ready confirmation (fallback)');
                 loadInitialComponents();
             }
         }, 1000);

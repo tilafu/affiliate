@@ -5,6 +5,7 @@ const { protect } = require('../middlewares/auth'); // Import the auth middlewar
 const {
     getUserDeposits,
     getUserWithdrawals,
+    getUserTotalDeposits, // Import new function
     getWithdrawableBalance,
     getWithdrawHistory,
     getUserBalances,
@@ -79,6 +80,11 @@ router.put('/profile', protect, async (req, res) => {
 // @desc    Get user's deposited amount
 // @access  Private (requires token)
 router.get('/deposits', protect, getUserDeposits);
+
+// @route   GET /api/user/deposits/total
+// @desc    Get user's total deposited amount from accounts.deposit field
+// @access  Private (requires token)
+router.get('/deposits/total', protect, getUserTotalDeposits);
 
 // @route   GET /api/user/withdrawals
 // @desc    Get user's withdrawn amount

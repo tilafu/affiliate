@@ -105,6 +105,11 @@ document.addEventListener('DOMContentLoaded', () => {
         setErrorState(`Error loading account data: ${error.message}`);
     });
 
+    // Initialize logout functionality
+    if (typeof attachLogoutHandlers === 'function') {
+        attachLogoutHandlers();
+    }
+
     // Set up auto-refresh every 30 seconds
     const refreshInterval = setInterval(updateAccountData, 30000);
 

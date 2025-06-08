@@ -109,11 +109,10 @@
                <img src="./assets/uploads/img/8.png"  style="margin-right: 5px;" width="20px">
                ABOUT US
             </a>
-         </li>
-         <li class="bottom-border">
-                <a href="http://127.0.0.1:5500/index.html">
+         </li>         <li class="bottom-border">
+                <a href="#" class="logout">
                   <img src="./assets/uploads/img/8.png"  style="margin-right: 5px;" width="20px">
-                    LOGOUT
+                    <span data-i18n="sidebarLogoutLink">LOGOUT</span>
                 </a>
             </li>
 
@@ -207,5 +206,17 @@
 <script src="./assets/frontend/js/bootstrap.bundle.min.js"></script>
 <script src="./assets/frontend/js/owl.carousel.min.js"></script>
 <script src="./assets/frontend/js/script.js"></script>
+<!-- Import auth-check.js for authentication -->
+<script src="./js/auth-check.js"></script>
+<!-- Import auth.js for logout functionality -->
+<script src="./js/auth.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Initialize logout functionality
+    if (typeof attachLogoutHandlers === 'function') {
+      attachLogoutHandlers();
+    }
+  });
+</script>
 </body>
 </html>

@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CDOT Database - Welcome</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Custom CSS for public pages -->
+    <link rel="stylesheet" href="css/public-pages.css">
+    <!-- Optional: Font Awesome for icons if you use them -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        /* Minor style adjustments for the example */
+        .navbar-brand img {
+            height: 30px; /* Adjust as needed */
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-light fixed-top">
+        <div class="container">
+            <a class="navbar-brand" href="#">
+                <img src="assets/logo.png" alt="CDOT Database Logo"> <!-- Replace with your logo -->
+                CDOT Database
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <button type="button" class="btn-close-fullscreen d-lg-none" aria-label="Close" onclick="toggleFullscreenMenu()">&times;</button>
+                <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+                    <li class="nav-item">
+                        <a class="nav-link active" aria-current="page" href="#">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/about.html">About</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/contact.html">Contact</a>
+                    </li>
+                </ul>
+                <a href="login.html" class="btn btn-primary ms-lg-3">Launch WorkDesk <i class="fas fa-arrow-right"></i></a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <header class="hero-section">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-md-8">
+                    <div class="content-box">
+                        <h1>Start Your Career as a Product Engagement Associate (PEA).</h1>
+                        <p class="lead">Partnered with 12K+ Brands. Train Today, Start Earning.</p>
+                        <a href="login.html" class="btn btn-primary btn-lg mt-3">CDOT WorkDesk <i class="fas fa-arrow-right"></i></a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- PEA Section -->
+    <section class="pea-section py-5">
+        <div class="container">
+            <div class="row text-center mb-5">
+                <div class="col-lg-8 mx-auto">
+                    <h2 class="display-5 fw-bold">Our Highest-Earning PEAs Make <span class="text-warning">7x</span><br> the Industry Average</h2>
+                </div>
+            </div>
+            <div class="row text-center">
+                <div class="col-md-4 mb-4">
+                    <div class="pea-item p-4 h-100">
+                        <i class="fas fa-desktop fa-3x mb-3 text-primary"></i>
+                        <h4 class="fw-bold">What Is a PEA?</h4>
+                        <p class="text-muted">A Product Engagement Associate (PEA) is an independent contributor who helps new and emerging products gain traction on major e-commerce platforms. PEAs participate in structured campaigns that drive product visibility, engagement, and momentum during critical early launch phases.</p>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-4">
+                    <div class="pea-item p-4 h-100">
+                        <i class="fas fa-users fa-3x mb-3 text-primary"></i>
+                        <h4 class="fw-bold">Who Are PEAs?</h4>
+                        <p class="text-muted">PEAs are independent freelancers who appreciate flexible work, performance-based pay, and the chance to be part of fast-moving product campaigns. No experience is needed—just consistency, reliability, and a willingness to complete a simple onboarding process.</p>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-4">
+                    <div class="pea-item p-4 h-100">
+                        <i class="fas fa-sitemap fa-3x mb-3 text-primary"></i>
+                        <h4 class="fw-bold">Are PEAs Part of CDOT?</h4>
+                        <p class="text-muted">Absolutely. Though independent freelancers, PEAs are a valued part of the CDOT family. Working side by side on store campaigns, they help grow revenue while earning well for themselves. With CDOT’s full support and resources, PEAs have everything they need to thrive and succeed.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- About CDOT Section -->
+    <section class="about-cdot-section py-5 bg-light">
+        <div class="container">
+            <div class="row mb-5">
+                <div class="col-lg-8 mx-auto text-center">
+                    <h2 class="display-5 fw-bold">About <span class="text-warning">CDOT</span> Database</h2>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6 mb-4">
+                    <h4 class="fw-bold">Helping Products Grow Since 2005</h4>
+                    <p class="text-muted">We began CDOT in 2005, creating software to help companies manage their logistics and warehouses more efficiently. As the industry changed, so did we. By 2012, we expanded into digital marketing, and in 2018, eCommerce became our full focus.</p>
+                </div>
+                <div class="col-md-6 mb-4">
+                    <h4 class="fw-bold">What We Do Today</h4>
+                    <p class="text-muted">Today, we partner with PEAs from around the world to help new products get noticed and sell quickly on major online platforms. Based in Canada, we support clients and PEAs across North America, Europe, and Australia. And honestly? <span class="text-warning">We’re just getting started.</span></p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Video Section -->
+    <section class="video-section py-5 text-center">
+        <div class="container">
+            <h2 class="display-4 fw-bold mb-4">Catch Our Latest Update!</h2>
+            <div class="ratio ratio-16x9">
+                <iframe src="https://www.youtube.com/embed/KpMGbjvBXSE" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+            </div>
+        </div>
+    </section>
+
+    <!-- Get Paid to Power Section -->
+    <section class="get-paid-section py-5">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-6 mb-4 mb-lg-0">
+                    <h2 class="display-5 fw-bold">Get Paid to <span class="text-warning">Power</span> New Product Launches</h2>
+                    <p class="lead text-muted mt-3 mb-4">We're building a global movement rooted in compassion and impact. We connect freelancers and brands to create meaningful work and real-world results.</p>
+                    <ul class="list-unstyled">
+                        <li class="mb-2"><i class="fas fa-plus text-warning me-2"></i>Flexible Work Options</li>
+                        <li class="mb-2"><i class="fas fa-plus text-warning me-2"></i>Exceptional Earnings</li>
+                        <li class="mb-2"><i class="fas fa-plus text-warning me-2"></i>No Prior Experience Needed</li>
+                    </ul>
+                </div>
+                <div class="col-lg-6">
+                    <img src="assets/uploads/cdot/product_launch.jpeg" class="img-fluid rounded" alt="Power New Product Launches">
+                    <!-- TODO: Replace with your actual image path e.g., assets/images/your-image.jpg -->
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Secure Position Section -->
+    <section class="secure-position-section py-5 bg-light">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-6 mb-4 mb-lg-0">
+                    <div class="position-relative">
+                        <img src="assets/uploads/cdot/secure-position.jpeg" class="img-fluid rounded shadow-lg" alt="Earnings Graph">
+                        <!-- Note: The earnings overlay text ($5103.01, This Week Earning, +56%) needs to be positioned using CSS.
+                             This HTML provides a basic structure. You might need additional CSS for the overlay. -->
+                        <div class="card position-absolute bottom-0 start-0 ms-3 mb-3 shadow-sm" style="max-width: 200px; background-color: rgba(255, 255, 255, 0.9);">
+                            <div class="card-body p-3">
+                                <h4 class="card-title fw-bold mb-1">$5103.01</h4>
+                                <p class="card-text text-muted small mb-1">This Week Earning</p>
+                                <p class="card-text text-success fw-bold small"><i class="fas fa-arrow-up"></i> +56%</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <h2 class="display-5 fw-bold">Secure Your <span class="text-warning">Position</span><br> Today At CDOT</h2>
+                    <p class="lead text-muted mt-3 mb-4">Claim your spot in our global network of freelancers driving product revenue. Get started with straightforward training, flexible plans, and steady earning potential.</p>
+                    <a href="register.html" class="btn btn-primary btn-lg mb-4">Get Started Now <i class="fas fa-arrow-right"></i></a>
+                    <div class="mt-4">
+                        <div class="d-flex align-items-start mb-3">
+                            <div class="flex-shrink-0">
+                                <i class="fas fa-chalkboard-teacher fa-2x text-warning me-3"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <h5 class="fw-bold">Get Training by Your Advisor</h5>
+                                <p class="text-muted">Personalized guidance to help you master every step so you feel confident and ready from day one.</p>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-start">
+                            <div class="flex-shrink-0">
+                                <i class="fas fa-rocket fa-2x text-warning me-3"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <h5 class="fw-bold">Start Your Journey with Us</h5>
+                                <p class="text-muted">Earn commission from day one, with a stable base salary paid weekly and monthly.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Helping Sellers Increase Revenue Section -->
+    <section class="helping-sellers-section py-5">
+        <div class="container">
+            <div class="row mb-5">
+                <div class="col-lg-8 mx-auto text-center">
+                    <h2 class="display-4 fw-bold">Helping Sellers Increase <br><span class="text-warning">Revenue by 55%+</span></h2>
+                    <p class="lead text-muted mt-3">12,000+ Product Catalog</p>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6 mb-4">
+                    <div class="card h-100 shadow-sm">
+                        <img src="assets/uploads/cdot/daily_wear.jpeg" class="card-img-top" alt="DailyWear Co.">
+                        <div class="card-body">
+                            <h5 class="card-title fw-bold">DailyWear Co. Boosts Online Sales by 18%</h5>
+                            <p class="card-text text-muted">DailyWear Co. partnered with CDOT and saw sales surge by 18% in just 6 weeks. Thanks to the efforts of our PEA network, DailyWear Co. has rewarded our freelancers with over $39,000 in commissions and sales are still growing.</p>
+                            <span class="badge bg-secondary">DailyWear Co.</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 mb-4">
+                    <div class="card h-100 shadow-sm">
+                        <img src="assets/uploads/cdot/pure_aura.jpeg" class="card-img-top" alt="PureAura Cosmetics Success">
+                        <div class="card-body">
+                            <h5 class="card-title fw-bold">PureAura Teams Up with CDOT for New Product Launch</h5>
+                            <p class="card-text text-muted">PureAura Cosmetics partnered with CDOT, using our Product Engagement Associates (PEAs) to drive real purchases for their new line. PEAs create genuine sales momentum that boosts visibility and encourages others to buy, building consumer trust.</p>
+                            <span class="badge bg-secondary">PureAura Cosmetics</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 mb-4">
+                    <div class="card h-100 shadow-sm">
+                        <img src="assets/uploads/cdot/urban_nest.jpeg" class="card-img-top" alt="UrbanNest Furniture Success">
+                        <div class="card-body">
+                            <h5 class="card-title fw-bold">The Strategy Behind UrbanNest's Online Surge</h5>
+                            <p class="card-text text-muted">UrbanNest Furniture redefined its digital strategy by simulating early demand through targeted purchases turning visibility into real consumer interest and driving a 20% lift in online engagement over two months.</p>
+                            <span class="badge bg-secondary">UrbanNest Furniture</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 mb-4">
+                    <div class="card h-100 shadow-sm">
+                        <img src="assets/uploads/cdot/wave_electronics.jpeg" class="card-img-top" alt="Wave Electronics Success">
+                        <div class="card-body">
+                            <h5 class="card-title fw-bold">Surfing the Future of Online Tech Shopping</h5>
+                            <p class="card-text text-muted">Wave Electronics teamed up with CDOT to boost online sales and engagement. Through targeted strategies and our PEAs, we're helping Wave build real momentum and connect with more customers every day.</p>
+                            <span class="badge bg-secondary">Wave Electronics</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row mt-4">
+                <div class="col text-center">
+                    <a href="login.html" class="btn btn-outline-primary btn-lg">Launch WorkDesk <i class="fas fa-arrow-right"></i></a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Choose Your PEA Membership Tier Section -->
+    <section class="pea-membership-tier-section py-5 bg-light">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-5 mb-4 mb-lg-0">
+                    <h2 class="display-5 fw-bold">Choose Your <span class="text-warning">PEA</span><br> Membership Tier</h2>
+                    <p class="lead text-muted mt-3 mb-4">Choose the access level that fits your goals and start earning with CDOT. Each tier is built to maximize your potential as a Product Engagement Associate, offering targeted benefits to boost your growth and income.</p>
+                    <a href="memberships.html" class="btn btn-outline-primary btn-lg">Find Your Plan <i class="fas fa-arrow-right"></i></a>
+                </div>
+                <div class="col-lg-7">
+                    <div class="card shadow-lg" style="border-radius: 15px; background-color: #007bff; color: white;">
+                        <div class="card-body p-4 p-md-5">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <span class="badge bg-warning text-dark">Per Campaign</span>
+                                <span class="badge bg-dark">PEA Basic</span>
+                            </div>
+                            <h3 class="fw-bold mb-3">Free Plan</h3>
+                            <p style="font-size: 0.9rem;">PEA Basic is your entry point into the CDOT system. It's designed to get you trained and earning from day one.</p>
+                            <hr style="border-top: 1px solid rgba(255,255,255,0.5);">
+                            <h5 class="fw-bold mt-4 mb-3">What You'll Get?</h5>
+                            <ul class="list-unstyled" style="font-size: 0.9rem;">
+                                <li class="mb-2"><i class="fas fa-check-circle text-white me-2"></i>Weekly Salary: $700</li>
+                                <li class="mb-2"><i class="fas fa-check-circle text-white me-2"></i>Commission: 0.7% (Single) | 2% (Bundle)</li>
+                                <li class="mb-2"><i class="fas fa-check-circle text-white me-2"></i>Dashboard & Support: Standard</li>
+                                <li class="mb-2"><i class="fas fa-check-circle text-white me-2"></i>Annual Potential: $36,400</li>
+                                <li class="mb-2"><i class="fas fa-check-circle text-white me-2"></i>Instant Balance Refund: Within 1 Minute</li>
+                                <li class="mb-2"><i class="fas fa-check-circle text-white me-2"></i>Training: One Advisor Assigned</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Trusted By & Testimonial Section -->
+    <section class="trusted-testimonial-section py-5">
+        <div class="container">
+            <div class="row mb-5">
+                <div class="col-lg-8 mx-auto text-center">
+                    <h2 class="display-5 fw-bold">Trusted by Over <span class="text-warning">400+</span><br> Global Retail Stores</h2>
+                </div>
+            </div>
+            <div class="row justify-content-center align-items-center"> <!-- Added align-items-center for vertical alignment -->
+                <div class="col-auto d-none d-lg-block"> <!-- Hide on small screens, show on large -->
+                    <button class="carousel-control-prev" type="button" data-bs-target="#testimonialCarousel" data-bs-slide="prev" style="position: static; background: none; border: none;">
+                        <span class="carousel-control-prev-icon" aria-hidden="true" style="background-color: #ffc107; border-radius: 50%; padding: 15px;"></span>
+                        <span class="visually-hidden">Previous</span>
+                    </button>
+                </div>
+                <div class="col-lg-9">
+                    <div id="testimonialCarousel" class="carousel slide" data-bs-ride="false" data-bs-interval="false">
+                        <div class="carousel-inner">
+                            <div class="carousel-item active">
+                                <div class="card shadow-sm">
+                                    <div class="card-body text-center p-4">
+                                        <img src="https://via.placeholder.com/100x100?text=Rimberio" class="rounded-circle mb-3" alt="Rimberio Logo" style="width: 80px; height: 80px;">
+                                        <p class="lead fst-italic">"We weren't sure what to expect before our first campaign, but the results were real. CDOT got us actual sales faster than any ad campaign ever has."</p>
+                                        <h5 class="fw-bold mt-3 mb-0">Michael Johnson</h5>
+                                        <p class="text-warning small">CoFounder at Framify</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="carousel-item">
+                                <div class="card shadow-sm">
+                                    <div class="card-body text-center p-4">
+                                        <img src="https://via.placeholder.com/100x100?text=Logo+2" class="rounded-circle mb-3" alt="Partner Logo 2" style="width: 80px; height: 80px;">
+                                        <p class="lead fst-italic">"The PEA program has been a game-changer for our new product launches. Highly recommended!"</p>
+                                        <h5 class="fw-bold mt-3 mb-0">Sarah Lee</h5>
+                                        <p class="text-warning small">Marketing Director at TechNova</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="carousel-item">
+                                <div class="card shadow-sm">
+                                    <div class="card-body text-center p-4">
+                                        <img src="https://via.placeholder.com/100x100?text=Logo+3" class="rounded-circle mb-3" alt="Partner Logo 3" style="width: 80px; height: 80px;">
+                                        <p class="lead fst-italic">"Our sales increased significantly after partnering with CDOT. Their network is powerful."</p>
+                                        <h5 class="fw-bold mt-3 mb-0">David Kim</h5>
+                                        <p class="text-warning small">CEO at StyleHub</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="carousel-item">
+                                <div class="card shadow-sm">
+                                    <div class="card-body text-center p-4">
+                                        <img src="https://via.placeholder.com/100x100?text=Logo+4" class="rounded-circle mb-3" alt="Partner Logo 4" style="width: 80px; height: 80px;">
+                                        <p class="lead fst-italic">"The onboarding process was smooth, and we saw results almost immediately. Impressive!"</p>
+                                        <h5 class="fw-bold mt-3 mb-0">Jessica Chen</h5>
+                                        <p class="text-warning small">Founder of GreenLeaf Organics</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="carousel-item">
+                                <div class="card shadow-sm">
+                                    <div class="card-body text-center p-4">
+                                        <img src="https://via.placeholder.com/100x100?text=Logo+5" class="rounded-circle mb-3" alt="Partner Logo 5" style="width: 80px; height: 80px;">
+                                        <p class="lead fst-italic">"CDOT provides an excellent platform for freelancers and businesses to connect and achieve great results."</p>
+                                        <h5 class="fw-bold mt-3 mb-0">Tom Wilson</h5>
+                                        <p class="text-warning small">Operations Manager at FastTrack Solutions</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Mobile controls - visible only on smaller screens -->
+                        <button class="carousel-control-prev d-lg-none" type="button" data-bs-target="#testimonialCarousel" data-bs-slide="prev">
+                            <span class="carousel-control-prev-icon" aria-hidden="true" style="background-color: #ffc107; border-radius: 50%; padding: 15px;"></span>
+                            <span class="visually-hidden">Previous</span>
+                        </button>
+                        <button class="carousel-control-next d-lg-none" type="button" data-bs-target="#testimonialCarousel" data-bs-slide="next">
+                            <span class="carousel-control-next-icon" aria-hidden="true" style="background-color: #ffc107; border-radius: 50%; padding: 15px;"></span>
+                            <span class="visually-hidden">Next</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="col-auto d-none d-lg-block"> <!-- Hide on small screens, show on large -->
+                    <button class="carousel-control-next" type="button" data-bs-target="#testimonialCarousel" data-bs-slide="next" style="position: static; background: none; border: none;">
+                        <span class="carousel-control-next-icon" aria-hidden="true" style="background-color: #ffc107; border-radius: 50%; padding: 15px;"></span>
+                        <span class="visually-hidden">Next</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FAQ Section -->
+    <section class="faq-section py-5 bg-light">
+        <div class="container">
+            <div class="row mb-5">
+                <div class="col-lg-8 mx-auto text-center">
+                    <h2 class="display-5 fw-bold">Frequently Asked Questions</h2>
+                    <p class="lead text-muted mt-3">Find quick answers to common questions about getting started, earning, and upgrading your PEA access.</p>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-lg-8">
+                    <div class="accordion" id="faqAccordion">
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingOne">
+                                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
+                                    What is cdot Database?
+                                </button>
+                            </h2>
+                            <div id="collapseOne" class="accordion-collapse collapse show" aria-labelledby="headingOne" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    Cdot is a virtual workspace for freelancers that helps increase product visibility for global businesses using AI-powered systems.
+                                </div>
+                            </div>
+                        </div>
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingTwo">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
+                                    Who can join cdot?
+                                </button>
+                            </h2>
+                            <div id="collapseTwo" class="accordion-collapse collapse" aria-labelledby="headingTwo" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    Anyone aged 21 and above can apply — whether you're working full-time, part-time, or job seeking. Residents from restricted countries (e.g. Syria, North Korea, China) are not eligible.
+
+                                </div>
+                            </div>
+                        </div>
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingThree">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree">
+                                    What is a PEA (Product Engagement Associate)?
+                                </button>
+                            </h2>
+                            <div id="collapseThree" class="accordion-collapse collapse" aria-labelledby="headingThree" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    A PEA is a freelance product engager who completes daily product interaction tasks inside the workspace and earns through commissions and fixed payouts.
+
+                                </div>
+                            </div>
+                        </div>
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingFour">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFour" aria-expanded="false" aria-controls="collapseFour">
+                                    How long is the workday?
+                                </button>
+                            </h2>
+                            <div id="collapseFour" class="accordion-collapse collapse" aria-labelledby="headingFour" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    Work typically takes 2–4 hours per day, depending on your speed. You’re expected to work 6 days a week, adjusted to your local timezone.
+                                </div>
+                            </div>
+                        </div>
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingFive">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFive" aria-expanded="false" aria-controls="collapseFive">
+                                    How much can I earn?
+                                </button>
+                            </h2>
+                            <div id="collapseFive" class="accordion-collapse collapse" aria-labelledby="headingFive" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    Earnings depend on your Access Level, task completion, and daily performance. Real-time salary info is available in the Salary Insights section of your workspace
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4 mt-4 mt-lg-0">
+                    <div class="card text-center p-4" style="background-color: #ffc107; border-radius: 15px;">
+                        <div class="card-body">
+                            <h4 class="card-title fw-bold text-dark">Download the full FAQ for more information</h4>
+                            <a href="assets/pdf/CDOT_FAQ.pdf" class="btn btn-primary mt-3">Download PDF <i class="fas fa-download"></i></a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+
+    <!-- Start Your Digital Income Journey Today Section -->
+    <section class="digital-journey-section py-5">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-6 mb-4 mb-lg-0">
+                    <a href="register.html" class="text-decoration-none">
+                        <h2 class="display-3 fw-bold digital-journey-link ">
+                            <span class="text-black-50">Start Your Digital Income Journey Today 
+                                <i class="fas fa-arrow-trend-up"></i>
+                            </span><br>
+                             
+                        </h2>
+                    </a>
+                    <!-- Optional: Add a short paragraph here if desired -->
+                </div>
+                <div class="col-lg-6 text-center">
+                    <img src="https://via.placeholder.com/450x450?text=Man+with+Tablet+CDOT" alt="Start Your Digital Income Journey" class="img-fluid rounded shadow-sm">
+                </div>
+            </div>
+        </div>
+    </section>
+
+
+    <!-- Footer Section -->
+    <footer class="footer-section bg-dark text-white py-5">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-3 col-md-6 mb-4 mb-lg-0 text-center text-md-start">
+                    <a class="navbar-brand" href="home.html">
+                        <img src="assets/logo.png" alt="CDOT Database Logo" style="height: 40px;">
+                    </a>
+                    <p class="small mt-2">CDOT Database empowers businesses with comprehensive product and affiliate data.</p>
+                </div>
+                <div class="col-lg-3 col-md-6 mb-4 mb-lg-0">
+                    <h5 class="text-uppercase mb-3">Quick Links</h5>
+                    <ul class="list-unstyled">
+                        <li><a href="home.html" class="text-white text-decoration-none">Home</a></li>
+                        <li><a href="about.html" class="text-white text-decoration-none">About</a></li>
+                        <li><a href="#services" class="text-white text-decoration-none">Services</a></li> <!-- Placeholder link -->
+                        <li><a href="#features" class="text-white text-decoration-none">Features</a></li> <!-- Placeholder link -->
+                        <li><a href="#reviews" class="text-white text-decoration-none">Reviews</a></li>   <!-- Placeholder link -->
+                    </ul>
+                </div>
+                <div class="col-lg-3 col-md-6 mb-4 mb-md-0">
+                    <h5 class="text-uppercase mb-3">Get In Touch</h5>
+                    <ul class="list-unstyled d-flex justify-content-center justify-content-md-start">
+                        <li class="me-3"><a href="#" class="text-white"><i class="fab fa-facebook-f fa-lg"></i></a></li>
+                        <li class="me-3"><a href="#" class="text-white"><i class="fab fa-twitter fa-lg"></i></a></li>
+                        <li class="me-3"><a href="#" class="text-white"><i class="fab fa-instagram fa-lg"></i></a></li>
+                        <li><a href="#" class="text-white"><i class="fab fa-linkedin-in fa-lg"></i></a></li>
+                    </ul>
+                </div>
+                <div class="col-lg-3 col-md-6">
+                    <h5 class="text-uppercase mb-3">Legal</h5>
+                     <ul class="list-unstyled">
+                        <li><a href="#privacy" class="text-white text-decoration-none">Privacy Policy</a></li> <!-- Placeholder link -->
+                        <li><a href="#terms" class="text-white text-decoration-none">Terms of Service</a></li>   <!-- Placeholder link -->
+                    </ul>
+                </div>
+            </div>
+            <hr class="my-4" style="border-color: rgba(255,255,255,0.2);">
+            <div class="row">
+                <div class="col-12 text-center">
+                    <p class="small mb-0">&copy; 2025 CDOT Database. All rights reserved.</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS Bundle (includes Popper) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // JavaScript for full-screen mobile menu
+        const navbarCollapse = document.getElementById('navbarNav');
+        const navbarToggler = document.querySelector('.navbar-toggler');
+
+        function toggleFullscreenMenu() {
+            navbarCollapse.classList.toggle('fullscreen');
+            // Optional: Toggle body scroll
+            // document.body.style.overflow = navbarCollapse.classList.contains('fullscreen') ? 'hidden' : '';
+        }
+
+        // Add event listener to the toggler button
+        if (navbarToggler) {
+            navbarToggler.addEventListener('click', function() {
+                // Bootstrap handles the 'show' class, we add 'fullscreen'
+                if (!navbarCollapse.classList.contains('show')) { // When opening
+                    navbarCollapse.classList.add('fullscreen');
+                } else { // When closing (Bootstrap will remove 'show')
+                    navbarCollapse.classList.remove('fullscreen');
+                }
+            });
+        }
+
+        // Ensure fullscreen class is removed if window is resized to desktop view
+        window.addEventListener('resize', function() {
+            if (window.innerWidth > 991.98 && navbarCollapse.classList.contains('fullscreen')) {
+                navbarCollapse.classList.remove('fullscreen');
+                // Ensure Bootstrap's 'show' class is also removed if it was a forced close
+                if (navbarCollapse.classList.contains('show')) {
+                    const bsCollapse = new bootstrap.Collapse(navbarCollapse, {
+                        toggle: false
+                    });
+                    bsCollapse.hide();
+                }
+            }
+        });
+    </script>
+    <!--
+    IMPORTANT:
+    Since this page does NOT require authentication,
+    DO NOT include a script tag that calls \`requireAuth()\` from \`auth-check.js\`.
+    If you need to check if a user *is* logged in (e.g., to show a "Logout" button instead of "Login"),
+    you would include \`auth-check.js\` and then use \`isAuthenticated()\` as discussed previously.
+    For a purely public page, no auth script is needed.
+    -->
+</body>
+</html>

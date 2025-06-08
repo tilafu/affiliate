@@ -1077,9 +1077,19 @@ const unfreezeUser = async (req, res) => {
  */
 const getNotificationCategories = async (req, res) => {
     try {
-        const result = await pool.query(
-            'SELECT * FROM notification_categories WHERE is_active = true ORDER BY name ASC'
-        );
+        const result = await pool.query(`
+            SELECT 
+                id,
+                name,
+                COALESCE(color, '#6c757d') as color,
+                COALESCE(icon, 'fas fa-bell') as icon,
+                COALESCE(is_active, true) as is_active,
+                created_at,
+                updated_at
+            FROM notification_categories 
+            WHERE COALESCE(is_active, true) = true 
+            ORDER BY name ASC
+        `);
         res.json({ success: true, categories: result.rows });
     } catch (error) {
         logger.error('Error fetching notification categories:', { error: error.message, stack: error.stack });
@@ -1092,17 +1102,16 @@ const getNotificationCategories = async (req, res) => {
  * @route   GET /api/admin/general-notifications
  * @access  Private/Admin
  */
-const getGeneralNotifications = async (req, res) => {
-    try {
+const getGeneralNotifications = async (req, res) => {    try {
         const result = await pool.query(`
             SELECT 
                 gn.*,
-                nc.name as category_name,
-                nc.color as category_color,
-                nc.icon as category_icon
+                COALESCE(nc.name, 'General') as category_name,
+                COALESCE(nc.color, '#6c757d') as category_color,
+                COALESCE(nc.icon, 'fas fa-bell') as category_icon
             FROM general_notifications gn
-            JOIN notification_categories nc ON gn.category_id = nc.id
-            ORDER BY gn.priority DESC, gn.display_order ASC, gn.created_at DESC
+            LEFT JOIN notification_categories nc ON gn.category_id = nc.id
+            ORDER BY gn.priority DESC, gn.created_at DESC
         `);
         res.json({ success: true, notifications: result.rows });
     } catch (error) {
@@ -1117,7 +1126,7 @@ const getGeneralNotifications = async (req, res) => {
  * @access  Private/Admin
  */
 const createGeneralNotification = async (req, res) => {
-    const { category_id, title, message, image_url = null, priority = 1, display_order = 0, expires_at = null } = req.body;
+    const { category_id, title, message, image_url = null, priority = 1, expires_at = null } = req.body;
     
     // Validation
     if (!category_id || !title || !message) {
@@ -1130,10 +1139,10 @@ const createGeneralNotification = async (req, res) => {
     try {
         const result = await pool.query(`
             INSERT INTO general_notifications 
-            (category_id, title, message, image_url, priority, display_order, expires_at)
+            (category_id, title, message, image_url, priority, end_date, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7)
             RETURNING *
-        `, [category_id, title, message, image_url, priority, display_order, expires_at]);
+        `, [category_id, title, message, image_url, priority, expires_at, req.user.id]);
 
         logger.info(`Admin ${req.user.id} created general notification: ${title}`);
         res.json({ success: true, notification: result.rows[0] });
@@ -1150,7 +1159,7 @@ const createGeneralNotification = async (req, res) => {
  */
 const updateGeneralNotification = async (req, res) => {
     const { id } = req.params;
-    const { category_id, title, message, image_url, priority, display_order, is_active, expires_at } = req.body;
+    const { category_id, title, message, image_url, priority, is_active, expires_at } = req.body;
 
     try {
         const result = await pool.query(`
@@ -1160,13 +1169,12 @@ const updateGeneralNotification = async (req, res) => {
                 message = COALESCE($3, message),
                 image_url = $4,
                 priority = COALESCE($5, priority),
-                display_order = COALESCE($6, display_order),
-                is_active = COALESCE($7, is_active),
-                expires_at = $8,
+                is_active = COALESCE($6, is_active),
+                end_date = $7,
                 updated_at = NOW()
-            WHERE id = $9
+            WHERE id = $8
             RETURNING *
-        `, [category_id, title, message, image_url, priority, display_order, is_active, expires_at, id]);
+        `, [category_id, title, message, image_url, priority, is_active, expires_at, id]);
 
         if (result.rows.length === 0) {
             return res.status(404).json({ success: false, message: 'General notification not found' });
