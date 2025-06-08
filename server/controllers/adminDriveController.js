@@ -1418,6 +1418,24 @@ const getUserDriveProgress = async (req, res) => {
     }
 };
 
+<<<<<<< HEAD
+// Add a combo to a user's drive sequence
+exports.addComboToUserDrive = async (req, res) => {
+    const { userId } = req.params;
+    const { comboName, comboDescription, productIds, insertAfterTaskSetId, insertAtOrder } = req.body;
+
+    // Validate required fields
+    if (!comboName || !productIds || !Array.isArray(productIds) || productIds.length === 0) {
+        return res.status(400).json({ 
+            message: 'comboName and productIds (array with at least one product) are required.' 
+        });
+    }
+
+    // Validate insertion point - must have either insertAfterTaskSetId or insertAtOrder
+    if (!insertAfterTaskSetId && insertAtOrder === undefined) {
+        return res.status(400).json({ 
+            message: 'Either insertAfterTaskSetId or insertAtOrder must be specified.' 
+=======
 const createBalanceBasedConfiguration = async (req, res) => {
     const { userId, products, totalAmount, configName } = req.body;
 
@@ -1812,6 +1830,7 @@ const addComboToUserDrive = async (req, res) => {
         return res.status(400).json({ 
             success: false,
             message: 'Maximum 2 additional products allowed per task set (1 original + 2 combo = 3 total).' 
+>>>>>>> post
         });
     }
 
@@ -1819,6 +1838,15 @@ const addComboToUserDrive = async (req, res) => {
     try {
         await client.query('BEGIN');
 
+<<<<<<< HEAD
+        // 1. Verify user exists and get their active drive session
+        const sessionResult = await client.query(
+            `SELECT ds.id as drive_session_id, ds.drive_configuration_id, dc.name as drive_configuration_name
+             FROM drive_sessions ds
+             JOIN drive_configurations dc ON ds.drive_configuration_id = dc.id
+             WHERE ds.user_id = $1 AND ds.status IN ('active', 'pending_reset', 'frozen')
+             ORDER BY ds.started_at DESC LIMIT 1`,
+=======
         // 1. Verify user exists and has an active drive session
         const userResult = await client.query('SELECT id FROM users WHERE id = $1', [userId]);
         if (userResult.rows.length === 0) {
@@ -1830,17 +1858,132 @@ const addComboToUserDrive = async (req, res) => {
             `SELECT id, drive_configuration_id FROM drive_sessions 
              WHERE user_id = $1 AND status IN ('active', 'pending_reset', 'frozen') 
              ORDER BY created_at DESC LIMIT 1`,
+>>>>>>> post
             [userId]
         );
 
         if (sessionResult.rows.length === 0) {
             await client.query('ROLLBACK');
             return res.status(404).json({ 
+<<<<<<< HEAD
+=======
                 success: false,
+>>>>>>> post
                 message: 'No active drive session found for this user.' 
             });
         }
 
+<<<<<<< HEAD
+        const { drive_session_id, drive_configuration_id } = sessionResult.rows[0];
+        
+        // 2. Validate all product IDs exist
+        const productsResult = await client.query(
+            'SELECT id, name, price FROM products WHERE id = ANY($1)',
+            [productIds]
+        );
+
+        if (productsResult.rows.length !== productIds.length) {
+            await client.query('ROLLBACK');
+            return res.status(400).json({ 
+                message: 'One or more product IDs are invalid.' 
+            });
+        }
+
+        // 3. Determine insertion order for the new combo
+        let newOrderInDrive;
+        
+        if (insertAtOrder !== undefined) {
+            // Direct insertion at specified order
+            newOrderInDrive = parseInt(insertAtOrder);
+            
+            // Shift existing items at this position and after
+            await client.query(
+                `UPDATE user_active_drive_items 
+                 SET order_in_drive = order_in_drive + 1, updated_at = NOW()
+                 WHERE drive_session_id = $1 AND order_in_drive >= $2`,
+                [drive_session_id, newOrderInDrive]
+            );
+            
+        } else if (insertAfterTaskSetId) {
+            // Insert after a specific task item
+            const targetItemResult = await client.query(
+                'SELECT order_in_drive FROM user_active_drive_items WHERE id = $1 AND drive_session_id = $2',
+                [insertAfterTaskSetId, drive_session_id]
+            );
+            
+            if (targetItemResult.rows.length === 0) {
+                await client.query('ROLLBACK');
+                return res.status(400).json({ 
+                    message: 'Target task item not found for insertion.' 
+                });
+            }
+            
+            newOrderInDrive = targetItemResult.rows[0].order_in_drive + 1;
+            
+            // Shift existing items after the insertion point
+            await client.query(
+                `UPDATE user_active_drive_items 
+                 SET order_in_drive = order_in_drive + 1, updated_at = NOW()
+                 WHERE drive_session_id = $1 AND order_in_drive >= $2`,
+                [drive_session_id, newOrderInDrive]
+            );
+        }
+
+        // 4. Create the combo as a new user_active_drive_item
+        // For combos, we'll store the first product as product_id_1 and the rest as product_id_2, product_id_3
+        // If more than 3 products, we'll need to handle this differently
+        
+        const product1 = productIds[0];
+        const product2 = productIds.length > 1 ? productIds[1] : null;
+        const product3 = productIds.length > 2 ? productIds[2] : null;
+        
+        if (productIds.length > 3) {
+            await client.query('ROLLBACK');
+            return res.status(400).json({ 
+                message: 'Combos cannot contain more than 3 products with current schema.' 
+            });
+        }
+
+        // Calculate total price for the combo
+        const totalPrice = productsResult.rows.reduce((sum, product) => sum + parseFloat(product.price), 0);
+
+        const comboItemResult = await client.query(
+            `INSERT INTO user_active_drive_items (
+                user_id, drive_session_id, product_id_1, product_id_2, product_id_3,
+                order_in_drive, user_status, task_type, created_at, updated_at
+             ) VALUES ($1, $2, $3, $4, $5, $6, 'PENDING', 'combo', NOW(), NOW()) 
+             RETURNING *`,
+            [userId, drive_session_id, product1, product2, product3, newOrderInDrive]
+        );
+
+        // 5. Log the combo creation for audit purposes
+        logger.info(`Admin created combo "${comboName}" for user ${userId} with products [${productIds.join(', ')}] at order ${newOrderInDrive}`);
+
+        await client.query('COMMIT');
+
+        // 6. Prepare response with combo details
+        const response = {
+            success: true,
+            message: 'Combo successfully added to user\'s drive',
+            combo: {
+                id: comboItemResult.rows[0].id,
+                name: comboName,
+                description: comboDescription,
+                products: productsResult.rows,
+                totalPrice: totalPrice.toFixed(2),
+                orderInDrive: newOrderInDrive,
+                driveSessionId: drive_session_id
+            }
+        };
+
+        res.status(201).json(response);
+
+    } catch (error) {
+        await client.query('ROLLBACK');
+        logger.error(`Error adding combo to user ${userId} drive:`, error);
+        res.status(500).json({ 
+            message: 'Failed to add combo to user drive', 
+=======
         const { id: driveSessionId, drive_configuration_id: driveConfigId } = sessionResult.rows[0];
 
         // 2. Verify all products exist
@@ -2017,12 +2160,15 @@ const addComboToUserDrive = async (req, res) => {
         res.status(500).json({ 
             success: false,
             message: 'Failed to add combo to user\'s drive', 
+>>>>>>> post
             error: error.message 
         });
     } finally {
         client.release();
     }
 };
+<<<<<<< HEAD
+=======
 
 
 module.exports = {
@@ -2059,3 +2205,4 @@ module.exports = {
 };
 
 
+>>>>>>> post

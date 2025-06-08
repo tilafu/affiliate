@@ -100,6 +100,7 @@ export async function loadDrives() {
             if (!userId) {
                 console.warn('Invalid drive data - missing user_id:', userDriveSummary);
                 return '';
+<<<<<<< HEAD
             }
 
 <<<<<<< HEAD
@@ -110,16 +111,23 @@ export async function loadDrives() {
             const status = userDriveSummary.status || 'INACTIVE'; // This might represent current drive status or overall activity
 =======
             // Ensure all data values are properly escaped and defaulted
+=======
+            }            // Ensure all data values are properly escaped and defaulted
+>>>>>>> main
             const username = drive.username ? drive.username.replace(/[<>]/g, '') : 'Unknown';
             const totalDrives = drive.total_drives || 0;
             const totalCommission = parseFloat(drive.total_commission || 0).toFixed(2);
             const lastDrive = drive.last_drive ? new Date(drive.last_drive).toLocaleString() : 'Never';
             const status = drive.status || 'INACTIVE';
             const assignedConfigName = drive.assigned_drive_configuration_name || 'N/A';
+<<<<<<< HEAD
             const assignedConfigId = drive.assigned_drive_configuration_id || null;
 >>>>>>> main
 
             return `
+=======
+            const assignedConfigId = drive.assigned_drive_configuration_id || null;            return `
+>>>>>>> main
             <tr data-user-id="${userId}" data-assigned-config-id="${assignedConfigId}" data-assigned-config-name="${assignedConfigName}">
                 <td>${userId}</td>
                 <td>${username}</td>
@@ -164,11 +172,22 @@ export async function loadDrives() {
                         View Progress
 >>>>>>> main
                     </button>
+                    <button class="btn btn-sm btn-success create-combo-btn"
+                            data-user-id="${userId}"
+                            data-username="${username}"
+                            data-assigned-config-id="${assignedConfigId}"
+                            data-assigned-config-name="${assignedConfigName}">
+                        Create Combo
+                    </button>
                 </td>
             </tr>`;
+<<<<<<< HEAD
+        }).join('');        // Initialize handlers after updating the table
+=======
         }).join('');
 
         // Initialize handlers after updating the table
+>>>>>>> post
         initializeDriveHandlers();
 
     } catch (error) {
@@ -464,6 +483,7 @@ export function initializeDriveHandlers() {
                 console.log('Assign Drive Config clicked for:', { userId, username });
 <<<<<<< HEAD
                 await showAssignDriveConfigModal(userId, username);
+<<<<<<< HEAD
             }
             // Assign Combos button handler
             else if (target.matches('.assign-combos-btn')) {
@@ -482,9 +502,13 @@ export function initializeDriveHandlers() {
 >>>>>>> main
             }
 =======
+            }            // View User Drive Progress button handler
+>>>>>>> main
+=======
                 await showAssignDriveConfigModal(userId, username);            }
 >>>>>>> post
             // View User Drive Progress button handler
+>>>>>>> post
             else if (target.matches('.view-user-drive-progress-btn')) {
                 event.preventDefault();
                 if (!userId) {
@@ -495,6 +519,52 @@ export function initializeDriveHandlers() {
                 target.setAttribute('data-processing', 'true');
                 console.log('View User Drive Progress clicked for:', { userId, username });
                 await showUserDriveProgressModal(userId, username);
+            }            // Create Combo button handler
+            else if (target.matches('.create-combo-btn')) {
+                event.preventDefault();
+                console.log('Create Combo button clicked for user:', { userId, username });
+                
+                if (!userId) {
+                    console.error('Create Combo clicked but userId is missing');
+                    showNotification('Error: Could not identify user for combo creation.', 'error');
+                    return;
+                }
+                
+                target.setAttribute('data-processing', 'true');
+                
+                try {
+                    // Check for ACTIVE drive session instead of static assigned configuration
+                    console.log('🔍 Checking for active drive session...');
+                    const driveProgressResponse = await fetchWithAuth(`/api/admin/drive-management/users/${userId}/drive-progress`);
+                    
+                    if (!driveProgressResponse || !driveProgressResponse.drive_session_id) {
+                        // No active drive session found
+                        showNotification(`❌ Cannot create combo for "${username}". User has no active drive session. Please ensure the user starts a drive first.`, 'warning');
+                        return;
+                    }
+                    
+                    console.log('✅ Active drive session found:', {
+                        sessionId: driveProgressResponse.drive_session_id,
+                        configName: driveProgressResponse.drive_configuration_name,
+                        currentTask: driveProgressResponse.current_task_item_name,
+                        progress: `${driveProgressResponse.completed_task_items}/${driveProgressResponse.total_task_items}`
+                    });
+                    
+                    // Proceed with combo creation using the active session data
+                    console.log('🚀 Proceeding with combo creation for active drive session...');
+                    
+                    // Use the existing enhanced combo creation functionality
+                    if (typeof showEnhancedComboCreationModal === 'function') {
+                        await showEnhancedComboCreationModal(userId, username);
+                    } else {
+                        console.error('❌ Enhanced combo creation function not available');
+                        showNotification('Combo creation functionality not available', 'error');
+                    }
+                    
+                } catch (error) {
+                    console.error('❌ Error checking drive session:', error);
+                    showNotification(`Failed to check drive session for "${username}": ${error.message}`, 'error');
+                }
             }
 
         } catch (error) {
@@ -1860,6 +1930,234 @@ async function _loadAndRenderUserDriveProgress(userId, username) {
         }
 
     } catch (error) {
+<<<<<<< HEAD
+        console.error('Error fetching user drive progress:', error);
+        showNotification('Failed to fetch user drive progress: ' + (error.message || 'Unknown error'), 'error');
+        document.getElementById('userDriveProgressDetailsPlaceholder').style.display = 'none';        document.getElementById('userDriveProgressDetails').style.display = 'block'; // Show the details section to display error message inside
+        document.getElementById('progress-task-items-list').innerHTML = `<tr><td colspan="3" class="text-center text-danger">Error loading data.</td></tr>`;
+    }
+}
+
+// ===== ENHANCED COMBO CREATION FUNCTIONALITY =====
+
+// Global variables for enhanced combo creation
+let currentComboUserId = null;
+let currentComboUsername = null;
+let userProgressData = null;
+let availableProductsForCombo = [];
+
+/**
+ * Initialize enhanced combo creation from View Progress modal
+ */
+function initializeEnhancedComboCreation() {
+    // Add event listener to the "Create Combo" button in View Progress modal
+    const createComboFromProgressBtn = document.getElementById('create-combo-from-progress-btn');
+    if (createComboFromProgressBtn) {
+        createComboFromProgressBtn.addEventListener('click', () => {
+            // Extract user info from the progress modal
+            const userInfoElement = document.getElementById('progress-user-info');
+            if (userInfoElement && userInfoElement.textContent) {
+                const userText = userInfoElement.textContent.trim();
+                // Extract user ID from format like "Username (ID: 123)"
+                const userIdMatch = userText.match(/\(ID:\s*(\d+)\)/);
+                const userId = userIdMatch ? userIdMatch[1] : null;
+                
+                // Extract username (everything before " (ID:")
+                const usernameMatch = userText.match(/^(.+?)\s*\(ID:/);
+                const username = usernameMatch ? usernameMatch[1].trim() : 'Unknown User';
+                
+                if (userId) {
+                    showEnhancedComboCreationModal(userId, username);
+                } else {
+                    showNotification('Could not determine user ID for combo creation', 'error');
+                }
+            } else {
+                showNotification('User information not available for combo creation', 'error');
+            }
+        });
+    }
+
+    // Initialize enhanced combo creation modal event handlers
+    initializeEnhancedComboModalHandlers();
+}
+
+/**
+ * Show the enhanced combo creation modal
+ */
+async function showEnhancedComboCreationModal(userId, username) {
+    currentComboUserId = userId;
+    currentComboUsername = username;
+    
+    // Show the modal
+    const modalElement = document.getElementById('enhancedComboCreationModal');
+    if (!modalElement) {
+        showNotification('Enhanced combo creation modal not found', 'error');
+        return;
+    }
+    
+    const modal = new bootstrap.Modal(modalElement);
+    modal.show();
+    
+    // Reset form
+    resetEnhancedComboForm();
+    
+    // Load user progress and products
+    await Promise.all([
+        loadUserProgressForCombo(userId, username),
+        loadProductsForCombo()
+    ]);
+}
+
+/**
+ * Load user progress data for combo creation
+ */
+async function loadUserProgressForCombo(userId, username) {
+    const loadingElement = document.getElementById('user-progress-loading');
+    const contentElement = document.getElementById('user-progress-content');
+    
+    loadingElement.style.display = 'block';
+    contentElement.style.display = 'none';
+    
+    try {
+        const response = await fetchWithAuth(`/api/admin/drive-management/users/${userId}/drive-progress`);
+        
+        if (response && response.drive_session_id) {
+            userProgressData = response;
+            
+            // Update UI elements
+            document.getElementById('combo-user-info').textContent = `${username} (ID: ${userId})`;
+            document.getElementById('combo-drive-config').textContent = response.drive_configuration_name || 'N/A';
+            document.getElementById('combo-current-task').textContent = response.current_task_item_name || 'N/A';
+            document.getElementById('combo-progress-summary').textContent = `${response.completed_task_items} of ${response.total_task_items} tasks completed`;
+            
+            // Update progress bar
+            const progressPercent = response.total_task_items > 0 ? 
+                Math.round((response.completed_task_items / response.total_task_items) * 100) : 0;
+            const progressBar = document.getElementById('combo-progress-bar');
+            progressBar.style.width = progressPercent + '%';
+            progressBar.setAttribute('aria-valuenow', progressPercent);
+            progressBar.textContent = progressPercent + '%';
+            
+            // Show the "Create Combo" button in progress modal
+            const createComboBtn = document.getElementById('create-combo-from-progress-btn');
+            if (createComboBtn) {
+                createComboBtn.style.display = 'inline-block';
+            }
+            
+            // Populate insertion point options
+            populateInsertionPoints(response.task_items || []);
+            
+        } else {
+            throw new Error(response?.message || 'No active drive session found');
+        }
+        
+        loadingElement.style.display = 'none';
+        contentElement.style.display = 'block';
+        
+    } catch (error) {
+        console.error('Error loading user progress for combo:', error);
+        loadingElement.innerHTML = `<span class="text-danger">Error loading progress: ${error.message}</span>`;
+        showNotification('Failed to load user progress for combo creation', 'error');
+    }
+}
+
+/**
+ * Populate insertion points for combo creation based on user progress
+ */
+function populateInsertionPoints(taskItems) {
+    const insertionPointSelect = document.getElementById('combo-insertion-point');
+    if (!insertionPointSelect) return;
+
+    // Clear existing options
+    insertionPointSelect.innerHTML = '';
+
+    // Add default option
+    const defaultOption = document.createElement('option');
+    defaultOption.value = '';
+    defaultOption.textContent = 'Select insertion point...';
+    insertionPointSelect.appendChild(defaultOption);
+
+    taskItems.forEach(item => {
+        const option = document.createElement('option');
+        option.value = item.order_in_drive;
+        option.textContent = `Before task ${item.order_in_drive}: ${item.task_item_name}`;
+        insertionPointSelect.appendChild(option);
+    });
+
+    // Show custom position fields if a valid insertion point is selected
+    insertionPointSelect.addEventListener('change', (e) => {
+        const selectedValue = e.target.value;
+        const customPositionGroup = document.getElementById('custom-position-group');
+        if (selectedValue && selectedValue !== '') {
+            customPositionGroup.style.display = 'block';
+        } else {
+            customPositionGroup.style.display = 'none';
+        }
+    });
+}
+
+/**
+ * Initialize event handlers for the enhanced combo creation modal
+ */
+function initializeEnhancedComboModalHandlers() {
+    const modalElement = document.getElementById('enhancedComboCreationModal');
+    if (!modalElement) return;
+
+    // Update product selection count on checkbox change
+    modalElement.addEventListener('change', (e) => {
+        if (e.target.classList.contains('product-select-checkbox')) {
+            updateSelectedProductsCount();
+        }
+    });
+
+    // Create combo button handler
+    document.getElementById('create-combo-btn')?.addEventListener('click', async () => {
+        const selectedProducts = Array.from(document.querySelectorAll('.product-select-checkbox:checked')).map(cb => cb.dataset.productId);
+        const insertionPoint = document.getElementById('combo-insertion-point').value;
+        const customName = document.getElementById('custom-combo-name').value.trim();
+        const customOrder = parseInt(document.getElementById('custom-combo-order').value) || null;
+
+        if (selectedProducts.length === 0) {
+            return showNotification('Please select at least one product for the combo.', 'error');
+        }
+
+        // Confirm with the user
+        const comboNamePreview = customName || `Combo (${selectedProducts.length} products)`;
+        if (!confirm(`Create combo with name: "${comboNamePreview}" at position ${insertionPoint}?`)) {
+            return;
+        }
+
+        try {
+            // API call to create the combo task set
+            const response = await fetchWithAuth('/api/admin/drive-management/tasksets', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: customName,
+                    order_in_drive: customOrder,
+                    is_combo: true,
+                    drive_configuration_id: currentComboUserId, // Assuming this is the correct usage
+                    user_id: currentComboUserId,
+                    product_ids: selectedProducts
+                })
+            });
+
+            if (response && response.id) {
+                showNotification(`Combo "${comboNamePreview}" created successfully!`, 'success');
+                const modalInstance = bootstrap.Modal.getInstance(modalElement);
+                if (modalInstance) {
+                    modalInstance.hide();
+                }
+                await loadDrives(); // Refresh drives or relevant sections
+            } else {
+                throw new Error(response.message || 'Failed to create combo.');
+            }
+        } catch (error) {
+            showNotification(error.message || 'Error creating combo', 'error');
+        }
+    });
+}
+=======
         console.error('Error fetching or rendering user drive progress:', error);
         modalBody.innerHTML = `<p class="text-danger">Error loading drive progress: ${error.message}</p>`;
         const createComboBtn = document.getElementById('create-combo-from-progress-btn');
@@ -2633,3 +2931,4 @@ function resetComboForm(taskItemId) {
 
 // --- End Inline Combo Creation Functions ---
 
+>>>>>>> post

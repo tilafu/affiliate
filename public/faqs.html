@@ -48,11 +48,10 @@
             <div class="profile-img-item">
                <img src="./assets/uploads/user.jpg" class="rounded-circle" alt="profile">
             </div>
-         </div>
-         <div class="col ps-1">
+         </div>         <div class="col ps-1">
             <div class="profile-details">
-               <h4 class="mb-2">Isabella27</h4>
-               <p class="mb-0 text-grsay">REFERRAL CODE: 17GAHG</p>
+               <h4 class="mb-2" id="dashboard-username"></h4>
+               <p class="mb-0 text-grsay" id="dashboard-refcode"></p>
             </div>
          </div>
       </div>
@@ -113,11 +112,10 @@
                <img src="./assets/uploads/img/8.png"  style="margin-right: 5px;" width="20px">
                ABOUT US
             </a>
-         </li>
-         <li class="bottom-border">
-                <a href="./index.html">
+         </li>            <li class="bottom-border">
+                <a href="#" class="logout">
                   <img src="./assets/uploads/img/8.png"  style="margin-right: 5px;" width="20px">
-                    LOGOUT
+                    <span data-i18n="sidebarLogoutLink">LOGOUT</span>
                 </a>            </li>
 
       </ul>
@@ -298,6 +296,18 @@ top up</p>
 <script src="./assets/frontend/js/script.js"></script>
 <script src="./js/i18n.js"></script>
 <script src="./js/main.js"></script>
+<!-- Import auth-check.js for authentication -->
+<script src="./js/auth-check.js"></script>
+<!-- Import auth.js for logout functionality -->
+<script src="./js/auth.js"></script>
 <script src="./js/faqs.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Initialize logout functionality
+    if (typeof attachLogoutHandlers === 'function') {
+      attachLogoutHandlers();
+    }
+  });
+</script>
 </body>
 </html>

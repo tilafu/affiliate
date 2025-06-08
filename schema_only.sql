@@ -18,6 +18,55 @@ SET client_min_messages = warning;
 SET row_security = off;
 
 --
+-- Name: update_drive_configuration_tasks_required(); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION public.update_drive_configuration_tasks_required() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    -- Update the tasks_required count in the drive_configurations table
+    UPDATE drive_configurations
+    SET tasks_required = (
+        SELECT COUNT(*) 
+        FROM drive_configuration_items 
+        WHERE drive_configuration_id = 
+            CASE
+                WHEN TG_OP = 'DELETE' THEN OLD.drive_configuration_id
+                ELSE NEW.drive_configuration_id
+            END
+    ),
+    updated_at = NOW()
+    WHERE id = 
+        CASE
+            WHEN TG_OP = 'DELETE' THEN OLD.drive_configuration_id
+            ELSE NEW.drive_configuration_id
+        END;
+    
+    RETURN NULL;
+END;
+$$;
+
+
+ALTER FUNCTION public.update_drive_configuration_tasks_required() OWNER TO postgres;
+
+--
+-- Name: update_tier_quantity_configs_updated_at(); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION public.update_tier_quantity_configs_updated_at() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    NEW.updated_at = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$;
+
+
+ALTER FUNCTION public.update_tier_quantity_configs_updated_at() OWNER TO postgres;
+
+--
 -- Name: update_updated_at_column(); Type: FUNCTION; Schema: public; Owner: postgres
 --
 
@@ -132,6 +181,7 @@ CREATE TABLE public.commission_logs (
     description text,
     created_at timestamp without time zone DEFAULT now(),
     reference_id character varying(255),
+    drive_session_id integer,
     CONSTRAINT commission_logs_account_type_check CHECK (((account_type)::text = ANY ((ARRAY['main'::character varying, 'training'::character varying])::text[])))
 );
 
@@ -202,19 +252,183 @@ ALTER SEQUENCE public.deposits_id_seq OWNED BY public.deposits.id;
 
 
 --
+-- Name: old_drive_configuration_items; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.old_drive_configuration_items (
+    id integer NOT NULL,
+    drive_configuration_id integer NOT NULL,
+    product_id integer NOT NULL,
+    order_in_drive integer NOT NULL,
+    created_at timestamp with time zone DEFAULT now()
+);
+
+
+ALTER TABLE public.old_drive_configuration_items OWNER TO postgres;
+
+--
+-- Name: drive_configuration_items_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.drive_configuration_items_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.drive_configuration_items_id_seq OWNER TO postgres;
+
+--
+-- Name: drive_configuration_items_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.drive_configuration_items_id_seq OWNED BY public.old_drive_configuration_items.id;
+
+
+--
+-- Name: drive_configurations; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.drive_configurations (
+    id integer NOT NULL,
+    name text NOT NULL,
+    description text,
+    is_active boolean DEFAULT true,
+    created_by_admin_id integer,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    tasks_required integer NOT NULL,
+    balance_filter_enabled boolean DEFAULT true,
+    tier_quantity_enabled boolean DEFAULT true,
+    min_balance_percentage numeric(5,2) DEFAULT 75.00,
+    max_balance_percentage numeric(5,2) DEFAULT 99.00,
+    is_auto_generated boolean DEFAULT false,
+    associated_user_id integer,
+    CONSTRAINT tasks_required_positive CHECK ((tasks_required > 0))
+);
+
+
+ALTER TABLE public.drive_configurations OWNER TO postgres;
+
+--
+-- Name: COLUMN drive_configurations.balance_filter_enabled; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.drive_configurations.balance_filter_enabled IS 'Enable/disable balance-based product filtering (75%-99% range)';
+
+
+--
+-- Name: COLUMN drive_configurations.tier_quantity_enabled; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.drive_configurations.tier_quantity_enabled IS 'Enable/disable tier-based quantity limits';
+
+
+--
+-- Name: COLUMN drive_configurations.min_balance_percentage; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.drive_configurations.min_balance_percentage IS 'Minimum balance percentage for product filtering';
+
+
+--
+-- Name: COLUMN drive_configurations.max_balance_percentage; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.drive_configurations.max_balance_percentage IS 'Maximum balance percentage for product filtering';
+
+
+--
+-- Name: COLUMN drive_configurations.is_auto_generated; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.drive_configurations.is_auto_generated IS 'Indicates if this configuration was auto-generated by the system';
+
+
+--
+-- Name: COLUMN drive_configurations.associated_user_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.drive_configurations.associated_user_id IS 'User ID for whom this configuration was specifically created (for auto-generated configs)';
+
+
+--
+-- Name: drive_configurations_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.drive_configurations_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.drive_configurations_id_seq OWNER TO postgres;
+
+--
+-- Name: drive_configurations_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.drive_configurations_id_seq OWNED BY public.drive_configurations.id;
+
+
+--
 -- Name: drive_orders; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public.drive_orders (
     id integer NOT NULL,
     session_id integer NOT NULL,
-    product_id integer NOT NULL,
+    task_set_product_id integer NOT NULL,
     status character varying(50) DEFAULT 'pending'::character varying NOT NULL,
-    tasks_required integer NOT NULL
+    created_at timestamp with time zone DEFAULT now(),
+    completed_at timestamp with time zone
 );
 
 
 ALTER TABLE public.drive_orders OWNER TO postgres;
+
+--
+-- Name: TABLE drive_orders; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TABLE public.drive_orders IS 'Tracks the status of individual products assigned to a user within a drive session as part of a task set.';
+
+
+--
+-- Name: COLUMN drive_orders.task_set_product_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.drive_orders.task_set_product_id IS 'References the specific product within a specific task set configuration.';
+
+
+--
+-- Name: COLUMN drive_orders.status; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.drive_orders.status IS 'Status of this specific product task for the user in this session (e.g., pending, current, completed).';
+
+
+--
+-- Name: old_drive_orders; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.old_drive_orders (
+    id integer NOT NULL,
+    session_id integer NOT NULL,
+    product_id integer NOT NULL,
+    status character varying(50) DEFAULT 'pending'::character varying NOT NULL,
+    tasks_required integer NOT NULL,
+    order_in_drive integer
+);
+
+
+ALTER TABLE public.old_drive_orders OWNER TO postgres;
 
 --
 -- Name: drive_orders_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
@@ -235,7 +449,29 @@ ALTER SEQUENCE public.drive_orders_id_seq OWNER TO postgres;
 -- Name: drive_orders_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
 --
 
-ALTER SEQUENCE public.drive_orders_id_seq OWNED BY public.drive_orders.id;
+ALTER SEQUENCE public.drive_orders_id_seq OWNED BY public.old_drive_orders.id;
+
+
+--
+-- Name: drive_orders_id_seq1; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.drive_orders_id_seq1
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.drive_orders_id_seq1 OWNER TO postgres;
+
+--
+-- Name: drive_orders_id_seq1; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.drive_orders_id_seq1 OWNED BY public.drive_orders.id;
 
 
 --
@@ -263,11 +499,66 @@ CREATE TABLE public.drive_sessions (
     starting_balance numeric(12,2),
     commission_earned numeric(12,2) DEFAULT 0,
     drive_tasks jsonb,
+    drive_configuration_id integer,
+    current_task_set_id integer,
+    current_task_set_product_id integer,
+    current_user_active_drive_item_id integer,
+    notes text,
+    ended_at timestamp without time zone,
     CONSTRAINT drive_sessions_status_check CHECK (((status)::text = ANY ((ARRAY['active'::character varying, 'completed'::character varying, 'frozen'::character varying, 'pending_reset'::character varying])::text[])))
 );
 
 
 ALTER TABLE public.drive_sessions OWNER TO postgres;
+
+--
+-- Name: COLUMN drive_sessions.tasks_completed; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.drive_sessions.tasks_completed IS 'Number of Task Sets already completed in this drive session.';
+
+
+--
+-- Name: COLUMN drive_sessions.tasks_required; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.drive_sessions.tasks_required IS 'Total number of Task Sets required to complete this drive session.';
+
+
+--
+-- Name: COLUMN drive_sessions.current_task_set_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.drive_sessions.current_task_set_id IS 'The ID of the Task Set the user is currently working on.';
+
+
+--
+-- Name: COLUMN drive_sessions.current_task_set_product_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.drive_sessions.current_task_set_product_id IS 'The ID of the specific product (from drive_task_set_products) the user is currently working on within the current_task_set_id.';
+
+
+--
+-- Name: COLUMN drive_sessions.current_user_active_drive_item_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.drive_sessions.current_user_active_drive_item_id IS 'FK to user_active_drive_items.id, indicating the current step in the active drive';
+
+
+--
+-- Name: COLUMN drive_sessions.notes; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.drive_sessions.notes IS 'Additional notes about the drive session';
+
+
+--
+-- Name: COLUMN drive_sessions.ended_at; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.drive_sessions.ended_at IS 'Timestamp when the drive session was ended';
+
 
 --
 -- Name: drive_sessions_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
@@ -289,6 +580,117 @@ ALTER SEQUENCE public.drive_sessions_id_seq OWNER TO postgres;
 --
 
 ALTER SEQUENCE public.drive_sessions_id_seq OWNED BY public.drive_sessions.id;
+
+
+--
+-- Name: drive_task_set_products; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.drive_task_set_products (
+    id integer NOT NULL,
+    task_set_id integer NOT NULL,
+    product_id integer NOT NULL,
+    order_in_set integer NOT NULL,
+    created_at timestamp with time zone DEFAULT now()
+);
+
+
+ALTER TABLE public.drive_task_set_products OWNER TO postgres;
+
+--
+-- Name: TABLE drive_task_set_products; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TABLE public.drive_task_set_products IS 'Drive task set products - commission rates calculated dynamically, no static overrides';
+
+
+--
+-- Name: COLUMN drive_task_set_products.order_in_set; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.drive_task_set_products.order_in_set IS 'The sequential order of this product within its parent task set.';
+
+
+--
+-- Name: drive_task_set_products_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.drive_task_set_products_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.drive_task_set_products_id_seq OWNER TO postgres;
+
+--
+-- Name: drive_task_set_products_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.drive_task_set_products_id_seq OWNED BY public.drive_task_set_products.id;
+
+
+--
+-- Name: drive_task_sets; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.drive_task_sets (
+    id integer NOT NULL,
+    drive_configuration_id integer NOT NULL,
+    order_in_drive integer NOT NULL,
+    name character varying(500),
+    is_combo boolean DEFAULT false NOT NULL,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone
+);
+
+
+ALTER TABLE public.drive_task_sets OWNER TO postgres;
+
+--
+-- Name: TABLE drive_task_sets; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TABLE public.drive_task_sets IS 'Defines task sets within a drive configuration. A drive consists of an ordered sequence of these task sets.';
+
+
+--
+-- Name: COLUMN drive_task_sets.order_in_drive; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.drive_task_sets.order_in_drive IS 'The sequential order of this task set within its drive configuration.';
+
+
+--
+-- Name: COLUMN drive_task_sets.is_combo; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.drive_task_sets.is_combo IS 'Indicates if this task set is a combo (contains multiple products to be completed sequentially).';
+
+
+--
+-- Name: drive_task_sets_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.drive_task_sets_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.drive_task_sets_id_seq OWNER TO postgres;
+
+--
+-- Name: drive_task_sets_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.drive_task_sets_id_seq OWNED BY public.drive_task_sets.id;
 
 
 --
@@ -332,6 +734,234 @@ ALTER SEQUENCE public.drives_id_seq OWNED BY public.drives.id;
 
 
 --
+-- Name: general_notification_reads; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.general_notification_reads (
+    id integer NOT NULL,
+    general_notification_id integer NOT NULL,
+    user_id integer NOT NULL,
+    read_at timestamp with time zone DEFAULT now()
+);
+
+
+ALTER TABLE public.general_notification_reads OWNER TO postgres;
+
+--
+-- Name: TABLE general_notification_reads; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TABLE public.general_notification_reads IS 'Tracks which users have read which general notifications';
+
+
+--
+-- Name: general_notification_reads_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.general_notification_reads_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.general_notification_reads_id_seq OWNER TO postgres;
+
+--
+-- Name: general_notification_reads_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.general_notification_reads_id_seq OWNED BY public.general_notification_reads.id;
+
+
+--
+-- Name: general_notifications; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.general_notifications (
+    id integer NOT NULL,
+    category_id integer NOT NULL,
+    title character varying(200) NOT NULL,
+    message text NOT NULL,
+    image_url character varying(500),
+    is_active boolean DEFAULT true,
+    priority integer DEFAULT 1,
+    start_date timestamp with time zone DEFAULT now(),
+    end_date timestamp with time zone,
+    created_by integer,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+
+ALTER TABLE public.general_notifications OWNER TO postgres;
+
+--
+-- Name: TABLE general_notifications; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TABLE public.general_notifications IS 'Public notifications visible to all users, managed by admins';
+
+
+--
+-- Name: COLUMN general_notifications.priority; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.general_notifications.priority IS '1=Low, 2=Medium, 3=High priority';
+
+
+--
+-- Name: general_notifications_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.general_notifications_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.general_notifications_id_seq OWNER TO postgres;
+
+--
+-- Name: general_notifications_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.general_notifications_id_seq OWNED BY public.general_notifications.id;
+
+
+--
+-- Name: membership_tiers; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.membership_tiers (
+    id integer NOT NULL,
+    tier_name character varying(50) NOT NULL,
+    price_usd numeric(10,2) NOT NULL,
+    commission_per_data_percent numeric(5,2) NOT NULL,
+    commission_merge_data_percent numeric(5,2) NOT NULL,
+    data_per_set_limit integer NOT NULL,
+    sets_per_day_limit integer NOT NULL,
+    withdrawal_limit_usd numeric(12,2),
+    max_daily_withdrawals integer NOT NULL,
+    handling_fee_percent numeric(5,2) DEFAULT 0.00 NOT NULL,
+    is_active boolean DEFAULT true,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP
+);
+
+
+ALTER TABLE public.membership_tiers OWNER TO postgres;
+
+--
+-- Name: COLUMN membership_tiers.data_per_set_limit; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.membership_tiers.data_per_set_limit IS 'Corresponds to "Limited to X data per set" from memberships.html; could be interpreted as tasks per drive/set.';
+
+
+--
+-- Name: COLUMN membership_tiers.sets_per_day_limit; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.membership_tiers.sets_per_day_limit IS 'Corresponds to "X sets of data everyday" from memberships.html; could be interpreted as drives/sets per day.';
+
+
+--
+-- Name: COLUMN membership_tiers.withdrawal_limit_usd; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.membership_tiers.withdrawal_limit_usd IS 'NULL indicates an unlimited withdrawal limit.';
+
+
+--
+-- Name: COLUMN membership_tiers.max_daily_withdrawals; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.membership_tiers.max_daily_withdrawals IS 'Interpreted from "X times of withdrawal" in memberships.html, assuming per day.';
+
+
+--
+-- Name: membership_tiers_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.membership_tiers_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.membership_tiers_id_seq OWNER TO postgres;
+
+--
+-- Name: membership_tiers_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.membership_tiers_id_seq OWNED BY public.membership_tiers.id;
+
+
+--
+-- Name: notification_categories; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.notification_categories (
+    id integer NOT NULL,
+    name character varying(100) NOT NULL,
+    color_code character varying(7) NOT NULL,
+    icon character varying(50),
+    description text,
+    is_active boolean DEFAULT true,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+
+ALTER TABLE public.notification_categories OWNER TO postgres;
+
+--
+-- Name: TABLE notification_categories; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TABLE public.notification_categories IS 'Defines notification categories with color coding and icons';
+
+
+--
+-- Name: COLUMN notification_categories.color_code; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.notification_categories.color_code IS 'Hex color code for UI display';
+
+
+--
+-- Name: notification_categories_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.notification_categories_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.notification_categories_id_seq OWNER TO postgres;
+
+--
+-- Name: notification_categories_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.notification_categories_id_seq OWNED BY public.notification_categories.id;
+
+
+--
 -- Name: notifications; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -340,7 +970,12 @@ CREATE TABLE public.notifications (
     user_id integer,
     message text NOT NULL,
     created_at timestamp with time zone DEFAULT now(),
-    is_read boolean DEFAULT false
+    is_read boolean DEFAULT false,
+    category_id integer NOT NULL,
+    title character varying(200),
+    image_url character varying(500),
+    priority integer DEFAULT 1,
+    updated_at timestamp with time zone DEFAULT now()
 );
 
 
@@ -416,14 +1051,31 @@ CREATE TABLE public.products (
     id integer NOT NULL,
     name character varying(500) NOT NULL,
     price numeric(10,2) NOT NULL,
-    is_active boolean DEFAULT true,
     created_at timestamp without time zone DEFAULT now(),
     description text,
-    image_url character varying(255)
+    image_url character varying(255),
+    is_active boolean DEFAULT true,
+    status character varying(20) DEFAULT 'active'::character varying,
+    is_combo_only boolean DEFAULT false,
+    CONSTRAINT products_status_check CHECK (((status)::text = ANY ((ARRAY['active'::character varying, 'inactive'::character varying, 'discontinued'::character varying])::text[])))
 );
 
 
 ALTER TABLE public.products OWNER TO postgres;
+
+--
+-- Name: TABLE products; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TABLE public.products IS 'Products table - commission rates are calculated dynamically based on user membership tiers';
+
+
+--
+-- Name: COLUMN products.is_combo_only; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.products.is_combo_only IS 'Indicates if this product can only be used in combo orders';
+
 
 --
 -- Name: products_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
@@ -490,6 +1142,268 @@ ALTER SEQUENCE public.support_messages_id_seq OWNED BY public.support_messages.i
 
 
 --
+-- Name: tier_quantity_configs; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.tier_quantity_configs (
+    id integer NOT NULL,
+    tier_name character varying(50) NOT NULL,
+    quantity_limit integer DEFAULT 40 NOT NULL,
+    is_active boolean DEFAULT true,
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT chk_quantity_limit CHECK ((quantity_limit > 0)),
+    CONSTRAINT chk_tier_name CHECK (((tier_name)::text = ANY (ARRAY[('Bronze'::character varying)::text, ('Silver'::character varying)::text, ('Gold'::character varying)::text, ('Platinum'::character varying)::text])))
+);
+
+
+ALTER TABLE public.tier_quantity_configs OWNER TO postgres;
+
+--
+-- Name: COLUMN tier_quantity_configs.tier_name; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.tier_quantity_configs.tier_name IS 'User tier name (Bronze, Silver, Gold, Platinum) - increased limit';
+
+
+--
+-- Name: tier_quantity_configs_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.tier_quantity_configs_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.tier_quantity_configs_id_seq OWNER TO postgres;
+
+--
+-- Name: tier_quantity_configs_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.tier_quantity_configs_id_seq OWNED BY public.tier_quantity_configs.id;
+
+
+--
+-- Name: user_active_drive_items; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.user_active_drive_items (
+    id integer NOT NULL,
+    user_id integer NOT NULL,
+    drive_session_id integer NOT NULL,
+    product_id_1 integer NOT NULL,
+    product_id_2 integer,
+    product_id_3 integer,
+    order_in_drive integer NOT NULL,
+    user_status character varying(10) DEFAULT 'PENDING'::character varying NOT NULL,
+    task_type character varying(50) DEFAULT 'order'::character varying,
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT chk_user_status CHECK (((user_status)::text = ANY ((ARRAY['PENDING'::character varying, 'CURRENT'::character varying, 'COMPLETED'::character varying, 'SKIPPED'::character varying, 'FAILED'::character varying])::text[])))
+);
+
+
+ALTER TABLE public.user_active_drive_items OWNER TO postgres;
+
+--
+-- Name: COLUMN user_active_drive_items.user_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.user_active_drive_items.user_id IS 'ID of the user this drive item belongs to';
+
+
+--
+-- Name: COLUMN user_active_drive_items.drive_session_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.user_active_drive_items.drive_session_id IS 'FK to drive_sessions.id, identifying the user''s specific drive session.';
+
+
+--
+-- Name: COLUMN user_active_drive_items.product_id_1; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.user_active_drive_items.product_id_1 IS 'Primary product for this drive step';
+
+
+--
+-- Name: COLUMN user_active_drive_items.product_id_2; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.user_active_drive_items.product_id_2 IS 'Optional second product for a combo';
+
+
+--
+-- Name: COLUMN user_active_drive_items.product_id_3; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.user_active_drive_items.product_id_3 IS 'Optional third product for a combo';
+
+
+--
+-- Name: COLUMN user_active_drive_items.order_in_drive; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.user_active_drive_items.order_in_drive IS 'The sequence number of this item in the user"s active drive';
+
+
+--
+-- Name: COLUMN user_active_drive_items.user_status; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.user_active_drive_items.user_status IS 'Status of this specific item for the user (e.g., PENDING, CURRENT, COMPLETED, SKIPPED, FAILED)';
+
+
+--
+-- Name: COLUMN user_active_drive_items.task_type; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.user_active_drive_items.task_type IS 'Type of task, e.g., "order", "survey"';
+
+
+--
+-- Name: user_active_drive_items_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.user_active_drive_items_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.user_active_drive_items_id_seq OWNER TO postgres;
+
+--
+-- Name: user_active_drive_items_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.user_active_drive_items_id_seq OWNED BY public.user_active_drive_items.id;
+
+
+--
+-- Name: user_drive_configurations; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.user_drive_configurations (
+    id integer NOT NULL,
+    user_id integer NOT NULL,
+    drive_configuration_id integer NOT NULL,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+
+ALTER TABLE public.user_drive_configurations OWNER TO postgres;
+
+--
+-- Name: user_drive_configurations_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.user_drive_configurations_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.user_drive_configurations_id_seq OWNER TO postgres;
+
+--
+-- Name: user_drive_configurations_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.user_drive_configurations_id_seq OWNED BY public.user_drive_configurations.id;
+
+
+--
+-- Name: user_drive_progress; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.user_drive_progress (
+    id integer NOT NULL,
+    user_id integer NOT NULL,
+    date date NOT NULL,
+    drives_completed integer DEFAULT 0,
+    is_working_day boolean DEFAULT false,
+    created_at timestamp without time zone DEFAULT now(),
+    updated_at timestamp without time zone DEFAULT now()
+);
+
+
+ALTER TABLE public.user_drive_progress OWNER TO postgres;
+
+--
+-- Name: user_drive_progress_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.user_drive_progress_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.user_drive_progress_id_seq OWNER TO postgres;
+
+--
+-- Name: user_drive_progress_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.user_drive_progress_id_seq OWNED BY public.user_drive_progress.id;
+
+
+--
+-- Name: user_working_days; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.user_working_days (
+    id integer NOT NULL,
+    user_id integer NOT NULL,
+    total_working_days integer DEFAULT 0,
+    weekly_progress integer DEFAULT 0,
+    last_reset_date date,
+    created_at timestamp without time zone DEFAULT now(),
+    updated_at timestamp without time zone DEFAULT now()
+);
+
+
+ALTER TABLE public.user_working_days OWNER TO postgres;
+
+--
+-- Name: user_working_days_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.user_working_days_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.user_working_days_id_seq OWNER TO postgres;
+
+--
+-- Name: user_working_days_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.user_working_days_id_seq OWNED BY public.user_working_days.id;
+
+
+--
 -- Name: users; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -500,16 +1414,25 @@ CREATE TABLE public.users (
     password_hash character varying(100) NOT NULL,
     referral_code character varying(10) NOT NULL,
     upliner_id integer,
-    tier character varying(10) DEFAULT 'bronze'::character varying,
+    tier character varying(50) DEFAULT 'bronze'::character varying,
     revenue_source character varying(20),
     created_at timestamp without time zone DEFAULT now(),
     role character varying(10) DEFAULT 'user'::character varying,
     withdrawal_password_hash character varying(100),
+    assigned_drive_configuration_id integer,
+    balance numeric(15,2) DEFAULT 0.00,
     CONSTRAINT users_role_check CHECK (((role)::text = ANY ((ARRAY['user'::character varying, 'admin'::character varying])::text[])))
 );
 
 
 ALTER TABLE public.users OWNER TO postgres;
+
+--
+-- Name: COLUMN users.balance; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.users.balance IS 'User current balance for balance-based filtering';
+
 
 --
 -- Name: users_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
@@ -642,10 +1565,17 @@ ALTER TABLE ONLY public.deposits ALTER COLUMN id SET DEFAULT nextval('public.dep
 
 
 --
+-- Name: drive_configurations id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.drive_configurations ALTER COLUMN id SET DEFAULT nextval('public.drive_configurations_id_seq'::regclass);
+
+
+--
 -- Name: drive_orders id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY public.drive_orders ALTER COLUMN id SET DEFAULT nextval('public.drive_orders_id_seq'::regclass);
+ALTER TABLE ONLY public.drive_orders ALTER COLUMN id SET DEFAULT nextval('public.drive_orders_id_seq1'::regclass);
 
 
 --
@@ -656,6 +1586,20 @@ ALTER TABLE ONLY public.drive_sessions ALTER COLUMN id SET DEFAULT nextval('publ
 
 
 --
+-- Name: drive_task_set_products id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.drive_task_set_products ALTER COLUMN id SET DEFAULT nextval('public.drive_task_set_products_id_seq'::regclass);
+
+
+--
+-- Name: drive_task_sets id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.drive_task_sets ALTER COLUMN id SET DEFAULT nextval('public.drive_task_sets_id_seq'::regclass);
+
+
+--
 -- Name: drives id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
@@ -663,10 +1607,52 @@ ALTER TABLE ONLY public.drives ALTER COLUMN id SET DEFAULT nextval('public.drive
 
 
 --
+-- Name: general_notification_reads id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.general_notification_reads ALTER COLUMN id SET DEFAULT nextval('public.general_notification_reads_id_seq'::regclass);
+
+
+--
+-- Name: general_notifications id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.general_notifications ALTER COLUMN id SET DEFAULT nextval('public.general_notifications_id_seq'::regclass);
+
+
+--
+-- Name: membership_tiers id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.membership_tiers ALTER COLUMN id SET DEFAULT nextval('public.membership_tiers_id_seq'::regclass);
+
+
+--
+-- Name: notification_categories id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.notification_categories ALTER COLUMN id SET DEFAULT nextval('public.notification_categories_id_seq'::regclass);
+
+
+--
 -- Name: notifications id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.notifications ALTER COLUMN id SET DEFAULT nextval('public.notifications_id_seq'::regclass);
+
+
+--
+-- Name: old_drive_configuration_items id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.old_drive_configuration_items ALTER COLUMN id SET DEFAULT nextval('public.drive_configuration_items_id_seq'::regclass);
+
+
+--
+-- Name: old_drive_orders id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.old_drive_orders ALTER COLUMN id SET DEFAULT nextval('public.drive_orders_id_seq'::regclass);
 
 
 --
@@ -688,6 +1674,41 @@ ALTER TABLE ONLY public.products ALTER COLUMN id SET DEFAULT nextval('public.pro
 --
 
 ALTER TABLE ONLY public.support_messages ALTER COLUMN id SET DEFAULT nextval('public.support_messages_id_seq'::regclass);
+
+
+--
+-- Name: tier_quantity_configs id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.tier_quantity_configs ALTER COLUMN id SET DEFAULT nextval('public.tier_quantity_configs_id_seq'::regclass);
+
+
+--
+-- Name: user_active_drive_items id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.user_active_drive_items ALTER COLUMN id SET DEFAULT nextval('public.user_active_drive_items_id_seq'::regclass);
+
+
+--
+-- Name: user_drive_configurations id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.user_drive_configurations ALTER COLUMN id SET DEFAULT nextval('public.user_drive_configurations_id_seq'::regclass);
+
+
+--
+-- Name: user_drive_progress id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.user_drive_progress ALTER COLUMN id SET DEFAULT nextval('public.user_drive_progress_id_seq'::regclass);
+
+
+--
+-- Name: user_working_days id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.user_working_days ALTER COLUMN id SET DEFAULT nextval('public.user_working_days_id_seq'::regclass);
 
 
 --
@@ -752,11 +1773,43 @@ ALTER TABLE ONLY public.deposits
 
 
 --
--- Name: drive_orders drive_orders_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: old_drive_configuration_items drive_configuration_items_drive_configuration_id_product_id_key; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.old_drive_configuration_items
+    ADD CONSTRAINT drive_configuration_items_drive_configuration_id_product_id_key UNIQUE (drive_configuration_id, product_id, order_in_drive);
+
+
+--
+-- Name: old_drive_configuration_items drive_configuration_items_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.old_drive_configuration_items
+    ADD CONSTRAINT drive_configuration_items_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: drive_configurations drive_configurations_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.drive_configurations
+    ADD CONSTRAINT drive_configurations_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: old_drive_orders drive_orders_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.old_drive_orders
+    ADD CONSTRAINT drive_orders_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: drive_orders drive_orders_pkey1; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.drive_orders
-    ADD CONSTRAINT drive_orders_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT drive_orders_pkey1 PRIMARY KEY (id);
 
 
 --
@@ -776,11 +1829,83 @@ ALTER TABLE ONLY public.drive_sessions
 
 
 --
+-- Name: drive_task_set_products drive_task_set_products_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.drive_task_set_products
+    ADD CONSTRAINT drive_task_set_products_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: drive_task_sets drive_task_sets_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.drive_task_sets
+    ADD CONSTRAINT drive_task_sets_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: drives drives_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.drives
     ADD CONSTRAINT drives_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: general_notification_reads general_notification_reads_general_notification_id_user_id_key; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.general_notification_reads
+    ADD CONSTRAINT general_notification_reads_general_notification_id_user_id_key UNIQUE (general_notification_id, user_id);
+
+
+--
+-- Name: general_notification_reads general_notification_reads_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.general_notification_reads
+    ADD CONSTRAINT general_notification_reads_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: general_notifications general_notifications_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.general_notifications
+    ADD CONSTRAINT general_notifications_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: membership_tiers membership_tiers_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.membership_tiers
+    ADD CONSTRAINT membership_tiers_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: membership_tiers membership_tiers_tier_name_key; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.membership_tiers
+    ADD CONSTRAINT membership_tiers_tier_name_key UNIQUE (tier_name);
+
+
+--
+-- Name: notification_categories notification_categories_name_key; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.notification_categories
+    ADD CONSTRAINT notification_categories_name_key UNIQUE (name);
+
+
+--
+-- Name: notification_categories notification_categories_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.notification_categories
+    ADD CONSTRAINT notification_categories_pkey PRIMARY KEY (id);
 
 
 --
@@ -813,6 +1938,102 @@ ALTER TABLE ONLY public.products
 
 ALTER TABLE ONLY public.support_messages
     ADD CONSTRAINT support_messages_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: tier_quantity_configs tier_quantity_configs_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.tier_quantity_configs
+    ADD CONSTRAINT tier_quantity_configs_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: tier_quantity_configs tier_quantity_configs_tier_name_key; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.tier_quantity_configs
+    ADD CONSTRAINT tier_quantity_configs_tier_name_key UNIQUE (tier_name);
+
+
+--
+-- Name: drive_task_sets uq_drive_config_order; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.drive_task_sets
+    ADD CONSTRAINT uq_drive_config_order UNIQUE (drive_configuration_id, order_in_drive);
+
+
+--
+-- Name: drive_orders uq_session_task_set_product; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.drive_orders
+    ADD CONSTRAINT uq_session_task_set_product UNIQUE (session_id, task_set_product_id);
+
+
+--
+-- Name: drive_task_set_products uq_task_set_product_order; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.drive_task_set_products
+    ADD CONSTRAINT uq_task_set_product_order UNIQUE (task_set_id, order_in_set);
+
+
+--
+-- Name: user_active_drive_items user_active_drive_items_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.user_active_drive_items
+    ADD CONSTRAINT user_active_drive_items_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: user_drive_configurations user_drive_configurations_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.user_drive_configurations
+    ADD CONSTRAINT user_drive_configurations_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: user_drive_configurations user_drive_configurations_user_id_key; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.user_drive_configurations
+    ADD CONSTRAINT user_drive_configurations_user_id_key UNIQUE (user_id);
+
+
+--
+-- Name: user_drive_progress user_drive_progress_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.user_drive_progress
+    ADD CONSTRAINT user_drive_progress_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: user_drive_progress user_drive_progress_user_id_date_key; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.user_drive_progress
+    ADD CONSTRAINT user_drive_progress_user_id_date_key UNIQUE (user_id, date);
+
+
+--
+-- Name: user_working_days user_working_days_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.user_working_days
+    ADD CONSTRAINT user_working_days_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: user_working_days user_working_days_user_id_key; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.user_working_days
+    ADD CONSTRAINT user_working_days_user_id_key UNIQUE (user_id);
 
 
 --
@@ -872,6 +2093,13 @@ ALTER TABLE ONLY public.withdrawals
 
 
 --
+-- Name: idx_comm_logs_drive_session_id; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_comm_logs_drive_session_id ON public.commission_logs USING btree (drive_session_id);
+
+
+--
 -- Name: idx_deposits_status; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -883,6 +2111,48 @@ CREATE INDEX idx_deposits_status ON public.deposits USING btree (status);
 --
 
 CREATE INDEX idx_deposits_user_id ON public.deposits USING btree (user_id);
+
+
+--
+-- Name: idx_drive_configuration_items_drive_configuration_id; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_drive_configuration_items_drive_configuration_id ON public.old_drive_configuration_items USING btree (drive_configuration_id);
+
+
+--
+-- Name: idx_drive_configuration_items_product_id; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_drive_configuration_items_product_id ON public.old_drive_configuration_items USING btree (product_id);
+
+
+--
+-- Name: idx_drive_configurations_associated_user_id; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_drive_configurations_associated_user_id ON public.drive_configurations USING btree (associated_user_id);
+
+
+--
+-- Name: idx_drive_configurations_is_auto_generated; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_drive_configurations_is_auto_generated ON public.drive_configurations USING btree (is_auto_generated);
+
+
+--
+-- Name: idx_drive_session_id; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_drive_session_id ON public.user_active_drive_items USING btree (drive_session_id);
+
+
+--
+-- Name: idx_drive_sessions_drive_configuration_id; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_drive_sessions_drive_configuration_id ON public.drive_sessions USING btree (drive_configuration_id);
 
 
 --
@@ -900,6 +2170,55 @@ CREATE INDEX idx_drives_user_id ON public.drives USING btree (user_id);
 
 
 --
+-- Name: idx_general_notification_reads_notification; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_general_notification_reads_notification ON public.general_notification_reads USING btree (general_notification_id);
+
+
+--
+-- Name: idx_general_notification_reads_user; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_general_notification_reads_user ON public.general_notification_reads USING btree (user_id);
+
+
+--
+-- Name: idx_general_notifications_active; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_general_notifications_active ON public.general_notifications USING btree (is_active);
+
+
+--
+-- Name: idx_general_notifications_category; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_general_notifications_category ON public.general_notifications USING btree (category_id);
+
+
+--
+-- Name: idx_general_notifications_dates; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_general_notifications_dates ON public.general_notifications USING btree (start_date, end_date);
+
+
+--
+-- Name: idx_general_notifications_priority; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_general_notifications_priority ON public.general_notifications USING btree (priority);
+
+
+--
+-- Name: idx_notifications_category; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_notifications_category ON public.notifications USING btree (category_id);
+
+
+--
 -- Name: idx_notifications_is_read; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -911,6 +2230,13 @@ CREATE INDEX idx_notifications_is_read ON public.notifications USING btree (is_r
 --
 
 CREATE INDEX idx_notifications_user_id ON public.notifications USING btree (user_id);
+
+
+--
+-- Name: idx_products_is_combo_only; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_products_is_combo_only ON public.products USING btree (is_combo_only);
 
 
 --
@@ -928,6 +2254,69 @@ CREATE INDEX idx_support_messages_sender_id ON public.support_messages USING btr
 
 
 --
+-- Name: idx_tier_quantity_configs_active; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_tier_quantity_configs_active ON public.tier_quantity_configs USING btree (is_active);
+
+
+--
+-- Name: idx_tier_quantity_configs_tier_name; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_tier_quantity_configs_tier_name ON public.tier_quantity_configs USING btree (tier_name);
+
+
+--
+-- Name: idx_user_drive_config_user_id; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_user_drive_config_user_id ON public.user_drive_configurations USING btree (user_id);
+
+
+--
+-- Name: idx_user_drive_progress_date; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_user_drive_progress_date ON public.user_drive_progress USING btree (date);
+
+
+--
+-- Name: idx_user_drive_progress_user_id; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_user_drive_progress_user_id ON public.user_drive_progress USING btree (user_id);
+
+
+--
+-- Name: idx_user_drive_session_order; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_user_drive_session_order ON public.user_active_drive_items USING btree (user_id, drive_session_id, order_in_drive);
+
+
+--
+-- Name: idx_user_working_days_user_id; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_user_working_days_user_id ON public.user_working_days USING btree (user_id);
+
+
+--
+-- Name: idx_users_balance; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_users_balance ON public.users USING btree (balance);
+
+
+--
+-- Name: idx_users_tier_balance; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_users_tier_balance ON public.users USING btree (tier, balance);
+
+
+--
 -- Name: idx_withdrawals_status; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -942,10 +2331,66 @@ CREATE INDEX idx_withdrawals_user_id ON public.withdrawals USING btree (user_id)
 
 
 --
+-- Name: drive_configurations trigger_drive_configurations_updated_at; Type: TRIGGER; Schema: public; Owner: postgres
+--
+
+CREATE TRIGGER trigger_drive_configurations_updated_at BEFORE UPDATE ON public.drive_configurations FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+
+--
+-- Name: old_drive_configuration_items trigger_update_tasks_required_delete; Type: TRIGGER; Schema: public; Owner: postgres
+--
+
+CREATE TRIGGER trigger_update_tasks_required_delete AFTER DELETE ON public.old_drive_configuration_items FOR EACH ROW EXECUTE FUNCTION public.update_drive_configuration_tasks_required();
+
+
+--
+-- Name: old_drive_configuration_items trigger_update_tasks_required_insert_update; Type: TRIGGER; Schema: public; Owner: postgres
+--
+
+CREATE TRIGGER trigger_update_tasks_required_insert_update AFTER INSERT OR UPDATE ON public.old_drive_configuration_items FOR EACH ROW EXECUTE FUNCTION public.update_drive_configuration_tasks_required();
+
+
+--
+-- Name: tier_quantity_configs trigger_update_tier_quantity_configs_updated_at; Type: TRIGGER; Schema: public; Owner: postgres
+--
+
+CREATE TRIGGER trigger_update_tier_quantity_configs_updated_at BEFORE UPDATE ON public.tier_quantity_configs FOR EACH ROW EXECUTE FUNCTION public.update_tier_quantity_configs_updated_at();
+
+
+--
+-- Name: user_active_drive_items trigger_update_user_active_drive_items_updated_at; Type: TRIGGER; Schema: public; Owner: postgres
+--
+
+CREATE TRIGGER trigger_update_user_active_drive_items_updated_at BEFORE UPDATE ON public.user_active_drive_items FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+
+--
 -- Name: deposits update_deposits_updated_at; Type: TRIGGER; Schema: public; Owner: postgres
 --
 
 CREATE TRIGGER update_deposits_updated_at BEFORE UPDATE ON public.deposits FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+
+--
+-- Name: general_notifications update_general_notifications_updated_at; Type: TRIGGER; Schema: public; Owner: postgres
+--
+
+CREATE TRIGGER update_general_notifications_updated_at BEFORE UPDATE ON public.general_notifications FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+
+--
+-- Name: notification_categories update_notification_categories_updated_at; Type: TRIGGER; Schema: public; Owner: postgres
+--
+
+CREATE TRIGGER update_notification_categories_updated_at BEFORE UPDATE ON public.notification_categories FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+
+--
+-- Name: notifications update_notifications_updated_at; Type: TRIGGER; Schema: public; Owner: postgres
+--
+
+CREATE TRIGGER update_notifications_updated_at BEFORE UPDATE ON public.notifications FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
 
 --
@@ -996,19 +2441,91 @@ ALTER TABLE ONLY public.deposits
 
 
 --
--- Name: drive_orders drive_orders_product_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: old_drive_configuration_items drive_configuration_items_drive_configuration_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
-ALTER TABLE ONLY public.drive_orders
+ALTER TABLE ONLY public.old_drive_configuration_items
+    ADD CONSTRAINT drive_configuration_items_drive_configuration_id_fkey FOREIGN KEY (drive_configuration_id) REFERENCES public.drive_configurations(id) ON DELETE CASCADE;
+
+
+--
+-- Name: old_drive_configuration_items drive_configuration_items_product_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.old_drive_configuration_items
+    ADD CONSTRAINT drive_configuration_items_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(id) ON DELETE RESTRICT;
+
+
+--
+-- Name: drive_configurations drive_configurations_associated_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.drive_configurations
+    ADD CONSTRAINT drive_configurations_associated_user_id_fkey FOREIGN KEY (associated_user_id) REFERENCES public.users(id);
+
+
+--
+-- Name: drive_configurations drive_configurations_created_by_admin_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.drive_configurations
+    ADD CONSTRAINT drive_configurations_created_by_admin_id_fkey FOREIGN KEY (created_by_admin_id) REFERENCES public.users(id);
+
+
+--
+-- Name: old_drive_orders drive_orders_product_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.old_drive_orders
     ADD CONSTRAINT drive_orders_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(id);
 
 
 --
--- Name: drive_orders drive_orders_session_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: old_drive_orders drive_orders_session_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.old_drive_orders
+    ADD CONSTRAINT drive_orders_session_id_fkey FOREIGN KEY (session_id) REFERENCES public.drive_sessions(id);
+
+
+--
+-- Name: drive_orders drive_orders_session_id_fkey1; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY public.drive_orders
-    ADD CONSTRAINT drive_orders_session_id_fkey FOREIGN KEY (session_id) REFERENCES public.drive_sessions(id);
+    ADD CONSTRAINT drive_orders_session_id_fkey1 FOREIGN KEY (session_id) REFERENCES public.drive_sessions(id) ON DELETE CASCADE;
+
+
+--
+-- Name: drive_orders drive_orders_task_set_product_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.drive_orders
+    ADD CONSTRAINT drive_orders_task_set_product_id_fkey FOREIGN KEY (task_set_product_id) REFERENCES public.drive_task_set_products(id) ON DELETE CASCADE;
+
+
+--
+-- Name: drive_sessions drive_sessions_current_task_set_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.drive_sessions
+    ADD CONSTRAINT drive_sessions_current_task_set_id_fkey FOREIGN KEY (current_task_set_id) REFERENCES public.drive_task_sets(id) ON DELETE SET NULL;
+
+
+--
+-- Name: drive_sessions drive_sessions_current_task_set_product_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.drive_sessions
+    ADD CONSTRAINT drive_sessions_current_task_set_product_id_fkey FOREIGN KEY (current_task_set_product_id) REFERENCES public.drive_task_set_products(id) ON DELETE SET NULL;
+
+
+--
+-- Name: drive_sessions drive_sessions_drive_configuration_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.drive_sessions
+    ADD CONSTRAINT drive_sessions_drive_configuration_id_fkey FOREIGN KEY (drive_configuration_id) REFERENCES public.drive_configurations(id) ON DELETE SET NULL;
 
 
 --
@@ -1028,6 +2545,30 @@ ALTER TABLE ONLY public.drive_sessions
 
 
 --
+-- Name: drive_task_set_products drive_task_set_products_product_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.drive_task_set_products
+    ADD CONSTRAINT drive_task_set_products_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(id) ON DELETE CASCADE;
+
+
+--
+-- Name: drive_task_set_products drive_task_set_products_task_set_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.drive_task_set_products
+    ADD CONSTRAINT drive_task_set_products_task_set_id_fkey FOREIGN KEY (task_set_id) REFERENCES public.drive_task_sets(id) ON DELETE CASCADE;
+
+
+--
+-- Name: drive_task_sets drive_task_sets_drive_configuration_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.drive_task_sets
+    ADD CONSTRAINT drive_task_sets_drive_configuration_id_fkey FOREIGN KEY (drive_configuration_id) REFERENCES public.drive_configurations(id) ON DELETE CASCADE;
+
+
+--
 -- Name: drives drives_product_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1041,6 +2582,62 @@ ALTER TABLE ONLY public.drives
 
 ALTER TABLE ONLY public.drives
     ADD CONSTRAINT drives_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id);
+
+
+--
+-- Name: drive_sessions fk_current_user_active_drive_item; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.drive_sessions
+    ADD CONSTRAINT fk_current_user_active_drive_item FOREIGN KEY (current_user_active_drive_item_id) REFERENCES public.user_active_drive_items(id) ON DELETE SET NULL;
+
+
+--
+-- Name: users fk_users_assigned_drive_configuration; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.users
+    ADD CONSTRAINT fk_users_assigned_drive_configuration FOREIGN KEY (assigned_drive_configuration_id) REFERENCES public.drive_configurations(id) ON UPDATE CASCADE ON DELETE SET NULL;
+
+
+--
+-- Name: general_notification_reads general_notification_reads_general_notification_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.general_notification_reads
+    ADD CONSTRAINT general_notification_reads_general_notification_id_fkey FOREIGN KEY (general_notification_id) REFERENCES public.general_notifications(id) ON DELETE CASCADE;
+
+
+--
+-- Name: general_notification_reads general_notification_reads_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.general_notification_reads
+    ADD CONSTRAINT general_notification_reads_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: general_notifications general_notifications_category_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.general_notifications
+    ADD CONSTRAINT general_notifications_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.notification_categories(id);
+
+
+--
+-- Name: general_notifications general_notifications_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.general_notifications
+    ADD CONSTRAINT general_notifications_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id);
+
+
+--
+-- Name: notifications notifications_category_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.notifications
+    ADD CONSTRAINT notifications_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.notification_categories(id);
 
 
 --
@@ -1073,6 +2670,62 @@ ALTER TABLE ONLY public.support_messages
 
 ALTER TABLE ONLY public.support_messages
     ADD CONSTRAINT support_messages_thread_id_fkey FOREIGN KEY (thread_id) REFERENCES public.support_messages(id);
+
+
+--
+-- Name: user_active_drive_items user_active_drive_items_drive_session_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.user_active_drive_items
+    ADD CONSTRAINT user_active_drive_items_drive_session_id_fkey FOREIGN KEY (drive_session_id) REFERENCES public.drive_sessions(id) ON DELETE CASCADE;
+
+
+--
+-- Name: user_active_drive_items user_active_drive_items_product_id_1_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.user_active_drive_items
+    ADD CONSTRAINT user_active_drive_items_product_id_1_fkey FOREIGN KEY (product_id_1) REFERENCES public.products(id) ON DELETE RESTRICT;
+
+
+--
+-- Name: user_active_drive_items user_active_drive_items_product_id_2_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.user_active_drive_items
+    ADD CONSTRAINT user_active_drive_items_product_id_2_fkey FOREIGN KEY (product_id_2) REFERENCES public.products(id) ON DELETE RESTRICT;
+
+
+--
+-- Name: user_active_drive_items user_active_drive_items_product_id_3_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.user_active_drive_items
+    ADD CONSTRAINT user_active_drive_items_product_id_3_fkey FOREIGN KEY (product_id_3) REFERENCES public.products(id) ON DELETE RESTRICT;
+
+
+--
+-- Name: user_active_drive_items user_active_drive_items_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.user_active_drive_items
+    ADD CONSTRAINT user_active_drive_items_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: user_drive_configurations user_drive_configurations_drive_configuration_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.user_drive_configurations
+    ADD CONSTRAINT user_drive_configurations_drive_configuration_id_fkey FOREIGN KEY (drive_configuration_id) REFERENCES public.drive_configurations(id) ON DELETE CASCADE;
+
+
+--
+-- Name: user_drive_configurations user_drive_configurations_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.user_drive_configurations
+    ADD CONSTRAINT user_drive_configurations_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
 
 
 --

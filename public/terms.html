@@ -49,13 +49,12 @@
                         <div class="profile-img-item">
                             <img src="./assets/uploads/user.jpg" class="rounded-circle" alt="profile">
                         </div>
-                    </div>
-                    <div class="col ps-1">
-                        <div class="profile-details">
-                            <h4 class="mb-2">Isabella27</h4>
-                            <p class="mb-0 text-grsay">REFERRAL CODE: 17GAHG</p>
+                    </div>                        <div class="col ps-1">
+                            <div class="profile-details">
+                            <h4 class="mb-2" id="dashboard-username"></h4>
+                            <p class="mb-0 text-grsay" id="dashboard-refcode"></p>
+                            </div>
                         </div>
-                    </div>
                 </div>
             </div>
             <hr>
@@ -113,11 +112,10 @@
                             <img src="./assets/uploads/img/8.png" style="margin-right: 5px;" width="20px">ABOUT US
             
                         </a>
-                    </li>
-                    <li class="bottom-border">
-                        <a href="./logout.html">
-                            <img src="./assets/uploads/img/8.png" style="margin-right: 5px;" width="20px">LOGOUT
-                
+                    </li>                    <li class="bottom-border">
+                        <a href="#" class="logout">
+                            <img src="./assets/uploads/img/8.png" style="margin-right: 5px;" width="20px">
+                            <span data-i18n="sidebarLogoutLink">LOGOUT</span>
                         </a>                    </li>
                 </ul>
                 
@@ -220,10 +218,24 @@
         </script>        <script src="./assets/frontend/js/bootstrap.bundle.min.js"></script>
         <script src="./assets/frontend/js/owl.carousel.min.js"></script>
         <script src="./assets/frontend/js/script.js"></script>
-        
+          <!-- Load Component Loader -->
+        <script src="./js/components.js"></script>
+        <!-- Load Helper/Auth Scripts -->
+        <script src="./js/main.js"></script>
+        <script src="./js/auth-check.js"></script>
+        <!-- Import auth.js for logout functionality -->
+        <script src="./js/auth.js"></script>
         <!-- Import i18n.js script -->
         <script src="./js/i18n.js"></script>
         <!-- Import terms.js script -->
         <script src="./js/terms.js"></script>
+        <script>
+          document.addEventListener('DOMContentLoaded', function() {
+            // Initialize logout functionality
+            if (typeof attachLogoutHandlers === 'function') {
+              attachLogoutHandlers();
+            }
+          });
+        </script>
     </body>
 </html>

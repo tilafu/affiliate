@@ -1553,6 +1553,232 @@ const unfreezeUser = async (req, res) => {
     }
 };
 
+/**
+ * @desc    Get all notification categories
+ * @route   GET /api/admin/notification-categories
+ * @access  Private/Admin
+ */
+const getNotificationCategories = async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT 
+                id,
+                name,
+                COALESCE(color, '#6c757d') as color,
+                COALESCE(icon, 'fas fa-bell') as icon,
+                COALESCE(is_active, true) as is_active,
+                created_at,
+                updated_at
+            FROM notification_categories 
+            WHERE COALESCE(is_active, true) = true 
+            ORDER BY name ASC
+        `);
+        res.json({ success: true, categories: result.rows });
+    } catch (error) {
+        logger.error('Error fetching notification categories:', { error: error.message, stack: error.stack });
+        res.status(500).json({ success: false, message: 'Error fetching notification categories' });
+    }
+};
+
+/**
+ * @desc    Get all general notifications
+ * @route   GET /api/admin/general-notifications
+ * @access  Private/Admin
+ */
+const getGeneralNotifications = async (req, res) => {    try {
+        const result = await pool.query(`
+            SELECT 
+                gn.*,
+                COALESCE(nc.name, 'General') as category_name,
+                COALESCE(nc.color, '#6c757d') as category_color,
+                COALESCE(nc.icon, 'fas fa-bell') as category_icon
+            FROM general_notifications gn
+            LEFT JOIN notification_categories nc ON gn.category_id = nc.id
+            ORDER BY gn.priority DESC, gn.created_at DESC
+        `);
+        res.json({ success: true, notifications: result.rows });
+    } catch (error) {
+        logger.error('Error fetching general notifications:', { error: error.message, stack: error.stack });
+        res.status(500).json({ success: false, message: 'Error fetching general notifications' });
+    }
+};
+
+/**
+ * @desc    Create a new general notification
+ * @route   POST /api/admin/general-notifications
+ * @access  Private/Admin
+ */
+const createGeneralNotification = async (req, res) => {
+    const { category_id, title, message, image_url = null, priority = 1, expires_at = null } = req.body;
+    
+    // Validation
+    if (!category_id || !title || !message) {
+        return res.status(400).json({ 
+            success: false, 
+            message: 'Category ID, title, and message are required' 
+        });
+    }
+
+    try {
+        const result = await pool.query(`
+            INSERT INTO general_notifications 
+            (category_id, title, message, image_url, priority, end_date, created_by)
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
+            RETURNING *
+        `, [category_id, title, message, image_url, priority, expires_at, req.user.id]);
+
+        logger.info(`Admin ${req.user.id} created general notification: ${title}`);
+        res.json({ success: true, notification: result.rows[0] });
+    } catch (error) {
+        logger.error('Error creating general notification:', { error: error.message, stack: error.stack });
+        res.status(500).json({ success: false, message: 'Error creating general notification' });
+    }
+};
+
+/**
+ * @desc    Update a general notification
+ * @route   PUT /api/admin/general-notifications/:id
+ * @access  Private/Admin
+ */
+const updateGeneralNotification = async (req, res) => {
+    const { id } = req.params;
+    const { category_id, title, message, image_url, priority, is_active, expires_at } = req.body;
+
+    try {
+        const result = await pool.query(`
+            UPDATE general_notifications 
+            SET category_id = COALESCE($1, category_id),
+                title = COALESCE($2, title),
+                message = COALESCE($3, message),
+                image_url = $4,
+                priority = COALESCE($5, priority),
+                is_active = COALESCE($6, is_active),
+                end_date = $7,
+                updated_at = NOW()
+            WHERE id = $8
+            RETURNING *
+        `, [category_id, title, message, image_url, priority, is_active, expires_at, id]);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ success: false, message: 'General notification not found' });
+        }
+
+        logger.info(`Admin ${req.user.id} updated general notification ${id}: ${title}`);
+        res.json({ success: true, notification: result.rows[0] });
+    } catch (error) {
+        logger.error('Error updating general notification:', { error: error.message, stack: error.stack });
+        res.status(500).json({ success: false, message: 'Error updating general notification' });
+    }
+};
+
+/**
+ * @desc    Delete a general notification
+ * @route   DELETE /api/admin/general-notifications/:id
+ * @access  Private/Admin
+ */
+const deleteGeneralNotification = async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const result = await pool.query('DELETE FROM general_notifications WHERE id = $1 RETURNING *', [id]);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ success: false, message: 'General notification not found' });
+        }
+
+        logger.info(`Admin ${req.user.id} deleted general notification ${id}`);
+        res.json({ success: true, message: 'General notification deleted successfully' });
+    } catch (error) {
+        logger.error('Error deleting general notification:', { error: error.message, stack: error.stack });
+        res.status(500).json({ success: false, message: 'Error deleting general notification' });
+    }
+};
+
+/**
+ * @desc    Send a categorized notification to a user
+ * @route   POST /api/admin/notifications
+ * @access  Private/Admin
+ */
+const sendCategorizedNotification = async (req, res) => {
+    const { user_id, category_id, title, message, image_url = null, priority = 1 } = req.body;
+    
+    // Validation
+    if (!user_id || !category_id || !message) {
+        return res.status(400).json({ 
+            success: false, 
+            message: 'User ID, category ID, and message are required' 
+        });
+    }
+
+    try {
+        const result = await pool.query(`
+            INSERT INTO notifications 
+            (user_id, category_id, title, message, image_url, priority, created_at)
+            VALUES ($1, $2, $3, $4, $5, $6, NOW())
+            RETURNING *
+        `, [user_id, category_id, title, message, image_url, priority]);
+
+        logger.info(`Admin ${req.user.id} sent categorized notification to user ${user_id}: ${title || message.substring(0, 50)}`);
+        res.json({ success: true, notification: result.rows[0] });
+    } catch (error) {
+        logger.error('Error sending categorized notification:', { error: error.message, stack: error.stack });
+        res.status(500).json({ success: false, message: 'Error sending notification' });
+    }
+};
+
+/**
+ * @desc    Send bulk notifications to multiple users
+ * @route   POST /api/admin/notifications/bulk
+ * @access  Private/Admin
+ */
+const sendBulkNotifications = async (req, res) => {
+    const { user_ids, category_id, title, message, image_url = null, priority = 1 } = req.body;
+    
+    // Validation
+    if (!user_ids || !Array.isArray(user_ids) || user_ids.length === 0) {
+        return res.status(400).json({ 
+            success: false, 
+            message: 'User IDs array is required and must not be empty' 
+        });
+    }
+    
+    if (!category_id || !message) {
+        return res.status(400).json({ 
+            success: false, 
+            message: 'Category ID and message are required' 
+        });
+    }
+
+    const client = await pool.connect();
+
+    try {
+        await client.query('BEGIN');
+
+        const insertPromises = user_ids.map(user_id => 
+            client.query(`
+                INSERT INTO notifications 
+                (user_id, category_id, title, message, image_url, priority, created_at)
+                VALUES ($1, $2, $3, $4, $5, $6, NOW())
+            `, [user_id, category_id, title, message, image_url, priority])
+        );
+
+        await Promise.all(insertPromises);
+        await client.query('COMMIT');
+
+        logger.info(`Admin ${req.user.id} sent bulk notifications to ${user_ids.length} users: ${title || message.substring(0, 50)}`);
+        res.json({ 
+            success: true, 
+            message: `Notifications sent to ${user_ids.length} users successfully` 
+        });
+    } catch (error) {
+        await client.query('ROLLBACK');
+        logger.error('Error sending bulk notifications:', { error: error.message, stack: error.stack });
+        res.status(500).json({ success: false, message: 'Error sending bulk notifications' });
+    } finally {
+        client.release();
+    }
+};
+
 module.exports = {    // User Management
     getUsers,
     getFrozenUsers,
@@ -1605,5 +1831,14 @@ module.exports = {    // User Management
     updateTierQuantityConfig,
 
     // Unfreeze User Account
-    unfreezeUser
+    unfreezeUser,
+
+    // Notification Management
+    getNotificationCategories,
+    getGeneralNotifications,
+    createGeneralNotification,
+    updateGeneralNotification,
+    deleteGeneralNotification,
+    sendCategorizedNotification,
+    sendBulkNotifications
 };

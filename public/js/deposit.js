@@ -36,20 +36,16 @@ document.addEventListener('DOMContentLoaded', () => {
       console.error(`Error fetching data from ${url}:`, error);
     }
   };
-
-  // Fetch and display the user's total deposited amount (if needed, otherwise remove)
-  // Based on the backend change, /api/user/deposits now returns history.
-  // If a total is still needed, a new backend endpoint might be required,
-  // or calculate from history. For now, let's remove this section
-  // as the history view is the primary requirement.
-  /*
-  fetchData('/api/user/deposits/total', (data) => { // Assuming a new endpoint for total
+  // Fetch and display the user's total deposited amount on the Make Deposit tab
+  fetchData('/api/user/deposits/total', (data) => {
     const depositElement = document.getElementById('user-deposited-amount');
-    depositElement.innerHTML = `<strong>${data.totalDeposits.toFixed(2)}<small style="font-size:14px"> USDT</small></strong>`;
+    if (depositElement) {
+      depositElement.innerHTML = `<strong>${data.totalDeposits.toFixed(2)}<small style="font-size:14px"> USDT</small></strong>`;
+    } else {
+      console.warn('Total deposited amount element not found.');
+    }
   });
-  */
-
-  // Fetch and display the deposit history
+  // Fetch and display the deposit history on the Deposit History tab
   fetchData('/api/user/deposits', (data) => {
     const historyElement = document.querySelector('#deposits table tbody'); // Select the tbody within the history tab
     if (historyElement) {
@@ -61,7 +57,7 @@ document.addEventListener('DOMContentLoaded', () => {
               <td>${new Date(entry.date).toLocaleTimeString()}</td>
               <td>${parseFloat(entry.amount).toFixed(2)} USDT</td>
               <td>${entry.description || 'N/A'}</td>
-              <td>${entry.status}</td>
+              <td><span class="status-badge status-${entry.status.toLowerCase()}">${entry.status}</span></td>
             </tr>
           `
         )
@@ -70,16 +66,6 @@ document.addEventListener('DOMContentLoaded', () => {
       console.warn('Deposit history table body not found.');
     }
   });
-
-  // Fetch and display the user's balance (if needed on this page)
-   fetchData('/api/user/balance', (data) => {
-     const balanceElement = document.getElementById('user-deposited-amount'); // Re-using this ID for balance display
-     if (balanceElement) {
-        balanceElement.innerHTML = `<strong>${data.balance.toFixed(2)}<small style="font-size:14px"> USDT</small></strong>`;
-     } else {
-        console.warn('Balance display element not found.');
-     }
-   });
 
 
   // Set up the deposit form submission

@@ -6,10 +6,9 @@
     <title data-i18n-title="membershipsPageTitle">Memberships</title>
     <meta name="csrf-token" content="t9EtiRskFKx5XpnOFvbrimp5ZgsKIg3UU1Ea1iDM">
     <link rel="shortcut icon" href="./assets/uploads/generals/favicon-665b8c8a863b91717275786.png">
-    <link rel="stylesheet" href="./assets/frontend/shopva/public.css">
-      <!-- i18next scripts -->
-      <script src="https://unpkg.com/i18next/i18next.min.js"></script>
-      <script src="https://unpkg.com/i18next-http-backend/i18nextHttpBackend.min.js"></script>
+    <link rel="stylesheet" href="./assets/frontend/shopva/public.css">      <!-- i18next scripts REMOVED - using fallback text only -->
+      <!-- <script src="https://unpkg.com/i18next/i18next.min.js"></script> -->
+      <!-- <script src="https://unpkg.com/i18next-http-backend/i18nextHttpBackend.min.js"></script> -->
       <!-- <script charset="utf-8" src="./assets/frontend/shopva/jquery.min.js"></script> -->
       <script src="./assets/frontend/js/jquery.min.js"></script>
       <script charset="utf-8" src="./assets/frontend/shopva/dialog.min.js"></script>
@@ -48,11 +47,10 @@
             <div class="profile-img-item">
                <img src="./assets/uploads/user.jpg" class="rounded-circle" alt="profile">
             </div>
-         </div>
-         <div class="col ps-1">
+         </div>         <div class="col ps-1">
             <div class="profile-details">
-               <h4 class="mb-2">Isabella27</h4>
-               <p class="mb-0 text-grsay">REFERRAL CODE: 17GAHG</p>
+               <h4 class="mb-2" id="dashboard-username"></h4>
+               <p class="mb-0 text-grsay" id="dashboard-refcode"></p>
             </div>
          </div>
       </div>
@@ -113,8 +111,7 @@
                <span data-i18n="sidebarAboutUsLink">ABOUT US</span>
             </a>
          </li>
-         <li class="bottom-border">
-            <a href="./logout.html"> <!-- Updated link to include .html -->
+         <li class="bottom-border">            <a href="#" class="logout">
                <img src="./assets/uploads/img/8.png"  style="margin-right: 5px;" width="20px">
                <span data-i18n="sidebarLogoutLink">LOGOUT</span>
             </a>
@@ -280,11 +277,25 @@
 <script src="./assets/frontend/js/owl.carousel.min.js"></script>
 <script src="./assets/frontend/js/script.js"></script>
 
+<!-- Load Component Loader -->
+<script src="./js/components.js"></script>
+<!-- Load Helper/Auth Scripts -->
+<script src="./js/main.js"></script>
 <!-- Import i18n.js script -->
 <script src="./js/i18n.js"></script>
 <!-- Import auth-check.js for authentication -->
 <script src="./js/auth-check.js"></script>
+<!-- Import auth.js for logout functionality -->
+<script src="./js/auth.js"></script>
 <!-- Import membership.js script -->
 <script src="./js/membership.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Initialize logout functionality
+    if (typeof attachLogoutHandlers === 'function') {
+      attachLogoutHandlers();
+    }
+  });
+</script>
 </body>
 </html>

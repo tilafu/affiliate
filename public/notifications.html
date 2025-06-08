@@ -14,16 +14,17 @@
       <script charset="utf-8" src="./assets/frontend/shopva/common.js"></script>
       <link rel="stylesheet" href="./assets/frontend/shopva/layer.css">
       <script src="./assets/frontend/shopva/layer.js"></script>
-      <link rel="stylesheet" href="./assets/frontend/shopva/tye.css">
-      <!-- i18next scripts -->
-      <script src="https://unpkg.com/i18next/i18next.min.js"></script>
-      <script src="https://unpkg.com/i18next-http-backend/i18nextHttpBackend.min.js"></script>
+      <link rel="stylesheet" href="./assets/frontend/shopva/tye.css">      <!-- i18next scripts REMOVED - using fallback text only -->
+      <!-- <script src="https://unpkg.com/i18next/i18next.min.js"></script> -->
+      <!-- <script src="https://unpkg.com/i18next-http-backend/i18nextHttpBackend.min.js"></script> -->
     <link href="https://fonts.googleapis.com/css?family=Nunito:300,400,600,700,900" rel="stylesheet">
     <link rel="stylesheet" href="./assets/frontend/css/bootstrap.min.css" type="text/css" media="all"/>
     <link rel="stylesheet" type="text/css" href="./assets/frontend/css/fontawesome-all.min.css">
     <link rel="stylesheet" href="./assets/frontend/css/animate.min.css" type="text/css" media="all"/>
     <link rel="stylesheet" href="./assets/frontend/css/owl.carousel.min.css" type="text/css" media="all"/>
     <link rel="stylesheet" href="./assets/frontend/css/style.css" type="text/css" media="all"/>
+    <!-- Enhanced marquee and notification badge styling -->
+    <link rel="stylesheet" href="./css/marquee-enhancements.css" type="text/css" media="all"/>
      <style>
    .center-image {
       display: flex;
@@ -58,14 +59,56 @@
       display: flex;
       justify-content: center;
       margin-bottom: 20px; /* Add some space below tabs */
-   }
-   .user-notification.unread {
+   }   .user-notification.unread {
        font-weight: bold;
        background-color: #fff9e6; /* Light yellow background for unread */
        border-left: 4px solid #ffc107; /* Yellow left border */
    }
    .user-notification {
        cursor: pointer; /* Indicate clickable */
+       transition: background-color 0.2s ease;
+   }
+   .user-notification:hover {
+       background-color: #f8f9fa;
+   }
+
+   /* Priority indicators */
+   .high-priority {
+       color: #dc3545 !important;
+   }
+   .medium-priority {
+       color: #fd7e14 !important;
+   }
+   .normal-priority {
+       color: #495057;
+   }
+
+   /* Notification image styling */
+   .notification-image {
+       border: 2px solid #dee2e6;
+   }
+
+   /* Modal enhancements */
+   .notification-detail-content {
+       line-height: 1.6;
+   }
+   .notification-message {
+       font-size: 14px;
+       color: #495057;
+   }
+
+   /* Category badges */
+   .badge {
+       font-weight: 500;
+   }
+
+   /* Enhanced card styling */
+   .cardd {
+       transition: transform 0.2s ease, box-shadow 0.2s ease;
+   }
+   .cardd:hover {
+       transform: translateY(-1px);
+       box-shadow: 0 4px 8px rgba(0,0,0,0.1);
    }
 </style>
 </head>
@@ -92,11 +135,10 @@
             <div class="profile-img-item">
                <img src="./assets/uploads/user.jpg" class="rounded-circle" alt="profile">
             </div>
-         </div>
-         <div class="col ps-1">
+         </div>         <div class="col ps-1">
             <div class="profile-details">
-               <h4 class="mb-2">Isabella27</h4>
-               <p class="mb-0 text-grsay">REFERRAL CODE: 17GAHG</p>
+               <h4 class="mb-2" id="dashboard-username"></h4>
+               <p class="mb-0 text-grsay" id="dashboard-refcode"></p>
             </div>
          </div>
       </div>
@@ -158,9 +200,8 @@
                <span data-i18n="sidebarAboutUsLink">ABOUT US</span>
             </a>
          </li>
-         <li class="bottom-border">
-                <a href="./logout.html">  <!-- Updated link to include .html extension -->
-                  <img src="./assets/uploads/img/8.png"  style="margin-right: 5px;" width="20px">
+         <li class="bottom-border">                <a href="#" class="logout">  <!-- Updated to use logout handler -->
+                    <img src="./assets/uploads/img/8.png"  style="margin-right: 5px;" width="20px">
                     <span data-i18n="sidebarLogoutLink">LOGOUT</span>
                 </a>
             </li>
@@ -198,23 +239,10 @@
     </div>
 </header><main class="main-content">
     <div class="container">
-         <section id=homepage2-sec>
-   <div class="homepage2-third-sec mt-24">
-      <div class="container">
-         <div class="row">
-            <div class="col-md-6 mx-auto">
-               <!-- <marquee direction="up" height="600px"> -->
-                                    
-                                    
-                  		         <!-- </marquee> -->
-            </div>
-			</div>
-		</div>
-	</div>
-</section>   
-      <span class="tab active" id="tab-general" data-i18n="notificationsGeneralTab">General</span>
-      <span class="tab" id="tab-user" data-i18n="notificationsUserTab">User</span>
-    </div>
+        <div class="tab-container">
+            <span class="tab active" id="tab-general" data-i18n="notificationsGeneralTab">General</span>
+            <span class="tab" id="tab-user" data-i18n="notificationsUserTab">User</span>
+        </div>
     <div id="general-content" class="tab-content active">
       <div class="notification-list" id="general-list"></div>
     </div>
@@ -271,8 +299,18 @@
 <script src="./js/i18n.js"></script>
 <script src="./js/auth-check.js"></script>
 <script src="./js/main.js"></script>
+<script src="./js/components.js"></script>
+<script src="./js/auth.js"></script>
+<script src="./js/notification-badge.js"></script> <!-- Dynamic notification badge functionality -->
 <script src="./js/notifications.js"></script>
 <script src="./js/notifications-i18n.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    if (typeof attachLogoutHandlers === 'function') {
+        attachLogoutHandlers();
+    }
+});
+</script>
 
 <!-- Notification Detail Modal -->
 <div class="modal fade" id="notificationDetailModal" tabindex="-1" aria-labelledby="notificationDetailModalLabel" aria-hidden="true">

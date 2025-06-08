@@ -14,6 +14,11 @@
       <script charset="utf-8" src="./assets/frontend/shopva/common.js"></script>
       <link rel="stylesheet" href="./assets/frontend/shopva/layer.css">
       <script src="./assets/frontend/shopva/layer.js"></script>
+
+      <!-- Customer Support  -->
+       <script src="//code.jivosite.com/widget/GIDIPDmldK" async></script>
+
+
       <link rel="stylesheet" href="./assets/frontend/shopva/tye.css">
     <link href="https://fonts.googleapis.com/css?family=Nunito:300,400,600,700,900" rel="stylesheet">
     <link rel="stylesheet" href="./assets/frontend/css/bootstrap.min.css" type="text/css" media="all"/>
@@ -4871,11 +4876,10 @@ body::after {
             <div class="profile-img-item">
                <img src="./assets/uploads/user.jpg" class="rounded-circle" alt="profile">
             </div>
-         </div>
-         <div class="col ps-1">
+         </div>         <div class="col ps-1">
             <div class="profile-details">
-               <h4 class="mb-2">Isabella27</h4>
-               <p class="mb-0 text-grsay">REFERRAL CODE: 17GAHG</p>
+               <h4 class="mb-2" id="dashboard-username"></h4>
+               <p class="mb-0 text-grsay" id="dashboard-refcode"></p>
             </div>
          </div>
       </div>
@@ -4936,11 +4940,10 @@ body::after {
                <img src="./assets/uploads/img/8.png"  style="margin-right: 5px;" width="20px">
                ABOUT US
             </a>
-         </li>
-         <li class="bottom-border">
-                <a href="./logout.html">
+         </li>         <li class="bottom-border">
+                <a href="#" class="logout">
                   <img src="./assets/uploads/img/8.png"  style="margin-right: 5px;" width="20px">
-                    LOGOUT
+                    <span data-i18n="sidebarLogoutLink">LOGOUT</span>
                 </a>
             </li>
 

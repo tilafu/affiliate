@@ -59,6 +59,15 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
         console.error('DriveModuleAPI or its initDependencies function is not available. Ensure admin-drives.js is loaded as a module and exports correctly.');
     }
+<<<<<<< HEAD
+    
+    // Initialize Enhanced Combo Creation module dependencies
+    if (window.initEnhancedComboCreationDependencies && typeof window.initEnhancedComboCreationDependencies === 'function') {
+        window.initEnhancedComboCreationDependencies({ fetchWithAuth, showNotification });
+        console.log('Enhanced combo creation dependencies initialized successfully.');
+    } else {
+        console.error('Enhanced combo creation initialization function not available. Ensure enhanced-combo-creation.js is loaded.');
+=======
 
     // Initialize Enhanced Combo Creation dependencies
     if (typeof window.initEnhancedComboCreationDependencies === 'function') {
@@ -66,7 +75,11 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('Enhanced combo creation dependencies initialized');
     } else {
         console.warn('Enhanced combo creation module not available or not properly loaded');
+>>>>>>> post
     }
+
+    // Load notification categories on admin panel load
+    loadNotificationCategories();
 });
 
 // Helper function for authenticated API calls
@@ -344,10 +357,18 @@ function loadSection(sectionName) {
             } else {
                 console.log('Drive configurations section displayed. Initial data loaded by initDependencies.');
             }
+<<<<<<< HEAD
 >>>>>>> main
             break;
         case 'products':
+=======
+            break;        case 'products':
+>>>>>>> main
             loadProducts();
+            break;
+        case 'notifications':
+            loadNotificationCategories();
+            loadGeneralNotifications();
             break;
         // Parent sections don't need to load data
         case 'general':
@@ -1427,15 +1448,26 @@ function initializeHandlers() {
             return;
         }
 
-        const token = localStorage.getItem('token');
+        // Standardize to use 'auth_token' as it seems to be the key used elsewhere (e.g., in logout logic)
+        const token = localStorage.getItem('auth_token'); 
+        console.log("[Admin Balance Adjustment] Attempting to retrieve token using key 'auth_token':", token);
+
         if (!token) {
+            console.error("[Admin Balance Adjustment] Auth token (from key 'auth_token') is missing. Redirecting to login.");
             showAlert('Authentication error. Please log in again.', 'danger');
-            window.location.href = 'login.html';
+            // It's possible that a global error handler or fetchWithAuth wrapper handles the actual redirect for 401/403.
+            // If this direct check fails, it's a clear indicator the token isn't found under 'auth_token'.
+            window.location.href = 'login.html'; 
             return;
         }
 
         try {
-            const response = await fetch(`/api/admin/users/${userId}/transactions`, {
+            const apiUrl = `/api/admin/users/${userId}/transactions`;
+            console.log(`[Admin Balance Adjustment] Request Details - User ID: ${userId}, Type: ${type}, Amount: ${amount}, Description: "${description}"`);
+            console.log(`[Admin Balance Adjustment] API URL: ${apiUrl}`);
+            console.log(`[Admin Balance Adjustment] Using token for Authorization header (from key 'auth_token'): Bearer ${token ? token.substring(0, 20) + '...' : 'null'}`); // Log a snippet
+
+            const response = await fetch(apiUrl, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -1444,22 +1476,47 @@ function initializeHandlers() {
                 body: JSON.stringify({ type, amount, description })
             });
 
-            const result = await response.json();
+            console.log(`[Admin Balance Adjustment] Raw Server Response Status: ${response.status}`);
+            const responseBodyText = await response.text(); // Get body as text first
+            console.log(`[Admin Balance Adjustment] Raw Server Response Body:`, responseBodyText);
+
+            let result;
+            try {
+                result = JSON.parse(responseBodyText); // Try to parse
+            } catch (e) {
+                console.error("[Admin Balance Adjustment] Failed to parse response body as JSON. Body was:", responseBodyText, "Error:", e);
+                // If parsing fails, and status was not ok, this is likely an HTML error page (e.g. login page)
+                if (!response.ok) {
+                    showAlert(`Server returned an error (status ${response.status}). Check console for raw response.`, 'danger');
+                    if (response.status === 401 || response.status === 403) {
+                         console.warn("[Admin Balance Adjustment] Server returned 401/403, which usually triggers a redirect to login by auth logic.");
+                         // The redirect might be handled by a global fetch wrapper or error handler.
+                         // If not, and we are here, the page hasn't redirected yet.
+                    }
+                    return; // Stop further processing
+                }
+                // If parsing failed but response.ok was true (unlikely for this API), treat as error
+                result = { success: false, message: "Failed to parse server response. See raw body log." };
+            }
 
             if (response.ok && result.success) {
                 showAlert(`Balance adjusted successfully for user ${userId}. New balance: ${result.newBalance || 'N/A'}.`, 'success');
-                // Clear input fields
                 $('#manual-transaction-amount').val('');
                 $('#manual-transaction-description').val('');
-                // Refresh user list to show updated balance
                 loadUsers(); 
-                // Optionally, re-select the current user if needed or close/reset the manage section
-                // For now, just clear and refresh
             } else {
-                showAlert(result.message || 'Failed to adjust balance.', 'danger');
+                console.error(`[Admin Balance Adjustment] API call failed or returned success:false. Status: ${response.status}, Parsed Result:`, result);
+                showAlert(result.message || `Failed to adjust balance. Server status: ${response.status}`, 'danger');
+                if (response.status === 401 || response.status === 403) {
+                    // If we reach here and it's a 401/403, and no redirect has happened yet,
+                    // it means there isn't a global handler aggressively redirecting for this specific fetch.
+                    // However, the user experience is still a failed operation.
+                    console.warn("[Admin Balance Adjustment] Explicit redirect to login.html due to 401/403 might be needed here if not handled globally.");
+                    // window.location.href = 'login.html'; // Consider if this is the right place for a redirect
+                }
             }
         } catch (error) {
-            console.error('Error adjusting balance:', error);
+            console.error('[Admin Balance Adjustment] Error during fetch operation or subsequent processing:', error);
             showAlert('An error occurred while adjusting balance. Check console for details.', 'danger');
         }
     });
@@ -1757,3 +1814,485 @@ document.addEventListener('DOMContentLoaded', () => {
     loadSection(defaultSection);
 >>>>>>> main
 });
+
+// ============ NOTIFICATION MANAGEMENT FUNCTIONS ============
+
+// Global notification data cache
+let notificationCategories = [];
+
+// === NOTIFICATION CATEGORIES MANAGEMENT ===
+
+// Load and display notification categories
+async function loadNotificationCategories() {
+    try {
+        const response = await fetchWithAuth('/admin/notification-categories');
+        if (response.success) {
+            notificationCategories = response.categories;
+            renderNotificationCategories();
+            populateCategoryDropdowns();
+        } else {
+            showNotification('Failed to load notification categories', 'error');
+        }
+    } catch (error) {
+        console.error('Error loading notification categories:', error);
+        showNotification('Error loading notification categories', 'error');
+    }
+}
+
+// Render notification categories in the table
+function renderNotificationCategories() {
+    const tbody = document.getElementById('notification-categories-list');
+    if (!tbody) return;
+
+    if (notificationCategories.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center">No categories found</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = notificationCategories.map(category => `
+        <tr>
+            <td>${category.id}</td>
+            <td>
+                <span class="badge rounded-pill" style="background-color: ${category.color}; color: white;">
+                    <i class="${category.icon}"></i> ${category.name}
+                </span>
+            </td>
+            <td><span style="color: ${category.color};">${category.color}</span></td>
+            <td><i class="${category.icon}"></i> ${category.icon}</td>
+            <td>
+                <button class="btn btn-sm btn-outline-primary" onclick="editCategory(${category.id})">
+                    <i class="fas fa-edit"></i> Edit
+                </button>
+                <button class="btn btn-sm btn-outline-danger ms-1" onclick="deleteCategory(${category.id})">
+                    <i class="fas fa-trash"></i> Delete
+                </button>
+            </td>
+        </tr>
+    `).join('');
+}
+
+// Populate category dropdowns in various forms
+function populateCategoryDropdowns() {
+    const dropdowns = [
+        'generalCategory',
+        'individualCategory', 
+        'bulkCategory',
+        'editGeneralCategory'
+    ];
+
+    dropdowns.forEach(dropdownId => {
+        const dropdown = document.getElementById(dropdownId);
+        if (dropdown) {
+            dropdown.innerHTML = notificationCategories.map(category => 
+                `<option value="${category.id}">${category.name}</option>`
+            ).join('');
+        }
+    });
+}
+
+// Show create category modal
+function showCreateCategoryModal() {
+    const modal = new bootstrap.Modal(document.getElementById('createCategoryModal'));
+    // Reset form
+    document.getElementById('createCategoryForm').reset();
+    modal.show();
+}
+
+// Create new notification category
+async function createCategory() {
+    const form = document.getElementById('createCategoryForm');
+    const formData = new FormData(form);
+    
+    const categoryData = {
+        name: formData.get('categoryName') || document.getElementById('categoryName').value,
+        color: formData.get('categoryColor') || document.getElementById('categoryColor').value,
+        icon: formData.get('categoryIcon') || document.getElementById('categoryIcon').value,
+        description: formData.get('categoryDescription') || document.getElementById('categoryDescription').value
+    };
+
+    try {
+        const response = await fetchWithAuth('/admin/notification-categories', {
+            method: 'POST',
+            body: JSON.stringify(categoryData)
+        });
+
+        if (response.success) {
+            showNotification('Notification category created successfully!', 'success');
+            bootstrap.Modal.getInstance(document.getElementById('createCategoryModal')).hide();
+            await loadNotificationCategories();
+        } else {
+            showNotification(response.message || 'Failed to create category', 'error');
+        }
+    } catch (error) {
+        console.error('Error creating category:', error);
+        showNotification('Error creating category', 'error');
+    }
+}
+
+// Edit notification category
+async function editCategory(categoryId) {
+    const category = notificationCategories.find(c => c.id === categoryId);
+    if (!category) {
+        showNotification('Category not found', 'error');
+        return;
+    }
+
+    // Populate edit form (you'd need to create this modal)
+    // For now, we'll use a simple prompt-based edit
+    const newName = prompt('Enter new category name:', category.name);
+    if (newName && newName !== category.name) {
+        try {
+            const response = await fetchWithAuth(`/admin/notification-categories/${categoryId}`, {
+                method: 'PUT',
+                body: JSON.stringify({ name: newName })
+            });
+
+            if (response.success) {
+                showNotification('Category updated successfully!', 'success');
+                await loadNotificationCategories();
+            } else {
+                showNotification(response.message || 'Failed to update category', 'error');
+            }
+        } catch (error) {
+            console.error('Error updating category:', error);
+            showNotification('Error updating category', 'error');
+        }
+    }
+}
+
+// Delete notification category
+async function deleteCategory(categoryId) {
+    if (!confirm('Are you sure you want to delete this category? This action cannot be undone.')) {
+        return;
+    }
+
+    try {
+        const response = await fetchWithAuth(`/admin/notification-categories/${categoryId}`, {
+            method: 'DELETE'
+        });
+
+        if (response.success) {
+            showNotification('Category deleted successfully!', 'success');
+            await loadNotificationCategories();
+        } else {
+            showNotification(response.message || 'Failed to delete category', 'error');
+        }
+    } catch (error) {
+        console.error('Error deleting category:', error);
+        showNotification('Error deleting category', 'error');
+    }
+}
+
+// === GENERAL NOTIFICATIONS MANAGEMENT ===
+
+let generalNotifications = [];
+
+// Load general notifications
+async function loadGeneralNotifications() {
+    try {
+        const response = await fetchWithAuth('/admin/general-notifications');
+        if (response.success) {
+            generalNotifications = response.notifications;
+            renderGeneralNotifications();
+        } else {
+            showNotification('Failed to load general notifications', 'error');
+        }
+    } catch (error) {
+        console.error('Error loading general notifications:', error);
+        showNotification('Error loading general notifications', 'error');
+    }
+}
+
+// Render general notifications table
+function renderGeneralNotifications() {
+    const tbody = document.getElementById('general-notifications-list');
+    if (!tbody) return;
+
+    if (generalNotifications.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center">No general notifications found</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = generalNotifications.map(notification => `
+        <tr>
+            <td>${notification.id}</td>
+            <td class="text-truncate" style="max-width: 200px;" title="${notification.title}">
+                ${notification.title}
+            </td>
+            <td>
+                <span class="badge ${getPriorityBadgeClass(notification.priority)}">
+                    ${getPriorityText(notification.priority)}
+                </span>
+            </td>
+            <td>
+                <span class="badge rounded-pill" style="background-color: ${notification.category_color}; color: white;">
+                    <i class="${notification.category_icon}"></i> ${notification.category_name}
+                </span>
+            </td>
+            <td>
+                <span class="badge ${notification.is_active ? 'bg-success' : 'bg-secondary'}">
+                    ${notification.is_active ? 'Active' : 'Inactive'}
+                </span>
+            </td>
+            <td>${new Date(notification.created_at).toLocaleDateString()}</td>
+            <td>
+                <button class="btn btn-sm btn-outline-primary" onclick="editGeneralNotification(${notification.id})">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-danger ms-1" onclick="deleteGeneralNotification(${notification.id})">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </td>
+        </tr>
+    `).join('');
+}
+
+// Helper functions for notification display
+function getPriorityBadgeClass(priority) {
+    switch (priority) {
+        case 3: return 'bg-danger';
+        case 2: return 'bg-warning';
+        default: return 'bg-secondary';
+    }
+}
+
+function getPriorityText(priority) {
+    switch (priority) {
+        case 3: return 'High';
+        case 2: return 'Medium';
+        default: return 'Normal';
+    }
+}
+
+// Show create general notification modal
+function showCreateGeneralNotificationModal() {
+    const modal = new bootstrap.Modal(document.getElementById('createGeneralNotificationModal'));
+    // Reset form
+    document.getElementById('createGeneralNotificationForm').reset();
+    // Set default values
+    document.getElementById('generalIsActive').checked = true;
+    modal.show();
+}
+
+// Create general notification
+async function createGeneralNotification() {
+    const formData = {
+        category_id: parseInt(document.getElementById('generalCategory').value),
+        title: document.getElementById('generalTitle').value,
+        message: document.getElementById('generalMessage').value,
+        priority: parseInt(document.getElementById('generalPriority').value),
+        image_url: document.getElementById('generalImageUrl').value || null,
+        is_active: document.getElementById('generalIsActive').checked,
+        display_order: parseInt(document.getElementById('generalDisplayOrder')?.value) || 0
+    };
+
+    // Validation
+    if (!formData.title || !formData.message || !formData.category_id) {
+        showNotification('Please fill in all required fields', 'error');
+        return;
+    }
+
+    try {
+        const response = await fetchWithAuth('/admin/general-notifications', {
+            method: 'POST',
+            body: JSON.stringify(formData)
+        });
+
+        if (response.success) {
+            showNotification('General notification created successfully!', 'success');
+            bootstrap.Modal.getInstance(document.getElementById('createGeneralNotificationModal')).hide();
+            await loadGeneralNotifications();
+        } else {
+            showNotification(response.message || 'Failed to create notification', 'error');
+        }
+    } catch (error) {
+        console.error('Error creating general notification:', error);
+        showNotification('Error creating notification', 'error');
+    }
+}
+
+// Edit general notification
+async function editGeneralNotification(notificationId) {
+    const notification = generalNotifications.find(n => n.id === notificationId);
+    if (!notification) {
+        showNotification('Notification not found', 'error');
+        return;
+    }
+
+    // Populate edit form
+    document.getElementById('editGeneralId').value = notification.id;
+    document.getElementById('editGeneralTitle').value = notification.title;
+    document.getElementById('editGeneralMessage').value = notification.message;
+    document.getElementById('editGeneralPriority').value = notification.priority;
+    document.getElementById('editGeneralCategory').value = notification.category_id;
+    document.getElementById('editGeneralImageUrl').value = notification.image_url || '';
+    document.getElementById('editGeneralIsActive').checked = notification.is_active;
+
+    const modal = new bootstrap.Modal(document.getElementById('editGeneralNotificationModal'));
+    modal.show();
+}
+
+// Update general notification
+async function updateGeneralNotification() {
+    const notificationId = document.getElementById('editGeneralId').value;
+    const formData = {
+        category_id: parseInt(document.getElementById('editGeneralCategory').value),
+        title: document.getElementById('editGeneralTitle').value,
+        message: document.getElementById('editGeneralMessage').value,
+        priority: parseInt(document.getElementById('editGeneralPriority').value),
+        image_url: document.getElementById('editGeneralImageUrl').value || null,
+        is_active: document.getElementById('editGeneralIsActive').checked
+    };
+
+    try {
+        const response = await fetchWithAuth(`/admin/general-notifications/${notificationId}`, {
+            method: 'PUT',
+            body: JSON.stringify(formData)
+        });
+
+        if (response.success) {
+            showNotification('General notification updated successfully!', 'success');
+            bootstrap.Modal.getInstance(document.getElementById('editGeneralNotificationModal')).hide();
+            await loadGeneralNotifications();
+        } else {
+            showNotification(response.message || 'Failed to update notification', 'error');
+        }
+    } catch (error) {
+        console.error('Error updating general notification:', error);
+        showNotification('Error updating notification', 'error');
+    }
+}
+
+// Delete general notification
+async function deleteGeneralNotification(notificationId) {
+    if (!confirm('Are you sure you want to delete this general notification?')) {
+        return;
+    }
+
+    try {
+        const response = await fetchWithAuth(`/admin/general-notifications/${notificationId}`, {
+            method: 'DELETE'
+        });
+
+        if (response.success) {
+            showNotification('General notification deleted successfully!', 'success');
+            await loadGeneralNotifications();
+        } else {
+            showNotification(response.message || 'Failed to delete notification', 'error');
+        }
+    } catch (error) {
+        console.error('Error deleting general notification:', error);
+        showNotification('Error deleting notification', 'error');
+    }
+}
+
+// === INDIVIDUAL NOTIFICATIONS ===
+
+// Show send individual notification modal
+function showSendIndividualNotificationModal() {
+    const modal = new bootstrap.Modal(document.getElementById('sendIndividualNotificationModal'));
+    // Reset form
+    document.getElementById('sendIndividualNotificationForm').reset();
+    modal.show();
+}
+
+// Send individual notification
+async function sendIndividualNotification() {
+    const userIdOrUsername = document.getElementById('individualUserId').value;
+    const formData = {
+        user_id: userIdOrUsername, // Backend should handle both ID and username
+        category_id: parseInt(document.getElementById('individualCategory').value),
+        title: document.getElementById('individualTitle').value,
+        message: document.getElementById('individualMessage').value,
+        priority: parseInt(document.getElementById('individualPriority').value),
+        image_url: document.getElementById('individualImageUrl').value || null
+    };
+
+    // Validation
+    if (!formData.user_id || !formData.title || !formData.message || !formData.category_id) {
+        showNotification('Please fill in all required fields', 'error');
+        return;
+    }
+
+    try {
+        const response = await fetchWithAuth('/admin/notifications', {
+            method: 'POST',
+            body: JSON.stringify(formData)
+        });
+
+        if (response.success) {
+            showNotification('Individual notification sent successfully!', 'success');
+            bootstrap.Modal.getInstance(document.getElementById('sendIndividualNotificationModal')).hide();
+        } else {
+            showNotification(response.message || 'Failed to send notification', 'error');
+        }
+    } catch (error) {
+        console.error('Error sending individual notification:', error);
+        showNotification('Error sending notification', 'error');
+    }
+}
+
+// === BULK NOTIFICATIONS ===
+
+// Show send bulk notification modal
+function showSendBulkNotificationModal() {
+    const modal = new bootstrap.Modal(document.getElementById('sendBulkNotificationModal'));
+    // Reset form
+    document.getElementById('sendBulkNotificationForm').reset();
+    modal.show();
+}
+
+// Send bulk notification
+async function sendBulkNotification() {
+    const userIdsInput = document.getElementById('bulkUserIds').value;
+    const userIds = userIdsInput.split(',').map(id => id.trim()).filter(id => id);
+    
+    const formData = {
+        user_ids: userIds,
+        category_id: parseInt(document.getElementById('bulkCategory').value),
+        title: document.getElementById('bulkTitle').value,
+        message: document.getElementById('bulkMessage').value,
+        priority: parseInt(document.getElementById('bulkPriority').value),
+        image_url: document.getElementById('bulkImageUrl').value || null
+    };
+
+    // Validation
+    if (userIds.length === 0 || !formData.title || !formData.message || !formData.category_id) {
+        showNotification('Please fill in all required fields and provide valid user IDs', 'error');
+        return;
+    }
+
+    try {
+        const response = await fetchWithAuth('/admin/notifications/bulk', {
+            method: 'POST',
+            body: JSON.stringify(formData)
+        });
+
+        if (response.success) {
+            showNotification(`Bulk notification sent successfully to ${userIds.length} users!`, 'success');
+            bootstrap.Modal.getInstance(document.getElementById('sendBulkNotificationModal')).hide();
+        } else {
+            showNotification(response.message || 'Failed to send bulk notification', 'error');
+        }
+    } catch (error) {
+        console.error('Error sending bulk notification:', error);
+        showNotification('Error sending bulk notification', 'error');
+    }
+}
+
+// Make notification functions globally available
+window.loadNotificationCategories = loadNotificationCategories;
+window.showCreateCategoryModal = showCreateCategoryModal;
+window.createCategory = createCategory;
+window.editCategory = editCategory;
+window.deleteCategory = deleteCategory;
+window.loadGeneralNotifications = loadGeneralNotifications;
+window.showCreateGeneralNotificationModal = showCreateGeneralNotificationModal;
+window.createGeneralNotification = createGeneralNotification;
+window.editGeneralNotification = editGeneralNotification;
+window.updateGeneralNotification = updateGeneralNotification;
+window.deleteGeneralNotification = deleteGeneralNotification;
+window.showSendIndividualNotificationModal = showSendIndividualNotificationModal;
+window.sendIndividualNotification = sendIndividualNotification;
+window.showSendBulkNotificationModal = showSendBulkNotificationModal;
+window.sendBulkNotification = sendBulkNotification;

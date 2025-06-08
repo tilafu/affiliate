@@ -3,11 +3,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const authData = requireAuth();
     if (!authData) {
         return; // requireAuth will handle redirect
-    }
-
-    // API Endpoints
-    const profileUrl = `${API_BASE_URL}/api/user/profile`;
-    const balancesUrl = `${API_BASE_URL}/api/user/balances`;
+    }    // API Endpoints
+    const profileUrl = `${window.API_BASE_URL}/api/user/profile`;
+    const balancesUrl = `${window.API_BASE_URL}/api/user/balances`;
 
     // DOM Elements
     const usernameElem = document.getElementById('account-username');
@@ -30,9 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const formatBalance = (value) => {
         const amount = parseFloat(value || 0).toFixed(2);
         return `${amount}<small style="font-size:14px"> USDT</small>`;
-    };
-
-    // Helper function to update DOM with error state
+    };    // Helper function to update DOM with error state
     const setErrorState = (message = 'Error loading data') => {
         if (usernameElem) usernameElem.textContent = 'Error';
         if (referralCodeElem) referralCodeElem.textContent = 'Error';
@@ -44,58 +40,93 @@ document.addEventListener('DOMContentLoaded', () => {
         if (typeof showNotification === 'function') {
             showNotification(message, 'error');
         }
-    };
+    };    // Auto-update function to refresh account data
+    const updateAccountData = async () => {
+        try {
+            const [profileResponse, balancesResponse] = await Promise.all([
+                fetch(profileUrl, {
+                    headers: { 'Authorization': `Bearer ${authData.token}` }
+                }),
+                fetch(balancesUrl, {
+                    headers: { 'Authorization': `Bearer ${authData.token}` }
+                })
+            ]);
 
-    // Fetch both profile and balances data
-    Promise.all([
-        fetch(profileUrl, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        }).then(res => {
-            if (!res.ok) throw new Error(`Profile fetch failed: ${res.status}`);
-            return res.json();
-        }),
-        fetch(balancesUrl, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        }).then(res => {
-            if (!res.ok) throw new Error(`Balances fetch failed: ${res.status}`);
-            return res.json();
-        })
-    ])
-    .then(([profileData, balancesData]) => {
-        console.log("Profile Data:", profileData);
-        console.log("Balances Data:", balancesData);
-
-        // Update Profile Info
-        if (profileData.success && profileData.user) {
-            const user = profileData.user;
-            if (usernameElem) usernameElem.textContent = user.username || 'N/A';
-            if (referralCodeElem) referralCodeElem.textContent = user.referral_code || 'N/A';
-
-            // Update Tier Image
-            if (tierImageElem) {
-                const tier = user.tier ? user.tier.toLowerCase() : 'default';
-                const imagePath = tierImagePaths[tier] || tierImagePaths.default;
-                tierImageElem.style.backgroundImage = `url(${imagePath})`;
-                console.log(`Set tier image for ${tier} to ${imagePath}`);
+            if (!profileResponse.ok || !balancesResponse.ok) {
+                throw new Error('Failed to fetch account data');
             }
-        } else {
-            console.error('Failed to get profile data:', profileData.message);
-            throw new Error(profileData.message || 'Failed to load profile data');
-        }
 
-        // Update Balances
-        if (balancesData.success && balancesData.balances) {
-            const balances = balancesData.balances;
-            if (dailyProfitsElem) dailyProfitsElem.innerHTML = formatBalance(balances.commission_balance);
-            if (totalBalanceElem) totalBalanceElem.innerHTML = formatBalance(balances.main_balance);
-            if (frozenBalanceElem) frozenBalanceElem.innerHTML = formatBalance(balances.frozen_balance);
-        } else {
-            console.error('Failed to get balances data:', balancesData.message);
-            throw new Error(balancesData.message || 'Failed to load balance data');
+            const [profileData, balancesData] = await Promise.all([
+                profileResponse.json(),
+                balancesResponse.json()
+            ]);
+
+            // Update Profile Info
+            if (profileData.success && profileData.user) {
+                const user = profileData.user;
+                if (usernameElem) usernameElem.textContent = user.username || 'N/A';
+                if (referralCodeElem) referralCodeElem.textContent = user.referral_code || 'N/A';
+
+                // Update Tier Image
+                if (tierImageElem) {
+                    const tier = user.tier ? user.tier.toLowerCase() : 'default';
+                    const imagePath = tierImagePaths[tier] || tierImagePaths.default;
+                    tierImageElem.style.backgroundImage = `url(${imagePath})`;
+                }
+            }
+
+            // Update Balances with animation
+            if (balancesData.success && balancesData.balances) {
+                const balances = balancesData.balances;
+                
+                // Add update animation
+                const updateWithAnimation = (element, newValue) => {
+                    if (element) {
+                        element.style.transition = 'opacity 0.3s ease';
+                        element.style.opacity = '0.7';
+                        setTimeout(() => {
+                            element.innerHTML = formatBalance(newValue);
+                            element.style.opacity = '1';
+                        }, 150);
+                    }
+                };
+
+                updateWithAnimation(dailyProfitsElem, balances.commission_balance);
+                updateWithAnimation(totalBalanceElem, balances.main_balance);
+                updateWithAnimation(frozenBalanceElem, balances.frozen_balance);
+            }
+        } catch (error) {
+            console.error('Error updating account data:', error);
+            // Don't show error notifications for background updates unless critical
         }
-    })
-    .catch(error => {
-        console.error('Error fetching account data:', error);
+    };    // Initial load
+    updateAccountData().catch(error => {
+        console.error('Initial account data load failed:', error);
         setErrorState(`Error loading account data: ${error.message}`);
+    });
+
+    // Initialize logout functionality
+    if (typeof attachLogoutHandlers === 'function') {
+        attachLogoutHandlers();
+    }
+
+    // Set up auto-refresh every 30 seconds
+    const refreshInterval = setInterval(updateAccountData, 30000);
+
+    // Clean up interval when page is hidden/unloaded
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+            clearInterval(refreshInterval);
+        } else {
+            // Refresh immediately when page becomes visible again
+            updateAccountData();
+            // Restart the interval
+            setInterval(updateAccountData, 30000);
+        }
+    });
+
+    // Clean up on page unload
+    window.addEventListener('beforeunload', () => {
+        clearInterval(refreshInterval);
     });
 });
