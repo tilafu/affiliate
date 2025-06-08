@@ -173,6 +173,15 @@ function fetchBalance(token) {
     .then(statusData => {
         const isFrozen = statusData.success && statusData.status === 'frozen';
         
+        if (isFrozen) {
+            // Show the frozen account modal
+            const frozenModalElement = document.getElementById('frozenAccountModal');
+            if (frozenModalElement) {
+                const frozenModal = bootstrap.Modal.getOrCreateInstance(frozenModalElement);
+                frozenModal.show();
+            }
+        }
+        
         // Then fetch balances
         return fetch(`${API_BASE_URL}/api/user/balances`, {
             method: 'GET',

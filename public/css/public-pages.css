@@ -1,0 +1,72 @@
+/* Custom styles for public pages */
+body {
+    padding-top: 56px; /* Adjust if your navbar height changes */
+}
+
+.hero-section {
+    background: url('../assets/uploads/cdot/hero.jpeg') no-repeat center center; /* Replace with your hero image */
+    background-size: cover;
+    color: white;
+    padding: 100px 0;
+    text-align: center;
+}
+
+.hero-section .content-box {
+    background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent background for text */
+    padding: 30px;
+    border-radius: 10px;
+    display: inline-block;
+}
+
+/* Full-screen mobile menu */
+@media (max-width: 991.98px) {
+    .navbar-collapse.fullscreen {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(255, 255, 255, 0.95); /* Adjust background color and opacity */
+        z-index: 1050; /* Ensure it's above other content */
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        overflow-y: auto;
+    }
+    .navbar-collapse.fullscreen .navbar-nav {
+        width: 100%;
+        text-align: center;
+    }
+    .navbar-collapse.fullscreen .navbar-nav .nav-item {
+        margin-bottom: 1rem;
+    }
+    .navbar-collapse.fullscreen .btn-close-fullscreen {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        font-size: 2rem;
+        color: #333;
+        background: none;
+        border: none;
+    }
+}
+
+/* Styles for the digital journey link */
+.digital-journey-link {
+    color: inherit; /* Inherit color from parent */
+    transition: color 0.3s ease;
+}
+
+.digital-journey-link:hover {
+    color: #007bff; /* Change to desired hover color, e.g., Bootstrap primary blue */
+    text-decoration: underline;
+}
+
+.digital-journey-link .text-black-50 {
+    transition: color 0.3s ease;
+}
+
+.digital-journey-link:hover .text-black-50 {
+    color: #0056b3 !important; /* Darker shade for the 'Start Your Digital' part on hover */
+}
