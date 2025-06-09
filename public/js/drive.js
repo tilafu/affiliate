@@ -10,6 +10,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const driveContentArea = document.getElementById('drive-content-area'); // Container for product card etc.
     const walletBalanceElement = document.querySelector('.datadrive-balance strong'); // Element displaying balance
     
+    // Frontend state for sequential product processing
+    let currentItemId = null;
+    let currentProductSlotInItem = 0;
+    let totalProductsInItem = 0;
+    let isLastProductInCurrentItem = false;
+    let currentProductData = null; // Stores the full details of the currently displayed single product
+    
     // Debug elements
     const debugSection = document.getElementById('debug-section');
     const debugConsole = document.getElementById('debug-console');
@@ -59,198 +66,226 @@ document.addEventListener('DOMContentLoaded', () => {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json' // Assuming POST requires Content-Type
+                    'Content-Type': 'application/json'
                 },
-                // No body needed for start drive based on backend controller
             });
 
             console.log('Start drive response status:', response.status);
             
-            // Even if there's a 500 error, try to parse response
             let data;
             try {
                 data = await response.json();
                 console.log('Start drive response data:', data);
             } catch (parseError) {
                 console.error('Error parsing response:', parseError);
+                logDebug(`Server error (status ${response.status}). Error parsing response: ${parseError.message}`, 'error');
                 throw new Error(`Server error (status ${response.status}). Please try again later.`);
             }
 
-            // If there's an existing session already managed by admin, the API now returns a 200 status with existing_session = true
             if (response.ok && data.code === 0) {
-                console.log('Drive started or existing session found:', data.message);
+                logDebug(`Drive started or existing session found: ${data.message}. Session ID: ${data.session_id}`, 'info');
                 
-                // Whether new or existing session, hide start button and show drive content
                 startDriveButton.style.display = 'none';
                 driveContentArea.style.display = 'block';
                 
-                // If this is an existing session, we need to check the status
                 if (data.existing_session) {
-                    console.log('Using existing session with ID:', data.session_id);
-                    // Use the drive status API to get the current state
-                    checkDriveStatus(token);
+                    logDebug('Using existing session. Checking drive status...', 'info');
+                    checkDriveStatus(); // Token is available in the outer scope
                 } else {
-                    // New drive started, fetch the first order
-                    fetchNextOrder();
-                }            } else {
-                // Handle errors (e.g., insufficient balance, configuration issues)
-                console.error('Failed to start drive:', data.info || data.message || 'Unknown error');
-                
-                // Check if this is a 409 conflict (existing session)
-                if (response.status === 409) {
-                    console.log('Existing session detected from 409 response, checking drive status...');
-                    
-                    // Hide the start button, show content area, and check status to resume
+                    // New drive started, data should contain the first product
+                    if (data.current_product_details) {
+                        logDebug('New drive started. Rendering first product.', 'info');
+                        updateFrontendState(data);
+                        renderProductCard(data.current_product_details);
+                        updateWalletBalance();
+                    } else {
+                        logDebug('New drive started, but no product details in response. Fetching next order.', 'warn');
+                        fetchNextOrder(); // Fetch the first order/product
+                    }
+                }
+            } else {
+                logDebug(`Failed to start drive: ${data.info || data.message || 'Unknown error'}`, 'error');
+                if (response.status === 409) { // Conflict - existing session
+                    logDebug('Existing session detected (409). Checking drive status...', 'info');
                     startDriveButton.style.display = 'none';
                     driveContentArea.style.display = 'block';
-                    checkDriveStatus(token);
+                    checkDriveStatus();
                 } else {
-                    // Other error, show message and reset button
                     alert('Failed to start drive: ' + (data.info || data.message || 'Unknown error'));
                     startDriveButton.disabled = false;
                     startDriveButton.textContent = 'Start Drive';
                 }
-            }} catch (error) {
-            console.error('Error starting drive:', error);
-            
-            // Create a more detailed error message
-            let errorMsg = error.message;
-            if (error.response && error.response.status) {
-                errorMsg += ` (Status: ${error.response.status})`;
             }
-            
-            // Show error to user and log it
-            alert('Error starting drive: ' + errorMsg);
-            
-            // Add to browser console for debugging
-            console.group('Drive Start Error Details');
-            console.error('Error object:', error);
-            console.error('Stack trace:', error.stack);
-            console.groupEnd();
-            
-            // Re-enable button on error
+        } catch (error) {
+            logDebug(`Error starting drive: ${error.message}`, 'error');
+            console.error('Error starting drive:', error);
+            alert('Error starting drive: ' + error.message);
             startDriveButton.disabled = false;
             startDriveButton.textContent = 'Start Drive';
         }
-    }    // Function to fetch and display the next order/product
+    }
+
+    // Function to update frontend state variables based on API response
+    function updateFrontendState(data) {
+        if (data.current_product_details) {
+            currentProductData = data.current_product_details;
+            currentItemId = data.item_id || data.order_id; // order_id is the item_id from backend
+            currentProductSlotInItem = data.product_slot_in_item;
+            totalProductsInItem = data.total_products_in_item;
+            isLastProductInCurrentItem = data.is_last_product_in_item;
+            logDebug(`State updated: itemID=${currentItemId}, slot=${currentProductSlotInItem}/${totalProductsInItem}, lastInItem=${isLastProductInCurrentItem}`, 'dev');
+        } else if (data.product_details) { // For getOrder response
+            currentProductData = data.product_details;
+            currentItemId = data.item_id || data.order_id;
+            currentProductSlotInItem = data.product_slot_in_item;
+            totalProductsInItem = data.total_products_in_item;
+            isLastProductInCurrentItem = data.is_last_product_in_item;
+            logDebug(`State updated (getOrder): itemID=${currentItemId}, slot=${currentProductSlotInItem}/${totalProductsInItem}, lastInItem=${isLastProductInCurrentItem}`, 'dev');
+        } else {
+            logDebug('No product details in data to update frontend state.', 'warn');
+        }
+    }
+
+    // Function to fetch and display the next order/product
     async function fetchNextOrder() {
-        console.log('Fetching next order...');
-        // TODO: Show loading state in the drive content area
+        logDebug('Fetching next order...', 'info');
+        driveContentArea.innerHTML = '<p>Loading next product...</p>'; // Loading state
         
         try {
             const response = await fetch(`${API_BASE_URL}/api/drive/getorder`, {
-                method: 'POST', // Backend getOrder uses POST
+                method: 'POST', 
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
                 },
-                 // No body needed for getorder based on backend controller
             });
 
             const data = await response.json();
+            logDebug(`Fetch next order response: ${JSON.stringify(data)}`, 'dev');
 
-            if (response.ok && data.success) {
-                if (data.code === 0) { // Success, product received
-                    console.log('Received order:', data);
-                    renderProductCard(data); // Render the product details
-                    updateWalletBalance(); // Update balance after getting order (optional, might update after save too)
+            if (response.ok) {
+                if (data.code === 0 && data.product_details) { // Success, product received
+                    logDebug('Received next product.', 'info');
+                    updateFrontendState(data);
+                    renderProductCard(data.product_details);
+                    updateWalletBalance(); 
                 } else if (data.code === 2) { // Drive complete
-                    console.log('Drive complete:', data.info);
-                    displayDriveComplete(data.info); // Show drive complete message
-                    updateWalletBalance(); // Final balance update
+                    logDebug('Drive complete.', 'info');
+                    displayDriveComplete(data.info || 'All tasks completed!');
+                    updateWalletBalance(); 
                 } else {
-                     // Handle other success codes or unexpected data structure
-                     console.error('Received unexpected success data:', data);
+                     logDebug(`Received unexpected success data from getOrder: ${JSON.stringify(data)}`, 'warn');
                      alert('Received unexpected data while fetching order.');
-                     displayDriveError('Received unexpected data.');
+                     displayDriveError('Received unexpected data from server.');
                 }
             } else {
-                 // Handle errors (e.g., no active session, no suitable products)
-                 console.error('Failed to fetch order:', data.info || data.message || 'Unknown error');
+                 logDebug(`Failed to fetch order: ${data.info || data.message || 'Unknown error'}`, 'error');
                  alert('Failed to fetch order: ' + (data.info || data.message || 'Unknown error'));
-                 displayDriveError(data.info || data.message || 'Unknown error');
+                 displayDriveError(data.info || data.message || 'Failed to fetch next product.');
             }
         } catch (error) {
+            logDebug(`Error fetching order: ${error.message}`, 'error');
             console.error('Error fetching order:', error);
             alert('Error fetching order: ' + error.message);
-            displayDriveError('Error fetching order: ' + error.message);
+            displayDriveError('Error fetching next product: ' + error.message);
         }
     }
 
     // Function to render the product details in a card
-    function renderProductCard(productData) {
-        // TODO: Implement rendering the product details in the HTML structure
-        // This will involve creating/updating elements within driveContentArea
-        console.log('renderProductCard received data:', productData); // More specific log
-        if (productData.order_id === undefined || productData.order_id === null) {
-             console.error("CRITICAL: order_id is missing in productData for renderProductCard!", productData);
-             // Display an error to the user as saving will fail
-             displayDriveError("An internal error occurred (missing order ID). Please try starting a new drive.");
-             return; // Stop rendering if ID is missing
+    function renderProductCard(productDetails) {
+        logDebug(`Rendering product card for: ${productDetails.product_name}`, 'info');
+        if (!productDetails || productDetails.product_id === undefined) {
+             logDebug("CRITICAL: product_id is missing in productDetails for renderProductCard!", 'error');
+             console.error("CRITICAL: product_id is missing in productDetails for renderProductCard!", productDetails);
+             displayDriveError("An internal error occurred (missing product ID). Please try starting a new drive.");
+             return;
         }
-        console.log('order_id is present in productData:', productData.order_id); // Confirm order_id is there
+
+        // Display combo progress if applicable
+        let productNameDisplay = productDetails.product_name || productDetails.product_number;
+        if (totalProductsInItem > 1) {
+            productNameDisplay += ` (${currentProductSlotInItem}/${totalProductsInItem})`;
+        }
 
         driveContentArea.innerHTML = `
-            <div class="card">
-                <div class="card-body">
-                    <h4>${productData.product_name || productData.product_number}</h4>
-                    <img src="${productData.product_image}" alt="${productData.product_name}" style="max-width: 100px; margin: 10px 0;">
-                    <p>Price: ${productData.product_price} USDT</p>
-                    <p>Commission: ${productData.order_commission || productData.total_commission} USDT</p>
-                    <button id="purchase-button" class="btn btn-primary">Purchase</button>
-                </div>
-            </div>
+            <div class="card">\r
+                <div class="card-body">\r
+                    <h4>${productNameDisplay}</h4>\r
+                    <img src="${productDetails.product_image}" alt="${productDetails.product_name}" style="max-width: 100px; margin: 10px 0;">\r
+                    <p>Price: ${productDetails.product_price} USDT</p>\r
+                    <p>Commission: ${productDetails.order_commission} USDT</p>\r
+                    <button id="purchase-button" class="btn btn-primary">Purchase</button>\r
+                </div>\r
+            </div>\r
         `;
-         // Add event listener to the new purchase button
-        document.getElementById('purchase-button').addEventListener('click', () => handlePurchase(productData));
+        document.getElementById('purchase-button').addEventListener('click', () => handlePurchase(productDetails));
     }
 
     // Function to handle the Purchase button click
-    async function handlePurchase(productData) {
-        console.log('Purchase button clicked for product:', productData);
-        // Disable purchase button
+    async function handlePurchase(productDataForPurchase) { // Renamed to avoid conflict with global currentProductData
+        logDebug(`Purchase button clicked for product: ${productDataForPurchase.product_name} (Slot: ${currentProductSlotInItem})`, 'info');
         const purchaseButton = document.getElementById('purchase-button');
-        purchaseButton.disabled = true;
-        purchaseButton.textContent = 'Processing...';        try {
-            const response = await fetch(`${API_BASE_URL}/api/drive/saveorder`, { // Assuming saveOrder for single products
+        if (purchaseButton) {
+            purchaseButton.disabled = true;
+            purchaseButton.textContent = 'Processing...';
+        }
+        
+        try {
+            const payload = {
+                order_id: currentItemId, // This is the user_active_drive_items.id
+                product_id: productDataForPurchase.product_id,
+                item_id: currentItemId, // Explicitly pass item_id as per updated-combo.md
+                product_slot_to_complete: currentProductSlotInItem, // Send the current slot
+                order_amount: productDataForPurchase.product_price,
+                earning_commission: productDataForPurchase.order_commission,
+                // product_number is not explicitly in productDataForPurchase, but backend might not need it if product_id is specific enough
+            };
+            logDebug(`SaveOrder payload: ${JSON.stringify(payload)}`, 'dev');
+
+            const response = await fetch(`${API_BASE_URL}/api/drive/saveorder`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({
-                    order_id: productData.order_id, // Include order_id
-                    product_id: productData.product_id,
-                    order_amount: productData.product_price, // Send price as order_amount
-                    earning_commission: productData.order_commission, // Send commission
-                    product_number: productData.product_number // Send task reference
-                })
+                body: JSON.stringify(payload)
             });
 
             const data = await response.json();
+            logDebug(`SaveOrder response: ${JSON.stringify(data)}`, 'dev');
 
-            if (response.ok && data.code === 0) { // Assuming code 0 is success
-                console.log('Order saved successfully:', data.info);
-                updateWalletBalance(); // Update balance after successful purchase
-                fetchNextOrder(); // Fetch the next order
+            if (response.ok && data.code === 0) {
+                logDebug('Order saved successfully: ' + (data.info || 'Product purchased.'), 'info');
+                updateWalletBalance();
+                
+                if (data.next_action === 'drive_complete') {
+                    logDebug('Drive complete after purchase.', 'info');
+                    displayDriveComplete(data.message_to_user || 'Congratulations! Drive complete!');
+                } else {
+                    // Default action is to fetch the next order/product
+                    logDebug('Fetching next order after purchase.', 'info');
+                    fetchNextOrder();
+                }
             } else if (data.code === 3) { // Insufficient balance/Frozen
-                 console.warn('Insufficient balance/Frozen:', data.info);
-                 displayFrozenState(data.info, data.frozen_amount_needed); // Show frozen message
-                 updateWalletBalance(); // Update balance to show frozen state if applicable
-            }
-            else {
-                console.error('Failed to save order:', data.info || data.message || 'Unknown error');
+                 logDebug(`Insufficient balance/Frozen: ${data.info}`, 'warn');
+                 displayFrozenState(data.info, data.frozen_amount_needed);
+                 updateWalletBalance();
+            } else {
+                logDebug(`Failed to save order: ${data.info || data.message || 'Unknown error'}`, 'error');
                 alert('Failed to save order: ' + (data.info || data.message || 'Unknown error'));
-                 // Re-enable button on failure (unless frozen)
-                 purchaseButton.disabled = false;
-                 purchaseButton.textContent = 'Purchase';
+                 if (purchaseButton) {
+                     purchaseButton.disabled = false;
+                     purchaseButton.textContent = 'Purchase';
+                 }
             }
         } catch (error) {
+            logDebug(`Error saving order: ${error.message}`, 'error');
             console.error('Error saving order:', error);
             alert('Error saving order: ' + error.message);
-             // Re-enable button on error
-            purchaseButton.disabled = false;
-            purchaseButton.textContent = 'Purchase';
+            if (purchaseButton) {
+                purchaseButton.disabled = false;
+                purchaseButton.textContent = 'Purchase';
+            }
         }
     }
 
@@ -359,157 +394,148 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initial balance load and drive status check
     updateWalletBalance();
-    checkDriveStatus(token); // New function call
+    checkDriveStatus(); // Call the primary checkDriveStatus
 });
 
 // Function to check the current drive status and resume if necessary
-async function checkDriveStatus(token) {
-    console.log('checkDriveStatus function called.'); // Log at the start
-    // Clear any pending animation timeouts
-    if (animationTimeout) {
-        clearTimeout(animationTimeout);
-        animationTimeout = null;
-        console.log('Cleared pending animation timeout.');
+async function checkDriveStatus() { // Removed token parameter, use global token
+    logDebug('Checking drive status...', 'info');
+    const localToken = localStorage.getItem('auth_token'); // Use local token variable
+    if (!localToken) {
+        logDebug('checkDriveStatus: No token found, returning.', 'warn');
+        // requireAuth(); // This should have been called earlier
+        return;
     }
 
-    if (!token) {
-        console.log('checkDriveStatus: No token found, returning.');
-        return; // Should be handled by initial check, but good practice
-    }
-    console.log('Checking drive status with token...');
+    // Get references to key elements for showing/hiding
+    const startDriveButton = document.getElementById('start-drive-button');
+    const driveContentArea = document.getElementById('drive-content-area');
+    const driveProgressSection = document.getElementById('drive-progress-section'); // Assuming this is the ID of the "Drive Progress" section
+    const noDriveMessageSection = document.getElementById('no-drive-message-section'); // New section for the message and button
+
+    // Clear any pending animation timeouts (if animationTimeout is defined elsewhere)
+    // if (typeof animationTimeout !== 'undefined' && animationTimeout) {
+    //     clearTimeout(animationTimeout);
+    //     animationTimeout = null;
+    //     logDebug('Cleared pending animation timeout.', 'dev');
+    // }
+
     try {
         const response = await fetch(`${API_BASE_URL}/api/drive/status`, {
             method: 'GET',
             headers: {
-                'Authorization': `Bearer ${token}`
+                'Authorization': `Bearer ${localToken}`
             }
         });
 
         const data = await response.json();
+        logDebug(`Drive status response: ${JSON.stringify(data)}`, 'dev');
 
         if (response.ok && data.code === 0) {
-            console.log('Drive status response received:', data); // Log the full response data
-            console.log('Drive status:', data.status);
-            if (data.status === 'active' && data.current_order) {
-                console.log('checkDriveStatus: Active session with current order found. Resuming drive.');
-                startDriveButton.style.display = 'none';
-                driveContentArea.style.display = 'block';
-                renderProductCard(data.current_order); // Render the current order
+            if (data.status === 'active' && data.current_product_details) {
+                logDebug('Active session with current product found. Resuming drive.', 'info');
+                if(startDriveButton) startDriveButton.style.display = 'none';
+                if(driveContentArea) driveContentArea.style.display = 'block';
+                if(driveProgressSection) driveProgressSection.style.display = 'block'; // Show progress
+                if(noDriveMessageSection) noDriveMessageSection.style.display = 'none'; // Hide no-drive message
+                updateFrontendState(data); // Update state with all details
+                renderProductCard(data.current_product_details);
+                updateWalletBalance();
             } else if (data.status === 'frozen') {
-                 console.log('checkDriveStatus: Frozen session found. Displaying frozen state.');
-                 startDriveButton.style.display = 'none';
-                 driveContentArea.style.display = 'block';
-                 displayFrozenState(data.info || 'Your drive is frozen.', data.frozen_amount_needed); // Display frozen state
-            } else if (data.status === 'complete') {
-                 console.log('checkDriveStatus: Drive complete.');
-                 displayDriveComplete(data.info || 'Your data drive is complete.'); // Display complete message
+                 logDebug('Frozen session found. Displaying frozen state.', 'info');
+                 if(startDriveButton) startDriveButton.style.display = 'none';
+                 if(driveContentArea) driveContentArea.style.display = 'block';
+                 if(driveProgressSection) driveProgressSection.style.display = 'block'; // Show progress
+                 if(noDriveMessageSection) noDriveMessageSection.style.display = 'none'; // Hide no-drive message
+                 displayFrozenState(data.info || 'Your drive is frozen.', data.frozen_amount_needed);
+                 updateWalletBalance();
+            } else if (data.status === 'complete' || data.status === 'pending_reset') { // pending_reset is also a form of completion
+                 logDebug('Drive complete or pending reset.', 'info');
+                 if(driveProgressSection) driveProgressSection.style.display = 'block'; // Show progress (even if complete)
+                 if(noDriveMessageSection) noDriveMessageSection.style.display = 'none'; // Hide no-drive message
+                 displayDriveComplete(data.info || 'Your data drive is complete.');
+                 updateWalletBalance();
             } else if (data.status === 'no_session') {
-                 console.log('checkDriveStatus: No active drive session found.');
-                 startDriveButton.style.display = 'block';
-                 driveContentArea.style.display = 'none'; // Ensure content area is hidden
+                 logDebug('No active drive session found.', 'info');
+                 if(startDriveButton) startDriveButton.style.display = 'block';
+                 if(driveContentArea) driveContentArea.style.display = 'none';
+                 if(driveProgressSection) driveProgressSection.style.display = 'none'; // Hide progress
+                 if(noDriveMessageSection) {
+                    noDriveMessageSection.innerHTML = '<p>No active data drive. Please contact support if you believe this is an error.</p><button id="contact-support-no-drive-btn" class="btn btn-primary">Contact Support</button>';
+                    noDriveMessageSection.style.display = 'block'; // Show no-drive message
+                    const contactBtn = document.getElementById('contact-support-no-drive-btn');
+                    if(contactBtn) {
+                        contactBtn.addEventListener('click', () => {
+                            window.location.href = './support.html';
+                        });
+                    }
+                 }
+                 // Reset frontend state if no session
+                 currentItemId = null;
+                 currentProductSlotInItem = 0;
+                 totalProductsInItem = 0;
+                 isLastProductInCurrentItem = false;
+                 currentProductData = null;
+            } else {
+                 logDebug(`Received unexpected status: ${data.status}. Data: ${JSON.stringify(data)}`, 'warn');
+                 if(startDriveButton) startDriveButton.style.display = 'block';
+                 if(driveContentArea) driveContentArea.style.display = 'none';
+                 if(driveProgressSection) driveProgressSection.style.display = 'none'; // Hide progress
+                 if(noDriveMessageSection) noDriveMessageSection.style.display = 'none'; // Hide no-drive message
             }
-             else {
-                 // Unexpected status
-                 console.warn('checkDriveStatus: Received unexpected status:', data.status, 'with data:', data);
-                 startDriveButton.style.display = 'block';
-                 driveContentArea.style.display = 'none';
-            }        } else {
-            console.error('checkDriveStatus: Failed to check drive status:', data.info || data.message || 'Unknown error', 'Response:', response);
-            
-            // If we got a 500 error but have data, try to recover
-            if (response.status === 500 && data.code === 1) {
-                console.log('Detected a server error. Attempting to recover by fetching an order directly...');
-                
-                // Try fetching the order directly as a fallback
-                try {
-                    startDriveButton.style.display = 'none';
-                    driveContentArea.style.display = 'block';
-                    fetchNextOrder();
-                    return;
-                } catch (fallbackError) {
-                    console.error('Fallback recovery also failed:', fallbackError);
-                }
-            }
-            
-            // Show an error message
-            alert('Error checking drive status: ' + (data.info || data.message || 'Unknown error'));
-            startDriveButton.style.display = 'block'; // Show start button on error
-            driveContentArea.style.display = 'none';
+        } else {
+            logDebug(`Failed to check drive status: ${data.info || data.message || 'Unknown error'}`, 'error');
+            // Don't alert here as it can be annoying on page load if there's a transient issue
+            // console.error('Failed to check drive status:', data);
+            if(startDriveButton) startDriveButton.style.display = 'block'; 
+            if(driveContentArea) driveContentArea.style.display = 'none';
+            if(driveProgressSection) driveProgressSection.style.display = 'none'; // Hide progress
+            if(noDriveMessageSection) noDriveMessageSection.style.display = 'none'; // Hide no-drive message
         }
     } catch (error) {
-        console.error('checkDriveStatus: Error checking drive status:', error);
-        // Optionally display an error message to the user
-         startDriveButton.style.display = 'block'; // Show start button on error
-         driveContentArea.style.display = 'none';
-    }
-}
-
-async function checkDriveStatus() {
-    const token = localStorage.getItem('auth_token');
-    if (!token) return false;
-    
-    try {
-        const response = await fetch(`${API_BASE_URL}/api/drive/status`, {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
-        });
-        const data = await response.json();
-        
-        if (data.code === 0) {
-            if (data.status === 'active' && data.current_order) {
-                // Resume existing drive with current order
-                renderCurrentOrder(data.current_order);
-                updateProgressBar(data.tasks_completed, data.tasks_required);
-                return true;
-            } else if (data.status === 'frozen') {
-                showFrozenDialog(data.frozen_amount_needed);
-                return true;
-            } else if (data.status === 'no_session') {
-                return false;
-            }
-        }
-        return false;
-    } catch (error) {
+        logDebug(`Error checking drive status: ${error.message}`, 'error');
         console.error('Error checking drive status:', error);
-        return false;
+        if(startDriveButton) startDriveButton.style.display = 'block'; 
+        if(driveContentArea) driveContentArea.style.display = 'none';
+        if(driveProgressSection) driveProgressSection.style.display = 'none'; // Hide progress
+        if(noDriveMessageSection) noDriveMessageSection.style.display = 'none'; // Hide no-drive message
     }
 }
 
-// Modify the document ready handler
-$(document).ready(async function() {
-    // Check for existing drive session first
-    const hasActiveSession = await checkDriveStatus();
-    if (!hasActiveSession) {
-        // Only show start drive button if no active session
-        $('#startDriveBtn').show();
+// Remove the duplicate checkDriveStatus and related jQuery logic
+// $(document).ready(async function() { ... });
+// async function startDrive() { ... } // This logic is now in handleStartDrive
+// function showFrozenDialog(amountNeeded) { ... } // This is now displayFrozenState
+
+// Ensure requireAuth is defined or imported if it's from another file.
+// For standalone operation, a placeholder:
+const API_BASE_URL = ''; // Should be set to your API base URL e.g. http://localhost:3000
+let token = localStorage.getItem('auth_token');
+
+function requireAuth() {
+    token = localStorage.getItem('auth_token');
+    if (!token) {
+        console.log('Auth token not found. Redirecting to login.');
+        // window.location.href = '/login.html'; // Or your login page
+        return null;
     }
-    
-    // ... rest of the existing document ready code ...
+    // console.log('Auth token found:', token);
+    return { token: token };
+}
+
+// Initial calls on DOMContentLoaded
+document.addEventListener('DOMContentLoaded', () => {
+    const authData = requireAuth();
+    if (!authData) {
+        // If requireAuth handles redirect, this might not be strictly necessary
+        // but good for clarity if it only returns null on failure.
+        // For now, assume drive.html won't load further without auth.
+        return; 
+    }
+
+    // ... (rest of the DOMContentLoaded setup from the original file, like debug console)
+
+    // Initial balance load and drive status check
+    updateWalletBalance();
+    checkDriveStatus(); // Call the primary checkDriveStatus
 });
-
-// Update the startDrive function
-async function startDrive() {
-    try {
-        // First check if there's an existing session
-        const hasActiveSession = await checkDriveStatus();
-        if (hasActiveSession) {
-            return; // Session already exists and has been restored
-        }
-
-        // ... rest of the existing startDrive code ...
-    } catch (error) {
-        console.error('Error starting drive:', error);
-        showError('Failed to start drive. Please try again.');
-    }
-}
-
-// Add function to show frozen dialog
-function showFrozenDialog(amountNeeded) {
-    const message = `Your drive session is frozen. Please deposit at least ${amountNeeded} USDT to continue.`;
-    // Use your preferred dialog/notification system
-    alert(message); // Replace with your UI component
-    // Optionally redirect to deposit page
-    // window.location.href = '/deposits.html';
-}

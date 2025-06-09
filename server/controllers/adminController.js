@@ -198,6 +198,9 @@ const manualTransaction = async (req, res) => {
   const { userId } = req.params;
   const { type, amount, description = '' } = req.body; // type: 'deposit' or 'withdrawal'
 
+  // Log the received request body
+  logger.info(`[manualTransaction] Received request for user ${userId} with body: ${JSON.stringify(req.body)}`);
+
   // Validate input
   if (!type || (type !== 'deposit' && type !== 'withdrawal')) {
     return res.status(400).json({ message: 'Invalid transaction type. Must be "deposit" or "withdrawal".' });

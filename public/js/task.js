@@ -690,7 +690,15 @@ function renderProductCard(productData) {
 }
 
 async function handlePurchase(token, productData) {
-    console.log('Purchase button clicked for product (now using user_active_drive_item_id):', productData.user_active_drive_item_id);
+    console.log('--- handlePurchase Start ---');
+    console.log('Initial productData.user_active_drive_item_id:', productData ? productData.user_active_drive_item_id : 'productData is null/undefined');
+    console.log('Initial productData.product_id:', productData ? productData.product_id : 'productData is null/undefined');
+    console.log('Initial productData.product_price (for order_amount):', productData ? productData.product_price : 'productData is null/undefined');
+    console.log('Initial productData.product_slot (for product_slot_to_complete):', productData ? productData.product_slot : 'productData is null/undefined');
+    console.log('Initial productData.is_combo_product:', productData ? productData.is_combo_product : 'productData is null/undefined');
+    console.log('Initial productData.combo_product_index:', productData ? productData.combo_product_index : 'productData is null/undefined');
+    console.log('Full initial Product Data:', productData);
+
     const purchaseButton = document.getElementById('purchase-button');
     if (purchaseButton) {
         purchaseButton.disabled = true;
@@ -698,11 +706,30 @@ async function handlePurchase(token, productData) {
     }
     if (orderLoadingOverlay) orderLoadingOverlay.style.display = 'flex';
     
-    // Create the request payload - simplified to only user_active_drive_item_id
+    // Determine product_slot_to_complete
+    let determined_slot;
+    if (productData.product_slot !== undefined) {
+        determined_slot = productData.product_slot;
+        console.log('Using productData.product_slot for slot:', determined_slot);
+    } else if (productData.is_combo_product === true && productData.combo_product_index !== undefined) {
+        determined_slot = productData.combo_product_index;
+        console.log('Using productData.combo_product_index for slot (combo product):', determined_slot);
+    } else if (productData.is_combo_product === false) {
+        determined_slot = 0; // Default for non-combo products if product_slot is missing
+        console.log('Defaulting slot to 0 (non-combo product, product_slot missing):', determined_slot);
+    } else {
+        determined_slot = undefined; // Fallback, should trigger backend error if this path is hit
+        console.warn('Could not determine product_slot_to_complete. It will be undefined.');
+    }
+
     const payload = {
-        user_active_drive_item_id: productData.user_active_drive_item_id 
+        user_active_drive_item_id: productData.user_active_drive_item_id,
+        product_id: productData.product_id,
+        order_amount: productData.product_price, 
+        product_slot_to_complete: determined_slot 
     };
-    console.log('Sending payload to saveorder:', payload);
+    console.log('Constructed payload for saveorder:', payload);
+    console.log('--- handlePurchase End of Logging ---');
       try {
         const response = await fetch(`${API_BASE_URL}/api/drive/saveorder`, {
             method: 'POST',
