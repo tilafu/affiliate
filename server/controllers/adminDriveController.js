@@ -482,8 +482,6 @@ const deleteDriveTaskSet = async (req, res) => {
     }
 };
 
-// --- Drive Task Set Product Management ---
-
 // Add a product to a Drive Task Set
 const addProductToTaskSet = async (req, res) => {
     const { task_set_id, product_id, order_in_set, price_override } = req.body;
@@ -494,10 +492,11 @@ const addProductToTaskSet = async (req, res) => {
 
     try {
         // Check if task_set_id exists
-        const taskSetExists = await pool.query('SELECT id, is_combo FROM drive_task_sets WHERE id = $1', [task_set_id]);
-        if (taskSetExists.rows.length === 0) {
+        const taskSetResult = await pool.query('SELECT id, name, is_combo FROM drive_task_sets WHERE id = $1', [task_set_id]);
+        if (taskSetResult.rows.length === 0) {
             return res.status(404).json({ message: 'Drive Task Set not found.' });
         }
+        const taskSet = taskSetResult.rows[0];
 
         // Check if product_id exists in the main products table
         const productExists = await pool.query('SELECT id FROM products WHERE id = $1', [product_id]);
@@ -505,11 +504,12 @@ const addProductToTaskSet = async (req, res) => {
             return res.status(404).json({ message: 'Product not found.' });
         }
         
-        // If the task set is a combo, only one product can be added.
-        if (taskSetExists.rows[0].is_combo) {
-            const existingProductsInCombo = await pool.query('SELECT id FROM drive_task_set_products WHERE task_set_id = $1', [task_set_id]);
-            if (existingProductsInCombo.rows.length > 0) {
-                return res.status(400).json({ message: 'Combo task sets can only have one product entry.' });
+        // If the task set is a combo, check product limit (max 3)
+        if (taskSet.is_combo) {
+            const existingProductsCountResult = await pool.query('SELECT COUNT(*) AS count FROM drive_task_set_products WHERE task_set_id = $1', [task_set_id]);
+            const existingProductCount = parseInt(existingProductsCountResult.rows[0].count, 10);
+            if (existingProductCount >= 3) {
+                return res.status(400).json({ message: `Failed to add product to combo task set: Task set "${taskSet.name || task_set_id}" already has ${existingProductCount} product(s). Cannot add more (max 3 products per task set).` });
             }
         }
 
@@ -1086,8 +1086,8 @@ const assignTierBasedDriveToUser = async (req, res) => {
 
             for (const product of singleProductsResult.rows) {
                 const taskSetName = `Auto Single Task ${orderInDriveCounter}`;                const taskSetResult = await client.query(
-                    'INSERT INTO drive_task_sets (drive_configuration_id, name, order_in_drive, is_combo, created_at) VALUES ($1, $2, $3, FALSE, NOW()) RETURNING id',
-                    [newDriveConfigurationId, taskSetName, orderInDriveCounter]
+                    'INSERT INTO drive_task_sets (drive_configuration_id, name, order_in_drive, is_combo, created_at) VALUES ($1, $2, $3, $4, NOW()) RETURNING id',
+                    [newDriveConfigurationId, taskSetName, orderInDriveCounter, false]
                 );
                 const taskSetId = taskSetResult.rows[0].id;
 
@@ -1132,7 +1132,7 @@ const assignTierBasedDriveToUser = async (req, res) => {
             for (let i = 0; i < num_combo_tasks; i++) {
                 const taskSetName = `Auto Combo Task ${orderInDriveCounter}`;                const taskSetResult = await client.query(
                     'INSERT INTO drive_task_sets (drive_configuration_id, name, order_in_drive, is_combo, created_at) VALUES ($1, $2, $3, TRUE, NOW()) RETURNING id',
-                    [newDriveConfigurationId, taskSetName, orderInDriveCounter]
+                    [newDriveConfigurationId, taskSetName, orderInDriveCounter, false]
                 );
                 const taskSetId = taskSetResult.rows[0].id;
                 logger.debug(`assignTierBasedDriveToUser: Created combo task_set ID ${taskSetId} (${taskSetName}) at order ${orderInDriveCounter}.`);
@@ -1267,7 +1267,7 @@ const assignTierBasedDriveToUser = async (req, res) => {
 
     } catch (error) {
         await client.query('ROLLBACK');
-        logger.error(`assignTierBasedDriveToUser: Error for user ${userId}: ${error.message}`, { stack: error.stack, userId });
+        logger.error(`assignTierBasedDriveToUser: Error for user ${userId} and config ${drive_configuration_id}:`, error);
         res.status(500).json({ message: 'Failed to assign tier-based drive configuration.', error: error.message });
     } finally {
         client.release();
