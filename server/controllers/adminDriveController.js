@@ -1005,9 +1005,11 @@ const assignDriveConfigurationToUser = async (req, res) => {
 
 // --- Tier-Based Drive Assignment ---
 
-// Assign a tier-based drive configuration to a user
+// Assign a tier-based Drive Configuration to a user
 const assignTierBasedDriveToUser = async (req, res) => {
     const { userId } = req.params;
+    let newDriveConfigurationId = null; // Declare here
+
     const client = await pool.connect();
 
     try {
@@ -1052,20 +1054,17 @@ const assignTierBasedDriveToUser = async (req, res) => {
         const { min_price_single, max_price_single, min_price_combo, max_price_combo } = priceRanges[userTierName] || priceRanges['Bronze'];
 
         logger.info(`assignTierBasedDriveToUser: User ${userId} (Tier: ${userTierName}) requires ${num_single_tasks} single tasks and ${num_combo_tasks} combo tasks. Total: ${totalTasksRequired}.`);
-        logger.debug(`assignTierBasedDriveToUser: Price ranges - Single: ${min_price_single}-${max_price_single}, Combo: ${min_price_combo}-${max_price_combo}`);
-
-
-        // 3. Create a new Drive Configuration for this user (or use a naming convention if preferred)
-        const configName = `Auto-Tier ${userTierName} for ${user.username} - ${new Date().toISOString()}`;
-        const configDescription = `Automatically generated tier-based drive configuration for user ${user.username} (ID: ${userId}) based on tier ${userTierName}.`;
-        
-        const driveConfigResult = await client.query(
-            'INSERT INTO drive_configurations (name, description, tasks_required, is_active, created_at, updated_at, is_auto_generated) VALUES ($1, $2, $3, TRUE, NOW(), NOW(), TRUE) RETURNING id',
-            [configName, configDescription, totalTasksRequired]
+        logger.debug(`assignTierBasedDriveToUser: Price ranges - Single: ${min_price_single}-${max_price_single}, Combo: ${min_price_combo}-${max_price_combo}`);        // 3. Create a new Drive Configuration for this tier
+        const newConfigName = `Tier ${userTierName} Auto-Config - User ${userId}`;
+        const newConfigDescription = `Automatically generated drive configuration for User ID ${userId} based on their tier (${userTierName}). Product selection based on tier quantity rules.`;        const newConfigResult = await client.query(
+            `INSERT INTO drive_configurations (name, description, tasks_required, is_active, created_at, updated_at)
+             VALUES ($1, $2, $3, TRUE, NOW(), NOW()) RETURNING id`,
+            [newConfigName, newConfigDescription, totalTasksRequired]
         );
-        const newDriveConfigurationId = driveConfigResult.rows[0].id;
-        logger.info(`assignTierBasedDriveToUser: Created new auto-generated drive_configuration ID: ${newDriveConfigurationId} ('${configName}') with ${totalTasksRequired} tasks required.`);
+        newDriveConfigurationId = newConfigResult.rows[0].id; // Assign here
+        logger.info(`assignTierBasedDriveToUser: Created new tier-based drive_configuration ${newDriveConfigurationId} for user ${userId}, tier ${userTierName}.`);
 
+        // 4. Select products and create task sets based on tier_quantity_configs
         let orderInDriveCounter = 1;
 
         // 4. Select and create Drive Task Sets for single tasks
@@ -1127,12 +1126,11 @@ const assignTierBasedDriveToUser = async (req, res) => {
                 logger.warn(`assignTierBasedDriveToUser: Not enough suitable products found for combo tasks for tier ${userTierName}. Found ${comboProductsResult.rows.length}, needed ${totalComboProductsNeeded}.`);
                 return res.status(400).json({ message: 'Not enough suitable products found to generate combo tasks for this tier.' });
             }
-            logger.debug(`assignTierBasedDriveToUser: Selected ${comboProductsResult.rows.length} products for ${num_combo_tasks} combo tasks.`);
-
-            for (let i = 0; i < num_combo_tasks; i++) {
-                const taskSetName = `Auto Combo Task ${orderInDriveCounter}`;                const taskSetResult = await client.query(
-                    'INSERT INTO drive_task_sets (drive_configuration_id, name, order_in_drive, is_combo, created_at) VALUES ($1, $2, $3, TRUE, NOW()) RETURNING id',
-                    [newDriveConfigurationId, taskSetName, orderInDriveCounter, false]
+            logger.debug(`assignTierBasedDriveToUser: Selected ${comboProductsResult.rows.length} products for ${num_combo_tasks} combo tasks.`);            for (let i = 0; i < num_combo_tasks; i++) {
+                const taskSetName = `Auto Combo Task ${orderInDriveCounter}`;
+                const taskSetResult = await client.query(
+                    'INSERT INTO drive_task_sets (drive_configuration_id, name, order_in_drive, is_combo, created_at) VALUES ($1, $2, $3, $4, NOW()) RETURNING id',
+                    [newDriveConfigurationId, taskSetName, orderInDriveCounter, true]
                 );
                 const taskSetId = taskSetResult.rows[0].id;
                 logger.debug(`assignTierBasedDriveToUser: Created combo task_set ID ${taskSetId} (${taskSetName}) at order ${orderInDriveCounter}.`);
@@ -1246,7 +1244,7 @@ const assignTierBasedDriveToUser = async (req, res) => {
         if (totalTasksRequired > 0 && !firstUserActiveDriveItemId) {
             await client.query('ROLLBACK');
             logger.error(`assignTierBasedDriveToUser: CRITICAL_ERROR - Drive requires ${totalTasksRequired} tasks, but firstUserActiveDriveItemId was NOT set for session ${newDriveSessionId}. Rolling back.`);
-            return res.status(500).json({ message: 'Failed to initialize drive items correctly for auto-generated drive.' });
+            return res.status(500).json({ message: 'Failed to initialize drive items correctly for a drive that requires tasks.' });
         }
 
         if (firstUserActiveDriveItemId) {
@@ -1267,7 +1265,7 @@ const assignTierBasedDriveToUser = async (req, res) => {
 
     } catch (error) {
         await client.query('ROLLBACK');
-        logger.error(`assignTierBasedDriveToUser: Error for user ${userId} and config ${drive_configuration_id}:`, error);
+        logger.error(`assignTierBasedDriveToUser: Error for user ${userId} and config ${newDriveConfigurationId || 'not generated'}:`, error); // Use newDriveConfigurationId here
         res.status(500).json({ message: 'Failed to assign tier-based drive configuration.', error: error.message });
     } finally {
         client.release();
@@ -1421,8 +1419,8 @@ const getUserDriveProgress = async (req, res) => {
 const createBalanceBasedConfiguration = async (req, res) => {
     const { userId, products, totalAmount, configName } = req.body;
 
-    if (!userId || !products || !Array.isArray(products) || products.length === 0 || !totalAmount || !configName) {
-        return res.status(400).json({ message: 'Missing required fields: userId, products (array), totalAmount, configName.' });
+    if (!userId || !products || !Array.isArray(products) || products.length === 0) {
+        return res.status(400).json({ message: 'userId, products array, and other required fields are mandatory.' });
     }
 
     const client = await pool.connect();
