@@ -636,6 +636,13 @@
     </div>
 
     <!-- Background Overlay for Mobile -->
+<<<<<<< HEAD
+    <div class="bg-overlay"></div>    <!-- Scripts -->
+    <script src="./assets/js/jquery.min.js"></script>
+    <script src="./assets/js/bootstrap.bundle.min.js"></script>    <script type="module" src="./js/admin.js"></script>
+    <script type="module" src="./js/admin-drives.js"></script> <!-- Ensure admin-drives.js is loaded as a module if not already -->
+    <script type="module" src="./js/enhanced-combo-creation.js"></script> <!-- Enhanced combo creation functionality -->
+=======
     <div class="bg-overlay"></div>    <!-- Scripts -->    <script src="./assets/js/jquery.min.js"></script>
     <script src="./assets/js/bootstrap.bundle.min.js"></script>    <script src="./js/main.js"></script>
     <script src="./js/auth.js"></script> <!-- Add centralized logout handling -->
@@ -643,6 +650,7 @@
     <script type="module" src="./js/admin.js"></script>
     <script type="module" src="./js/admin-drives.js"></script> <!-- Ensure admin-drives.js is loaded as a module if not already -->
     <script type="module" src="./js/enhanced-combo-creation.js"></script>
+>>>>>>> post
 
     <!-- Modal for User Drive Progress -->
 <div class="modal fade" id="userDriveProgressModal" tabindex="-1" aria-labelledby="userDriveProgressModalLabel" aria-hidden="true">
@@ -656,11 +664,18 @@
         <!-- Content will be populated by JavaScript -->
         <div id="userDriveProgressDetailsPlaceholder">
             <p>Loading progress details...</p>
-        </div>
-        <div id="userDriveProgressDetails" style="display: none;">
+        </div>        <div id="userDriveProgressDetails" style="display: none;">
             <p><strong>User:</strong> <span id="progress-user-info"></span></p>
             <p><strong>Drive Configuration:</strong> <span id="progress-drive-config-name"></span></p>
             <p><strong>Overall Progress:</strong> <span id="progress-summary"></span></p>
+            
+            <!-- Create Combo Action Button -->
+            <div class="mb-3">
+                <button type="button" class="btn btn-primary" id="create-combo-from-progress-btn" style="display: none;">
+                    <i class="fas fa-plus"></i> Create Combo for This User
+                </button>
+            </div>
+            
             <h5>Task Items:</h5>
             <div class="table-responsive">
                 <table class="table table-sm table-bordered table-hover">
@@ -676,11 +691,15 @@
                     </tbody>
                 </table>
             </div>
+<<<<<<< HEAD
+        </div>      </div>      <div class="modal-footer">
+=======
         </div>      </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-primary" id="create-combo-from-progress-btn" style="display: none;">
           <i class="fas fa-plus me-2"></i>Create Combo
         </button>
+>>>>>>> post
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
       </div>
     </div>  </div>
@@ -688,6 +707,46 @@
 
 <!-- Enhanced Combo Creation Modal -->
 <div class="modal fade" id="enhancedComboCreationModal" tabindex="-1" aria-labelledby="enhancedComboCreationModalLabel" aria-hidden="true">
+<<<<<<< HEAD
+  <div class="modal-dialog modal-xl">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="enhancedComboCreationModalLabel">Create Custom Combo for User</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <!-- User Progress Section -->
+        <div class="row mb-4">
+          <div class="col-12">
+            <div class="card bg-light">
+              <div class="card-header">
+                <h6 class="card-title mb-0">
+                  <i class="fas fa-user"></i> User Progress Overview
+                  <button type="button" class="btn btn-sm btn-outline-primary float-end" id="refresh-progress-btn">
+                    <i class="fas fa-sync-alt"></i> Refresh
+                  </button>
+                </h6>
+              </div>
+              <div class="card-body">
+                <div id="user-progress-loading" class="text-center">
+                  <div class="spinner-border spinner-border-sm text-primary"></div>
+                  <span class="ms-2">Loading user progress...</span>
+                </div>
+                <div id="user-progress-content" style="display: none;">
+                  <div class="row">
+                    <div class="col-md-6">
+                      <p><strong>User:</strong> <span id="combo-user-info"></span></p>
+                      <p><strong>Drive Configuration:</strong> <span id="combo-drive-config"></span></p>
+                    </div>
+                    <div class="col-md-6">
+                      <p><strong>Current Task:</strong> <span id="combo-current-task"></span></p>
+                      <p><strong>Progress:</strong> <span id="combo-progress-summary"></span></p>
+                    </div>
+                  </div>
+                  <div class="progress mb-2">
+                    <div id="combo-progress-bar" class="progress-bar bg-info" role="progressbar" style="width: 0%"></div>
+                  </div>
+=======
   <div class="modal-dialog modal-xl modal-dialog-scrollable">
     <div class="modal-content">
       <div class="modal-header bg-primary text-white">
@@ -726,6 +785,7 @@
                   <button class="btn btn-sm btn-outline-secondary" id="refresh-progress-btn">
                     <i class="fas fa-sync-alt me-1"></i>Refresh
                   </button>
+>>>>>>> post
                 </div>
               </div>
             </div>
@@ -739,6 +799,21 @@
             <div class="col-md-6">
               <div class="card">
                 <div class="card-header">
+<<<<<<< HEAD
+                  <h6 class="card-title mb-0"><i class="fas fa-box"></i> Combo Details</h6>
+                </div>
+                <div class="card-body">
+                  <div class="mb-3">
+                    <label for="combo-name" class="form-label">Combo Name *</label>
+                    <input type="text" class="form-control" id="combo-name" required placeholder="e.g., Special Mid-Drive Offer">
+                  </div>
+                  <div class="mb-3">
+                    <label for="combo-description" class="form-label">Description</label>
+                    <textarea class="form-control" id="combo-description" rows="3" placeholder="Brief description of this combo offer"></textarea>
+                  </div>
+                  <div class="mb-3">
+                    <label for="insertion-point" class="form-label">Insert Position *</label>
+=======
                   <h6 class="mb-0"><i class="fas fa-edit me-2"></i>Combo Details</h6>
                 </div>
                 <div class="card-body">
@@ -752,6 +827,7 @@
                   </div>
                   <div class="mb-3">
                     <label for="insertion-point" class="form-label">Insertion Point <span class="text-danger">*</span></label>
+>>>>>>> post
                     <select class="form-select" id="insertion-point" required>
                       <option value="">Select insertion point...</option>
                       <option value="beginning">At the beginning</option>
@@ -761,8 +837,13 @@
                     </select>
                   </div>
                   <div class="mb-3" id="custom-position-group" style="display: none;">
+<<<<<<< HEAD
+                    <label for="custom-position" class="form-label">Custom Position (Order)</label>
+                    <input type="number" class="form-control" id="custom-position" min="1" placeholder="Enter position number">
+=======
                     <label for="custom-position" class="form-label">Custom Position</label>
                     <input type="number" class="form-control" id="custom-position" min="1" placeholder="Position number">
+>>>>>>> post
                   </div>
                 </div>
               </div>
@@ -771,6 +852,33 @@
             <!-- Right Column: Product Selection -->
             <div class="col-md-6">
               <div class="card">
+<<<<<<< HEAD
+                <div class="card-header">
+                  <h6 class="card-title mb-0">
+                    <i class="fas fa-shopping-cart"></i> Product Selection
+                    <span class="badge bg-primary ms-2" id="selected-products-count">0 selected</span>
+                  </h6>
+                </div>
+                <div class="card-body">
+                  <!-- Product Search and Filter -->
+                  <div class="mb-3">
+                    <div class="input-group">
+                      <input type="text" class="form-control" id="product-search" placeholder="Search products...">
+                      <button class="btn btn-outline-secondary" type="button" id="clear-search-btn">
+                        <i class="fas fa-times"></i>
+                      </button>
+                    </div>
+                  </div>
+                  <div class="row mb-3">
+                    <div class="col-6">
+                      <input type="number" class="form-control form-control-sm" id="price-filter-min" placeholder="Min price" step="0.01">
+                    </div>
+                    <div class="col-6">
+                      <input type="number" class="form-control form-control-sm" id="price-filter-max" placeholder="Max price" step="0.01">
+                    </div>
+                  </div>
+                  
+=======
                 <div class="card-header d-flex justify-content-between align-items-center">
                   <h6 class="mb-0"><i class="fas fa-box me-2"></i>Product Selection</h6>
                   <span class="badge bg-secondary" id="selected-products-count">0 selected</span>
@@ -800,11 +908,23 @@
                     </label>
                   </div>
 
+>>>>>>> post
                   <!-- Products List -->
                   <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
                     <table class="table table-sm table-hover">
                       <thead class="table-light sticky-top">
                         <tr>
+<<<<<<< HEAD
+                          <th width="50">
+                            <input type="checkbox" id="select-all-products" class="form-check-input">
+                          </th>
+                          <th>Product</th>
+                          <th>Price</th>
+                        </tr>
+                      </thead>
+                      <tbody id="enhanced-products-list">
+                        <!-- Products will be loaded here -->
+=======
                           <th width="50">Select</th>
                           <th>Product</th>
                           <th width="80">Price</th>
@@ -819,6 +939,7 @@
                             Loading products...
                           </td>
                         </tr>
+>>>>>>> post
                       </tbody>
                     </table>
                   </div>
@@ -827,6 +948,36 @@
             </div>
           </div>
 
+<<<<<<< HEAD
+          <!-- Task Sequence Preview -->
+          <div class="row mt-4">
+            <div class="col-12">
+              <div class="card">
+                <div class="card-header">
+                  <h6 class="card-title mb-0"><i class="fas fa-list-ol"></i> Drive Sequence Preview</h6>
+                </div>
+                <div class="card-body">
+                  <div id="sequence-preview-loading" class="text-center">
+                    <span class="text-muted">Select insertion point to preview sequence...</span>
+                  </div>
+                  <div id="sequence-preview-content" style="display: none;">
+                    <div class="table-responsive">
+                      <table class="table table-sm table-striped">
+                        <thead>
+                          <tr>
+                            <th>Order</th>
+                            <th>Task Set</th>
+                            <th>Type</th>
+                            <th>Status</th>
+                          </tr>
+                        </thead>
+                        <tbody id="sequence-preview-list">
+                          <!-- Sequence preview will be shown here -->
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+=======
           <!-- Sequence Preview -->
           <div class="card mt-4">
             <div class="card-header">
@@ -850,6 +1001,7 @@
                     <tbody id="sequence-preview-list">
                     </tbody>
                   </table>
+>>>>>>> post
                 </div>
               </div>
             </div>
@@ -859,7 +1011,11 @@
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
         <button type="button" class="btn btn-primary" id="create-combo-btn" disabled>
+<<<<<<< HEAD
+          <i class="fas fa-plus"></i> Create Combo
+=======
           <i class="fas fa-magic me-2"></i>Create Combo
+>>>>>>> post
         </button>
       </div>
     </div>  </div>

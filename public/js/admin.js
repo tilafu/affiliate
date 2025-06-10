@@ -59,6 +59,15 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
         console.error('DriveModuleAPI or its initDependencies function is not available. Ensure admin-drives.js is loaded as a module and exports correctly.');
     }
+<<<<<<< HEAD
+    
+    // Initialize Enhanced Combo Creation module dependencies
+    if (window.initEnhancedComboCreationDependencies && typeof window.initEnhancedComboCreationDependencies === 'function') {
+        window.initEnhancedComboCreationDependencies({ fetchWithAuth, showNotification });
+        console.log('Enhanced combo creation dependencies initialized successfully.');
+    } else {
+        console.error('Enhanced combo creation initialization function not available. Ensure enhanced-combo-creation.js is loaded.');
+=======
 
     // Initialize Enhanced Combo Creation dependencies
     if (typeof window.initEnhancedComboCreationDependencies === 'function') {
@@ -66,6 +75,7 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('Enhanced combo creation dependencies initialized');
     } else {
         console.warn('Enhanced combo creation module not available or not properly loaded');
+>>>>>>> post
     }
 
     // Load notification categories on admin panel load

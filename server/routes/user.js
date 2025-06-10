@@ -19,7 +19,10 @@ const {
     getUserNotifications, // Import new function
     markNotificationAsRead, // Import new function
     requestDeposit, // Import new function
-    requestWithdrawal // Import new function
+    requestWithdrawal, // Import new function
+    getDriveProgress, // Import new function
+    getActiveProducts, // Import new function
+    createCombo // Import new function
 } = require('../controllers/userController');
 
 const router = express.Router();
@@ -146,5 +149,20 @@ router.get('/notifications', protect, getUserNotifications);
 // @access  Private
 router.put('/notifications/:id/read', protect, markNotificationAsRead); // Added this line
 
+// --- Drive Progress and Combo Creation ---
+// @route   GET /api/user/drive-progress
+// @desc    Get current user's drive progress
+// @access  Private
+router.get('/drive-progress', protect, getDriveProgress);
+
+// @route   GET /api/user/products/active
+// @desc    Get active products available for combo creation
+// @access  Private
+router.get('/products/active', protect, getActiveProducts);
+
+// @route   POST /api/user/combo/create
+// @desc    Create a combo for current user
+// @access  Private
+router.post('/combo/create', protect, createCombo);
 
 module.exports = router;
