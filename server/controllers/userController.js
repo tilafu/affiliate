@@ -703,6 +703,122 @@ const markNotificationAsRead = async (req, res) => {
     }
 };
 
+/**
+ * @desc    Get user's total deposited amount from accounts.deposit field
+ * @route   GET /api/user/deposits/total
+ * @access  Private (requires token)
+ */
+const getUserTotalDeposits = async (req, res) => {
+    try {
+        const userId = req.user.id;
+
+        // Query to get the deposit field from accounts table
+        const result = await pool.query(
+            'SELECT COALESCE(deposit, 0) AS total_deposits FROM accounts WHERE user_id = $1 AND type = $2',
+            [userId, 'main']
+        );
+
+        const totalDeposits = result.rows.length > 0 ? result.rows[0].total_deposits : 0;
+
+        res.json({ success: true, totalDeposits: parseFloat(totalDeposits) });
+    } catch (error) {
+        logger.error('Error fetching user total deposits:', { userId, error: error.message, stack: error.stack });
+        res.status(500).json({ success: false, message: 'Server error fetching total deposits' });
+    }
+};
+
+/**
+ * @desc    Get current user's drive progress
+ * @route   GET /api/user/drive-progress
+ * @access  Private (requires token)
+ */
+const getDriveProgress = async (req, res) => {
+    try {
+        const userId = req.user.id;
+
+        // Get drive progress data
+        const progressResult = await pool.query(`
+            SELECT 
+                drives_completed,
+                is_working_day,
+                date
+            FROM user_drive_progress 
+            WHERE user_id = $1 
+            ORDER BY date DESC 
+            LIMIT 7
+        `, [userId]);
+
+        // Calculate weekly progress
+        const today = new Date().toISOString().split('T')[0];
+        const weeklyProgress = progressResult.rows.filter(row => row.is_working_day).length;
+        const todayRecord = progressResult.rows.find(row => row.date === today);
+
+        res.json({
+            success: true,
+            today: {
+                drives_completed: todayRecord ? todayRecord.drives_completed : 0,
+                is_working_day: todayRecord ? todayRecord.is_working_day : false
+            },
+            weekly: {
+                progress: weeklyProgress,
+                total: 7
+            },
+            total_working_days: weeklyProgress
+        });
+    } catch (error) {
+        logger.error('Error fetching drive progress:', { userId, error: error.message, stack: error.stack });
+        res.status(500).json({ success: false, message: 'Server error fetching drive progress' });
+    }
+};
+
+/**
+ * @desc    Get active products available for combo creation
+ * @route   GET /api/user/products/active
+ * @access  Private (requires token)
+ */
+const getActiveProducts = async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT id, name, price, image_url, description 
+            FROM products 
+            WHERE is_active = true 
+            ORDER BY name ASC
+        `);
+
+        res.json({ success: true, products: result.rows });
+    } catch (error) {
+        logger.error('Error fetching active products:', { error: error.message, stack: error.stack });
+        res.status(500).json({ success: false, message: 'Server error fetching active products' });
+    }
+};
+
+/**
+ * @desc    Create a combo for current user
+ * @route   POST /api/user/combo/create
+ * @access  Private (requires token)
+ */
+const createCombo = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { name, description, products } = req.body;
+
+        if (!name || !products || !Array.isArray(products) || products.length === 0) {
+            return res.status(400).json({ success: false, message: 'Name and products are required' });
+        }
+
+        // For now, return a placeholder response
+        // This would need to be implemented based on your combo creation requirements
+        res.json({ 
+            success: true, 
+            message: 'Combo creation functionality not yet implemented',
+            combo: { name, description, products }
+        });
+    } catch (error) {
+        logger.error('Error creating combo:', { userId, error: error.message, stack: error.stack });
+        res.status(500).json({ success: false, message: 'Server error creating combo' });
+    }
+};
+
 
 module.exports = {
   getUserDeposits,
@@ -720,6 +836,10 @@ module.exports = {
   createSupportMessage,
   getUserSupportMessages,
   getUserNotifications,
-  markNotificationAsRead
+  markNotificationAsRead,
+  getUserTotalDeposits,
+  getDriveProgress,
+  getActiveProducts,
+  createCombo
   // Other user-related functions
 };

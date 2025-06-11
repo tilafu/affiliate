@@ -42,11 +42,6 @@ router.get('/users/:userId/drive/active-items', authMiddleware.protect, authMidd
 // New route for user drive progress
 router.get('/users/:userId/drive-progress', authMiddleware.protect, authMiddleware.admin, adminDriveController.getUserDriveProgress);
 
-<<<<<<< HEAD
-// New route for adding combo to user's drive sequence
-router.post('/users/:userId/drive/add-combo', authMiddleware.protect, authMiddleware.admin, adminDriveController.addComboToUserDrive);
-
-=======
 // Balance-based Drive Configuration Routes
 router.post('/balance-config/create', authMiddleware.protect, authMiddleware.admin, adminDriveController.createBalanceBasedConfiguration);
 router.get('/balance-config/products/:userId', authMiddleware.protect, authMiddleware.admin, adminDriveController.getBalanceBasedProducts);
@@ -64,5 +59,4 @@ router.post('/users/:userId/drive/add-combo', authMiddleware.protect, authMiddle
 router.get('/tier-configs', authMiddleware.protect, authMiddleware.admin, adminDriveController.getTierQuantityConfigs);
 router.put('/tier-configs', authMiddleware.protect, authMiddleware.admin, adminDriveController.updateTierQuantityConfigs);
 
->>>>>>> post
 module.exports = router;

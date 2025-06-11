@@ -389,9 +389,7 @@ const resetDrive = async (req, res) => {    const { userId } = req.params;
         if (sessionIdsToReset.length === 0) {
             logger.warn(`No drive session found needing reset for user ${userId}.`);
             return res.status(404).json({ success: false, message: 'No drive session found needing reset for this user.' });
-        }
-
-        // Update the status of ALL found sessions to 'completed'
+        }        // Update the status of ALL found sessions to 'completed'
         const newStatus = 'completed';
         await pool.query(
             `UPDATE drive_sessions SET 
@@ -401,8 +399,15 @@ const resetDrive = async (req, res) => {    const { userId } = req.params;
             [newStatus, sessionIdsToReset] // Pass the array of IDs
         );
 
-        logger.info(`Admin ${adminUserId} successfully reset ${sessionIdsToReset.length} drive session(s) for user ${userId}. Session IDs: ${sessionIdsToReset.join(', ')}. Status set to '${newStatus}'.`);
-        res.json({ success: true, message: `Successfully updated status of ${sessionIdsToReset.length} drive session(s) to '${newStatus}'. User can now start a new drive.` });
+        // IMPORTANT: Clear the user's assigned drive configuration so they cannot start a new drive
+        // until an admin explicitly assigns a new configuration
+        await pool.query(
+            'UPDATE users SET assigned_drive_configuration_id = NULL WHERE id = $1',
+            [userId]
+        );
+
+        logger.info(`Admin ${adminUserId} successfully reset ${sessionIdsToReset.length} drive session(s) for user ${userId}. Session IDs: ${sessionIdsToReset.join(', ')}. Status set to '${newStatus}'. Drive configuration assignment cleared.`);
+        res.json({ success: true, message: `Successfully updated status of ${sessionIdsToReset.length} drive session(s) to '${newStatus}'. User's drive configuration cleared - admin must assign new configuration before user can start a new drive.` });
 
     } catch (error) {
         logger.error(`Error resetting drive for user ${userId}:`, { error: error.message, stack: error.stack });

@@ -668,10 +668,25 @@ const saveOrder = async (req, res) => {
         );
         const account = accountResult.rows[0];
         if (!account) { /* ... error handling ... */ await client.query('ROLLBACK'); client.release(); throw new Error('User account not found'); }
-        const currentBalance = parseFloat(account.balance);
-
-        if (currentBalance < subProductPrice) {
+        const currentBalance = parseFloat(account.balance);        if (currentBalance < subProductPrice) {
             const amountNeeded = (subProductPrice - currentBalance).toFixed(2);
+            
+            // Calculate total session commission for frozen state response
+            const totalCommissionResult = await client.query(
+                `SELECT COALESCE(SUM(commission_amount), 0) as total_commission
+                 FROM commission_logs WHERE drive_session_id = $1`,
+                [session.drive_session_id]
+            );
+            const totalSessionCommission = parseFloat(totalCommissionResult.rows[0]?.total_commission || 0);
+            
+            // Calculate task sets completed count
+            const completedTaskSetsResult = await client.query(
+                `SELECT COUNT(*) as count FROM user_active_drive_items
+                 WHERE drive_session_id = $1 AND user_status = 'COMPLETED'`,
+                [session.drive_session_id]
+            );
+            const taskSetsCompletedCount = parseInt(completedTaskSetsResult.rows[0].count, 10);
+            
             await client.query(
                 "UPDATE drive_sessions SET status = 'frozen', frozen_amount_needed = $1 WHERE id = $2",
                 [subProductPrice, session.drive_session_id] // Store the sub-product price as amount needed for this freeze
@@ -682,7 +697,10 @@ const saveOrder = async (req, res) => {
                 code: 3, // Insufficient balance code
                 info: `Insufficient balance. You need ${amountNeeded} USDT more for this product. Drive frozen.`,
                 status: 'frozen',
-                frozen_amount_needed: subProductPrice.toFixed(2) // Amount needed for this specific sub-product
+                frozen_amount_needed: subProductPrice.toFixed(2), // Amount needed for this specific sub-product
+                total_session_commission: totalSessionCommission.toFixed(2),
+                tasks_completed: taskSetsCompletedCount,
+                tasks_required: parseInt(session.total_task_sets_in_drive, 10)
             });
         }
 
@@ -774,9 +792,23 @@ const saveOrder = async (req, res) => {
             // current_user_active_drive_item_id on session remains the same.
             logger.info(`Sub-product slot ${slotIndex} of item ${parsedUserActiveDriveItemId} completed. Item not yet fully complete.`);
         }
-        
-        await driveProgressService.updateDriveCompletion(userId);
+          await driveProgressService.updateDriveCompletion(userId);
 
+        // Calculate total session commission to return to frontend
+        const totalCommissionResult = await client.query(
+            `SELECT COALESCE(SUM(commission_amount), 0) as total_commission
+             FROM commission_logs WHERE drive_session_id = $1`,
+            [session.drive_session_id]
+        );
+        const totalSessionCommission = parseFloat(totalCommissionResult.rows[0]?.total_commission || 0);
+
+        // Calculate task sets completed count
+        const completedTaskSetsResult = await client.query(
+            `SELECT COUNT(*) as count FROM user_active_drive_items
+             WHERE drive_session_id = $1 AND user_status = 'COMPLETED'`,
+            [session.drive_session_id]
+        );
+        const taskSetsCompletedCount = parseInt(completedTaskSetsResult.rows[0].count, 10);
 
         await client.query('COMMIT');
         client.release();
@@ -785,6 +817,9 @@ const saveOrder = async (req, res) => {
             code: 0,
             info: 'Product purchased successfully.',
             new_balance: newBalance.toFixed(2),
+            total_session_commission: totalSessionCommission.toFixed(2),
+            tasks_completed: taskSetsCompletedCount,
+            tasks_required: parseInt(session.total_task_sets_in_drive, 10),
             next_action: ''
         };
 

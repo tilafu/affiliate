@@ -281,13 +281,16 @@ function updateProgressBar(tasksCompleted, totalTasks) {
     if (progressText) {
         const displayCompletedText = displayCompleted === 0 ? 0 : displayCompleted;
         progressText.textContent = `${displayCompletedText} / ${displayTotal} tasks completed`;
-    }
-    
-    // Update tasks count (use 1-based counting for display)
+    }    // Update tasks count (use 1-based counting for display)
     if (tasksProgressElement) {
         const displayCompletedCount = displayCompleted === 0 ? 0 : displayCompleted;
         tasksProgressElement.textContent = `(${displayCompletedCount} / ${displayTotal})`;
     }
+    
+    // Update global variables and save to session storage
+    tasksCompleted = completed;
+    totalTasksRequired = total || 45;
+    saveCurrentSessionData();
     
     console.log(`Progress updated: ${displayCompleted}/${displayTotal} (${percentage.toFixed(1)}%)`);
 }
@@ -647,7 +650,9 @@ function fetchNextOrder(token) {
 function renderProductCard(productData) {
     if (!productCardContainer) return;
     // productData now includes is_combo, product_name, product_image, product_price, order_commission, user_active_drive_item_id
-    // No specific UI change for is_combo for now, but it's available in productData.is_combo
+    // Enhanced to show combo information and task progress
+    
+    console.log('Rendering product card with data:', productData);
     
     // Enhanced fade effect for better UX and refresh indication
     productCardContainer.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
@@ -655,14 +660,45 @@ function renderProductCard(productData) {
     productCardContainer.style.transform = 'scale(0.98)';
     
     setTimeout(() => {
+        // Determine if this is a combo product and show appropriate indicators
+        let comboInfo = '';
+        let productTitle = productData.product_name || 'Product';
+        
+        if (productData.is_combo) {
+            comboInfo = '<span class="badge bg-info text-dark ms-2">Combo Item</span>';
+            
+            // Show combo progress if available
+            if (productData.combo_progress) {
+                comboInfo += `<br><small class="text-muted">Combo Progress: ${productData.combo_progress}</small>`;
+            }
+            
+            // Show which product in combo if available
+            if (productData.product_slot !== undefined && productData.total_products_in_item) {
+                comboInfo += `<br><small class="text-primary">Product ${productData.product_slot + 1} of ${productData.total_products_in_item}</small>`;
+            }
+        }
+        
+        // Show task progress information
+        let taskProgress = '';
+        if (totalTasksRequired > 0) {
+            const currentTaskDisplay = tasksCompleted < totalTasksRequired ? tasksCompleted + 1 : totalTasksRequired;
+            taskProgress = `<div class="mt-2 mb-3">
+                <small class="text-muted">Task Progress: ${tasksCompleted}/${totalTasksRequired} completed</small>
+                <div class="progress mt-1" style="height: 8px;">
+                    <div class="progress-bar bg-success" style="width: ${(tasksCompleted / totalTasksRequired * 100)}%"></div>
+                </div>
+            </div>`;
+        }
+        
         productCardContainer.innerHTML = `
             <div class="card">
                 <div class="card-body text-center">
-                    <h4>${productData.product_name || 'Product'} ${productData.is_combo ? '<span class="badge bg-info text-dark">Combo Item</span>' : ''}</h4>
+                    <h4>${productTitle}${comboInfo}</h4>
                     <img src="${productData.product_image || './assets/uploads/images/ph.png'}" alt="${productData.product_name || 'Product Image'}" style="max-width: 150px; margin: 10px auto; display: block;">
                     <p>Price: <strong>${parseFloat(productData.product_price).toFixed(2)}</strong> USDT</p>
                     <p>Commission for this item: <strong>${parseFloat(productData.order_commission).toFixed(2)}</strong> USDT</p>
-                    <p class="text-muted small">Total drive commission so far: <strong>${totalDriveCommission.toFixed(2)}</strong> USDT</p>
+                    <p class="text-success small">Total drive commission so far: <strong>${totalDriveCommission.toFixed(2)}</strong> USDT</p>
+                    ${taskProgress}
                     <button id="purchase-button" class="btn btn-primary mt-3">Purchase</button>
                 </div>
             </div>
@@ -745,8 +781,7 @@ async function handlePurchase(token, productData) {
             if (typeof showNotification === 'function') {
                 showNotification(data.info || "Order Sent successfully!", 'success');
             } else { alert(data.info || "Order Sent successfully!"); }
-            
-            // Update total commission from backend's total_session_commission
+              // Update total commission from backend's total_session_commission
             if (data.total_session_commission !== undefined) {
                 totalDriveCommission = parseFloat(data.total_session_commission);
                 updateDriveCommission(); // This will update UI and save to localStorage
@@ -760,15 +795,21 @@ async function handlePurchase(token, productData) {
             
             // Comprehensive refresh after successful submission
             await performPostSubmissionRefresh(data);
+            
+            // Force wallet balance refresh after successful purchase
+            refreshWalletBalance();
 
             // Backend now sends next_order or completion status
             if (data.next_order) {
-                currentProductData = data.next_order;
-                  // Add a small delay to ensure commission display updates properly
+                currentProductData = data.next_order;                // Add a small delay to ensure commission display updates properly
                 setTimeout(async () => {
                     // Perform additional refresh to ensure data consistency
                     try {
                         await checkDriveStatus(token);
+                        // Force balance update after successful purchase
+                        refreshWalletBalance();
+                        // Update commission display one more time to ensure consistency
+                        updateDriveCommission();
                     } catch (error) {
                         console.warn('Failed to refresh drive status after purchase:', error);
                     }
@@ -1013,10 +1054,10 @@ function checkDriveStatus(token) {
                 // Fallback to localStorage if backend doesn't send it (should not happen for active/frozen/complete)
                 const sessionData = getCurrentSessionData();
                 if (sessionData && sessionData.totalCommission !== undefined) {
-                    totalDriveCommission = parseFloat(sessionData.totalCommission);
-                } else {
+                    totalDriveCommission = parseFloat(sessionData.totalCommission);                } else {
                     totalDriveCommission = 0; // Default if nothing found
-                }            }
+                }
+            }
             updateDriveCommission(); // Update UI and persist
 
             if (data.status === 'active' && data.current_order) {
@@ -1032,13 +1073,23 @@ function checkDriveStatus(token) {
                     currentProductData = data.current_order;
                 }
                 
+                // Update commission display immediately
+                if (data.total_session_commission !== undefined) {
+                    totalDriveCommission = parseFloat(data.total_session_commission);
+                    updateDriveCommission();
+                }
+                
                 // tasks_completed and tasks_required now refer to Task Sets
                 if (data.tasks_completed !== undefined && data.tasks_required !== undefined) {
                     totalTasksRequired = data.tasks_required;
                     tasksCompleted = data.tasks_completed;
                     updateProgressBar(tasksCompleted, totalTasksRequired);
                 }
-                return true;            } else if (data.status === 'frozen') {
+                  // Ensure wallet balance is up to date
+                refreshWalletBalance();
+                
+                return true;
+            } else if (data.status === 'frozen') {
                 console.log('checkDriveStatus: Frozen session found. Displaying frozen state.');
                 
                 // Extract and set global variables for frozen sessions (missing before)
@@ -1161,50 +1212,75 @@ async function checkDriveStatus(token) {
             console.log('Drive status response:', data);
             
             if (data.code === 0) {
-                // Update global variables with fresh data
-                if (data.session) {
-                    if (data.session.tasks_completed !== undefined) {
-                        tasksCompleted = data.session.tasks_completed;
-                    }
-                    if (data.session.tasks_required !== undefined) {
-                        totalTasksRequired = data.session.tasks_required;
-                    }
-                    if (data.session.total_commission !== undefined) {
-                        totalDriveCommission = parseFloat(data.session.total_commission);
-                    }
-                    
-                    // Update progress
-                    updateProgressBar(tasksCompleted, totalTasksRequired);
+                // Update commission immediately from response
+                if (data.total_session_commission !== undefined) {
+                    totalDriveCommission = parseFloat(data.total_session_commission);
                     updateDriveCommission();
                 }
                 
-                // Update current product if available
-                if (data.current_order) {
+                // Update progress data
+                if (data.tasks_completed !== undefined && data.tasks_required !== undefined) {
+                    tasksCompleted = data.tasks_completed;
+                    totalTasksRequired = data.tasks_required;
+                    updateProgressBar(tasksCompleted, totalTasksRequired);
+                }
+                
+                // Handle different drive states
+                if (data.status === 'active' && data.current_order) {
+                    console.log('Drive is active with current order');
                     currentProductData = data.current_order;
+                    
+                    if (autoStartButton) autoStartButton.style.display = 'none';
                     if (productCardContainer) {
                         productCardContainer.style.display = 'block';
                         renderProductCard(data.current_order);
                     }
-                }            } else if (data.code === 3) {
-                // Handle frozen state
-                if (data.frozen_amount_needed) {
-                    // Extract and set global variables for frozen sessions
-                    if (data.tasks_completed !== undefined) {
-                        tasksCompleted = data.tasks_completed;
-                    }
-                    if (data.tasks_required !== undefined) {
-                        totalTasksRequired = data.tasks_required;
-                    }
-                    if (data.total_commission !== undefined) {
-                        totalDriveCommission = parseFloat(data.total_commission);
-                    }
                     
-                    // Update progress and commission
-                    updateProgressBar(tasksCompleted, totalTasksRequired);
-                    updateDriveCommission();
+                    clearFrozenStateDisplay(); // Remove any frozen state displays
                     
+                } else if (data.status === 'frozen') {
+                    console.log('Drive is frozen');
                     displayFrozenState(data.info || "Session frozen due to insufficient balance.", data.frozen_amount_needed, data);
+                    if (autoStartButton) autoStartButton.style.display = 'none';
+                    
+                } else if (data.status === 'complete') {
+                    console.log('Drive is complete');
+                    displayDriveComplete(data.info || 'Drive completed successfully.');
+                    if (autoStartButton) autoStartButton.style.display = 'none';
+                    
+                } else if (data.status === 'no_session') {
+                    console.log('No active drive session');
+                    if (autoStartButton) autoStartButton.style.display = 'block';
+                    if (productCardContainer) productCardContainer.style.display = 'none';
+                    
+                    // Reset state for no session
+                    clearSessionData();
+                    totalDriveCommission = 0;
+                    updateDriveCommission();
+                    updateProgressBar(0, totalTasksRequired || 45);
                 }
+                
+                // Always update wallet balance for consistency
+                refreshWalletBalance();
+                
+            } else if (data.code === 3) {
+                // Handle frozen state
+                console.log('Drive status indicates frozen state');
+                if (data.tasks_completed !== undefined) {
+                    tasksCompleted = data.tasks_completed;
+                }
+                if (data.tasks_required !== undefined) {
+                    totalTasksRequired = data.tasks_required;
+                }
+                if (data.total_session_commission !== undefined) {
+                    totalDriveCommission = parseFloat(data.total_session_commission);
+                }
+                
+                // Update progress and commission
+                updateProgressBar(tasksCompleted, totalTasksRequired);
+                updateDriveCommission();
+                
+                displayFrozenState(data.info || "Session frozen due to insufficient balance.", data.frozen_amount_needed, data);
             }
         } else {
             console.error('Failed to fetch drive status:', response.status, response.statusText);
