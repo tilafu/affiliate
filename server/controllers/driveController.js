@@ -18,6 +18,54 @@ async function getUserDriveInfo(userId, client = pool) { // Added client paramet
   return { tier, balance };
 }
 
+// Calculate unlimited task sets progress: current product step over total products across all task sets
+async function calculateUnlimitedProgress(driveSessionId, client) {
+  try {
+    // Get all active drive items for this session
+    const itemsResult = await client.query(
+      `SELECT 
+         uadi.id,
+         uadi.user_status,
+         uadi.current_product_slot_processed,
+         uadi.product_id_1,
+         uadi.product_id_2, 
+         uadi.product_id_3,
+         (SELECT COUNT(*) FROM drive_task_set_products dtsp 
+          WHERE dtsp.task_set_id = uadi.drive_task_set_id_override) as products_in_task_set
+       FROM user_active_drive_items uadi
+       WHERE uadi.drive_session_id = $1
+       ORDER BY uadi.order_in_drive ASC`,
+      [driveSessionId]
+    );
+
+    let totalProducts = 0;
+    let currentStep = 0;
+    
+    for (const item of itemsResult.rows) {
+      const productsInThisItem = parseInt(item.products_in_task_set) || 0;
+      totalProducts += productsInThisItem;
+      
+      if (item.user_status === 'COMPLETED') {
+        // All products in this item are completed
+        currentStep += productsInThisItem;
+      } else if (item.user_status === 'CURRENT') {
+        // Add completed products in current item
+        currentStep += parseInt(item.current_product_slot_processed) || 0;
+      }
+      // PENDING items don't contribute to current step
+    }
+    
+    return {
+      currentStep,
+      totalProducts,
+      isComplete: currentStep >= totalProducts && totalProducts > 0
+    };
+  } catch (error) {
+    logger.error(`Error calculating unlimited progress for session ${driveSessionId}:`, error);
+    return { currentStep: 0, totalProducts: 0, isComplete: false };
+  }
+}
+
 async function getAvailableProduct(userId, tier, balance) {
   const query = 'SELECT * FROM products WHERE is_active = true ORDER BY RANDOM() LIMIT 1';
   const productsResult = await pool.query(query);
@@ -178,10 +226,11 @@ const startDrive = async (req, res) => {
             product_image: firstItemData.p1_image_url || './assets/uploads/products/newegg-1.jpg',
             product_price: parseFloat(firstItemData.p1_price).toFixed(2),
             product_description: firstItemData.p1_description
-        };
-
-        const { tier } = await getUserDriveInfo(userId, client);
+        };        const { tier } = await getUserDriveInfo(userId, client);
         const commissionData = await tierCommissionService.calculateCommissionForUser(userId, parseFloat(firstSubProduct.product_price), false); // Commission for the first single product
+
+        // Calculate unlimited task sets progress for the new session
+        const unlimitedProgress = await calculateUnlimitedProgress(newDriveSessionId, client);
 
         await client.query('COMMIT');
         
@@ -189,8 +238,8 @@ const startDrive = async (req, res) => {
             code: 0,
             message: 'Drive started successfully!',
             drive_session_id: newDriveSessionId,
-            tasks_in_configuration: totalTaskSetsInDrive, // Total task_sets in this drive config
-            tasks_completed_in_session: 0, // Overall task_sets completed in session
+            tasks_in_configuration: unlimitedProgress.totalProducts, // Total products across all task sets  
+            tasks_completed_in_session: unlimitedProgress.currentStep, // Current product step completed
             total_session_commission: "0.00",
             current_order: { // Details of the first sub-product to process
                 user_active_drive_item_id: firstItemData.uadi_id, // ID of the parent user_active_drive_item
@@ -239,22 +288,15 @@ const getDriveStatus = async (req, res) => {
              WHERE ds.user_id = $1 AND ds.status IN ('active', 'pending_reset', 'frozen')
              ORDER BY ds.started_at DESC LIMIT 1`,
             [userId]
-        );
-
-        if (sessionResult.rows.length === 0) {
+        );        if (sessionResult.rows.length === 0) {
             client.release();
             return res.json({ code: 0, status: 'no_session' });
         }
         const session = sessionResult.rows[0];
         const driveSessionId = session.drive_session_id;
 
-        // 2. Count completed user_active_drive_items (overall task sets) for this session
-        const completedTaskSetsResult = await client.query(
-            `SELECT COUNT(*) as count FROM user_active_drive_items
-             WHERE drive_session_id = $1 AND user_status = 'COMPLETED'`,
-            [driveSessionId]
-        );
-        const taskSetsCompletedCount = parseInt(completedTaskSetsResult.rows[0].count, 10);
+        // 2. Calculate unlimited task sets progress (current product step / total products)
+        const unlimitedProgress = await calculateUnlimitedProgress(driveSessionId, client);
 
         // 3. Calculate total commission earned in this drive session
         const commissionResult = await client.query(
@@ -264,26 +306,24 @@ const getDriveStatus = async (req, res) => {
         );
         const totalSessionCommission = parseFloat(commissionResult.rows[0]?.total_commission || 0);
 
-        // 4. Handle 'pending_reset' (all task sets completed) status
+        // 4. Handle 'pending_reset' (drive completed) status
         if (session.session_status === 'pending_reset') {
             client.release();
             return res.json({
                 code: 0, status: 'complete',
-                tasks_completed: taskSetsCompletedCount,
-                tasks_required: parseInt(session.total_task_sets_in_drive, 10),
+                tasks_completed: unlimitedProgress.currentStep, // Current product step
+                tasks_required: unlimitedProgress.totalProducts, // Total products across all task sets
                 total_commission: totalSessionCommission.toFixed(2),
                 drive_session_id: driveSessionId,
                 info: 'Drive completed. Pending admin reset.'
             });
-        }
-
-        // 5. Handle 'frozen' status
+        }        // 5. Handle 'frozen' status
         if (session.session_status === 'frozen') {
             client.release();
             return res.json({
                 code: 0, status: 'frozen',
-                tasks_completed: taskSetsCompletedCount,
-                tasks_required: parseInt(session.total_task_sets_in_drive, 10),
+                tasks_completed: unlimitedProgress.currentStep, // Current product step
+                tasks_required: unlimitedProgress.totalProducts, // Total products across all task sets
                 total_commission: totalSessionCommission.toFixed(2),
                 frozen_amount_needed: session.frozen_amount_needed ? parseFloat(session.frozen_amount_needed).toFixed(2) : null,
                 drive_session_id: driveSessionId,
@@ -363,14 +403,12 @@ const getDriveStatus = async (req, res) => {
             const currentSubProductCommission = commissionData.commissionAmount;
             
             const totalProductsInItem = parseInt(itemState.total_products_in_task_set, 10);
-            const currentSubProductIndex = parseInt(itemState.current_product_slot_processed, 10) + 1;
-
-            client.release();
+            const currentSubProductIndex = parseInt(itemState.current_product_slot_processed, 10) + 1;            client.release();
             return res.json({
                 code: 0,
                 status: 'active',
-                tasks_completed: taskSetsCompletedCount, // Overall task sets completed
-                tasks_required: parseInt(session.total_task_sets_in_drive, 10),
+                tasks_completed: unlimitedProgress.currentStep, // Current product step (unlimited design)
+                tasks_required: unlimitedProgress.totalProducts, // Total products across all task sets (unlimited design)
                 total_commission: totalSessionCommission.toFixed(2), // Overall session commission
                 drive_session_id: driveSessionId,
                 current_order: {
@@ -429,26 +467,18 @@ const getOrder = async (req, res) => {
             client.release();
             // Matching original getOrder response for "no session"
             return res.status(404).json({ success: false, code: 1, info: 'No drive session found. Please start a drive.' });
-        }
-        const session = sessionResult.rows[0];
-        const driveSessionId = session.drive_session_id;
+        }        const session = sessionResult.rows[0];
+        const driveSessionId = session.drive_session_id;        // 2. Calculate unlimited task sets progress (current product step / total products)
+        const unlimitedProgress = await calculateUnlimitedProgress(driveSessionId, client);
 
-        // 2. Count completed user_active_drive_items (overall task sets)
-        const completedTaskSetsResult = await client.query(
-            `SELECT COUNT(*) as count FROM user_active_drive_items
-             WHERE drive_session_id = $1 AND user_status = 'COMPLETED'`,
-            [driveSessionId]
-        );
-        const taskSetsCompletedCount = parseInt(completedTaskSetsResult.rows[0].count, 10);
-
-        // 3. Handle 'pending_reset' (all task sets completed) status
+        // 3. Handle 'pending_reset' (drive completed) status
         if (session.session_status === 'pending_reset') {
             client.release();
             return res.json({
                 success: true, code: 2, // Original code for drive complete
                 status: 'complete', 
-                tasks_completed: taskSetsCompletedCount,
-                tasks_required: parseInt(session.total_task_sets_in_drive, 10),
+                tasks_completed: unlimitedProgress.currentStep, // Current product step completed
+                tasks_required: unlimitedProgress.totalProducts, // Total products across all task sets
                 info: 'Congratulations! You have completed all tasks in this drive.'
             });
         }
@@ -537,11 +567,10 @@ const getOrder = async (req, res) => {
             const totalProductsInItem = parseInt(itemState.total_products_in_task_set, 10);
             const currentSubProductIndex = parseInt(itemState.current_product_slot_processed, 10) + 1;
 
-            client.release();
-            return res.json({
+            client.release();            return res.json({
                 success: true, code: 0,
-                tasks_required: parseInt(session.total_task_sets_in_drive, 10), // Total task sets in drive
-                tasks_completed: taskSetsCompletedCount, // Task sets completed
+                tasks_required: unlimitedProgress.totalProducts, // Total products across all task sets (unlimited design)
+                tasks_completed: unlimitedProgress.currentStep, // Current product step completed (unlimited design)
                 // --- Details of the specific sub-product ---
                 order_id: uuidv4(), // Unique ID for this sub-product "order" attempt
                 parent_item_id: itemState.uadi_id, // ID of the user_active_drive_item
@@ -676,16 +705,10 @@ const saveOrder = async (req, res) => {
                 `SELECT COALESCE(SUM(commission_amount), 0) as total_commission
                  FROM commission_logs WHERE drive_session_id = $1`,
                 [session.drive_session_id]
-            );
-            const totalSessionCommission = parseFloat(totalCommissionResult.rows[0]?.total_commission || 0);
+            );            const totalSessionCommission = parseFloat(totalCommissionResult.rows[0]?.total_commission || 0);
             
-            // Calculate task sets completed count
-            const completedTaskSetsResult = await client.query(
-                `SELECT COUNT(*) as count FROM user_active_drive_items
-                 WHERE drive_session_id = $1 AND user_status = 'COMPLETED'`,
-                [session.drive_session_id]
-            );
-            const taskSetsCompletedCount = parseInt(completedTaskSetsResult.rows[0].count, 10);
+            // Calculate unlimited task sets progress for frozen state response
+            const unlimitedProgress = await calculateUnlimitedProgress(session.drive_session_id, client);
             
             await client.query(
                 "UPDATE drive_sessions SET status = 'frozen', frozen_amount_needed = $1 WHERE id = $2",
@@ -699,8 +722,8 @@ const saveOrder = async (req, res) => {
                 status: 'frozen',
                 frozen_amount_needed: subProductPrice.toFixed(2), // Amount needed for this specific sub-product
                 total_session_commission: totalSessionCommission.toFixed(2),
-                tasks_completed: taskSetsCompletedCount,
-                tasks_required: parseInt(session.total_task_sets_in_drive, 10)
+                tasks_completed: unlimitedProgress.currentStep, // Current product step (unlimited design)
+                tasks_required: unlimitedProgress.totalProducts // Total products across all task sets (unlimited design)
             });
         }
 
@@ -799,16 +822,8 @@ const saveOrder = async (req, res) => {
             `SELECT COALESCE(SUM(commission_amount), 0) as total_commission
              FROM commission_logs WHERE drive_session_id = $1`,
             [session.drive_session_id]
-        );
-        const totalSessionCommission = parseFloat(totalCommissionResult.rows[0]?.total_commission || 0);
-
-        // Calculate task sets completed count
-        const completedTaskSetsResult = await client.query(
-            `SELECT COUNT(*) as count FROM user_active_drive_items
-             WHERE drive_session_id = $1 AND user_status = 'COMPLETED'`,
-            [session.drive_session_id]
-        );
-        const taskSetsCompletedCount = parseInt(completedTaskSetsResult.rows[0].count, 10);
+        );        // Calculate unlimited task sets progress to return to frontend
+        const unlimitedProgress = await calculateUnlimitedProgress(session.drive_session_id, client);
 
         await client.query('COMMIT');
         client.release();
@@ -818,8 +833,8 @@ const saveOrder = async (req, res) => {
             info: 'Product purchased successfully.',
             new_balance: newBalance.toFixed(2),
             total_session_commission: totalSessionCommission.toFixed(2),
-            tasks_completed: taskSetsCompletedCount,
-            tasks_required: parseInt(session.total_task_sets_in_drive, 10),
+            tasks_completed: unlimitedProgress.currentStep, // Current product step (unlimited design)
+            tasks_required: unlimitedProgress.totalProducts, // Total products across all task sets (unlimited design)
             next_action: ''
         };
 

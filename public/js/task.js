@@ -1,10 +1,10 @@
 // Ensure API_BASE_URL and showNotification are available (assuming from main.js)
 // If not, define them here or ensure main.js is loaded first.
 
-// --- Global Variables ---
+// --- Global Variables (Unlimited Task Sets Design) ---
 var oid = null; // Will be set by startDrive response if needed (using session ID?) // This seems unused, consider removing.
-let totalTasksRequired = 0; // Variable to store the total number of tasks required (now Task Sets)
-let tasksCompleted = 0; // Track the number of completed tasks (now Task Sets)
+let totalTasksRequired = 0; // Variable to store the total number of products across all task sets (unlimited design)
+let tasksCompleted = 0; // Track the current product step being worked on (unlimited design)
 let totalDriveCommission = 0; // Track total commission earned in this drive
 let isStartingDrive = false; // Flag to prevent unintentional start drive calls
 
@@ -52,9 +52,8 @@ function initializeTaskPage() {
   if (autoStartButton) autoStartButton.style.display = 'none'; // Don't show until we check drive status
   if (productCardContainer) productCardContainer.style.display = 'none';
   if (orderLoadingOverlay) orderLoadingOverlay.style.display = 'none';
-
-  // Initialize progress bars with default values (will be updated by checkDriveStatus)
-  updateProgressBar(0, 45); // Default to 0/45  // Initial balance fetch
+  // Initialize progress bars with default values for unlimited task sets design
+  updateProgressBar(0, 0); // Start with 0/0 for unlimited design// Initial balance fetch
   refreshWalletBalance();
     // Check for existing drive session on page load - this will show the appropriate UI
   checkForExistingDrive(authData.token);
@@ -249,18 +248,20 @@ function refreshWalletBalance() {
     }
 }
 
-// --- Update Progress Bar Function ---
-function updateProgressBar(tasksCompleted, totalTasks) {
+// --- Update Progress Bar Function (Unlimited Task Sets Design) ---
+function updateProgressBar(currentStep, totalProducts) {
     // Get DOM elements
     const progressBar = document.getElementById('drive-progress-bar');
     const progressText = document.getElementById('progress-text');
     const tasksProgressElement = document.getElementById('tasks-count');
     
-    // Ensure we have valid numbers and convert to 1-based counting for display
-    const completed = Math.max(0, parseInt(tasksCompleted) || 0);
-    const total = Math.max(0, parseInt(totalTasks) || 0);
-    const displayCompleted = completed > 0 ? completed : 0; // Keep 0 as 0 for display
-    const displayTotal = total || 45; // Default to 45 if no total provided
+    // Ensure we have valid numbers for the unlimited task sets design
+    // currentStep = current product being worked on (across all task sets)
+    // totalProducts = total products across all current task sets
+    const completed = Math.max(0, parseInt(currentStep) || 0);
+    const total = Math.max(0, parseInt(totalProducts) || 0);
+    const displayCompleted = completed;
+    const displayTotal = total || 0; // Default to 0 for unlimited design
     
     // Calculate percentage for progress bar
     const percentage = total > 0 ? Math.min(100, Math.max(0, (completed / total) * 100)) : 0;
@@ -277,22 +278,31 @@ function updateProgressBar(tasksCompleted, totalTasks) {
         }, 10);
     }
     
-    // Update progress text (use 1-based counting for display)
+    // Update progress text for unlimited task sets design
     if (progressText) {
-        const displayCompletedText = displayCompleted === 0 ? 0 : displayCompleted;
-        progressText.textContent = `${displayCompletedText} / ${displayTotal} tasks completed`;
-    }    // Update tasks count (use 1-based counting for display)
-    if (tasksProgressElement) {
-        const displayCompletedCount = displayCompleted === 0 ? 0 : displayCompleted;
-        tasksProgressElement.textContent = `(${displayCompletedCount} / ${displayTotal})`;
+        if (total === 0) {
+            progressText.textContent = 'Drive starting...';
+        } else {
+            progressText.textContent = `${displayCompleted} / ${displayTotal} products completed`;
+        }
     }
     
-    // Update global variables and save to session storage
-    tasksCompleted = completed;
-    totalTasksRequired = total || 45;
+    // Update tasks count for unlimited design
+    if (tasksProgressElement) {
+        if (total === 0) {
+            tasksProgressElement.textContent = '(initializing...)';
+        } else {
+            tasksProgressElement.textContent = `(${displayCompleted} / ${displayTotal})`;
+        }
+    }
+    
+    // Update global variables for unlimited task sets design
+    // Repurpose these variables to track products instead of task sets
+    tasksCompleted = completed; // Now tracks current product step
+    totalTasksRequired = total; // Now tracks total products across all task sets
     saveCurrentSessionData();
     
-    console.log(`Progress updated: ${displayCompleted}/${displayTotal} (${percentage.toFixed(1)}%)`);
+    console.log(`Unlimited Drive Progress updated: ${displayCompleted}/${displayTotal} products (${percentage.toFixed(1)}%)`);
 }
 
 // --- Update Drive Commission Function ---
@@ -677,13 +687,13 @@ function renderProductCard(productData) {
                 comboInfo += `<br><small class="text-primary">Product ${productData.product_slot + 1} of ${productData.total_products_in_item}</small>`;
             }
         }
-        
-        // Show task progress information
+          // Show drive progress information (unlimited task sets design)
         let taskProgress = '';
         if (totalTasksRequired > 0) {
-            const currentTaskDisplay = tasksCompleted < totalTasksRequired ? tasksCompleted + 1 : totalTasksRequired;
+            // In unlimited design: tasksCompleted = current product step, totalTasksRequired = total products
+            const currentProductStep = tasksCompleted + 1; // Next product to complete
             taskProgress = `<div class="mt-2 mb-3">
-                <small class="text-muted">Task Progress: ${tasksCompleted}/${totalTasksRequired} completed</small>
+                <small class="text-muted">Drive Progress: ${tasksCompleted}/${totalTasksRequired} products completed</small>
                 <div class="progress mt-1" style="height: 8px;">
                     <div class="progress-bar bg-success" style="width: ${(tasksCompleted / totalTasksRequired * 100)}%"></div>
                 </div>
