@@ -490,6 +490,37 @@
         </div>
     </section>
 
+    <!-- Product Catalog Section -->
+    <section class="product-catalog py-5 bg-white">
+        <div class="container">
+            <div class="row mb-4">
+                <div class="col-lg-8 mx-auto text-center">
+                    <h2 class="display-6 fw-bold mb-3">12000+ Product Catalog</h2>
+                    <p class="text-muted">Discover our extensive range of products and success stories from leading brands.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Strategy Call CTA Section -->
+    <section class="strategy-cta">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-lg-6">
+                    <div class="cta-card">
+                        <h2 class="cta-title">Get A Strategy Call</h2>
+                        <p class="lead mb-4">
+                            Ready to transform your business? Schedule a free strategy call with our experts to discuss your goals and create a customized growth plan.
+                        </p>
+                        <button class="cta-btn">
+                            Get Started <i class="fas fa-arrow-right ms-2"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <!-- FAQ Section -->
     <section class="faq-section">
         <div class="container">
@@ -604,5 +635,91 @@
 
     <!-- Bootstrap JavaScript -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // FAQ Toggle Functionality
+        document.querySelectorAll('.faq-question').forEach(question => {
+            question.addEventListener('click', () => {
+                const faqItem = question.closest('.faq-item');
+                const isActive = faqItem.classList.contains('active');
+                
+                // Close all FAQ items
+                document.querySelectorAll('.faq-item').forEach(item => {
+                    item.classList.remove('active');
+                });
+                
+                // Open clicked item if it wasn't active
+                if (!isActive) {
+                    faqItem.classList.add('active');
+                }
+            });
+        });
+
+        // Smooth scrolling for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // Add scroll effect to navbar
+        window.addEventListener('scroll', () => {
+            const navbar = document.querySelector('.navbar');
+            if (window.scrollY > 100) {
+                navbar.classList.add('navbar-scrolled');
+            } else {
+                navbar.classList.remove('navbar-scrolled');
+            }
+        });
+
+        // Fullscreen menu toggle function
+        function toggleFullscreenMenu() {
+            const navbarCollapse = document.getElementById('navbarNav');
+            navbarCollapse.classList.remove('show', 'fullscreen');
+        }
+
+        // Navbar functionality
+        const navbarToggler = document.querySelector('.navbar-toggler');
+        const navbarCollapse = document.getElementById('navbarNav');
+
+        if (navbarToggler) {
+            navbarToggler.addEventListener('click', function() {
+                if (!navbarCollapse.classList.contains('show')) {
+                    navbarCollapse.classList.add('fullscreen');
+                } else {
+                    navbarCollapse.classList.remove('fullscreen');
+                }
+            });
+        }
+
+        // Intersection Observer for animations
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0)';
+                }
+            });
+        }, observerOptions);
+
+        // Observe case study cards
+        document.querySelectorAll('.case-study-card').forEach(card => {
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(20px)';
+            card.style.transition = 'all 0.6s ease';
+            observer.observe(card);
+        });
+    </script>
 </body>
 </html>

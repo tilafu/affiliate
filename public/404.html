@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>404 - Page Not Found | CDOT Database</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Custom CSS for public pages -->
+    <link rel="stylesheet" href="css/public-pages.css">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        /* Custom styles for 404 page */
+        .navbar-brand img {
+            height: 30px;
+            margin-right: 10px;
+        }
+
+        .error-page {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .error-page::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="2" fill="rgba(255,255,255,0.1)"/></svg>') repeat;
+            opacity: 0.3;
+        }
+
+        .error-container {
+            position: relative;
+            z-index: 10;
+            text-align: center;
+            color: white;
+            padding: 40px 0;
+        }
+
+        .error-code {
+            font-size: 12rem;
+            font-weight: 900;
+            line-height: 1;
+            margin-bottom: 30px;
+            background: linear-gradient(45deg, #ff6b6b, #ffd93d, #6bcf7f, #4d9de0, #e15759);
+            background-size: 300% 300%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: gradient-animation 3s ease-in-out infinite;
+            text-shadow: 0 0 30px rgba(255, 255, 255, 0.5);
+        }
+
+        @keyframes gradient-animation {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        .error-title {
+            font-size: 3rem;
+            font-weight: 800;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .error-subtitle {
+            font-size: 1.3rem;
+            margin-bottom: 30px;
+            opacity: 0.9;
+            line-height: 1.6;
+        }
+
+        .error-description {
+            font-size: 1.1rem;
+            margin-bottom: 40px;
+            opacity: 0.8;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            line-height: 1.7;
+        }
+
+        .error-actions {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 50px;
+        }
+
+        .error-btn {
+            padding: 15px 30px;
+            border-radius: 50px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            font-size: 1.1rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .error-btn.primary {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            color: white;
+            border: none;
+        }
+
+        .error-btn.primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 35px rgba(255, 107, 107, 0.4);
+            color: white;
+        }
+
+        .error-btn.secondary {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(10px);
+        }
+
+        .error-btn.secondary:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-3px);
+            color: white;
+        }
+
+        .helpful-links {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            margin-top: 50px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .helpful-links h3 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 30px;
+            color: white;
+        }
+
+        .links-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .link-item {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .link-item:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-5px);
+        }
+
+        .link-item a {
+            color: white;
+            text-decoration: none;
+            display: block;
+        }
+
+        .link-item i {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+            color: #ffd93d;
+        }
+
+        .link-item h5 {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .link-item p {
+            font-size: 0.9rem;
+            opacity: 0.8;
+            margin: 0;
+        }
+
+        .floating-elements {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .floating-element {
+            position: absolute;
+            opacity: 0.1;
+            animation: float 6s ease-in-out infinite;
+        }
+
+        .floating-element:nth-child(1) {
+            top: 20%;
+            left: 10%;
+            animation-delay: 0s;
+        }
+
+        .floating-element:nth-child(2) {
+            top: 60%;
+            right: 15%;
+            animation-delay: 2s;
+        }
+
+        .floating-element:nth-child(3) {
+            bottom: 20%;
+            left: 20%;
+            animation-delay: 4s;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-20px) rotate(180deg); }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .error-code {
+                font-size: 8rem;
+            }
+            
+            .error-title {
+                font-size: 2rem;
+            }
+            
+            .error-subtitle {
+                font-size: 1.1rem;
+            }
+            
+            .error-actions {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .helpful-links {
+                padding: 30px 20px;
+            }
+            
+            .links-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .error-code {
+                font-size: 6rem;
+            }
+            
+            .error-title {
+                font-size: 1.8rem;
+            }
+            
+            .error-container {
+                padding: 20px 0;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-light fixed-top">
+        <div class="container">
+            <a class="navbar-brand" href="home.html">
+                <img src="assets/logo.png" alt="CDOT Database Logo">
+                CDOT Database
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <button type="button" class="btn-close-fullscreen d-lg-none" aria-label="Close" onclick="toggleFullscreenMenu()">&times;</button>
+                <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+                    <li class="nav-item">
+                        <a class="nav-link" href="home.html">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="about.html">About</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="features.html">Features</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="pricing.html">Pricing</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="case-studies.html">Case Studies</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="project.html">Project</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="team.html">Team</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="contact.html">Contact</a>
+                    </li>
+                </ul>
+                <a href="login.html" class="btn btn-primary ms-lg-3">Launch WorkDesk <i class="fas fa-arrow-right"></i></a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 404 Error Page -->
+    <section class="error-page">
+        <!-- Floating Elements -->
+        <div class="floating-elements">
+            <div class="floating-element">
+                <i class="fas fa-database" style="font-size: 4rem; color: white;"></i>
+            </div>
+            <div class="floating-element">
+                <i class="fas fa-chart-line" style="font-size: 3rem; color: white;"></i>
+            </div>
+            <div class="floating-element">
+                <i class="fas fa-cog" style="font-size: 3.5rem; color: white;"></i>
+            </div>
+        </div>
+
+        <div class="container">
+            <div class="error-container">
+                <div class="error-code">404</div>
+                
+                <h1 class="error-title">Oops! Page Not Found</h1>
+                
+                <p class="error-subtitle">
+                    The page you're looking for seems to have wandered off into the digital void.
+                </p>
+                
+                <p class="error-description">
+                    Don't worry, it happens to the best of us! The page might have been moved, deleted, 
+                    or the URL might be incorrect. Let's get you back on track with our helpful navigation options below.
+                </p>
+
+                <div class="error-actions">
+                    <a href="home.html" class="error-btn primary">
+                        <i class="fas fa-home"></i>
+                        Back to Home
+                    </a>
+                    <a href="javascript:history.back()" class="error-btn secondary">
+                        <i class="fas fa-arrow-left"></i>
+                        Go Back
+                    </a>
+                </div>
+
+                <div class="helpful-links">
+                    <h3>Popular Pages</h3>
+                    <div class="links-grid">
+                        <div class="link-item">
+                            <a href="home.html">
+                                <i class="fas fa-home"></i>
+                                <h5>Home</h5>
+                                <p>Return to homepage</p>
+                            </a>
+                        </div>
+                        <div class="link-item">
+                            <a href="about.html">
+                                <i class="fas fa-info-circle"></i>
+                                <h5>About Us</h5>
+                                <p>Learn about CDOT</p>
+                            </a>
+                        </div>
+                        <div class="link-item">
+                            <a href="features.html">
+                                <i class="fas fa-star"></i>
+                                <h5>Features</h5>
+                                <p>Explore our features</p>
+                            </a>
+                        </div>
+                        <div class="link-item">
+                            <a href="pricing.html">
+                                <i class="fas fa-dollar-sign"></i>
+                                <h5>Pricing</h5>
+                                <p>View pricing plans</p>
+                            </a>
+                        </div>
+                        <div class="link-item">
+                            <a href="case-studies.html">
+                                <i class="fas fa-briefcase"></i>
+                                <h5>Case Studies</h5>
+                                <p>Success stories</p>
+                            </a>
+                        </div>
+                        <div class="link-item">
+                            <a href="contact.html">
+                                <i class="fas fa-envelope"></i>
+                                <h5>Contact</h5>
+                                <p>Get in touch</p>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Bootstrap JS Bundle (includes Popper) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // JavaScript for full-screen mobile menu
+        const navbarCollapse = document.getElementById('navbarNav');
+        const navbarToggler = document.querySelector('.navbar-toggler');
+
+        function toggleFullscreenMenu() {
+            navbarCollapse.classList.toggle('fullscreen');
+        }
+
+        // Add event listener to the toggler button
+        if (navbarToggler) {
+            navbarToggler.addEventListener('click', function() {
+                if (!navbarCollapse.classList.contains('show')) {
+                    navbarCollapse.classList.add('fullscreen');
+                } else {
+                    navbarCollapse.classList.remove('fullscreen');
+                }
+            });
+        }
+
+        // Ensure fullscreen class is removed if window is resized to desktop view
+        window.addEventListener('resize', function() {
+            if (window.innerWidth > 991.98 && navbarCollapse.classList.contains('fullscreen')) {
+                navbarCollapse.classList.remove('fullscreen');
+                if (navbarCollapse.classList.contains('show')) {
+                    const bsCollapse = new bootstrap.Collapse(navbarCollapse, {
+                        toggle: false
+                    });
+                    bsCollapse.hide();
+                }
+            }
+        });
+
+        // Add some interactive effects
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add click effect to error code
+            const errorCode = document.querySelector('.error-code');
+            if (errorCode) {
+                errorCode.addEventListener('click', function() {
+                    this.style.transform = 'scale(1.1)';
+                    setTimeout(() => {
+                        this.style.transform = 'scale(1)';
+                    }, 200);
+                });
+            }
+
+            // Add parallax effect to floating elements
+            window.addEventListener('mousemove', function(e) {
+                const floatingElements = document.querySelectorAll('.floating-element');
+                const x = e.clientX / window.innerWidth;
+                const y = e.clientY / window.innerHeight;
+
+                floatingElements.forEach((element, index) => {
+                    const speed = (index + 1) * 0.5;
+                    const xPos = (x - 0.5) * speed * 50;
+                    const yPos = (y - 0.5) * speed * 50;
+                    element.style.transform = `translate(${xPos}px, ${yPos}px)`;
+                });
+            });
+
+            // Add typing effect to error title
+            const title = document.querySelector('.error-title');
+            if (title) {
+                const text = title.textContent;
+                title.textContent = '';
+                let i = 0;
+                
+                const typeWriter = () => {
+                    if (i < text.length) {
+                        title.textContent += text.charAt(i);
+                        i++;
+                        setTimeout(typeWriter, 100);
+                    }
+                };
+                
+                setTimeout(typeWriter, 1000);
+            }
+        });
+
+        // Add search functionality
+        function searchSite() {
+            const query = prompt('What are you looking for?');
+            if (query) {
+                // In a real implementation, this would redirect to a search results page
+                alert(`Searching for: "${query}"\n\nThis would typically redirect to search results or relevant pages.`);
+            }
+        }
+
+        // Add keyboard navigation
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                window.location.href = 'home.html';
+            } else if (e.key === 'Backspace') {
+                history.back();
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project - CDOT Database</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Custom CSS for public pages -->
+    <link rel="stylesheet" href="css/public-pages.css">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        /* Custom styles for project page */
+        .navbar-brand img {
+            height: 30px;
+            margin-right: 10px;
+        }
+
+        .project-hero {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 120px 0 60px;
+            min-height: 600px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .project-hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="2" fill="rgba(255,255,255,0.1)"/></svg>') repeat;
+            opacity: 0.3;
+        }
+
+        .project-details {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            margin-top: -50px;
+            position: relative;
+            z-index: 10;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+        }
+
+        .project-tag {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            color: white;
+            padding: 8px 20px;
+            border-radius: 25px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            display: inline-block;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .project-title {
+            font-size: 3rem;
+            font-weight: 800;
+            margin-bottom: 30px;
+            line-height: 1.2;
+        }
+
+        .project-subtitle {
+            font-size: 1.3rem;
+            opacity: 0.9;
+            margin-bottom: 40px;
+            line-height: 1.6;
+        }
+
+        .project-stats {
+            display: flex;
+            gap: 40px;
+            margin-top: 30px;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: #667eea;
+            display: block;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 5px;
+        }
+
+        .project-image {
+            border-radius: 15px;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .project-image:hover {
+            transform: translateY(-10px);
+        }
+
+        .detail-section {
+            padding: 40px 0;
+        }
+
+        .detail-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 30px;
+            margin-top: 40px;
+        }
+
+        .detail-card {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 15px;
+            border-left: 4px solid #667eea;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .detail-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .detail-icon {
+            font-size: 2.5rem;
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+
+        .detail-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .detail-text {
+            color: #666;
+            line-height: 1.6;
+        }
+
+        @media (max-width: 768px) {
+            .project-title {
+                font-size: 2rem;
+            }
+            
+            .project-subtitle {
+                font-size: 1.1rem;
+            }
+            
+            .project-stats {
+                flex-direction: column;
+                gap: 20px;
+            }
+            
+            .project-details {
+                padding: 25px;
+                margin-top: -30px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-light fixed-top">
+        <div class="container">
+            <a class="navbar-brand" href="home.html">
+                <img src="assets/logo.png" alt="CDOT Database Logo">
+                CDOT Database
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <button type="button" class="btn-close-fullscreen d-lg-none" aria-label="Close" onclick="toggleFullscreenMenu()">&times;</button>
+                <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+                    <li class="nav-item">
+                        <a class="nav-link" href="home.html">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="about.html">About</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="features.html">Features</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="pricing.html">Pricing</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="case-studies.html">Case Studies</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="project.html">Project</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="contact.html">Contact</a>
+                    </li>
+                </ul>
+                <a href="login.html" class="btn btn-primary ms-lg-3">Launch WorkDesk <i class="fas fa-arrow-right"></i></a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Project Hero Section -->
+    <section class="project-hero">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-6 mb-4 mb-lg-0">
+                    <div class="project-tag">
+                        <i class="fas fa-rocket me-2"></i>Product Launch Campaign
+                    </div>
+                    <h1 class="project-title">BeyondBytes Product Launch</h1>
+                    <p class="project-subtitle">
+                        A comprehensive digital marketing campaign that transformed a tech startup's product launch, 
+                        achieving unprecedented market penetration and brand recognition through strategic multi-channel execution.
+                    </p>
+                    <div class="project-stats">
+                        <div class="stat-item">
+                            <span class="stat-number">285%</span>
+                            <span class="stat-label">ROI Increase</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number">50K+</span>
+                            <span class="stat-label">New Customers</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number">12M</span>
+                            <span class="stat-label">Impressions</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-6 text-center">
+                    <img src="https://via.placeholder.com/500x400/667eea/ffffff?text=BeyondBytes+Campaign" 
+                         alt="BeyondBytes Campaign" class="img-fluid project-image">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Project Details Section -->
+    <section class="detail-section">
+        <div class="container">
+            <div class="project-details">
+                <div class="row">
+                    <div class="col-lg-8 mx-auto text-center mb-5">
+                        <h2 class="display-4 fw-bold mb-4">Campaign Overview</h2>
+                        <p class="lead">
+                            BeyondBytes approached us with an ambitious goal: launch their revolutionary AI-powered 
+                            productivity suite to a competitive market and achieve market leadership within six months.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="detail-grid">
+                    <div class="detail-card">
+                        <div class="detail-icon">
+                            <i class="fas fa-bullseye"></i>
+                        </div>
+                        <h3 class="detail-title">Challenge</h3>
+                        <p class="detail-text">
+                            Breaking into the saturated productivity software market with limited brand recognition 
+                            and competing against established giants with massive marketing budgets.
+                        </p>
+                    </div>
+
+                    <div class="detail-card">
+                        <div class="detail-icon">
+                            <i class="fas fa-lightbulb"></i>
+                        </div>
+                        <h3 class="detail-title">Strategy</h3>
+                        <p class="detail-text">
+                            Multi-channel approach combining influencer partnerships, targeted content marketing, 
+                            strategic PR, and data-driven social media campaigns to build authentic brand awareness.
+                        </p>
+                    </div>
+
+                    <div class="detail-card">
+                        <div class="detail-icon">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <h3 class="detail-title">Execution</h3>
+                        <p class="detail-text">
+                            90-day intensive campaign featuring product demos, thought leadership content, 
+                            beta user testimonials, and strategic partnerships with key industry influencers.
+                        </p>
+                    </div>
+
+                    <div class="detail-card">
+                        <div class="detail-icon">
+                            <i class="fas fa-trophy"></i>
+                        </div>
+                        <h3 class="detail-title">Results</h3>
+                        <p class="detail-text">
+                            Exceeded all KPIs: 285% ROI, 50,000+ new customers acquired, and achieved #2 ranking 
+                            in the productivity software category within the target timeframe.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer Section -->
+    <footer class="footer-section bg-dark text-white py-5">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-3 col-md-6 mb-4 mb-lg-0 text-center text-md-start">
+                    <a class="navbar-brand" href="home.html">
+                        <img src="assets/logo.png" alt="CDOT Database Logo" style="height: 40px;">
+                    </a>
+                    <p class="small mt-2">CDOT Database empowers businesses with comprehensive product and affiliate data.</p>
+                </div>
+                <div class="col-lg-3 col-md-6 mb-4 mb-lg-0">
+                    <h5 class="text-uppercase mb-3">Quick Links</h5>
+                    <ul class="list-unstyled">
+                        <li><a href="home.html" class="text-white text-decoration-none">Home</a></li>
+                        <li><a href="about.html" class="text-white text-decoration-none">About</a></li>
+                        <li><a href="features.html" class="text-white text-decoration-none">Features</a></li>
+                        <li><a href="pricing.html" class="text-white text-decoration-none">Pricing</a></li>
+                        <li><a href="case-studies.html" class="text-white text-decoration-none">Case Studies</a></li>
+                    </ul>
+                </div>
+                <div class="col-lg-3 col-md-6 mb-4 mb-md-0">
+                    <h5 class="text-uppercase mb-3">Get In Touch</h5>
+                    <ul class="list-unstyled d-flex justify-content-center justify-content-md-start">
+                        <li class="me-3"><a href="#" class="text-white"><i class="fab fa-facebook-f fa-lg"></i></a></li>
+                        <li class="me-3"><a href="#" class="text-white"><i class="fab fa-twitter fa-lg"></i></a></li>
+                        <li class="me-3"><a href="#" class="text-white"><i class="fab fa-instagram fa-lg"></i></a></li>
+                        <li><a href="#" class="text-white"><i class="fab fa-linkedin-in fa-lg"></i></a></li>
+                    </ul>
+                </div>
+                <div class="col-lg-3 col-md-6">
+                    <h5 class="text-uppercase mb-3">Legal</h5>
+                     <ul class="list-unstyled">
+                        <li><a href="#privacy" class="text-white text-decoration-none">Privacy Policy</a></li>
+                        <li><a href="#terms" class="text-white text-decoration-none">Terms of Service</a></li>
+                    </ul>
+                </div>
+            </div>
+            <hr class="my-4" style="border-color: rgba(255,255,255,0.2);">
+            <div class="row">
+                <div class="col-12 text-center">
+                    <p class="small mb-0">&copy; 2025 CDOT Database. All rights reserved.</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS Bundle (includes Popper) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // JavaScript for full-screen mobile menu
+        const navbarCollapse = document.getElementById('navbarNav');
+        const navbarToggler = document.querySelector('.navbar-toggler');
+
+        function toggleFullscreenMenu() {
+            navbarCollapse.classList.toggle('fullscreen');
+        }
+
+        // Add event listener to the toggler button
+        if (navbarToggler) {
+            navbarToggler.addEventListener('click', function() {
+                if (!navbarCollapse.classList.contains('show')) {
+                    navbarCollapse.classList.add('fullscreen');
+                } else {
+                    navbarCollapse.classList.remove('fullscreen');
+                }
+            });
+        }
+
+        // Ensure fullscreen class is removed if window is resized to desktop view
+        window.addEventListener('resize', function() {
+            if (window.innerWidth > 991.98 && navbarCollapse.classList.contains('fullscreen')) {
+                navbarCollapse.classList.remove('fullscreen');
+                if (navbarCollapse.classList.contains('show')) {
+                    const bsCollapse = new bootstrap.Collapse(navbarCollapse, {
+                        toggle: false
+                    });
+                    bsCollapse.hide();
+                }
+            }
+        });
+
+        // Add smooth scrolling animation for stats
+        window.addEventListener('load', function() {
+            const stats = document.querySelectorAll('.stat-number');
+            
+            const animateStats = () => {
+                stats.forEach(stat => {
+                    const finalValue = stat.textContent;
+                    const numericValue = parseInt(finalValue.replace(/[^\d]/g, ''));
+                    let currentValue = 0;
+                    const increment = numericValue / 100;
+                    
+                    const timer = setInterval(() => {
+                        currentValue += increment;
+                        if (currentValue >= numericValue) {
+                            stat.textContent = finalValue;
+                            clearInterval(timer);
+                        } else {
+                            if (finalValue.includes('%')) {
+                                stat.textContent = Math.floor(currentValue) + '%';
+                            } else if (finalValue.includes('K')) {
+                                stat.textContent = Math.floor(currentValue / 1000) + 'K+';
+                            } else if (finalValue.includes('M')) {
+                                stat.textContent = Math.floor(currentValue / 1000000) + 'M';
+                            } else {
+                                stat.textContent = Math.floor(currentValue);
+                            }
+                        }
+                    }, 20);
+                });
+            };
+
+            // Trigger animation when stats section is visible
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        animateStats();
+                        observer.disconnect();
+                    }
+                });
+            });
+
+            const statsSection = document.querySelector('.project-stats');
+            if (statsSection) {
+                observer.observe(statsSection);
+            }
+        });
+    </script>
+</body>
+</html>
