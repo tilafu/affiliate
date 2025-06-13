@@ -21,7 +21,7 @@ async function getUserDriveInfo(userId, client = pool) { // Added client paramet
 // Calculate unlimited task sets progress: current product step over total products across all task sets
 async function calculateUnlimitedProgress(driveSessionId, client) {
   try {
-    // Get all active drive items for this session
+    // Get all active drive items for this session, excluding combo task sets from progress calculation
     const itemsResult = await client.query(
       `SELECT 
          uadi.id,
@@ -31,17 +31,21 @@ async function calculateUnlimitedProgress(driveSessionId, client) {
          uadi.product_id_2, 
          uadi.product_id_3,
          (SELECT COUNT(*) FROM drive_task_set_products dtsp 
-          WHERE dtsp.task_set_id = uadi.drive_task_set_id_override) as products_in_task_set
+          WHERE dtsp.task_set_id = uadi.drive_task_set_id_override) as products_in_task_set,
+         dts.is_combo
        FROM user_active_drive_items uadi
+       JOIN drive_task_sets dts ON uadi.drive_task_set_id_override = dts.id
        WHERE uadi.drive_session_id = $1
        ORDER BY uadi.order_in_drive ASC`,
       [driveSessionId]
-    );
-
-    let totalProducts = 0;
+    );    let totalProducts = 0;
     let currentStep = 0;
-    
-    for (const item of itemsResult.rows) {
+      for (const item of itemsResult.rows) {
+      // Skip combo task sets from progress calculation (they don't count toward progress bar)
+      if (item.is_combo === true) {
+        continue;
+      }
+      
       const productsInThisItem = parseInt(item.products_in_task_set) || 0;
       totalProducts += productsInThisItem;
       
@@ -197,17 +201,17 @@ const startDrive = async (req, res) => {
         await client.query(
             'UPDATE drive_sessions SET current_user_active_drive_item_id = $1 WHERE id = $2',
             [firstUserActiveDriveItemId, newDriveSessionId]
-        );
-
-        // 6. Prepare response with details of the first sub-product of the first item
+        );        // 6. Prepare response with details of the first sub-product of the first item
         const firstItemDetailsResult = await client.query(
             `SELECT
                uadi.id as uadi_id, uadi.product_id_1, uadi.product_id_2, uadi.product_id_3,
                uadi.drive_task_set_id_override as task_set_id,
                p1.name as p1_name, p1.price as p1_price, p1.image_url as p1_image_url, p1.description as p1_description,
-               (SELECT COUNT(*) FROM drive_task_set_products dtsp WHERE dtsp.task_set_id = uadi.drive_task_set_id_override) as total_products_in_task_set
+               (SELECT COUNT(*) FROM drive_task_set_products dtsp WHERE dtsp.task_set_id = uadi.drive_task_set_id_override) as total_products_in_task_set,
+               dts.is_combo
              FROM user_active_drive_items uadi
              LEFT JOIN products p1 ON uadi.product_id_1 = p1.id
+             LEFT JOIN drive_task_sets dts ON uadi.drive_task_set_id_override = dts.id
              WHERE uadi.id = $1`,
             [firstUserActiveDriveItemId]
         );
@@ -227,7 +231,7 @@ const startDrive = async (req, res) => {
             product_price: parseFloat(firstItemData.p1_price).toFixed(2),
             product_description: firstItemData.p1_description
         };        const { tier } = await getUserDriveInfo(userId, client);
-        const commissionData = await tierCommissionService.calculateCommissionForUser(userId, parseFloat(firstSubProduct.product_price), false); // Commission for the first single product
+        const commissionData = await tierCommissionService.calculateCommissionForUser(userId, parseFloat(firstSubProduct.product_price), firstItemData.is_combo || false); // Use combo rate for combo task sets, default to false
 
         // Calculate unlimited task sets progress for the new session
         const unlimitedProgress = await calculateUnlimitedProgress(newDriveSessionId, client);
@@ -337,14 +341,13 @@ const getDriveStatus = async (req, res) => {
                 client.release();
                 logger.error(`Active session ${driveSessionId} for user ${userId} has no current_user_active_drive_item_id.`);
                 return res.status(500).json({ code: 1, info: 'Active session is in an inconsistent state (no current item).' });
-            }
-
-            // Fetch details for the current_user_active_drive_item and its sub-product state
+            }            // Fetch details for the current_user_active_drive_item and its sub-product state
             const currentItemStateResult = await client.query(
                 `SELECT
                    uadi.id as uadi_id, uadi.product_id_1, uadi.product_id_2, uadi.product_id_3,
                    uadi.current_product_slot_processed, uadi.drive_task_set_id_override as task_set_id,
                    (SELECT COUNT(*) FROM drive_task_set_products dtsp WHERE dtsp.task_set_id = uadi.drive_task_set_id_override) as total_products_in_task_set,
+                   dts.is_combo,
                    CASE 
                        WHEN uadi.current_product_slot_processed = 0 THEN uadi.product_id_1
                        WHEN uadi.current_product_slot_processed = 1 THEN uadi.product_id_2
@@ -373,6 +376,7 @@ const getDriveStatus = async (req, res) => {
                  LEFT JOIN products p1 ON uadi.product_id_1 = p1.id
                  LEFT JOIN products p2 ON uadi.product_id_2 = p2.id
                  LEFT JOIN products p3 ON uadi.product_id_3 = p3.id
+                 LEFT JOIN drive_task_sets dts ON uadi.drive_task_set_id_override = dts.id
                  WHERE uadi.id = $1`,
                 [session.current_user_active_drive_item_id]
             );
@@ -393,13 +397,12 @@ const getDriveStatus = async (req, res) => {
                 // This might mean the drive is complete if this was the last product of the last item.
                 // saveOrder handles advancing. If getOrder is called and there's no sub-product, it's tricky.
                 // Let's assume saveOrder correctly sets 'pending_reset' if all done.
-                // If we are here, it means an active item has no more sub-products, which is an issue.
-                return res.status(500).json({ code: 1, info: 'No further products in the current task, or inconsistent state.' });
+                // If we are here, it means an active item has no more sub-products, which is an issue.                return res.status(500).json({ code: 1, info: 'No further products in the current task, or inconsistent state.' });
             }
             
             const currentSubProductPrice = parseFloat(itemState.next_sub_product_price);
             const { tier } = await getUserDriveInfo(userId, client);
-            const commissionData = await tierCommissionService.calculateCommissionForUser(userId, currentSubProductPrice, false);
+            const commissionData = await tierCommissionService.calculateCommissionForUser(userId, currentSubProductPrice, itemState.is_combo || false);
             const currentSubProductCommission = commissionData.commissionAmount;
             
             const totalProductsInItem = parseInt(itemState.total_products_in_task_set, 10);
@@ -497,48 +500,64 @@ const getOrder = async (req, res) => {
         // 5. Handle 'active' status - fetch the next sub-product
         if (session.session_status === 'active') {
             if (!session.current_user_active_drive_item_id) {
-                client.release();
-                logger.error(`getOrder: Active session ${driveSessionId} for user ${userId} has no current_user_active_drive_item_id.`);
-                return res.status(500).json({ success: false, code: 1, info: 'Error: Active session is in an inconsistent state.' });
+            client.release();
+            logger.error(`getOrder: Active session ${driveSessionId} for user ${userId} has no current_user_active_drive_item_id.`);
+            return res.status(500).json({ success: false, code: 1, info: 'Error: Active session is in an inconsistent state.' });
             }
 
             // This logic is very similar to getDriveStatus for fetching the current sub-product
+            logger.debug(`getOrder: Fetching details for current_user_active_drive_item_id: ${session.current_user_active_drive_item_id}`);
+            
             const currentItemStateResult = await client.query(
-                `SELECT
-                   uadi.id as uadi_id, uadi.product_id_1, uadi.product_id_2, uadi.product_id_3,
-                   uadi.current_product_slot_processed, uadi.drive_task_set_id_override as task_set_id,
-                   (SELECT COUNT(*) FROM drive_task_set_products dtsp WHERE dtsp.task_set_id = uadi.drive_task_set_id_override) as total_products_in_task_set,
-                   CASE 
-                       WHEN uadi.current_product_slot_processed = 0 THEN uadi.product_id_1
-                       WHEN uadi.current_product_slot_processed = 1 THEN uadi.product_id_2
-                       WHEN uadi.current_product_slot_processed = 2 THEN uadi.product_id_3
-                       ELSE NULL 
-                   END as next_sub_product_id,
-                   CASE 
-                       WHEN uadi.current_product_slot_processed = 0 THEN p1.name
-                       WHEN uadi.current_product_slot_processed = 1 THEN p2.name
-                       WHEN uadi.current_product_slot_processed = 2 THEN p3.name
-                       ELSE NULL
-                   END as next_sub_product_name,
-                   CASE 
-                       WHEN uadi.current_product_slot_processed = 0 THEN p1.price
-                       WHEN uadi.current_product_slot_processed = 1 THEN p2.price
-                       WHEN uadi.current_product_slot_processed = 2 THEN p3.price
-                       ELSE NULL
-                   END as next_sub_product_price,
-                   CASE 
-                       WHEN uadi.current_product_slot_processed = 0 THEN p1.image_url
-                       WHEN uadi.current_product_slot_processed = 1 THEN p2.image_url
-                       WHEN uadi.current_product_slot_processed = 2 THEN p3.image_url
-                       ELSE NULL
-                   END as next_sub_product_image_url
-                 FROM user_active_drive_items uadi
-                 LEFT JOIN products p1 ON uadi.product_id_1 = p1.id
-                 LEFT JOIN products p2 ON uadi.product_id_2 = p2.id
-                 LEFT JOIN products p3 ON uadi.product_id_3 = p3.id
-                 WHERE uadi.id = $1`,
-                [session.current_user_active_drive_item_id]
+            `SELECT
+               uadi.id as uadi_id, uadi.product_id_1, uadi.product_id_2, uadi.product_id_3,
+               uadi.current_product_slot_processed, uadi.drive_task_set_id_override as task_set_id,
+               (SELECT COUNT(*) FROM drive_task_set_products dtsp WHERE dtsp.task_set_id = uadi.drive_task_set_id_override) as total_products_in_task_set,
+               dts.is_combo,
+               CASE 
+                   WHEN uadi.current_product_slot_processed = 0 THEN uadi.product_id_1
+                   WHEN uadi.current_product_slot_processed = 1 THEN uadi.product_id_2
+                   WHEN uadi.current_product_slot_processed = 2 THEN uadi.product_id_3
+                   ELSE NULL 
+               END as next_sub_product_id,
+               CASE 
+                   WHEN uadi.current_product_slot_processed = 0 THEN p1.name
+                   WHEN uadi.current_product_slot_processed = 1 THEN p2.name
+                   WHEN uadi.current_product_slot_processed = 2 THEN p3.name
+                   ELSE NULL
+               END as next_sub_product_name,
+               CASE 
+                   WHEN uadi.current_product_slot_processed = 0 THEN p1.price
+                   WHEN uadi.current_product_slot_processed = 1 THEN p2.price
+                   WHEN uadi.current_product_slot_processed = 2 THEN p3.price
+                   ELSE NULL
+               END as next_sub_product_price,
+               CASE 
+                   WHEN uadi.current_product_slot_processed = 0 THEN p1.image_url
+                   WHEN uadi.current_product_slot_processed = 1 THEN p2.image_url
+                   WHEN uadi.current_product_slot_processed = 2 THEN p3.image_url
+                   ELSE NULL
+               END as next_sub_product_image_url,
+               CASE 
+                   WHEN uadi.current_product_slot_processed = 0 THEN p1.description
+                   WHEN uadi.current_product_slot_processed = 1 THEN p2.description
+                   WHEN uadi.current_product_slot_processed = 2 THEN p3.description
+                   ELSE NULL
+               END as next_sub_product_description
+             FROM user_active_drive_items uadi
+             LEFT JOIN products p1 ON uadi.product_id_1 = p1.id
+             LEFT JOIN products p2 ON uadi.product_id_2 = p2.id
+             LEFT JOIN products p3 ON uadi.product_id_3 = p3.id
+             LEFT JOIN drive_task_sets dts ON uadi.drive_task_set_id_override = dts.id
+             WHERE uadi.id = $1`,
+            [session.current_user_active_drive_item_id]
             );
+
+            logger.debug(`getOrder: Query result rows count: ${currentItemStateResult.rows.length}`);
+            if (currentItemStateResult.rows.length > 0) {
+            const row = currentItemStateResult.rows[0];
+            logger.debug(`getOrder: Item details - ID: ${row.uadi_id}, current_slot: ${row.current_product_slot_processed}, next_product_id: ${row.next_sub_product_id}, task_set_id: ${row.task_set_id}`);
+            }
 
             if (currentItemStateResult.rows.length === 0) {
                 client.release();
@@ -557,11 +576,9 @@ const getOrder = async (req, res) => {
                 // Let's assume saveOrder correctly sets 'pending_reset' if all done.
                 // If we are here, it means an active item has no more sub-products, which is an issue.
                 return res.status(500).json({ success: false, code: 1, info: 'No further products in the current task, or inconsistent state.' });
-            }
-            
-            const currentSubProductPrice = parseFloat(itemState.next_sub_product_price);
+            }            const currentSubProductPrice = parseFloat(itemState.next_sub_product_price);
             const { tier } = await getUserDriveInfo(userId, client);
-            const commissionData = await tierCommissionService.calculateCommissionForUser(userId, currentSubProductPrice, false);
+            const commissionData = await tierCommissionService.calculateCommissionForUser(userId, currentSubProductPrice, itemState.is_combo || false);
             const currentSubProductCommission = commissionData.commissionAmount;
             
             const totalProductsInItem = parseInt(itemState.total_products_in_task_set, 10);
@@ -646,20 +663,20 @@ const saveOrder = async (req, res) => {
         if (session.current_user_active_drive_item_id !== parsedUserActiveDriveItemId) {
             await client.query('ROLLBACK'); client.release();
             return res.status(400).json({ code: 1, info: 'Submitted item is not the current active task.' });
-        }
-
-        // 2. Fetch details of the user_active_drive_item and verify the sub-product
+        }        // 2. Fetch details of the user_active_drive_item and verify the sub-product
         const itemDetailsResult = await client.query(
             `SELECT uadi.id, uadi.user_status, uadi.current_product_slot_processed,
                     uadi.product_id_1, p1.price as p1_price,
                     uadi.product_id_2, p2.price as p2_price,
                     uadi.product_id_3, p3.price as p3_price,
                     uadi.drive_task_set_id_override as task_set_id,
-                    (SELECT COUNT(*) FROM drive_task_set_products dtsp WHERE dtsp.task_set_id = uadi.drive_task_set_id_override) as total_products_in_task_set
+                    (SELECT COUNT(*) FROM drive_task_set_products dtsp WHERE dtsp.task_set_id = uadi.drive_task_set_id_override) as total_products_in_task_set,
+                    dts.is_combo
              FROM user_active_drive_items uadi
              LEFT JOIN products p1 ON uadi.product_id_1 = p1.id
              LEFT JOIN products p2 ON uadi.product_id_2 = p2.id
              LEFT JOIN products p3 ON uadi.product_id_3 = p3.id
+             LEFT JOIN drive_task_sets dts ON uadi.drive_task_set_id_override = dts.id
              WHERE uadi.id = $1 AND uadi.drive_session_id = $2 FOR UPDATE OF uadi`,
             [parsedUserActiveDriveItemId, session.drive_session_id]
         );
@@ -725,11 +742,19 @@ const saveOrder = async (req, res) => {
                 tasks_completed: unlimitedProgress.currentStep, // Current product step (unlimited design)
                 tasks_required: unlimitedProgress.totalProducts // Total products across all task sets (unlimited design)
             });
+        }        // 4. Calculate commission for this sub-product
+        let commissionData, subProductCommission;
+        try {
+            logger.debug(`Calculating commission for user ${userId}, price ${subProductPrice}, is_combo: ${currentItem.is_combo}`);
+            commissionData = await tierCommissionService.calculateCommissionForUser(userId, subProductPrice, currentItem.is_combo || false); // Use combo rate for combo task sets, default to false
+            subProductCommission = commissionData.commissionAmount;
+            logger.debug(`Commission calculated: ${subProductCommission}`);
+        } catch (commissionError) {
+            logger.error(`Error calculating commission for user ${userId}:`, commissionError);
+            await client.query('ROLLBACK'); 
+            client.release();
+            return res.status(500).json({ code: 1, info: 'Error calculating commission.' });
         }
-
-        // 4. Calculate commission for this sub-product
-        const commissionData = await tierCommissionService.calculateCommissionForUser(userId, subProductPrice, false); // false, as it's a single sub-product purchase
-        const subProductCommission = commissionData.commissionAmount;
 
         // 5. Update balance
         const newBalance = currentBalance - subProductPrice + subProductCommission;

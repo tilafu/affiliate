@@ -49,6 +49,8 @@ router.post('/balance-config/validate', authMiddleware.protect, authMiddleware.a
 
 // Admin Combo Creation Routes
 router.post('/combos/insert', authMiddleware.protect, authMiddleware.admin, adminDriveController.insertComboToTaskSet);
+router.post('/combos/create-task-set', authMiddleware.protect, authMiddleware.admin, adminDriveController.createComboTaskSet);
+router.post('/combos/add-after-task', authMiddleware.protect, authMiddleware.admin, adminDriveController.addComboTaskSetAfterTask);
 router.get('/tasksets/:taskSetId/available-slots', authMiddleware.protect, authMiddleware.admin, adminDriveController.getAvailableComboSlots);
 router.put('/active-items/:itemId/add-combo', authMiddleware.protect, authMiddleware.admin, adminDriveController.addComboToActiveItem);
 
