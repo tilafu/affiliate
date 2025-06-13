@@ -705,6 +705,63 @@
     </div>  </div>
 </div>
 
+<!-- Add Combo Task Set Modal -->
+<div class="modal fade" id="addComboModal" tabindex="-1" aria-labelledby="addComboModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addComboModalLabel">Add Combo Task Set</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted" id="comboModalInfo">Adding combo task set...</p>
+                
+                <!-- Price Filter Section -->
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <label for="comboMinPrice" class="form-label">Min Price ($)</label>
+                        <input type="number" class="form-control" id="comboMinPrice" placeholder="0.00" min="0" step="0.01">
+                    </div>
+                    <div class="col-md-4">
+                        <label for="comboMaxPrice" class="form-label">Max Price ($)</label>
+                        <input type="number" class="form-control" id="comboMaxPrice" placeholder="1000.00" min="0" step="0.01">
+                    </div>
+                    <div class="col-md-4 d-flex align-items-end">
+                        <button type="button" class="btn btn-outline-primary" onclick="filterComboProducts()">
+                            <i class="fas fa-filter me-1"></i>Filter
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary ms-2" onclick="clearComboFilter()">
+                            Clear
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Products Selection -->
+                <div class="mb-3">
+                    <label class="form-label">Select Product (1 product per combo task set)</label>
+                    <div id="comboProductsContainer" style="max-height: 400px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 6px;">
+                        <div class="text-center p-4">
+                            <div class="spinner-border" role="status">
+                                <span class="visually-hidden">Loading products...</span>
+                            </div>
+                            <p class="mt-2">Loading products...</p>
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <small class="text-muted">Selected: <span id="selectedProductCount">0</span>/1</small>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="createComboTaskSet()" id="addComboBtn" disabled>
+                    <i class="fas fa-plus me-1"></i>Add Combo
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Enhanced Combo Creation Modal -->
 <div class="modal fade" id="enhancedComboCreationModal" tabindex="-1" aria-labelledby="enhancedComboCreationModalLabel" aria-hidden="true">
 <<<<<<< HEAD

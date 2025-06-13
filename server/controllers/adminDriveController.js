@@ -1036,25 +1036,24 @@ const assignTierBasedDriveToUser = async (req, res) => {
             await client.query('ROLLBACK');
             logger.warn(`assignTierBasedDriveToUser: Tier quantity configuration not found for tier_name ${userTierName}.`);
             return res.status(400).json({ message: 'Tier quantity configuration not found for this user\'s tier.' });
-        }
-        const tierConfig = tierConfigResult.rows[0];
+        }        const tierConfig = tierConfigResult.rows[0];
         const totalTasksRequired = tierConfig.quantity_limit;
         
-        // Calculate task distribution (50/50 split between single and combo tasks)
-        const num_single_tasks = Math.floor(totalTasksRequired / 2);
-        const num_combo_tasks = totalTasksRequired - num_single_tasks;
+        // FOR INITIAL DRIVE ASSIGNMENT: Only create regular (single) tasks
+        // Admin combos will be added manually by admins after drive assignment
+        const num_single_tasks = totalTasksRequired; // All tasks are single tasks initially
         
-        // Set price ranges based on tier
+        // Set price ranges based on tier (only need single task ranges for initial assignment)
         const priceRanges = {
-            'Bronze': { min_price_single: 1.00, max_price_single: 30.00, min_price_combo: 5.00, max_price_combo: 80.00 },
-            'Silver': { min_price_single: 2.00, max_price_single: 50.00, min_price_combo: 10.00, max_price_combo: 120.00 },
-            'Gold': { min_price_single: 3.00, max_price_single: 75.00, min_price_combo: 15.00, max_price_combo: 180.00 },
-            'Platinum': { min_price_single: 5.00, max_price_single: 100.00, min_price_combo: 20.00, max_price_combo: 250.00 }
+            'Bronze': { min_price_single: 1.00, max_price_single: 30.00 },
+            'Silver': { min_price_single: 2.00, max_price_single: 50.00 },
+            'Gold': { min_price_single: 3.00, max_price_single: 75.00 },
+            'Platinum': { min_price_single: 5.00, max_price_single: 100.00 }
         };
-        const { min_price_single, max_price_single, min_price_combo, max_price_combo } = priceRanges[userTierName] || priceRanges['Bronze'];
+        const { min_price_single, max_price_single } = priceRanges[userTierName] || priceRanges['Bronze'];
 
-        logger.info(`assignTierBasedDriveToUser: User ${userId} (Tier: ${userTierName}) requires ${num_single_tasks} single tasks and ${num_combo_tasks} combo tasks. Total: ${totalTasksRequired}.`);
-        logger.debug(`assignTierBasedDriveToUser: Price ranges - Single: ${min_price_single}-${max_price_single}, Combo: ${min_price_combo}-${max_price_combo}`);        // 3. Create a new Drive Configuration for this tier
+        logger.info(`assignTierBasedDriveToUser: User ${userId} (Tier: ${userTierName}) requires ${num_single_tasks} regular tasks initially. Total: ${totalTasksRequired}. Admin combos will be added manually.`);
+        logger.debug(`assignTierBasedDriveToUser: Price ranges - Single: ${min_price_single}-${max_price_single}`);// 3. Create a new Drive Configuration for this tier
         const newConfigName = `Tier ${userTierName} Auto-Config - User ${userId}`;
         const newConfigDescription = `Automatically generated drive configuration for User ID ${userId} based on their tier (${userTierName}). Product selection based on tier quantity rules.`;        const newConfigResult = await client.query(
             `INSERT INTO drive_configurations (name, description, tasks_required, is_active, created_at, updated_at)

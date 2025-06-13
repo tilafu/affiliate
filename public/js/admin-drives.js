@@ -142,7 +142,7 @@ export async function loadDrives() {
                             data-username="${username}"
                             data-assigned-config-id="${assignedConfigId}"
                             data-assigned-config-name="${assignedConfigName}">
-                        Create Combo
+                        Add Combo
                     </button>
                 </td>
             </tr>`;
@@ -436,14 +436,14 @@ export function initializeDriveHandlers() {
                 target.setAttribute('data-processing', 'true');
                 console.log('View User Drive Progress clicked for:', { userId, username });
                 await showUserDriveProgressModal(userId, username);
-            }            // Create Combo button handler
+            }            // Add Combo button handler
             else if (target.matches('.create-combo-btn')) {
                 event.preventDefault();
-                console.log('Create Combo button clicked for user:', { userId, username });
+                console.log('Add Combo button clicked for user:', { userId, username });
                 
                 if (!userId) {
-                    console.error('Create Combo clicked but userId is missing');
-                    showNotification('Error: Could not identify user for combo creation.', 'error');
+                    console.error('Add Combo clicked but userId is missing');
+                    showNotification('Error: Could not identify user for combo task set creation.', 'error');
                     return;
                 }
                 
@@ -456,7 +456,7 @@ export function initializeDriveHandlers() {
                     
                     if (!driveProgressResponse || !driveProgressResponse.drive_session_id) {
                         // No active drive session found
-                        showNotification(`❌ Cannot create combo for "${username}". User has no active drive session. Please ensure the user starts a drive first.`, 'warning');
+                        showNotification(`❌ Cannot create combo task set for "${username}". User has no active drive session. Please ensure the user starts a drive first.`, 'warning');
                         return;
                     }
                     
@@ -466,16 +466,14 @@ export function initializeDriveHandlers() {
                         currentTask: driveProgressResponse.current_task_item_name,
                         progress: `${driveProgressResponse.completed_task_items}/${driveProgressResponse.total_task_items}`
                     });
-                    
-                    // Proceed with combo creation using the active session data
-                    console.log('🚀 Proceeding with combo creation for active drive session...');
+                      // Proceed with combo creation using the active session data
+                    console.log('🚀 Proceeding with combo task set creation for active drive session...');
                     
                     // Use the existing enhanced combo creation functionality
                     if (typeof showEnhancedComboCreationModal === 'function') {
                         await showEnhancedComboCreationModal(userId, username);
-                    } else {
-                        console.error('❌ Enhanced combo creation function not available');
-                        showNotification('Combo creation functionality not available', 'error');
+                    } else {                        console.error('❌ Enhanced combo creation function not available');
+                        showNotification('Combo task set creation functionality not available', 'error');
                     }
                     
                 } catch (error) {
@@ -1486,25 +1484,19 @@ async function _loadAndRenderUserDriveProgress(userId, username) {
     modalBody.innerHTML = '<p>Loading progress...</p>'; // Show loading state
     
     try {
-        const data = await fetchWithAuth(`/api/admin/drive-management/users/${userId}/drive-progress`);
-        if (!data || !data.task_items) {
+        const data = await fetchWithAuth(`/api/admin/drive-management/users/${userId}/drive-progress`);        if (!data || !data.task_items) {
             modalBody.innerHTML = `<p>No active drive or task items found for ${username}.</p>`;
             return;
-        }
-
-        // Fetch available products for combo creation
-        let availableProducts = [];
-        try {
-            const productsResponse = await fetchWithAuth('/admin/products');
-            availableProducts = productsResponse.products || [];
-        } catch (error) {
-            console.warn('Failed to load products for combo creation:', error);
         }
 
         let tableHtml = `
             <div id="progress-user-info" style="display: none;">${username} (ID: ${userId})</div>
             <p><strong>Drive:</strong> ${data.drive_configuration_name} (Session ID: ${data.drive_session_id})</p>
-            <p><strong>Progress:</strong> ${data.completed_task_items} / ${data.total_task_items} tasks completed.</p>
+            <p><strong>Progress:</strong> ${data.completed_original_tasks || data.completed_task_items} / ${data.total_task_items} original tasks completed.</p>
+            ${(data.total_items_including_combos > data.total_task_items) ? 
+                `<p><strong>Total Items:</strong> ${data.total_items_including_combos} (including ${data.total_items_including_combos - data.total_task_items} admin combo(s))</p>` : 
+                ''
+            }
             <table class="table table-sm table-striped" id="drive-progress-table">
                 <thead>
                     <tr>
@@ -1519,158 +1511,103 @@ async function _loadAndRenderUserDriveProgress(userId, username) {
 
         if (data.task_items.length === 0) {
             tableHtml += '<tr><td colspan="4">No tasks in this drive session.</td></tr>';
-        }
-
-        data.task_items.forEach((item, index) => {
+        }        data.task_items.forEach((item, index) => {
+            // Since task sets now only have 1 product, display product info with image
             let productDisplay = 'N/A';
-            const products = [];
-            if (item.product_1_name) products.push(item.product_1_name);
-            if (item.product_2_name) products.push(item.product_2_name);
-            if (item.product_3_name) products.push(item.product_3_name);
+            let productImage = './assets/uploads/products/default.jpg'; // Default image
+            let productPrice = '0.00';
+            
+            if (item.product_1_name) {
+                productDisplay = item.product_1_name;
+                productImage = item.product_1_image || './assets/uploads/products/default.jpg';
+                productPrice = parseFloat(item.product_1_price || 0).toFixed(2);
+            }            // Task set type badge - check both is_combo and task_type for combo identification
+            const isCombo = item.is_combo || item.task_type === 'combo_order';
+            const taskTypeDisplay = isCombo ? 
+                `<span class="badge bg-primary me-2">Combo</span>${item.task_name || 'Admin Combo'}` :
+                `<span class="badge bg-info me-2">Regular</span>${item.task_name || 'Task Set'}`;
 
-            if (item.is_combo) {
-                productDisplay = `<strong>${item.task_name || 'Combo Task'}</strong> (Combo)`;
-                if (products.length > 0) {
-                    productDisplay += `<br><small class="text-primary">Contains: ${products.join(' / ')}</small>`;
-                } else {
-                    productDisplay += `<br><small class="text-muted">No products listed for this combo.</small>`;
-                }
-            } else { // Single task
-                if (products.length > 0) {
-                    if (item.task_name && item.task_name !== products[0]) {
-                        productDisplay = `${item.task_name}: ${products[0]}`;
-                    } else {
-                        productDisplay = products[0];
-                    }
-                } else if (item.task_name) {
-                    productDisplay = item.task_name;
-                } else {
-                    productDisplay = 'N/A';
-                }
-            }            const canAddCombo = item.user_status === 'PENDING' && products.length < 3;
-            const showComboButton = canAddCombo && availableProducts.length > 0;
+            // Product info with image and price
+            const productInfo = `
+                <div class="d-flex align-items-center">
+                    <img src="${productImage}" alt="${productDisplay}" class="me-2" style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px;">
+                    <div>
+                        <div class="fw-bold">${productDisplay}</div>
+                        <div class="text-success small">$${productPrice}</div>
+                    </div>
+                </div>
+            `;
+
+            // Show add combo button only for PENDING and CURRENT tasks
+            const canAddCombo = item.user_status === 'PENDING' || item.user_status === 'CURRENT';
 
             tableHtml += `
                 <tr id="task-row-${item.id}">
                     <td>${item.order_in_drive}</td>
-                    <td>${productDisplay}</td>
+                    <td>
+                        ${taskTypeDisplay}
+                        <div class="mt-2">${productInfo}</div>
+                    </td>
                     <td><span class="badge bg-${item.user_status === 'COMPLETED' ? 'success' : (item.user_status === 'CURRENT' ? 'primary' : 'secondary')}">${item.user_status}</span></td>
                     <td>
-                        ${showComboButton ? `
+                        ${canAddCombo ? `
                             <button type="button" class="btn btn-sm btn-outline-primary" 
-                                    onclick="toggleComboCreationRow('${item.id}', ${userId}, '${username}', ${item.order_in_drive})"
+                                    onclick="showAddComboModal('${item.id}', ${userId}, '${username}', ${item.order_in_drive})"
                                     id="combo-btn-${item.id}">
-                                <i class="fas fa-plus me-1"></i>Combo
+                                <i class="fas fa-plus me-1"></i>Add Combo
                             </button>
                         ` : ''}
                     </td>
-                </tr>
-            `;// Add hidden combo creation row
-            if (showComboButton) {
-                tableHtml += `
-                    <tr id="combo-row-${item.id}" style="display: none; background-color: #f8f9ff;">
-                        <td colspan="4">
-                            <div class="combo-creation-form p-3 border rounded" style="background: linear-gradient(135deg, #f8f9ff 0%, #e3f2fd 100%);">
-                                <h6 class="text-primary mb-3">
-                                    <i class="fas fa-cube me-2"></i>Add Combo Products (Task ${item.order_in_drive})
-                                </h6>
-                                  <!-- Price Filter -->
-                                <div class="row mb-3">
-                                    <div class="col-md-4">
-                                        <label class="form-label small">Min Price ($)</label>
-                                        <input type="number" class="form-control form-control-sm" 
-                                               id="min-price-${item.id}" 
-                                               placeholder="0.00" min="0" step="0.01">
-                                    </div>
-                                    <div class="col-md-4">
-                                        <label class="form-label small">Max Price ($)</label>
-                                        <input type="number" class="form-control form-control-sm" 
-                                               id="max-price-${item.id}" 
-                                               placeholder="1000.00" min="0" step="0.01">
-                                    </div>
-                                    <div class="col-md-4">
-                                        <label class="form-label small">Search Products</label>
-                                        <input type="text" class="form-control form-control-sm" 
-                                               id="search-products-${item.id}" 
-                                               placeholder="Search by name..."
-                                               onkeyup="searchProducts('${item.id}')">
-                                    </div>
-                                </div><!-- Product Selection -->
-                                <div class="mb-3">
-                                    <label class="form-label small">Select Products (Max 2 additional)</label>                                    <div class="product-selection-container" style="max-height: 300px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 6px;">
-                                        <div class="table-responsive">
-                                            <table class="table table-sm table-hover mb-0" id="products-table-${item.id}" style="font-size: 0.85rem;">
-                                                <thead class="table-light sticky-top" style="top: 0; z-index: 10;">
-                                                    <tr>
-                                                        <th style="width: 60px; text-align: center; background-color: #f8f9fa; border-bottom: 2px solid #dee2e6;">Select</th>
-                                                        <th style="width: auto; background-color: #f8f9fa; border-bottom: 2px solid #dee2e6;">Product Name</th>
-                                                        <th style="width: 100px; text-align: right; background-color: #f8f9fa; border-bottom: 2px solid #dee2e6;">Price</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody id="products-list-${item.id}">
-                                                    ${availableProducts.map(product => `
-                                                        <tr class="product-item" data-price="${product.price}" data-product-id="${product.id}" style="cursor: pointer;" onmouseover="this.style.backgroundColor='#f5f5f5'" onmouseout="this.style.backgroundColor=''">
-                                                            <td style="text-align: center; vertical-align: middle; padding: 8px;">
-                                                                <input class="form-check-input" type="checkbox" 
-                                                                       value="${product.id}" 
-                                                                       id="product-${item.id}-${product.id}"
-                                                                       onchange="updateComboProductSelection('${item.id}')"
-                                                                       style="cursor: pointer;">
-                                                            </td>
-                                                            <td style="vertical-align: middle; padding: 8px;">
-                                                                <label class="form-check-label small mb-0" for="product-${item.id}-${product.id}" style="cursor: pointer; font-weight: 500;">
-                                                                    ${product.name}
-                                                                </label>
-                                                            </td>
-                                                            <td style="text-align: right; vertical-align: middle; padding: 8px;">
-                                                                <span class="badge bg-primary text-white" style="font-size: 0.75rem;">$${parseFloat(product.price).toFixed(2)}</span>
-                                                            </td>
-                                                        </tr>
-                                                    `).join('')}
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                        <div id="no-results-${item.id}" class="text-center p-3 text-muted small" style="display: none;">
-                                            <i class="fas fa-search"></i> No products match the current filter
-                                        </div>
-                                    </div>
-                                    <div class="d-flex justify-content-between align-items-center mt-2">
-                                        <small id="filter-status-${item.id}" class="text-muted">Showing ${availableProducts.length} products</small>
-                                        <small class="text-muted">Selected: <span id="selected-count-${item.id}">0</span>/2</small>
-                                    </div>
-                                </div>
-
-                                <!-- Action Buttons -->
-                                <div class="d-flex gap-2">
-                                    <button type="button" class="btn btn-primary btn-sm" 
-                                            onclick="createComboForTaskItem('${item.id}', ${userId})"
-                                            id="create-btn-${item.id}">
-                                        <i class="fas fa-plus me-1"></i>Add Combo
-                                    </button>
-                                    <button type="button" class="btn btn-secondary btn-sm" 
-                                            onclick="toggleComboCreationRow('${item.id}')">
-                                        Cancel
-                                    </button>
-                                </div>
-                            </div>
-                        </td>
-                    </tr>
-                `;
-            }
-        });
-
-        tableHtml += `
+                </tr>            `;
+        });        tableHtml += `
                 </tbody>
             </table>
         `;
-        modalBody.innerHTML = tableHtml;        // Set up price filtering for each combo creation form
-        data.task_items.forEach(item => {
-            if (item.user_status === 'PENDING' && item.products?.length < 3) {
-                setupPriceFiltering(item.id, availableProducts);
-            }
-        });
-
-        // Hide the old combo button since we now have inline buttons
+        modalBody.innerHTML = tableHtml;        // Add the Add Combo Modal HTML to the document if it doesn't exist
+        if (!document.getElementById('addComboModal')) {
+            const comboModalHTML = `
+                <div class="modal fade" id="addComboModal" tabindex="-1">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="addComboModalLabel">Add Combo</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="row mb-3">
+                                    <div class="col-md-4">
+                                        <label class="form-label">Min Price</label>
+                                        <input type="number" id="comboMinPrice" class="form-control" placeholder="Min price" step="0.01" min="0">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label">Max Price</label>
+                                        <input type="number" id="comboMaxPrice" class="form-control" placeholder="Max price" step="0.01" min="0">
+                                    </div>
+                                    <div class="col-md-4 d-flex align-items-end">
+                                        <button type="button" class="btn btn-outline-primary me-2" onclick="filterComboProducts()">Filter</button>
+                                        <button type="button" class="btn btn-outline-secondary" onclick="clearComboFilter()">Clear</button>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Select Product <span class="badge bg-secondary" id="selectedProductCount">0 selected</span></label>
+                                    <div id="comboProductsContainer" style="max-height: 400px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 6px;">
+                                        <div class="text-center p-3">Loading products...</div>
+                                    </div>
+                                </div>
+                                <div id="selectedComboProduct" class="alert alert-info" style="display: none;">
+                                    <strong>Selected:</strong> <span id="selectedProductName"></span> - $<span id="selectedProductPrice"></span>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                <button type="button" class="btn btn-primary" onclick="createComboTaskSet()" id="addComboBtn" disabled>Add Combo</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', comboModalHTML);
+        }// Remove old combo creation setup since we're using the new modal approach
         const createComboBtn = document.getElementById('create-combo-from-progress-btn');
         if (createComboBtn) {
             createComboBtn.style.display = 'none';
@@ -2449,4 +2386,238 @@ function resetComboForm(taskItemId) {
 }
 
 // --- End Inline Combo Creation Functions ---
+
+// --- New Combo Task Set Functions ---
+
+let currentComboTaskId = null;
+let currentComboUserId = null;
+let currentComboUsername = null;
+let currentComboOrderInDrive = null;
+let availableComboProducts = [];
+let selectedComboProductId = null;
+
+// Show the Add Combo Modal
+async function showAddComboModal(taskItemId, userId, username, orderInDrive) {
+    currentComboTaskId = taskItemId;
+    currentComboUserId = userId;
+    currentComboUsername = username;
+    currentComboOrderInDrive = orderInDrive;
+    
+    // Clear previous selections
+    selectedComboProductId = null;
+    document.getElementById('comboMinPrice').value = '';
+    document.getElementById('comboMaxPrice').value = '';
+    document.getElementById('selectedProductCount').textContent = '0 selected';
+    document.getElementById('addComboBtn').disabled = true;
+    
+    // Hide selected product info
+    const selectedDiv = document.getElementById('selectedComboProduct');
+    if (selectedDiv) {
+        selectedDiv.style.display = 'none';
+    }
+    
+    // Update modal title
+    document.getElementById('addComboModalLabel').textContent = `Add Combo after Task ${orderInDrive}`;
+    
+    // Load available products
+    await loadComboProducts();
+    
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('addComboModal'));
+    modal.show();
+}
+
+// Load available products for combo creation
+async function loadComboProducts() {
+    try {
+        const response = await fetchWithAuth('/admin/products');
+        availableComboProducts = response.products || [];
+        renderComboProducts();
+    } catch (error) {
+        console.error('Error loading products for combo:', error);
+        const container = document.getElementById('comboProductsContainer');
+        if (container) {
+            container.innerHTML = '<div class="text-center p-3 text-danger">Error loading products</div>';
+        }
+    }
+}
+
+// Render the products list in the modal
+function renderComboProducts(filteredProducts = null) {
+    const products = filteredProducts || availableComboProducts;
+    const container = document.getElementById('comboProductsContainer');
+    
+    if (products.length === 0) {
+        container.innerHTML = '<div class="text-center p-3 text-muted">No products available</div>';
+        return;
+    }
+    
+    let html = `
+        <table class="table table-sm table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th style="width: 60px; text-align: center;">Select</th>
+                    <th style="width: 80px;">Image</th>
+                    <th>Product Name</th>
+                    <th style="width: 100px; text-align: right;">Price</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+    
+    products.forEach(product => {
+        const imageUrl = product.image_url || './assets/uploads/products/default.jpg';
+        html += `
+            <tr class="product-combo-item" data-product-id="${product.id}">
+                <td style="text-align: center; vertical-align: middle;">
+                    <input class="form-check-input" type="radio" 
+                           name="comboProduct" 
+                           value="${product.id}" 
+                           id="combo-product-${product.id}"
+                           onchange="selectComboProduct(${product.id}, '${product.name.replace(/'/g, "\\'")}', ${product.price})"
+                           style="cursor: pointer;">
+                </td>
+                <td style="vertical-align: middle;">
+                    <img src="${imageUrl}" alt="${product.name}" 
+                         style="width: 50px; height: 50px; object-fit: cover; border-radius: 6px;">
+                </td>
+                <td style="vertical-align: middle;">
+                    <label class="form-check-label mb-0" for="combo-product-${product.id}" style="cursor: pointer; font-weight: 500;">
+                        ${product.name}
+                    </label>
+                </td>
+                <td style="text-align: right; vertical-align: middle;">
+                    <span class="badge bg-primary">$${parseFloat(product.price).toFixed(2)}</span>
+                </td>
+            </tr>
+        `;
+    });
+    
+    html += `
+            </tbody>
+        </table>
+    `;
+      container.innerHTML = html;
+}
+
+// Filter products based on price range
+function filterComboProducts() {
+    const minPrice = parseFloat(document.getElementById('comboMinPrice').value) || 0;
+    const maxPrice = parseFloat(document.getElementById('comboMaxPrice').value) || Infinity;
+    
+    const filteredProducts = availableComboProducts.filter(product => {
+        const price = parseFloat(product.price);
+        return price >= minPrice && price <= maxPrice;
+    });
+    
+    renderComboProducts(filteredProducts);
+    
+    // Update count display
+    const countElement = document.getElementById('selectedProductCount');
+    if (countElement && filteredProducts.length !== availableComboProducts.length) {
+        countElement.textContent = `Showing ${filteredProducts.length} of ${availableComboProducts.length}`;
+    }
+}
+
+// Clear price filter
+function clearComboFilter() {
+    document.getElementById('comboMinPrice').value = '';
+    document.getElementById('comboMaxPrice').value = '';
+    renderComboProducts();
+    
+    // Reset count display
+    const countElement = document.getElementById('selectedProductCount');
+    if (countElement) {
+        countElement.textContent = selectedComboProductId ? '1 selected' : '0 selected';
+    }
+}
+
+// Select a product for the combo
+function selectComboProduct(productId, productName, productPrice) {
+    selectedComboProductId = productId;
+    
+    // Update selection count
+    const countElement = document.getElementById('selectedProductCount');
+    if (countElement) {
+        countElement.textContent = '1 selected';
+    }
+    
+    // Show selected product details
+    const selectedDiv = document.getElementById('selectedComboProduct');
+    const nameSpan = document.getElementById('selectedProductName');
+    const priceSpan = document.getElementById('selectedProductPrice');
+    
+    if (selectedDiv && nameSpan && priceSpan) {
+        nameSpan.textContent = productName;
+        priceSpan.textContent = parseFloat(productPrice).toFixed(2);
+        selectedDiv.style.display = 'block';
+    }
+    
+    // Enable add combo button
+    const addComboBtn = document.getElementById('addComboBtn');
+    if (addComboBtn) {
+        addComboBtn.disabled = false;
+    }
+    
+    console.log('Selected product for combo:', { productId, productName, productPrice });
+}
+  // Create the combo task set
+async function createComboTaskSet() {
+    if (!selectedComboProductId || !currentComboUserId) {
+        showNotification('Please select a product before creating the combo.', 'error');
+        return;
+    }
+    
+    const addComboBtn = document.getElementById('addComboBtn');
+    addComboBtn.disabled = true;
+    addComboBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Creating...';
+      try {
+        const response = await fetchWithAuth('/api/admin/drive-management/combos/add-after-task', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                userId: currentComboUserId,
+                taskItemId: currentComboTaskId,
+                productId: selectedComboProductId,
+                orderInDrive: currentComboOrderInDrive + 1
+            })
+        });        if (response && response.message) {
+            showNotification(response.message, 'success');
+            
+            // Refresh the progress modal to show the new combo
+            await _loadAndRenderUserDriveProgress(currentComboUserId, currentComboUsername);
+            
+            // Clear the selected product to allow another selection
+            selectedComboProductId = null;
+            const selectedDiv = document.getElementById('selectedComboProduct');
+            if (selectedDiv) {
+                selectedDiv.style.display = 'none';
+            }
+            const countElement = document.getElementById('selectedProductCount');
+            if (countElement) {
+                countElement.textContent = '0 selected';
+            }
+            
+            // Re-disable the button
+            addComboBtn.disabled = true;
+        } else {
+            throw new Error('Invalid response from server');
+        }
+    } catch (error) {
+        console.error('Error creating combo task set:', error);
+        showNotification(`Error creating combo task set: ${error.message}`, 'error');
+    } finally {
+        addComboBtn.disabled = false;
+        addComboBtn.innerHTML = '<i class="fas fa-plus me-1"></i>Add Combo';
+    }
+}
+
+// Make functions globally available
+window.showAddComboModal = showAddComboModal;
+window.filterComboProducts = filterComboProducts;
+window.clearComboFilter = clearComboFilter;
+window.selectComboProduct = selectComboProduct;
+window.createComboTaskSet = createComboTaskSet;
+
+// --- End New Combo Task Set Functions ---
 
