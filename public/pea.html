@@ -1,0 +1,1497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PEA Program - CDOT Database</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="css/public-pages.css" rel="stylesheet">
+    <style>
+        .pea-hero {
+            background: linear-gradient(135deg, rgba(255, 107, 0, 0.9), rgba(255, 107, 0, 0.7)), 
+                        url('assets/images/team-bg.jpg') center/cover;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .pea-hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, rgba(0,0,0,0.3), rgba(255,107,0,0.1));
+            z-index: 1;
+        }
+        
+        .pea-hero .container {
+            position: relative;
+            z-index: 2;
+        }
+        
+        .pea-title {
+            font-size: 4.5rem;
+            font-weight: 700;
+            color: white;
+            text-shadow: 2px 2px 10px rgba(0,0,0,0.3);
+            margin-bottom: 2rem;
+            line-height: 1.1;
+        }
+        
+        .pea-subtitle {
+            font-size: 1.5rem;
+            color: rgba(255,255,255,0.9);
+            margin-bottom: 3rem;
+            font-weight: 400;
+        }
+        
+        .launch-btn {
+            background: linear-gradient(45deg, #FF6B00, #FF8533);
+            border: none;
+            color: white;
+            padding: 15px 40px;
+            font-size: 1.2rem;
+            font-weight: 600;
+            border-radius: 50px;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 25px rgba(255, 107, 0, 0.3);
+        }
+        
+        .launch-btn:hover {
+            background: linear-gradient(45deg, #E55A00, #FF6B00);
+            transform: translateY(-3px);
+            box-shadow: 0 12px 35px rgba(255, 107, 0, 0.4);
+            color: white;
+        }
+        
+        .pea-features {
+            padding: 120px 0;
+            background: linear-gradient(180deg, #f8f9fa 0%, #ffffff 100%);
+        }
+        
+        .feature-card {
+            background: white;
+            border-radius: 20px;
+            padding: 50px 40px;
+            box-shadow: 0 15px 50px rgba(0,0,0,0.08);
+            transition: all 0.3s ease;
+            border: none;
+            height: 100%;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 5px;
+            background: linear-gradient(45deg, #FF6B00, #FF8533);
+            transform: scaleX(0);
+            transition: all 0.3s ease;
+        }
+        
+        .feature-card:hover::before {
+            transform: scaleX(1);
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 25px 60px rgba(0,0,0,0.15);
+        }
+        
+        .feature-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(45deg, #FF6B00, #FF8533);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            color: white;
+            margin-bottom: 30px;
+        }
+        
+        .pea-benefits {
+            padding: 120px 0;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            color: white;
+        }
+        
+        .benefit-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 30px;
+            padding: 25px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 15px;
+            transition: all 0.3s ease;
+            border-left: 4px solid #FF6B00;
+        }
+        
+        .benefit-item:hover {
+            background: rgba(255,255,255,0.1);
+            transform: translateX(10px);
+        }
+        
+        .benefit-icon {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(45deg, #FF6B00, #FF8533);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 25px;
+            font-size: 1.5rem;
+            flex-shrink: 0;
+        }
+        
+        .pea-stats {
+            padding: 100px 0;
+            background: white;
+        }
+        
+        .stat-card {
+            text-align: center;
+            padding: 40px 20px;
+            transition: all 0.3s ease;
+        }
+        
+        .stat-number {
+            font-size: 3.5rem;
+            font-weight: 700;
+            color: #FF6B00;
+            margin-bottom: 15px;
+            display: block;
+        }
+        
+        .stat-label {
+            font-size: 1.2rem;
+            color: #6c757d;
+            font-weight: 500;
+        }
+        
+        .pea-cta {
+            padding: 120px 0;
+            background: linear-gradient(135deg, #FF6B00, #FF8533);
+            color: white;
+            text-align: center;
+        }
+        
+        .floating-elements {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            pointer-events: none;
+        }
+        
+        .floating-element {
+            position: absolute;
+            opacity: 0.1;
+            animation: float 6s ease-in-out infinite;
+        }
+        
+        .floating-element:nth-child(1) {
+            top: 20%;
+            left: 10%;
+            animation-delay: 0s;
+        }
+        
+        .floating-element:nth-child(2) {
+            top: 60%;
+            right: 15%;
+            animation-delay: 2s;
+        }
+        
+        .floating-element:nth-child(3) {
+            bottom: 20%;
+            left: 20%;
+            animation-delay: 4s;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-20px) rotate(5deg); }
+        }
+        
+        @media (max-width: 768px) {
+            .pea-title {
+                font-size: 3rem;
+            }
+            
+            .pea-subtitle {
+                font-size: 1.2rem;
+            }
+            
+            .feature-card {
+                padding: 30px 25px;
+                margin-bottom: 30px;
+            }
+        }
+
+        /* New Styles for Track Your Progress and Innovative Features sections */
+        .track-progress {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .track-progress::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(255, 107, 0, 0.1), rgba(255, 107, 0, 0.3));
+            z-index: 1;
+        }
+        
+        .track-progress .container {
+            position: relative;
+            z-index: 2;
+        }
+        
+        .feature-showcase {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 40px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+        
+        .feature-showcase:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+        }
+        
+        .feature-header {
+            margin-bottom: 20px;
+        }
+        
+        .feature-icon-small {
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            margin-right: 15px;
+        }
+        
+        .automation-demo, .performance-demo, .market-demo {
+            position: relative;
+            overflow: hidden;
+            border-radius: 10px;
+            padding: 20px;
+            background: #ffffff;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+        }
+        
+        .demo-header {
+            position: relative;
+            z-index: 2;
+        }
+        
+        .chart-area {
+            position: relative;
+            height: 60px;
+            margin-top: 10px;
+        }
+        
+        .mini-chart {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 100%;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+        }
+        
+        .progress-indicators {
+            position: relative;
+            z-index: 2;
+            margin-top: 10px;
+        }
+        
+        .metric-card {
+            background: #f1f3f5;
+            border-radius: 10px;
+            padding: 15px;
+            transition: transform 0.3s ease;
+        }
+        
+        .metric-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        
+        .metric-circle {
+            width: 80px;
+            height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            margin: 0 auto;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .metric-circle::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: conic-gradient(#007bff 0deg 320deg, #e9ecef 320deg 360deg);
+            border-radius: 50%;
+            z-index: 1;
+        }
+        
+        .metric-circle .bg-white {
+            position: relative;
+            z-index: 2;
+        }
+        
+        .recent-activity {
+            margin-top: 15px;
+        }
+        
+        .activity-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .activity-icon {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+        
+        .activity-icon.bg-success {
+            background: #28a745;
+        }
+        
+        .activity-icon.bg-primary {
+            background: #007bff;
+        }
+        
+        .brand-partners {
+            margin-top: 30px;
+        }
+        
+        .brand-logo {
+            height: 30px;
+            opacity: 0.7;
+            filter: grayscale(1);
+            transition: all 0.3s ease;
+        }
+        
+        .brand-logo:hover {
+            opacity: 1;
+            filter: grayscale(0);
+        }
+        
+        @media (max-width: 768px) {
+            .track-progress {
+                padding: 60px 20px;
+            }
+            
+            .feature-showcase {
+                padding: 30px;
+            }
+            
+            .feature-icon-small {
+                width: 40px;
+                height: 40px;
+            }
+            
+            .metric-card {
+                padding: 10px;
+            }
+            
+            .metric-circle {
+                width: 60px;
+                height: 60px;
+            }
+        }
+
+        /* Existing styles continue... */
+        .pea-hero {
+            background: linear-gradient(135deg, rgba(255, 107, 0, 0.9), rgba(255, 107, 0, 0.7)), 
+                        url('assets/images/team-bg.jpg') center/cover;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .pea-hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, rgba(0,0,0,0.3), rgba(255,107,0,0.1));
+            z-index: 1;
+        }
+        
+        .pea-hero .container {
+            position: relative;
+            z-index: 2;
+        }
+        
+        .pea-title {
+            font-size: 4.5rem;
+            font-weight: 700;
+            color: white;
+            text-shadow: 2px 2px 10px rgba(0,0,0,0.3);
+            margin-bottom: 2rem;
+            line-height: 1.1;
+        }
+        
+        .pea-subtitle {
+            font-size: 1.5rem;
+            color: rgba(255,255,255,0.9);
+            margin-bottom: 3rem;
+            font-weight: 400;
+        }
+        
+        .launch-btn {
+            background: linear-gradient(45deg, #FF6B00, #FF8533);
+            border: none;
+            color: white;
+            padding: 15px 40px;
+            font-size: 1.2rem;
+            font-weight: 600;
+            border-radius: 50px;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 25px rgba(255, 107, 0, 0.3);
+        }
+        
+        .launch-btn:hover {
+            background: linear-gradient(45deg, #E55A00, #FF6B00);
+            transform: translateY(-3px);
+            box-shadow: 0 12px 35px rgba(255, 107, 0, 0.4);
+            color: white;
+        }
+        
+        .pea-features {
+            padding: 120px 0;
+            background: linear-gradient(180deg, #f8f9fa 0%, #ffffff 100%);
+        }
+        
+        .feature-card {
+            background: white;
+            border-radius: 20px;
+            padding: 50px 40px;
+            box-shadow: 0 15px 50px rgba(0,0,0,0.08);
+            transition: all 0.3s ease;
+            border: none;
+            height: 100%;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 5px;
+            background: linear-gradient(45deg, #FF6B00, #FF8533);
+            transform: scaleX(0);
+            transition: all 0.3s ease;
+        }
+        
+        .feature-card:hover::before {
+            transform: scaleX(1);
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 25px 60px rgba(0,0,0,0.15);
+        }
+        
+        .feature-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(45deg, #FF6B00, #FF8533);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            color: white;
+            margin-bottom: 30px;
+        }
+        
+        .pea-benefits {
+            padding: 120px 0;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            color: white;
+        }
+        
+        .benefit-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 30px;
+            padding: 25px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 15px;
+            transition: all 0.3s ease;
+            border-left: 4px solid #FF6B00;
+        }
+        
+        .benefit-item:hover {
+            background: rgba(255,255,255,0.1);
+            transform: translateX(10px);
+        }
+        
+        .benefit-icon {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(45deg, #FF6B00, #FF8533);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 25px;
+            font-size: 1.5rem;
+            flex-shrink: 0;
+        }
+        
+        .pea-stats {
+            padding: 100px 0;
+            background: white;
+        }
+        
+        .stat-card {
+            text-align: center;
+            padding: 40px 20px;
+            transition: all 0.3s ease;
+        }
+        
+        .stat-number {
+            font-size: 3.5rem;
+            font-weight: 700;
+            color: #FF6B00;
+            margin-bottom: 15px;
+            display: block;
+        }
+        
+        .stat-label {
+            font-size: 1.2rem;
+            color: #6c757d;
+            font-weight: 500;
+        }
+        
+        .pea-cta {
+            padding: 120px 0;
+            background: linear-gradient(135deg, #FF6B00, #FF8533);
+            color: white;
+            text-align: center;
+        }
+        
+        .floating-elements {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            pointer-events: none;
+        }
+        
+        .floating-element {
+            position: absolute;
+            opacity: 0.1;
+            animation: float 6s ease-in-out infinite;
+        }
+        
+        .floating-element:nth-child(1) {
+            top: 20%;
+            left: 10%;
+            animation-delay: 0s;
+        }
+        
+        .floating-element:nth-child(2) {
+            top: 60%;
+            right: 15%;
+            animation-delay: 2s;
+        }
+        
+        .floating-element:nth-child(3) {
+            bottom: 20%;
+            left: 20%;
+            animation-delay: 4s;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-20px) rotate(5deg); }
+        }
+        
+        @media (max-width: 768px) {
+            .pea-title {
+                font-size: 3rem;
+            }
+            
+            .pea-subtitle {
+                font-size: 1.2rem;
+            }
+            
+            .feature-card {
+                padding: 30px 25px;
+                margin-bottom: 30px;
+            }
+        }
+
+        /* New Styles for Track Your Progress and Innovative Features sections */
+        .track-progress {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .track-progress::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(255, 107, 0, 0.1), rgba(255, 107, 0, 0.3));
+            z-index: 1;
+        }
+        
+        .track-progress .container {
+            position: relative;
+            z-index: 2;
+        }
+        
+        .feature-showcase {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 40px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+        
+        .feature-showcase:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+        }
+        
+        .feature-header {
+            margin-bottom: 20px;
+        }
+        
+        .feature-icon-small {
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            margin-right: 15px;
+        }
+        
+        .automation-demo, .performance-demo, .market-demo {
+            position: relative;
+            overflow: hidden;
+            border-radius: 10px;
+            padding: 20px;
+            background: #ffffff;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+        }
+        
+        .demo-header {
+            position: relative;
+            z-index: 2;
+        }
+        
+        .chart-area {
+            position: relative;
+            height: 60px;
+            margin-top: 10px;
+        }
+        
+        .mini-chart {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 100%;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+        }
+        
+        .progress-indicators {
+            position: relative;
+            z-index: 2;
+            margin-top: 10px;
+        }
+        
+        .metric-card {
+            background: #f1f3f5;
+            border-radius: 10px;
+            padding: 15px;
+            transition: transform 0.3s ease;
+        }
+        
+        .metric-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        
+        .metric-circle {
+            width: 80px;
+            height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            margin: 0 auto;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .metric-circle::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: conic-gradient(#007bff 0deg 320deg, #e9ecef 320deg 360deg);
+            border-radius: 50%;
+            z-index: 1;
+        }
+        
+        .metric-circle .bg-white {
+            position: relative;
+            z-index: 2;
+        }
+        
+        .recent-activity {
+            margin-top: 15px;
+        }
+        
+        .activity-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .activity-icon {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+        
+        .activity-icon.bg-success {
+            background: #28a745;
+        }
+        
+        .activity-icon.bg-primary {
+            background: #007bff;
+        }
+        
+        .brand-partners {
+            margin-top: 30px;
+        }
+        
+        .brand-logo {
+            height: 30px;
+            opacity: 0.7;
+            filter: grayscale(1);
+            transition: all 0.3s ease;
+        }
+        
+        .brand-logo:hover {
+            opacity: 1;
+            filter: grayscale(0);
+        }
+        
+        .phone-mockup {
+            position: relative;
+            transform: rotate(-5deg);
+            transition: all 0.3s ease;
+        }
+        
+        .phone-mockup:hover {
+            transform: rotate(0deg) scale(1.05);
+        }
+        
+        .earning-card {
+            background: linear-gradient(135deg, #007bff, #0056b3) !important;
+        }
+        
+        .feature-showcase {
+            padding: 30px;
+            transition: all 0.3s ease;
+        }
+        
+        .feature-showcase:hover {
+            transform: translateY(-5px);
+        }
+        
+        .feature-icon-small {
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .automation-demo, .performance-demo, .market-demo {
+            border: 1px solid rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .automation-demo:hover, .performance-demo:hover, .market-demo:hover {
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-light fixed-top">
+        <div class="container">
+            <a class="navbar-brand" href="home.html">
+                <img src="assets/logo.png" alt="CDOT Database Logo"> <!-- Replace with your logo -->
+                CDOT Database
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <button type="button" class="btn-close-fullscreen d-lg-none" aria-label="Close" onclick="toggleFullscreenMenu()">&times;</button>
+                <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+                    <li class="nav-item">
+                        <a class="nav-link" href="home.html">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="about.html">About</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" aria-current="page" href="pea.html">PEA Guide</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="contact.html">Contact</a>
+                    </li>
+                </ul>
+                <a href="login.html" class="btn btn-primary ms-lg-3">Launch WorkDesk <i class="fas fa-arrow-right"></i></a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="pea-hero">
+        <div class="floating-elements">
+            <div class="floating-element">
+                <i class="fas fa-chart-line fa-3x"></i>
+            </div>
+            <div class="floating-element">
+                <i class="fas fa-users fa-3x"></i>
+            </div>
+            <div class="floating-element">
+                <i class="fas fa-rocket fa-3x"></i>
+            </div>
+        </div>
+        
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-8">
+                    <h1 class="pea-title">
+                        Explore the<br>
+                        <span style="color: #FFD700;">PEA</span><br>
+                        Program
+                    </h1>
+                    <p class="pea-subtitle">
+                        Product Engagement Associate - Your pathway to success in affiliate marketing
+                    </p>
+                    <div class="d-flex flex-wrap gap-3">
+                        <a href="#features" class="btn launch-btn btn-lg">
+                            Get Started <i class="fas fa-arrow-down ms-2"></i>
+                        </a>
+                        <a href="#benefits" class="btn btn-outline-light btn-lg">
+                            Learn More <i class="fas fa-play ms-2"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="pea-features">
+        <div class="container">
+            <div class="row mb-5">
+                <div class="col-lg-8 mx-auto text-center">
+                    <h2 class="display-4 fw-bold mb-4">What is the PEA Program?</h2>
+                    <p class="lead text-muted">
+                        The Product Engagement Associate (PEA) program is designed to help you maximize your earning potential through strategic product engagement and affiliate marketing excellence.
+                    </p>
+                </div>
+            </div>
+            
+            <div class="row g-4">
+                <div class="col-lg-4 col-md-6">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <h4 class="fw-bold mb-3">Performance Tracking</h4>
+                        <p class="text-muted">
+                            Monitor your engagement metrics, conversion rates, and earning potential with our advanced analytics dashboard.
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="col-lg-4 col-md-6">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-graduation-cap"></i>
+                        </div>
+                        <h4 class="fw-bold mb-3">Expert Training</h4>
+                        <p class="text-muted">
+                            Access comprehensive training modules, webinars, and resources to enhance your affiliate marketing skills.
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="col-lg-4 col-md-6">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <h4 class="fw-bold mb-3">Community Support</h4>
+                        <p class="text-muted">
+                            Join a thriving community of PEAs sharing strategies, tips, and success stories to accelerate your growth.
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="col-lg-4 col-md-6">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-tools"></i>
+                        </div>
+                        <h4 class="fw-bold mb-3">Marketing Tools</h4>
+                        <p class="text-muted">
+                            Get access to professional marketing materials, templates, and automation tools to streamline your workflow.
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="col-lg-4 col-md-6">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-dollar-sign"></i>
+                        </div>
+                        <h4 class="fw-bold mb-3">Higher Commissions</h4>
+                        <p class="text-muted">
+                            Unlock higher commission rates and bonus opportunities as you progress through the PEA program levels.
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="col-lg-4 col-md-6">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-headset"></i>
+                        </div>
+                        <h4 class="fw-bold mb-3">24/7 Support</h4>
+                        <p class="text-muted">
+                            Get dedicated support from our PEA success team whenever you need assistance or guidance.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Benefits Section -->
+    <section id="benefits" class="pea-benefits">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-6">
+                    <h2 class="display-4 fw-bold mb-5">Why Choose PEA?</h2>
+                    
+                    <div class="benefit-item">
+                        <div class="benefit-icon">
+                            <i class="fas fa-rocket"></i>
+                        </div>
+                        <div>
+                            <h5 class="fw-bold mb-2">Accelerated Growth</h5>
+                            <p class="mb-0">Fast-track your affiliate marketing success with proven strategies and systems.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="benefit-item">
+                        <div class="benefit-icon">
+                            <i class="fas fa-shield-alt"></i>
+                        </div>
+                        <div>
+                            <h5 class="fw-bold mb-2">Risk-Free Start</h5>
+                            <p class="mb-0">Begin your PEA journey with no upfront costs and minimal risk investment.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="benefit-item">
+                        <div class="benefit-icon">
+                            <i class="fas fa-trophy"></i>
+                        </div>
+                        <div>
+                            <h5 class="fw-bold mb-2">Recognition & Rewards</h5>
+                            <p class="mb-0">Earn badges, certificates, and exclusive rewards as you achieve milestones.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="benefit-item">
+                        <div class="benefit-icon">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                        <div>
+                            <h5 class="fw-bold mb-2">Flexible Schedule</h5>
+                            <p class="mb-0">Work at your own pace and manage your PEA activities around your lifestyle.</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-lg-6">
+                    <div class="position-relative">
+                        <img src="assets/images/pea-benefits.jpg" alt="PEA Benefits" class="img-fluid rounded-4 shadow-lg">
+                        <div class="position-absolute top-50 start-50 translate-middle">
+                            <button class="btn btn-light btn-lg rounded-circle" style="width: 80px; height: 80px;">
+                                <i class="fas fa-play text-primary fa-2x"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Stats Section -->
+    <section class="pea-stats">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-3 col-md-6">
+                    <div class="stat-card">
+                        <span class="stat-number" data-count="5000">0</span>
+                        <div class="stat-label">Active PEAs</div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6">
+                    <div class="stat-card">
+                        <span class="stat-number" data-count="92">0</span>
+                        <div class="stat-label">Success Rate %</div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6">
+                    <div class="stat-card">
+                        <span class="stat-number" data-count="150">0</span>
+                        <div class="stat-label">Training Modules</div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6">
+                    <div class="stat-card">
+                        <span class="stat-number" data-count="24">0</span>
+                        <div class="stat-label">Support Hours</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="pea-cta">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-8 mx-auto">
+                    <h2 class="display-4 fw-bold mb-4">Ready to Start Your PEA Journey?</h2>
+                    <p class="lead mb-5">
+                        Join thousands of successful Product Engagement Associates and start building your affiliate marketing empire today.
+                    </p>
+                    <div class="d-flex flex-wrap justify-content-center gap-3">
+                        <a href="register.html" class="btn btn-light btn-lg px-5">
+                            <i class="fas fa-user-plus me-2"></i>
+                            Join Now
+                        </a>
+                        <a href="contact.html" class="btn btn-outline-light btn-lg px-5">
+                            <i class="fas fa-comments me-2"></i>
+                            Get More Info
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>    <!-- Track Your Progress Section -->
+    <section class="track-progress py-5" style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-6">
+                    <h2 class="display-5 fw-bold mb-4">Track Your Progress, Earn More, Achieve Your Goals.</h2>
+                    <p class="lead text-muted mb-4">
+                        This guide breaks down how to drive more to offers and maximize your potential as one of our advanced digital marketers.
+                    </p>
+                    
+                    <div class="earnings-highlight mb-4">
+                        <div class="d-flex align-items-center">
+                            <span class="display-4 fw-bold text-primary me-3">$900</span>
+                            <div>
+                                <small class="text-muted d-block">Monthly Earnings</small>
+                                <small class="text-success">↗ +15% from last month</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row text-center mb-4">
+                        <div class="col-4">
+                            <div class="stat-item">
+                                <h4 class="fw-bold text-primary mb-0">150</h4>
+                                <small class="text-muted">Weekly Engagement</small>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="stat-item">
+                                <h4 class="fw-bold text-primary mb-0">13</h4>
+                                <small class="text-muted">Campaigns Active</small>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="stat-item">
+                                <h4 class="fw-bold text-primary mb-0">728</h4>
+                                <small class="text-muted">Referral Earnings</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Brand Partners -->
+                    <div class="brand-partners">
+                        <p class="text-muted mb-3">Trusted by leading brands:</p>
+                        <div class="d-flex flex-wrap align-items-center gap-4">
+                            <img src="assets/images/brands/oracle.png" alt="Oracle" class="brand-logo">
+                            <img src="assets/images/brands/zoom.png" alt="Zoom" class="brand-logo">
+                            <img src="assets/images/brands/qantas.png" alt="Qantas" class="brand-logo">
+                            <img src="assets/images/brands/velocity.png" alt="Velocity" class="brand-logo">
+                            <img src="assets/images/brands/postcard.png" alt="Postcard" class="brand-logo">
+                            <img src="assets/images/brands/flexport.png" alt="Flexport" class="brand-logo">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-lg-6">
+                    <div class="dashboard-mockup position-relative">
+                        <div class="phone-mockup bg-white rounded-4 shadow-lg p-4 mx-auto" style="max-width: 320px;">
+                            <div class="mockup-header d-flex justify-content-between align-items-center mb-3">
+                                <div class="d-flex gap-1">
+                                    <div class="bg-danger rounded-circle" style="width: 8px; height: 8px;"></div>
+                                    <div class="bg-warning rounded-circle" style="width: 8px; height: 8px;"></div>
+                                    <div class="bg-success rounded-circle" style="width: 8px; height: 8px;"></div>
+                                </div>
+                                <small class="text-muted">9:41 AM</small>
+                            </div>
+                            
+                            <div class="dashboard-content">
+                                <div class="earning-card bg-primary text-white rounded-3 p-3 mb-3">
+                                    <h6 class="mb-1">Total Earnings</h6>
+                                    <h3 class="mb-2">$1,847</h3>
+                                    <div class="progress" style="height: 4px;">
+                                        <div class="progress-bar bg-warning" style="width: 75%"></div>
+                                    </div>
+                                </div>
+                                
+                                <div class="metrics-grid">
+                                    <div class="metric-card bg-light rounded-3 p-2 mb-2">
+                                        <small class="text-muted">Ranking</small>
+                                        <div class="d-flex align-items-center">
+                                            <span class="fw-bold me-2">#3</span>
+                                            <small class="text-success">↗ +2</small>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="metric-card bg-light rounded-3 p-2 mb-2">
+                                        <small class="text-muted">Active Tasks</small>
+                                        <div class="fw-bold">12</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="recent-activity">
+                                    <h6 class="text-muted mb-2">Recent Activity</h6>
+                                    <div class="activity-item d-flex align-items-center mb-2">
+                                        <div class="activity-icon bg-success rounded-circle me-2" style="width: 8px; height: 8px;"></div>
+                                        <small>Task completed - $25 earned</small>
+                                    </div>
+                                    <div class="activity-item d-flex align-items-center mb-2">
+                                        <div class="activity-icon bg-primary rounded-circle me-2" style="width: 8px; height: 8px;"></div>
+                                        <small>New campaign available</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Floating Elements -->
+                        <div class="floating-chart position-absolute" style="top: 20%; right: -10%; z-index: -1;">
+                            <div class="chart-element bg-white rounded-3 shadow p-3">
+                                <canvas width="100" height="60"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Innovative Features Section -->
+    <section class="innovative-features py-5 bg-white">
+        <div class="container">
+            <div class="row mb-5">
+                <div class="col-lg-8 mx-auto text-center">
+                    <h2 class="display-5 fw-bold mb-4">
+                        Innovative Features to Maximize Your 
+                        <span class="text-primary">Sales Potential</span>
+                    </h2>
+                    <p class="lead text-muted">
+                        From lead generation and CRM integration to performance tracking and conversion optimization is designed to amplify your sales team and results.
+                    </p>
+                    <button class="btn btn-dark btn-lg rounded-pill px-4">
+                        Explore More Features
+                    </button>
+                </div>
+            </div>
+            
+            <div class="row g-4">
+                <!-- Sales Process Automation -->
+                <div class="col-lg-6">
+                    <div class="feature-showcase h-100">
+                        <div class="feature-header d-flex align-items-center mb-3">
+                            <div class="feature-icon-small bg-primary text-white rounded-3 me-3 p-2">
+                                <i class="fas fa-cogs"></i>
+                            </div>
+                            <h5 class="fw-bold mb-0">Sales Process Automation</h5>
+                        </div>
+                        <p class="text-muted mb-4">
+                            Streamline your workflow with automated lead nurturing, follow-ups, and task management to never miss a sale opportunity.
+                        </p>
+                        
+                        <div class="automation-demo bg-light rounded-3 p-4">
+                            <div class="demo-header mb-3">
+                                <small class="text-muted text-uppercase">Asset Generated</small>
+                                <h4 class="fw-bold text-success">45,58k</h4>
+                            </div>
+                            
+                            <div class="chart-area mb-3">
+                                <div class="mini-chart bg-primary rounded-2 p-3 text-white">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span>+90,340.00 - 34.5</span>
+                                        <i class="fas fa-arrow-up"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="progress-indicators">
+                                <div class="d-flex justify-content-between text-muted small">
+                                    <span>Sales Rate: 2</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Performance Tracking -->
+                <div class="col-lg-6">
+                    <div class="feature-showcase h-100">
+                        <div class="feature-header d-flex align-items-center mb-3">
+                            <div class="feature-icon-small bg-success text-white rounded-3 me-3 p-2">
+                                <i class="fas fa-chart-bar"></i>
+                            </div>
+                            <h5 class="fw-bold mb-0">Performance Tracking</h5>
+                        </div>
+                        <p class="text-muted mb-4">
+                            Monitor your team's performance with real-time analytics and comprehensive reporting to identify top performers.
+                        </p>
+                        
+                        <div class="performance-demo bg-light rounded-3 p-4">
+                            <div class="performance-metric text-center mb-3">
+                                <div class="metric-circle mx-auto mb-2" style="width: 80px; height: 80px; background: conic-gradient(#007bff 0deg 320deg, #e9ecef 320deg 360deg); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                                    <div class="bg-white rounded-circle d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                                        <h4 class="fw-bold text-primary mb-0">89%</h4>
+                                    </div>
+                                </div>
+                                <small class="text-muted">On Track Goal</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Customer Retention Strategy -->
+                <div class="col-lg-6">
+                    <div class="feature-showcase h-100">
+                        <div class="feature-header d-flex align-items-center mb-3">
+                            <div class="feature-icon-small bg-warning text-white rounded-3 me-3 p-2">
+                                <i class="fas fa-users"></i>
+                            </div>
+                            <h5 class="fw-bold mb-0">Customer Retention Strategy</h5>
+                        </div>
+                        <p class="text-muted mb-4">
+                            Build lasting relationships with automated follow-ups, personalized communications, and loyalty program integration.
+                        </p>
+                    </div>
+                </div>
+                
+                <!-- Market Analysis -->
+                <div class="col-lg-6">
+                    <div class="feature-showcase h-100">
+                        <div class="feature-header d-flex align-items-center mb-3">
+                            <div class="feature-icon-small bg-info text-white rounded-3 me-3 p-2">
+                                <i class="fas fa-chart-line"></i>
+                            </div>
+                            <h5 class="fw-bold mb-0">Market Analysis</h5>
+                        </div>
+                        <p class="text-muted mb-4">
+                            Access comprehensive market insights and competitive analysis to make data-driven decisions and stay ahead.
+                        </p>
+                        
+                        <div class="market-demo bg-light rounded-3 p-3">
+                            <div class="market-stats d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h5 class="fw-bold mb-0">£110</h5>
+                                    <small class="text-muted">Market Value</small>
+                                </div>
+                                <div class="trend-indicator text-success">
+                                    <i class="fas fa-arrow-up me-1"></i>
+                                    <small>+12.5%</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>    <!-- Footer Section -->
+    <footer class="footer-section bg-dark text-white py-5">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-3 col-md-6 mb-4 mb-lg-0 text-center text-md-start">
+                    <a class="navbar-brand" href="home.html">
+                        <img src="assets/logo.png" alt="CDOT Database Logo" style="height: 40px;">
+                    </a>
+                    <p class="small mt-2">CDOT Database empowers businesses with comprehensive product and affiliate data.</p>
+                </div>
+                <div class="col-lg-3 col-md-6 mb-4 mb-lg-0">
+                    <h5 class="text-uppercase mb-3">Quick Links</h5>
+                    <ul class="list-unstyled">
+                        <li><a href="home.html" class="text-white text-decoration-none">Home</a></li>
+                        <li><a href="about.html" class="text-white text-decoration-none">About</a></li>
+                        <li><a href="pea.html" class="text-white text-decoration-none">PEA Guide</a></li>
+                        <li><a href="contact.html" class="text-white text-decoration-none">Contact</a></li>
+                    </ul>
+                </div>
+                <div class="col-lg-3 col-md-6 mb-4 mb-md-0">
+                    <h5 class="text-uppercase mb-3">Get In Touch</h5>
+                    <ul class="list-unstyled d-flex justify-content-center justify-content-md-start">
+                        <li class="me-3"><a href="#" class="text-white"><i class="fab fa-facebook-f fa-lg"></i></a></li>
+                        <li class="me-3"><a href="#" class="text-white"><i class="fab fa-twitter fa-lg"></i></a></li>
+                        <li class="me-3"><a href="#" class="text-white"><i class="fab fa-instagram fa-lg"></i></a></li>
+                        <li><a href="#" class="text-white"><i class="fab fa-linkedin-in fa-lg"></i></a></li>
+                    </ul>
+                </div>
+                <div class="col-lg-3 col-md-6">
+                    <h5 class="text-uppercase mb-3">Legal</h5>
+                     <ul class="list-unstyled">
+                        <li><a href="#privacy" class="text-white text-decoration-none">Privacy Policy</a></li>
+                        <li><a href="#terms" class="text-white text-decoration-none">Terms of Service</a></li>
+                    </ul>
+                </div>
+            </div>
+            <hr class="my-4" style="border-color: rgba(255,255,255,0.2);">
+            <div class="row">
+                <div class="col-12 text-center">
+                    <p class="small mb-0">&copy; 2025 CDOT Database. All rights reserved.</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Animate statistics on scroll
+        function animateStats() {
+            const stats = document.querySelectorAll('.stat-number');
+            
+            stats.forEach(stat => {
+                const target = parseInt(stat.getAttribute('data-count'));
+                const increment = target / 100;
+                let current = 0;
+                
+                const timer = setInterval(() => {
+                    current += increment;
+                    if (current >= target) {
+                        current = target;
+                        clearInterval(timer);
+                    }
+                    stat.textContent = Math.floor(current);
+                }, 20);
+            });
+        }
+
+        // Intersection Observer for stats animation
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    animateStats();
+                    observer.unobserve(entry.target);
+                }
+            });
+        });
+
+        const statsSection = document.querySelector('.pea-stats');
+        if (statsSection) {
+            observer.observe(statsSection);
+        }
+
+        // Smooth scrolling for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // Add scroll effect to navbar
+        window.addEventListener('scroll', () => {
+            const navbar = document.querySelector('.navbar');
+            if (window.scrollY > 100) {
+                navbar.classList.add('navbar-scrolled');
+            } else {
+                navbar.classList.remove('navbar-scrolled');
+            }
+        });
+    </script>
+</body>
+</html>

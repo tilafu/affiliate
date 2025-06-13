@@ -1095,61 +1095,10 @@ const assignTierBasedDriveToUser = async (req, res) => {
                 );
                 logger.debug(`assignTierBasedDriveToUser: Created single task_set ID ${taskSetId} (${taskSetName}) with product ID ${product.id} at order ${orderInDriveCounter}.`);
                 orderInDriveCounter++;
-            }
-        }
-
-        // 5. Select and create Drive Task Sets for combo tasks
-        // For combo tasks, we need to select products that can be part of a combo.
-        // The current tier_quantity_configurations doesn't specify how many products per combo.
-        // Assuming a combo task uses 2-3 products. For simplicity, let's aim for 2 products per combo for now.
-        // This logic might need refinement based on how combo products are defined (e.g., specific "combo_package" products or just regular products grouped).
-        // For now, let's assume a "combo task" means a task_set with is_combo=TRUE, and it will contain multiple products.
-        // We will pick products within the combo price range.
-          if (num_combo_tasks > 0) {
-            // Fetch products suitable for combos. This might need a flag like 'can_be_in_combo' or rely on 'is_combo_only = TRUE' or a broader price range.
-            // For this example, let's assume any product in the combo price range can be part of a combo.
-            // Updated: Combo task sets now have 1 product each as per new design requirements
-            const productsPerCombo = 1; // Updated: combo task sets have only 1 product now
-            const totalComboProductsNeeded = num_combo_tasks * productsPerCombo;
-
-            const comboProductsResult = await client.query(
-                `SELECT id FROM products 
-                  WHERE price >= $1 AND price <= $2 AND is_active = TRUE 
-                  ORDER BY RANDOM() LIMIT $3`,
-                [min_price_combo, max_price_combo, totalComboProductsNeeded]
-            );
-
-            if (comboProductsResult.rows.length < totalComboProductsNeeded) {
-                await client.query('ROLLBACK');
-                logger.warn(`assignTierBasedDriveToUser: Not enough suitable products found for combo tasks for tier ${userTierName}. Found ${comboProductsResult.rows.length}, needed ${totalComboProductsNeeded}.`);
-                return res.status(400).json({ message: 'Not enough suitable products found to generate combo tasks for this tier.' });
-            }
-            logger.debug(`assignTierBasedDriveToUser: Selected ${comboProductsResult.rows.length} products for ${num_combo_tasks} combo tasks.`);            for (let i = 0; i < num_combo_tasks; i++) {
-                const taskSetName = `Auto Combo Task ${orderInDriveCounter}`;
-                const taskSetResult = await client.query(
-                    'INSERT INTO drive_task_sets (drive_configuration_id, name, order_in_drive, is_combo, created_at) VALUES ($1, $2, $3, $4, NOW()) RETURNING id',
-                    [newDriveConfigurationId, taskSetName, orderInDriveCounter, true]
-                );
-                const taskSetId = taskSetResult.rows[0].id;
-                logger.debug(`assignTierBasedDriveToUser: Created combo task_set ID ${taskSetId} (${taskSetName}) at order ${orderInDriveCounter}.`);
-
-                for (let j = 0; j < productsPerCombo; j++) {
-                    const productIndex = i * productsPerCombo + j;
-                    if (comboProductsResult.rows[productIndex]) {
-                        const productId = comboProductsResult.rows[productIndex].id;
-                        await client.query(
-                            'INSERT INTO drive_task_set_products (task_set_id, product_id, order_in_set, created_at) VALUES ($1, $2, $3, NOW())',
-                            [taskSetId, productId, j + 1] // order_in_set is 1-based
-                        );
-                        logger.debug(`assignTierBasedDriveToUser: Added product ID ${productId} to combo task_set ID ${taskSetId} at order_in_set ${j + 1}.`);
-                    } else {
-                        // This case should ideally not be hit if totalComboProductsNeeded was met
-                        logger.error(`assignTierBasedDriveToUser: Ran out of products for combo task ${taskSetId} unexpectedly.`);
-                    }
-                }
-                orderInDriveCounter++;
-            }
-        }
+            }        }
+        
+        // NOTE: No combo tasks are created during initial drive assignment
+        // Admin combos will be added manually by admins after the drive is assigned
         
         // 6. Now that the drive_configuration and its task_sets are created,
         //    call a modified version of assignDriveConfigurationToUser or reuse its core logic
@@ -1252,13 +1201,15 @@ const assignTierBasedDriveToUser = async (req, res) => {
             );
             logger.info(`assignTierBasedDriveToUser: Successfully updated drive_session ${newDriveSessionId} with current_user_active_drive_item_id ${firstUserActiveDriveItemId}.`);
         }        await client.query('COMMIT');
-        logger.info(`assignTierBasedDriveToUser: Successfully generated and assigned tier-based drive for user ${userId}. New config ID: ${newDriveConfigurationId}, New session ID: ${newDriveSessionId}.`);
+        logger.info(`assignTierBasedDriveToUser: Successfully generated and assigned tier-based drive for user ${userId}. Created ${num_single_tasks} regular tasks. New config ID: ${newDriveConfigurationId}, New session ID: ${newDriveSessionId}. Admin combos can be added manually.`);
         res.status(201).json({
             success: true,
-            message: 'Tier-based drive configuration generated and assigned successfully!',
+            message: `Tier-based drive assigned successfully! Created ${num_single_tasks} regular tasks. Admin combos can be added manually.`,
             drive_configuration_id: newDriveConfigurationId,
             drive_session_id: newDriveSessionId,
-            first_active_drive_item_id: firstUserActiveDriveItemId
+            first_active_drive_item_id: firstUserActiveDriveItemId,
+            tasks_created: num_single_tasks,
+            task_type: 'regular_only'
         });
 
     } catch (error) {
