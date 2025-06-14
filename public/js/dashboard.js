@@ -31,10 +31,11 @@ function showNotification(message, type = 'info') {
 
 // Function to initialize dashboard logic (fetching data, setting up listeners)
 async function initializeDashboard() {
-    // Use centralized authentication check
-    const authData = requireAuth();
+    // Use silent authentication check to avoid redirects
+    const authData = isAuthenticated();
     if (!authData) {
-        return; // requireAuth will handle redirect
+        console.log('No authentication data, using default dashboard');
+        return; // Don't redirect, just use default data
     }
 
     const usernameEl = document.getElementById('dashboard-username');

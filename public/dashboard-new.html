@@ -61,31 +61,12 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-        }        .user-info {
+        }
+
+        .user-info {
             display: flex;
             align-items: center;
             gap: 0.75rem;
-        }
-
-        .header-left {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-        }
-
-        .menu-btn {
-            background: none;
-            border: none;
-            font-size: 1.25rem;
-            color: var(--text-primary);
-            cursor: pointer;
-            padding: 0.5rem;
-            border-radius: 8px;
-            transition: all 0.3s ease;
-        }
-
-        .menu-btn:hover {
-            background: var(--background);
         }
 
         .user-avatar {
@@ -110,7 +91,9 @@
             margin: 0;
             color: var(--text-secondary);
             font-size: 14px;
-        }        .notification-btn {
+        }
+
+        .notification-btn {
             position: relative;
             background: var(--background);
             border: none;
@@ -126,60 +109,6 @@
 
         .notification-btn:hover {
             background: var(--border-color);
-        }
-
-        .header-actions {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-        }
-
-        .login-btn {
-            background: var(--primary-blue);
-            border: none;
-            padding: 0.5rem 1rem;
-            border-radius: 20px;
-            color: white;
-            font-weight: 600;
-            font-size: 14px;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            transition: all 0.3s ease;
-        }        .login-btn:hover {
-            background: var(--secondary-blue);
-            transform: translateY(-1px);
-        }
-
-        /* Sidebar Overlay */
-        .sidebar-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 999;
-            opacity: 0;
-            visibility: hidden;
-            transition: all 0.3s ease;
-        }
-
-        .sidebar-overlay.active {
-            opacity: 1;
-            visibility: visible;
-        }
-
-        /* Responsive sidebar styles */
-        @media (max-width: 768px) {
-            .main-sidebar {
-                transform: translateX(-100%);
-                transition: transform 0.3s ease;
-            }
-            
-            .main-sidebar.active {
-                transform: translateX(0);
-            }
         }
 
         .notification-badge {
@@ -529,34 +458,25 @@
         }
     </style>
 </head>
-<body>    <!-- Header -->
+<body>
+    <!-- Header -->
     <header class="header">
         <div class="container">
-            <div class="header-left">
-                <button class="menu-btn" id="menuBtn">
-                    <i class="fas fa-bars"></i>
-                </button>
+            <div class="user-info">
                 <div class="user-avatar">
                     <span id="userInitials">RA</span>
                 </div>
+                <div class="user-details">
+                    <h6 id="userName">Robert Anderson</h6>
+                    <p id="membershipTier">Premium Member</p>
+                </div>
             </div>
-            <div class="header-actions">
-                <button class="notification-btn" onclick="window.location.href='./notifications.html'">
-                    <i class="far fa-bell"></i>
-                    <span class="notification-badge" id="notificationCount">3</span>
-                </button>
-                <button class="login-btn" id="loginBtn" onclick="window.location.href='./login.html'" style="display: none;">
-                    <i class="fas fa-sign-in-alt"></i>
-                    <span>Login</span>
-                </button>
-            </div>
-        </div>    </header>
-
-    <!-- Sidebar -->
-    <div id="sidebar-container"></div>
-    
-    <!-- Sidebar Overlay -->
-    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+            <button class="notification-btn" onclick="window.location.href='./notifications.html'">
+                <i class="far fa-bell"></i>
+                <span class="notification-badge" id="notificationCount">3</span>
+            </button>
+        </div>
+    </header>
 
     <!-- Main Content -->
     <main class="main-content">
@@ -567,7 +487,7 @@
                 <div class="balance-amount" id="currentBalance">$578</div>
                 <div class="balance-change positive">
                     <i class="fas fa-arrow-up"></i>
-                    <span>+12.5% from last month</span>
+                    <span>Earn daily</span>
                 </div>
             </div>
 
@@ -679,99 +599,30 @@
     <script src="./js/auth-check.js"></script>
     <script src="./js/dashboard.js"></script>
 
-    <script>        document.addEventListener('DOMContentLoaded', function() {
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
             // Load standard navigation components
             loadStandardNavigation('dashboard');
             
-            // Load sidebar component
-            loadSidebarComponent();
-              // Initialize dashboard data (but don't require auth yet)
+            // Initialize dashboard data
             if (typeof initializeDashboard === 'function') {
-                // Use silent auth check to avoid redirects
-                const authData = isAuthenticated();
-                if (authData) {
-                    initializeDashboard();
-                }
+                initializeDashboard();
             }
             
             // Load user data
             loadUserDashboardData();
-            
-            // Initialize menu functionality
-            initializeMenuControls();
         });
 
-        // Load sidebar component
-        async function loadSidebarComponent() {
+        async function loadUserDashboardData() {
             try {
-                const response = await fetch('./components/sidebar.html');
-                if (response.ok) {
-                    const sidebarHTML = await response.text();
-                    document.getElementById('sidebar-container').innerHTML = sidebarHTML;
-                }
-            } catch (error) {
-                console.error('Error loading sidebar:', error);
-            }
-        }
-
-        // Initialize menu controls
-        function initializeMenuControls() {
-            const menuBtn = document.getElementById('menuBtn');
-            const sidebarOverlay = document.getElementById('sidebarOverlay');
-            
-            // Menu button click
-            menuBtn?.addEventListener('click', function() {
-                toggleSidebar();
-            });
-            
-            // Overlay click to close
-            sidebarOverlay?.addEventListener('click', function() {
-                closeSidebar();
-            });
-            
-            // Close button in sidebar (will be available after sidebar loads)
-            setTimeout(() => {
-                const closeBtn = document.getElementById('sidebar-close-button');
-                closeBtn?.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    closeSidebar();
-                });
-            }, 100);
-        }
-
-        function toggleSidebar() {
-            const sidebar = document.querySelector('.main-sidebar');
-            const overlay = document.getElementById('sidebarOverlay');
-            
-            if (sidebar && overlay) {
-                sidebar.classList.toggle('active');
-                overlay.classList.toggle('active');
-                document.body.style.overflow = sidebar.classList.contains('active') ? 'hidden' : '';
-            }
-        }
-
-        function closeSidebar() {
-            const sidebar = document.querySelector('.main-sidebar');
-            const overlay = document.getElementById('sidebarOverlay');
-            
-            if (sidebar && overlay) {
-                sidebar.classList.remove('active');
-                overlay.classList.remove('active');
-                document.body.style.overflow = '';
-            }
-        }async function loadUserDashboardData() {
-            try {
-                const token = localStorage.getItem('auth_token');
+                const token = localStorage.getItem('authToken');
                 if (!token) {
-                    // Show default dashboard without redirecting immediately
-                    console.log('No auth token found, showing default dashboard');
-                    showDefaultDashboard();
+                    window.location.href = './login.html';
                     return;
                 }
 
-                // Fetch user data from correct API endpoint
-                const response = await fetch('/api/user/profile', {
-                    method: 'GET',
+                // Fetch user data
+                const response = await fetch('./server/routes/user.js', {
                     headers: {
                         'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json'
@@ -781,42 +632,16 @@
                 if (response.ok) {
                     const userData = await response.json();
                     updateDashboardUI(userData);
-                } else if (response.status === 401) {
-                    // Token expired or invalid
-                    localStorage.removeItem('auth_token');
-                    console.log('Invalid token, showing default dashboard');
-                    showDefaultDashboard();
-                } else {
-                    // Other errors, show default dashboard
-                    console.log('API error, showing default dashboard');
-                    showDefaultDashboard();
                 }
             } catch (error) {
                 console.error('Error loading dashboard data:', error);
-                // On error, show default dashboard instead of redirecting
-                showDefaultDashboard();
-            }
-        }        function showDefaultDashboard() {
-            // Update with default/demo data
-            document.getElementById('userInitials').textContent = 'WU';
-            document.getElementById('currentBalance').textContent = '$0.00';
-            document.getElementById('depositBalance').textContent = '$0.00';
-            
-            // Hide notification badge
-            const badge = document.getElementById('notificationCount');
-            if (badge) {
-                badge.style.display = 'none';
-            }
-            
-            // Show login button
-            const loginBtn = document.getElementById('loginBtn');
-            if (loginBtn) {
-                loginBtn.style.display = 'flex';
             }
         }
 
-        function updateDashboardUI(userData) {            // Update user avatar initials
+        function updateDashboardUI(userData) {
+            // Update user info
             if (userData.username) {
+                document.getElementById('userName').textContent = userData.username;
                 const initials = userData.username.split(' ').map(name => name[0]).join('').toUpperCase();
                 document.getElementById('userInitials').textContent = initials;
             }
@@ -825,7 +650,14 @@
             if (userData.balance !== undefined) {
                 document.getElementById('currentBalance').textContent = `$${userData.balance.toFixed(2)}`;
                 document.getElementById('depositBalance').textContent = `$${userData.balance.toFixed(2)}`;
-            }// Update notification count
+            }
+
+            // Update membership tier
+            if (userData.membershipTier) {
+                document.getElementById('membershipTier').textContent = userData.membershipTier + ' Member';
+            }
+
+            // Update notification count
             if (userData.unreadNotifications !== undefined) {
                 const badge = document.getElementById('notificationCount');
                 if (userData.unreadNotifications > 0) {
@@ -834,12 +666,6 @@
                 } else {
                     badge.style.display = 'none';
                 }
-            }
-            
-            // Hide login button when authenticated
-            const loginBtn = document.getElementById('loginBtn');
-            if (loginBtn) {
-                loginBtn.style.display = 'none';
             }
         }
 
