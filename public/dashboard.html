@@ -21,9 +21,938 @@
     <link rel="stylesheet" href="./assets/frontend/css/animate.min.css" type="text/css" media="all"/>
     <link rel="stylesheet" href="./assets/frontend/css/owl.carousel.min.css" type="text/css" media="all"/>
     <link rel="stylesheet" href="./assets/frontend/css/style.css" type="text/css" media="all"/>
-    <link rel="stylesheet" href="./assets/frontend/main/css/other1.css">    
-    <!-- Enhanced marquee and notification badge styling -->
-    <link rel="stylesheet" href="./css/marquee-enhancements.css" type="text/css" media="all"/>
+    <link rel="stylesheet" href="./assets/frontend/main/css/other1.css">      <link rel="stylesheet" href="./css/sidebar-fixes.css" type="text/css" media="all"/>
+    <!-- Dashboard Modern Styling -->
+    <style>        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --success-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --warning-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            --card-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            --card-hover-shadow: 0 20px 40px rgba(0,0,0,0.15);
+            
+            /* Membership Tier Colors */
+            --bronze-gradient: linear-gradient(135deg, #CD7F32 0%, #8B4513 100%);
+            --bronze-light: #DEB887;
+            --silver-gradient: linear-gradient(135deg, #C0C0C0 0%, #708090 100%);
+            --silver-light: #E5E5E5;
+            --gold-gradient: linear-gradient(135deg, #FFD700 0%, #B8860B 100%);
+            --gold-light: #FFF8DC;
+            --platinum-gradient: linear-gradient(135deg, #2C2C54 0%, #40407A 100%);
+            --platinum-light: #E8E8F0;
+            
+            /* Enhanced Typography */
+            --heading-font: 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            --body-font: 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            --text-primary: #2c3e50;
+            --text-secondary: #7f8c8d;
+            --text-muted: #95a5a6;
+        }        /* Enhanced Typography & Readability */
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            font-family: var(--body-font);
+            font-size: 16px;
+            line-height: 1.6;
+            color: var(--text-primary);
+            letter-spacing: 0.3px;
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+            font-family: var(--heading-font);
+            font-weight: 700;
+            line-height: 1.3;
+            color: var(--text-primary);
+            margin-bottom: 1rem;
+        }
+
+        p {
+            color: var(--text-secondary);
+            line-height: 1.7;
+            margin-bottom: 1rem;
+        }
+
+        .text-muted {
+            color: var(--text-muted) !important;
+        }
+
+        /* Improved Contrast and Readability */
+        .section-title {
+            font-weight: 800;
+            color: var(--text-primary);
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            font-size: 18px;
+            letter-spacing: 0.5px;
+        }
+
+        .section-title i {
+            color: #667eea;
+            margin-right: 8px;
+        }
+
+        /* Enhanced Card Readability */
+        .card {
+            background: rgba(255,255,255,0.98);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255,255,255,0.2);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.08);
+        }
+
+        .card:hover {
+            box-shadow: 0 12px 40px rgba(0,0,0,0.12);
+        }
+
+        .header-main {
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .main-content {
+            padding: 20px 0;
+        }
+
+        /* Modern Card Styling */
+        .card {
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(10px);
+            border: none;
+            border-radius: 20px;
+            box-shadow: var(--card-shadow);
+            transition: all 0.3s ease;
+            overflow: hidden;
+            margin-bottom: 25px;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--card-hover-shadow);
+        }
+
+        .card-body, .card-bsody {
+            padding: 25px;
+        }
+
+        /* Service Cards Enhancement */
+        .service-card {
+            transition: all 0.3s ease;
+        }
+
+        .service-card .card {
+            background: var(--primary-gradient);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 10px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .service-card .card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent);
+            transition: all 0.5s ease;
+            transform: rotate(-45deg);
+            opacity: 0;
+        }
+
+        .service-card:hover .card::before {
+            opacity: 1;
+            animation: shimmer 1s ease-in-out;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%) rotate(-45deg); }
+            100% { transform: translateX(100%) rotate(-45deg); }
+        }
+
+        .service-card:hover {
+            transform: scale(1.05);
+        }
+
+        .service-card img {
+            filter: brightness(0) invert(1);
+            transition: all 0.3s ease;
+        }
+
+        .service-card:hover img {
+            transform: scale(1.1);
+        }
+
+        .service-card p {
+            color: white;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+
+        /* Progress Section Enhancement */
+        .progress-section {
+            background: var(--success-gradient);
+            color: white;
+            border-radius: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .progress-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="rgba(255,255,255,0.1)"/><circle cx="75" cy="75" r="1" fill="rgba(255,255,255,0.1)"/><circle cx="50" cy="10" r="0.5" fill="rgba(255,255,255,0.05)"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+            opacity: 0.3;
+        }
+
+        .progress-section h6 {
+            color: white;
+            font-weight: 700;
+            margin-bottom: 20px;
+        }
+
+        .item-card {
+            background: rgba(255,255,255,0.15);
+            border-radius: 15px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+            position: relative;
+            z-index: 1;
+        }
+
+        .progress {
+            background: rgba(255,255,255,0.2);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            background: linear-gradient(90deg, #4CAF50, #8BC34A);
+            transition: width 0.8s ease;
+        }
+
+        /* Membership Section Enhancement */
+        .membership-section {
+            background: var(--warning-gradient);
+            color: white;
+            border-radius: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .membership-section::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+            animation: rotate 20s linear infinite;
+        }
+
+        @keyframes rotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .membership-section h6 {
+            color: white;
+            font-weight: 700;
+            position: relative;
+            z-index: 1;
+        }
+
+        .membership-section h4 {
+            color: white;
+            font-weight: 800;
+            margin: 15px 0;
+            position: relative;
+            z-index: 1;
+        }
+
+        .membership-section img {
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            position: relative;
+            z-index: 1;
+        }
+
+        .membership-section p {
+            position: relative;
+            z-index: 1;
+        }
+
+        .membership-section a {
+            color: white;
+            text-decoration: none;
+            font-weight: 600;
+            padding: 5px 15px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .membership-section a:hover {
+            background: rgba(255,255,255,0.3);
+            color: white;
+            transform: scale(1.05);
+        }
+
+        /* Footer Enhancement */
+        footer {
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(10px);
+            border-top: 1px solid rgba(0,0,0,0.1);
+            margin-top: 50px;
+        }
+
+        .footer-bar {
+            display: flex;
+            justify-content: space-around;
+            padding: 15px 0;
+        }
+
+        .footer-bar a {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-decoration: none;
+            color: #666;
+            transition: all 0.3s ease;
+            padding: 10px;
+            border-radius: 15px;
+            position: relative;
+        }
+
+        .footer-bar a.active,
+        .footer-bar a:hover {
+            background: var(--primary-gradient);
+            color: white;
+            transform: translateY(-3px);
+        }
+
+        .footer-bar a svg {
+            margin-bottom: 5px;
+            transition: all 0.3s ease;
+        }
+
+        .footer-bar a:hover svg {
+            transform: scale(1.1);
+        }
+
+        /* Enhanced Notification Badge */
+        .enhanced-notification-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: linear-gradient(45deg, #ff4757, #ff3838);
+            color: white;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            font-size: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        /* Responsive Improvements */
+        @media (max-width: 768px) {
+            .main-content {
+                padding: 15px 0;
+            }
+            
+            .card-body, .card-bsody {
+                padding: 20px;
+            }
+            
+            .service-card .card {
+                padding: 15px;
+            }
+        }
+
+        /* Container improvements */
+        .container {
+            max-width: 1200px;
+        }        /* Modern marquee hidden by default as requested */
+        .modern-marquee {
+            display: none !important;
+        }
+
+        /* Enhanced Service Cards */
+        .modern-service-card {
+            background: rgba(255,255,255,0.98);
+        }
+
+        .section-title {
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+        }
+
+        .service-starting { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+        .service-drive { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
+        .service-about { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); }
+        .service-support { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+
+        .service-icon {
+            font-size: 32px;
+            color: white;
+            transition: all 0.3s ease;
+        }
+
+        .service-card:hover .service-icon {
+            transform: scale(1.2) rotate(10deg);
+        }
+
+        .service-label {
+            font-size: 14px;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-top: 12px;
+            margin-bottom: 0;
+        }        /* Enhanced Progress Section */
+        .progress-card .progress-section {
+            background: var(--success-gradient);
+            position: relative;
+        }
+
+        .progress-section .section-title {
+            color: white;
+            font-weight: 800;
+            font-size: 20px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .progress-section .section-title i {
+            color: rgba(255,255,255,0.9);
+        }
+
+        .completion-stats {
+            margin-bottom: 25px;
+        }
+
+        .stat-circle {
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 90px;
+            height: 90px;
+            background: rgba(255,255,255,0.25);
+            border-radius: 50%;
+            border: 3px solid rgba(255,255,255,0.4);
+            backdrop-filter: blur(10px);
+        }
+
+        .stat-number {
+            font-size: 28px;
+            font-weight: 900;
+            color: white;
+            line-height: 1;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: rgba(255,255,255,0.95);
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 2px;
+        }
+
+        .progress-container {
+            margin-top: 25px;
+        }
+
+        .progress-info {
+            color: white;
+            font-weight: 700;
+            font-size: 15px;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+        }
+
+        .progress-percentage {
+            font-size: 16px;
+            font-weight: 800;
+            background: rgba(255,255,255,0.2);
+            padding: 4px 12px;
+            border-radius: 15px;
+            backdrop-filter: blur(5px);
+        }
+
+        .progress {
+            height: 12px;
+            background: rgba(255,255,255,0.25);
+            border-radius: 10px;
+            overflow: hidden;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        .progress-bar {
+            background: linear-gradient(90deg, #4CAF50, #8BC34A);
+            transition: width 0.8s ease;
+            border-radius: 10px;
+            position: relative;
+        }
+
+        .progress-bar::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .info-text {
+            margin-top: 25px;
+            color: rgba(255,255,255,0.95);
+            font-size: 14px;
+            position: relative;
+            z-index: 1;
+            background: rgba(255,255,255,0.1);
+            padding: 15px 20px;
+            border-radius: 12px;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255,255,255,0.2);
+            line-height: 1.6;
+        }
+
+        .info-text i {
+            color: rgba(255,255,255,0.9);
+            margin-right: 8px;
+        }
+
+        /* Enhanced Membership Section */
+        .membership-card .membership-section {
+            background: var(--warning-gradient);
+        }
+
+        .membership-content {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+            position: relative;
+            z-index: 1;
+        }
+
+        .membership-image {
+            flex-shrink: 0;
+        }
+
+        .membership-badge {
+            border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+        }
+
+        .membership-badge:hover {
+            transform: scale(1.05) rotate(2deg);
+        }
+
+        .membership-info {
+            flex: 1;
+        }
+
+        .membership-title {
+            color: white;
+            font-weight: 800;
+            margin-bottom: 20px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .benefits-list {
+            display: grid;
+            gap: 12px;
+        }
+
+        .benefit-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: rgba(255,255,255,0.15);
+            padding: 12px 15px;
+            border-radius: 10px;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: white;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .benefit-item:hover {
+            background: rgba(255,255,255,0.25);
+            transform: translateX(5px);
+        }
+
+        .benefit-item i {
+            color: rgba(255,255,255,0.9);
+            width: 16px;
+            text-align: center;
+        }
+
+        .view-more-btn {
+            font-size: 14px;
+        }
+
+        /* Logo enhancements */
+        .logo-container {
+            transition: all 0.3s ease;
+        }
+
+        .logo-img {
+            transition: all 0.3s ease;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+        }
+
+        .logo-container:hover .logo-img {
+            transform: scale(1.05);
+        }
+
+        /* Notification link enhancement */
+        .notification-link {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 12px;
+            border-radius: 12px;
+            background: rgba(102, 126, 234, 0.1);
+            color: #667eea;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .notification-link:hover {
+            background: rgba(102, 126, 234, 0.2);
+            color: #667eea;
+            transform: scale(1.05);
+        }
+
+        /* Mobile responsive improvements */
+        @media (max-width: 768px) {
+            .membership-content {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .benefits-list {
+                grid-template-columns: 1fr;
+            }
+            
+            .service-card .card {
+                padding: 15px 10px;
+            }
+              .service-icon {
+                font-size: 28px;
+            }
+        }
+
+        /* Enhanced Membership Section with Tier Themes */
+        .membership-card {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .membership-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            opacity: 0.1;
+            background-image: 
+                radial-gradient(circle at 20% 20%, rgba(255,255,255,0.2) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(255,255,255,0.1) 0%, transparent 50%);
+        }
+
+        /* Dynamic Tier Theming */
+        .membership-section {
+            position: relative;
+            z-index: 1;
+            border-radius: 20px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            color: white;
+        }
+
+        /* Bronze Tier */
+        .membership-section.tier-bronze {
+            background: var(--bronze-gradient);
+            border: 2px solid #CD7F32;
+        }
+
+        .membership-section.tier-bronze::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, 
+                rgba(205, 127, 50, 0.1) 0%, 
+                rgba(139, 69, 19, 0.1) 100%);
+            animation: rotate 20s linear infinite;
+        }
+
+        .tier-bronze .membership-badge {
+            box-shadow: 0 8px 32px rgba(205, 127, 50, 0.4);
+            border: 3px solid rgba(205, 127, 50, 0.3);
+        }
+
+        /* Silver Tier */
+        .membership-section.tier-silver {
+            background: var(--silver-gradient);
+            border: 2px solid #C0C0C0;
+        }
+
+        .membership-section.tier-silver::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, 
+                rgba(192, 192, 192, 0.1) 0%, 
+                rgba(112, 128, 144, 0.1) 100%);
+            animation: rotate 20s linear infinite;
+        }
+
+        .tier-silver .membership-badge {
+            box-shadow: 0 8px 32px rgba(192, 192, 192, 0.4);
+            border: 3px solid rgba(192, 192, 192, 0.3);
+        }
+
+        /* Gold Tier */
+        .membership-section.tier-gold {
+            background: var(--gold-gradient);
+            border: 2px solid #FFD700;
+        }
+
+        .membership-section.tier-gold::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, 
+                rgba(255, 215, 0, 0.1) 0%, 
+                rgba(184, 134, 11, 0.1) 100%);
+            animation: rotate 20s linear infinite;
+        }
+
+        .tier-gold .membership-badge {
+            box-shadow: 0 8px 32px rgba(255, 215, 0, 0.4);
+            border: 3px solid rgba(255, 215, 0, 0.3);
+        }
+
+        /* Platinum Tier */
+        .membership-section.tier-platinum {
+            background: var(--platinum-gradient);
+            border: 2px solid #2C2C54;
+        }
+
+        .membership-section.tier-platinum::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, 
+                rgba(44, 44, 84, 0.1) 0%, 
+                rgba(64, 64, 122, 0.1) 100%);
+            animation: rotate 20s linear infinite;
+        }
+
+        .tier-platinum .membership-badge {
+            box-shadow: 0 8px 32px rgba(44, 44, 84, 0.4);
+            border: 3px solid rgba(64, 64, 122, 0.3);
+        }
+
+        @keyframes rotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Tier-specific text colors for better readability */
+        .tier-bronze .membership-title,
+        .tier-bronze .section-title {
+            color: #FFF8E1;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .tier-silver .membership-title,
+        .tier-silver .section-title {
+            color: #FAFAFA;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.4);
+        }
+
+        .tier-gold .membership-title,
+        .tier-gold .section-title {
+            color: #1A1A1A;
+            text-shadow: 0 2px 4px rgba(255,255,255,0.3);
+        }
+
+        .tier-platinum .membership-title,
+        .tier-platinum .section-title {
+            color: #E8E8F0;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        }
+
+        /* Enhanced benefit items with tier-specific styling */
+        .benefit-item {
+            background: rgba(255,255,255,0.15);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 12px;
+            padding: 16px 18px;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+            color: white;
+        }
+
+        .tier-bronze .benefit-item {
+            background: rgba(255, 248, 225, 0.2);
+            border-color: rgba(205, 127, 50, 0.3);
+            color: #FFF8E1;
+        }
+
+        .tier-silver .benefit-item {
+            background: rgba(250, 250, 250, 0.2);
+            border-color: rgba(192, 192, 192, 0.3);
+            color: #FAFAFA;
+        }
+
+        .tier-gold .benefit-item {
+            background: rgba(26, 26, 26, 0.1);
+            border-color: rgba(255, 215, 0, 0.3);
+            color: #1A1A1A;
+        }
+
+        .tier-platinum .benefit-item {
+            background: rgba(232, 232, 240, 0.2);
+            border-color: rgba(64, 64, 122, 0.3);
+            color: #E8E8F0;
+        }
+
+        .benefit-item:hover {
+            transform: translateX(8px) scale(1.02);
+            background: rgba(255,255,255,0.25);
+        }
+
+        .benefit-item i {
+            width: 20px;
+            text-align: center;
+            font-size: 16px;
+            opacity: 0.9;
+        }
+
+        /* Tier badges with improved styling */
+        .tier-badge {
+            position: absolute;
+            top: -10px;
+            right: 20px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            z-index: 10;
+        }
+
+        .tier-badge.bronze {
+            background: linear-gradient(45deg, #CD7F32, #DEB887);
+            color: #FFF8E1;
+            box-shadow: 0 4px 15px rgba(205, 127, 50, 0.4);
+        }
+
+        .tier-badge.silver {
+            background: linear-gradient(45deg, #C0C0C0, #E5E5E5);
+            color: #2C2C2C;
+            box-shadow: 0 4px 15px rgba(192, 192, 192, 0.4);
+        }
+
+        .tier-badge.gold {
+            background: linear-gradient(45deg, #FFD700, #FFF8DC);
+            color: #1A1A1A;
+            box-shadow: 0 4px 15px rgba(255, 215, 0, 0.4);
+        }
+
+        .tier-badge.platinum {
+            background: linear-gradient(45deg, #2C2C54, #E8E8F0);
+            color: #E8E8F0;
+            box-shadow: 0 4px 15px rgba(44, 44, 84, 0.4);
+        }
+
+        /* View more button styling */
+        .view-more-btn {
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            text-decoration: none;
+            font-weight: 600;
+            padding: 8px 16px;
+            border-radius: 20px;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .view-more-btn:hover {
+            background: rgba(255,255,255,0.3);
+            color: white;
+            transform: scale(1.05);
+            text-decoration: none;
+        }
+
+        .view-more-btn::after {
+            content: '→';
+            transition: transform 0.3s ease;
+        }
+
+        .view-more-btn:hover::after {
+            transform: translateX(3px);
+        }
+    </style>
     <!-- i18next scripts REMOVED - using fallback text only -->
     <!-- <script src="https://unpkg.com/i18next/i18next.min.js"></script> -->
     <!-- <script src="https://unpkg.com/i18next-http-backend/i18nextHttpBackend.min.js"></script> -->
@@ -53,18 +982,17 @@
                     </svg>
                 </a>
             </div>
-             
-
-            <div class="brookwood-txt d-flex align-items-center">
-                                   <img src="./assets/uploads/generals/logo-665b8c82040901717275778.png" width="150">
-                         
+                 <div class="brookwood-txt d-flex align-items-center">
+                <div class="logo-container">
+                    <img src="./assets/uploads/generals/logo-665b8c82040901717275778.png" width="150" class="logo-img">
+                </div>
             </div>
 
             <div class="item-options">
                 <div class="item-notification icon-effect me-3">
-                    <a href="./notifications.html" data-i18n="notificationsLink">
+                    <a href="./notifications.html" class="notification-link" data-i18n="notificationsLink">
                         <svg enable-background="new 0 0 512 512" fill="currentColor"
-                             viewBox="0 0 512 512" width="20" height="20"
+                             viewBox="0 0 512 512" width="24" height="24"
                              xmlns="http://www.w3.org/2000/svg">
                             <path d="m411 262.862v-47.862c0-69.822-46.411-129.001-110-148.33v-21.67c0-24.813-20.187-45-45-45s-45 20.187-45 45v21.67c-63.59 19.329-110 78.507-110 148.33v47.862c0 61.332-23.378 119.488-65.827 163.756-4.16 4.338-5.329 10.739-2.971 16.267s7.788 9.115 13.798 9.115h136.509c6.968 34.192 37.272 60 73.491 60 36.22 0 66.522-25.808 73.491-60h136.509c6.01 0 11.439-3.587 13.797-9.115s1.189-11.929-2.97-16.267c-42.449-44.268-65.827-102.425-65.827-163.756zm-170-217.862c0-8.271 6.729-15 15-15s15 6.729 15 15v15.728c-4.937-.476-9.94-.728-15-.728s-10.063.252-15 .728zm15 437c-19.555 0-36.228-12.541-42.42-30h84.84c-6.192 17.459-22.865 30-42.42 30zm-177.67-60c34.161-45.792 52.67-101.208 52.67-159.138v-47.862c0-68.925 56.075-125 125-125s125 56.075 125 125v47.862c0 57.93 18.509 113.346 52.671 159.138z"/>
                             <path d="m451 215c0 8.284 6.716 15 15 15s15-6.716 15-15c0-60.1-23.404-116.603-65.901-159.1-5.857-5.857-15.355-5.858-21.213 0s-5.858 15.355 0 21.213c36.831 36.831 57.114 85.8 57.114 137.887z"/>
@@ -73,8 +1001,6 @@
                         <span class="count-notif enhanced-notification-badge" id="notificationBadge"></span>
                     </a>
                 </div>
-                 
-                
             </div>
         </div>
     </div>
@@ -96,106 +1022,148 @@
             </marquee>
          </div> -->
       </div>
-   </div>
-
-   <div class="row">
-      <div class="col-md-5 mx-auto">
-         <div class="card">
+   </div>   <div class="row">
+      <div class="col-lg-8 col-md-10 mx-auto">
+         <div class="card modern-service-card">
             <div class="card-body">
-               <div class="service-item">
-                  <div class="row g-3">
-                     <div class="col-3">
+               <div class="service-section">
+                  <h5 class="section-title mb-4">
+                     <i class="fas fa-rocket me-2"></i>
+                     <span data-i18n="quickActionsTitle">Quick Actions</span>
+                  </h5>
+                  <div class="row g-4">
+                     <div class="col-6 col-md-3">
                         <div class="service-card text-center">
-                           <div class="card">
+                           <div class="card service-starting">
                               <a href="./task.html">
-                                 <img src="./assets/uploads/img/1.png" width="50px">
+                                 <i class="fas fa-play-circle service-icon"></i>
                               </a>
                            </div>
-                           <p class="mb-0" style="font-size: 12px" data-i18n="startingTask">Starting</p>
+                           <p class="service-label" data-i18n="startingTask">Starting</p>
                         </div>
                      </div>
-                     <div class="col-3">
+                     <div class="col-6 col-md-3">
                         <div class="service-card text-center">
-                           <div class="card">
+                           <div class="card service-drive">
                               <a href="./task.html">
-                                 <img src="./assets/uploads/img/4.png" width="50px">
+                                 <i class="fas fa-database service-icon"></i>
                               </a>
                            </div>
-                           <p class="mb-0" style="font-size: 12px" data-i18n="dataDriveTask">Data Drive</p>
+                           <p class="service-label" data-i18n="dataDriveTask">Data Drive</p>
                         </div>
                      </div>
-                     <div class="col-3">
+                     <div class="col-6 col-md-3">
                         <div class="service-card text-center">
-                           <div class="card">
+                           <div class="card service-about">
                               <a href="./company.html">
-                                 <img src="./assets/uploads/img/3.png" width="50px">
+                                 <i class="fas fa-info-circle service-icon"></i>
                               </a>
                            </div>
-                           <p class="mb-0" style="font-size: 12px" data-i18n="aboutUsLink">About Us</p>
+                           <p class="service-label" data-i18n="aboutUsLink">About Us</p>
                         </div>
                      </div>
-                     <div class="col-3">
+                     <div class="col-6 col-md-3">
                         <div class="service-card text-center">
-                           <div class="card">
+                           <div class="card service-support">
                               <a href="./support.html">
-                                 <img src="./assets/uploads/img/2.png" width="50px">
+                                 <i class="fas fa-headset service-icon"></i>
                               </a>
                            </div>
-                           <p class="mb-0" style="font-size: 12px" data-i18n="contactUsLink">Contact Us</p>
+                           <p class="service-label" data-i18n="contactUsLink">Contact Us</p>
                         </div>
                      </div>
-                     
                   </div>
                </div>
             </div>
          </div>
       </div>
    </div>
-   
-   <div class="row">
-      <div class="col-md-5 mx-auto">
-         <div class="card">
-            <div class="card-bsody">
-               <div data-v-c26261c6="" class="col-span-1 flex flex-col p-4 bg-[#F6F5F7] mr-3">
-                  <h6 data-i18n="registeredWorkingDaysHeader">Registered Working Days</h6>
+     <div class="row">
+      <div class="col-lg-8 col-md-10 mx-auto">
+         <div class="card progress-card">
+            <div class="card-body progress-section">
+               <h6 class="section-title" data-i18n="registeredWorkingDaysHeader">
+                  <i class="fas fa-calendar-check me-2"></i>
+                  Registered Working Days
+               </h6>
+               
+               <div class="item-card">
+                  <div class="text-center mb-3">
+                     <div class="completion-stats">
+                        <div class="stat-circle">
+                           <span class="stat-number">0</span>
+                           <span class="stat-label" data-i18n="completedLabel">Completed</span>
+                        </div>
+                     </div>
+                  </div>
                   
-                   <div class="item-card mt-3 mb-4">
-                        <div class="text-center">
-                            <p class="mb-3" data-i18n="completedWorkingDays" data-i18n-options='{"count": 0}'><b>Completed (0)</b></p>
-                        </div>
-                                                 <div style="display: flex; align-items: center;">
-                            <p style="margin-right: 10px;" data-i18n="progressWorkingDays" data-i18n-options='{"completed": 0, "total": 7}'>Progress (0/7)</p>
-                            <div class="progress" style="height: 10px; flex: 1;">
-                                <div class="progress-bar bg-info" role="progressbar" style="width: 0%;"></div>
-                            </div>
-                        </div>
-                    </div>
-                    <p style="font-size: 14px" data-i18n="workingDaysDescription">Once you complete two sets of data in a day, our customer service team will register a working day for you</p>
+                  <div class="progress-container">
+                     <div class="progress-info d-flex justify-content-between align-items-center mb-2">
+                        <span class="progress-label" data-i18n="progressWorkingDays" data-i18n-options='{"completed": 0, "total": 7}'>Progress (0/7)</span>
+                        <span class="progress-percentage">0%</span>
+                     </div>
+                     <div class="progress">
+                        <div class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                     </div>
+                  </div>
+               </div>
+               
+               <div class="info-text">
+                  <i class="fas fa-info-circle me-2"></i>
+                  <span data-i18n="workingDaysDescription">Once you complete two sets of data in a day, our customer service team will register a working day for you</span>
                </div>
             </div>
          </div>
       </div>
-   </div>
-
-   <div class="row">
-      <div class="col-md-5 mx-auto">
-         <div class="card">
-            <div class="card-bsody">
-               <div data-v-c26261c6="" class="col-span-1 flex flex-col p-4 bg-[#F6F5F7] mr-3">
-                  <h6 class="mb-2" data-i18n="tierMembershipHeader">Tier Membership <span style="float: right;"><a href="./memberships.html" data-i18n="viewMoreLink">View more</a></span></h6>
-                  <div data-v-c26261c6="" class="flex justify-between items-center">
-                     <img data-v-c26261c6="" width="60px" src="./assets/uploads/packages/gold_665c05eea02a21717306862.PNG" alt="">
+   </div>   <div class="row">
+      <div class="col-lg-8 col-md-10 mx-auto">
+         <div class="card membership-card">
+            <div class="tier-badge gold">Gold Member</div>
+            <div class="card-body membership-section tier-gold">
+               <h6 class="section-title d-flex justify-content-between align-items-center">
+                  <span>
+                     <i class="fas fa-crown me-2"></i>
+                     <span data-i18n="tierMembershipHeader">Tier Membership</span>
+                  </span>
+                  <a href="./memberships.html" class="view-more-btn" data-i18n="viewMoreLink">
+                     View more
+                  </a>
+               </h6>
+               
+               <div class="membership-content">
+                  <div class="membership-image">
+                     <img width="80px" src="./assets/uploads/packages/gold_665c05eea02a21717306862.PNG" alt="Elite Member" class="membership-badge">
                   </div>
-                  <h4 data-i18n="eliteMemberTitle">Elite Member</h4>
-                  <div data-v-c26261c6="" class="text-[#11223E] text-xs mt-2">
-                     <p style="font-size: 13px">
-                        <span data-i18n="eliteMemberCommissionPerData" data-i18n-options='{"percentage": 1.5}'>● 1.5% commission per data</span><br />
-                        <span data-i18n="eliteMemberCommissionMergeData" data-i18n-options='{"percentage": 4.5}'>● 4.5% commission for merge data</span><br />
-                        <span data-i18n="eliteMemberDataLimit" data-i18n-options='{"dataLimit": 45, "setsPerDay": 2}'>● Limited to 45 data per set, 2 sets of data everyday</span><br />
-                        <span data-i18n="eliteMemberWithdrawalLimit" data-i18n-options='{"limit": 50000}'>● withdrawal limit: 50,000 USDT</span><br />
-                        <span data-i18n="eliteMemberWithdrawalTimes" data-i18n-options='{"times": 2}'>● 2 times of withdrawal</span><br />
-                        <span data-i18n="eliteMemberHandlingFee" data-i18n-options='{"percentage": 0}'>● 0% handling fee</span>
-                     </p>
+                  
+                  <div class="membership-info">
+                     <h4 class="membership-title" data-i18n="eliteMemberTitle">Gold Member</h4>
+                     
+                     <div class="benefits-list">
+                        <div class="benefit-item">
+                           <i class="fas fa-percentage"></i>
+                           <span data-i18n="eliteMemberCommissionPerData" data-i18n-options='{"percentage": 1.5}'>1.5% commission per data</span>
+                        </div>
+                        <div class="benefit-item">
+                           <i class="fas fa-layer-group"></i>
+                           <span data-i18n="eliteMemberCommissionMergeData" data-i18n-options='{"percentage": 4.5}'>4.5% commission for merge data</span>
+                        </div>
+                        <div class="benefit-item">
+                           <i class="fas fa-database"></i>
+                           <span data-i18n="eliteMemberDataLimit" data-i18n-options='{"dataLimit": 45, "setsPerDay": 2}'>Limited to 45 data per set, 2 sets of data everyday</span>
+                        </div>
+                        <div class="benefit-item">
+                           <i class="fas fa-money-bill-wave"></i>
+                           <span data-i18n="eliteMemberWithdrawalLimit" data-i18n-options='{"limit": 50000}'>withdrawal limit: 50,000 USDT</span>
+                        </div>
+                        <div class="benefit-item">
+                           <i class="fas fa-clock"></i>
+                           <span data-i18n="eliteMemberWithdrawalTimes" data-i18n-options='{"times": 2}'>2 times of withdrawal</span>
+                        </div>
+                        <div class="benefit-item">
+                           <i class="fas fa-gift"></i>
+                           <span data-i18n="eliteMemberHandlingFee" data-i18n-options='{"percentage": 0}'>0% handling fee</span>
+                        </div>
+                     </div>
                   </div>
                </div>
             </div>
@@ -275,6 +1243,51 @@
     if (typeof attachLogoutHandlers === 'function') {
       attachLogoutHandlers();
     }
+    
+    // Dynamic tier theme application
+    function applyTierTheme(tierName) {
+      const membershipSection = document.querySelector('.membership-section');
+      const tierBadge = document.querySelector('.tier-badge');
+      const membershipTitle = document.querySelector('.membership-title');
+      
+      if (!membershipSection || !tierBadge || !membershipTitle) return;
+      
+      // Remove existing tier classes
+      membershipSection.classList.remove('tier-bronze', 'tier-silver', 'tier-gold', 'tier-platinum');
+      tierBadge.classList.remove('bronze', 'silver', 'gold', 'platinum');
+      
+      // Apply new tier theme
+      const tier = tierName.toLowerCase();
+      membershipSection.classList.add(`tier-${tier}`);
+      tierBadge.classList.add(tier);
+      
+      // Update text content
+      const tierDisplayNames = {
+        'bronze': 'Bronze Member',
+        'silver': 'Silver Member', 
+        'gold': 'Gold Member',
+        'platinum': 'Platinum Member'
+      };
+      
+      tierBadge.textContent = tierDisplayNames[tier] || `${tierName} Member`;
+      membershipTitle.textContent = tierDisplayNames[tier] || `${tierName} Member`;
+    }
+    
+    // Apply tier theme when user data is available
+    function checkUserTierAndApplyTheme() {
+      // This will be called by dashboard.js when user data is loaded
+      const userData = window.currentUserData || JSON.parse(localStorage.getItem('user_data') || '{}');
+      if (userData && userData.tier) {
+        applyTierTheme(userData.tier);
+      }
+    }
+    
+    // Make function globally available
+    window.applyTierTheme = applyTierTheme;
+    window.checkUserTierAndApplyTheme = checkUserTierAndApplyTheme;
+    
+    // Try to apply theme immediately if data is available
+    setTimeout(checkUserTierAndApplyTheme, 100);
   });
 </script>
 </body>

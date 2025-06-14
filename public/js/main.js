@@ -130,25 +130,28 @@ async function fetchWithAuth(url, options = {}) {
             
             window.location.href = 'login.html';
             throw new Error('Unauthorized');
-        }
-
-        // Handle other errors
+        }        // Handle other errors
         if (!response.ok) {
             let errorData = {};
             try {
                 errorData = await response.json();
             } catch (parseErr) {
-                // If parsing fails, keep it empty
+                // If parsing fails, create a generic error message
+                errorData = { 
+                    message: `HTTP ${response.status}: ${response.statusText}` 
+                };
             }
             const errorMsg = errorData.message || `Error status ${response.status}`;
+            console.error('API Error Response:', errorData);
             throw new Error(errorMsg);
         }
 
         return await response.json();
     } catch (error) {
         console.error('API request error:', error);
-        // Only show notification for non-401 errors (avoid duplicate notifications)
-        if (error.message !== 'Unauthorized') {
+        
+        // Don't show notification for password change errors - let the calling function handle it
+        if (error.message !== 'Unauthorized' && !url.includes('/password/')) {
             showNotification('Network error or server issue. Please try again.', 'error');
         }
         throw error;

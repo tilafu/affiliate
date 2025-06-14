@@ -1,109 +1,534 @@
 <div class="main-sidebar">
    <div class="sidebar-close-toggler navbar-btn">
-      <a href="#" id="sidebar-close-button"> <!-- Added ID -->
-         <svg version="1.1" width="16" height="16" fill="currentColor" xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" viewBox="0 0 492 492"  xml:space="preserve">
-            <path d="M300.188,246L484.14,62.04c5.06-5.064,7.852-11.82,7.86-19.024c0-7.208-2.792-13.972-7.86-19.028L468.02,7.872
-         c-5.068-5.076-11.824-7.856-19.036-7.856c-7.2,0-13.956,2.78-19.024,7.856L246.008,191.82L62.048,7.872
-         c-5.06-5.076-11.82-7.856-19.028-7.856c-7.2,0-13.96,2.78-19.02,7.856L7.872,23.988c-10.496,10.496-10.496,27.568,0,38.052
-         L191.828,246L7.872,429.952c-5.064,5.072-7.852,11.828-7.852,19.032c0,7.204,2.788,13.96,7.852,19.028l16.124,16.116
-         c5.06,5.072,11.824,7.856,19.02,7.856c7.208,0,13.968-2.784,19.028-7.856l183.96-183.952l183.952,183.952
-         c5.068,5.072,11.824,7.856,19.024,7.856h0.008c7.204,0,13.96-2.784,19.028-7.856l16.12-16.116
-         c5.06-5.064,7.852-11.824,7.852-19.028c0-7.204-2.792-13.96-7.852-19.028L300.188,246z"/>
-            </svg>
-        </a>
-   </div>
-   <div class="my-544">
-      <div class="row align-items-center">
-         <div class="col-auto">
-            <div class="profile-img-item">
-               <img src="./assets/uploads/user.jpg" class="rounded-circle" alt="profile">
-            </div>
+      <a href="#" id="sidebar-close-button" class="close-btn">
+         <i class="fas fa-times"></i>
+      </a>
+   </div>   <div class="user-profile-section">
+      <div class="profile-card">
+         <div class="profile-img-wrapper">
+            <img src="./assets/uploads/user.jpg" class="profile-img" alt="profile">
+            <div class="online-status"></div>
          </div>
-         <div class="col ps-1">
-            <div class="profile-details">
-               <h4 class="mb-2" id="dashboard-username"></h4>
-               <p class="mb-0 text-grsay" id="dashboard-refcode"></p>
-            </div>
+         <div class="profile-info">
+            <h4 class="username" id="dashboard-username">Loading...</h4>
+            <p class="ref-code" id="dashboard-refcode">REF: ------</p>
          </div>
       </div>
    </div>
-   <hr>
-    
-   <div class="menu-sidebar">
-      <ul>         <li class="bottom-border">
-                <a href="./profile.html"> <!-- Corrected href, removed id -->
-                   <img src="./assets/uploads/img/4.png" style="margin-right: 5px;" width="20px">
-                   <span data-i18n="sidebarProfileLink">PROFILE</span>
-                </a>
+   <div class="sidebar-divider"></div>
+      <div class="navigation-menu">
+      <nav class="sidebar-nav">
+         <ul class="nav-list">            <li class="nav-item">
+               <a href="./profile.html" class="nav-link">
+                  <i class="fas fa-user-circle nav-icon"></i>
+                  <span class="nav-text" data-i18n="sidebarProfileLink">Profile</span>
+               </a>
             </li>
-         <li class="bottom-border">
-            <a href="./deposits.html">
-               <img src="./assets/uploads/img/2.png" style="margin-right: 5px;" width="20px">
-               <span data-i18n="sidebarDepositsLink">DEPOSITS</span>
-            </a>
-         </li>         <li class="bottom-border">
-            <a href="./withdraws.html">
-               <img src="./assets/uploads/img/3.png"  style="margin-right: 5px;" width="20px">
-               <span data-i18n="sidebarWithdrawalLink">WITHDRAWAL</span>
-            </a>
-         </li>
-         <li class="bottom-border">
-            <a href="./certificates.html">
-               <img src="./assets/uploads/img/2.png"  style="margin-right: 5px;" width="20px">
-               <span data-i18n="sidebarCertificatesLink">CERTIFICATES</span>
-            </a>
-         </li>
-         <li class="bottom-border">
-            <a href="./events.html">
-               <img src="./assets/uploads/img/6.png"  style="margin-right: 5px;" width="20px">
-               <span data-i18n="sidebarLatestEventsLink">LATEST EVENTS</span>
-            </a>
-         </li>
-         <li class="bottom-border">
-            <a href="./memberships.html">
-               <img src="./assets/uploads/img/6.png"  style="margin-right: 5px;" width="20px">
-               <span data-i18n="sidebarMembershipsLink">MEMBERSHIPS</span>
-            </a>
-         </li>
-         <li class="bottom-border">
-            <a href="./terms.html">
-               <img src="./assets/uploads/img/5.png"  style="margin-right: 5px;" width="20px">
-               <span data-i18n="sidebarTermsLink">TERMS & CONDITIONS</span>
-            </a>
-         </li>
-         <li class="bottom-border">
-            <a href="./faqs.html">
-               <img src="./assets/uploads/img/7.png"  style="margin-right: 5px;" width="20px">
-               <span data-i18n="sidebarFAQsLink">FAQs</span>
-            </a>
-         </li>
-         <li class="bottom-border">
-            <a href="./company.html">
-               <img src="./assets/uploads/img/8.png"  style="margin-right: 5px;" width="20px">
-               <span data-i18n="sidebarAboutUsLink">ABOUT US</span>
-            </a>
-         </li>         
-         <li class="bottom-border">
-                <a href="#" class="logout">
-                  <img src="./assets/uploads/img/8.png"  style="margin-right: 5px;" width="20px">
-                  <span data-i18n="sidebarLogoutLink">LOGOUT</span>
-                </a>
+            <li class="nav-item">
+               <a href="./deposits.html" class="nav-link">
+                  <i class="fas fa-piggy-bank nav-icon"></i>
+                  <span class="nav-text" data-i18n="sidebarDepositsLink">Deposits</span>
+               </a>
             </li>
-
-      </ul>
-   </div>
-   
+            <li class="nav-item">
+               <a href="./withdraws.html" class="nav-link">
+                  <i class="fas fa-hand-holding-usd nav-icon"></i>
+                  <span class="nav-text" data-i18n="sidebarWithdrawalLink">Withdrawal</span>
+               </a>
+            </li>
+            <li class="nav-item">
+               <a href="./certificates.html" class="nav-link">
+                  <i class="fas fa-award nav-icon"></i>
+                  <span class="nav-text" data-i18n="sidebarCertificatesLink">Certificates</span>
+               </a>
+            </li>
+            <li class="nav-item">
+               <a href="./events.html" class="nav-link">
+                  <i class="fas fa-calendar-star nav-icon"></i>
+                  <span class="nav-text" data-i18n="sidebarLatestEventsLink">Latest Events</span>
+               </a>
+            </li>
+            <li class="nav-item">
+               <a href="./memberships.html" class="nav-link">
+                  <i class="fas fa-gem nav-icon"></i>
+                  <span class="nav-text" data-i18n="sidebarMembershipsLink">Memberships</span>
+               </a>
+            </li>
+            <li class="nav-item">
+               <a href="./terms.html" class="nav-link">
+                  <i class="fas fa-file-signature nav-icon"></i>
+                  <span class="nav-text" data-i18n="sidebarTermsLink">Terms & Conditions</span>
+               </a>
+            </li>
+            <li class="nav-item">
+               <a href="./faqs.html" class="nav-link">
+                  <i class="fas fa-lightbulb nav-icon"></i>
+                  <span class="nav-text" data-i18n="sidebarFAQsLink">FAQs</span>
+               </a>
+            </li>
+            <li class="nav-item">
+               <a href="./company.html" class="nav-link">
+                  <i class="fas fa-info-circle nav-icon"></i>
+                  <span class="nav-text" data-i18n="sidebarAboutUsLink">About Us</span>
+               </a>
+            </li>            <li class="nav-item logout-item">
+               <a href="#" class="nav-link logout">
+                  <i class="fas fa-power-off nav-icon"></i>
+                  <span class="nav-text" data-i18n="sidebarLogoutLink">Logout</span>
+               </a>
+            </li>
+         </ul>
+      </nav>
+   </div>   
    <!-- Language Switcher -->
-   <div class="language-switcher mt-4 px-3">
-      <label for="language-switcher" class="form-label mb-2" data-i18n="languageLabel">Language:</label>
-      <select id="language-switcher" class="form-select form-select-sm">
-         <option value="en">English</option>
-         <option value="es">Español</option>
-         <option value="fr">Français</option>
+   <div class="language-switcher">
+      <div class="switcher-header">
+         <i class="fas fa-globe"></i>
+         <label for="language-switcher" class="switcher-label" data-i18n="languageLabel">Language</label>
+      </div>
+      <select id="language-switcher" class="language-select">
+         <option value="en">🇺🇸 English</option>
+         <option value="es">🇪🇸 Español</option>
+         <option value="fr">🇫🇷 Français</option>
       </select>
-   </div>
-   
-    <!-- <div class="copyright-item">
-        <p class="fs-14">Copyright © All Right Reserved</p>
-    </div> -->
+   </div>   <style>
+   .main-sidebar {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      height: 100vh;
+      overflow-y: auto;
+      box-shadow: 2px 0 15px rgba(0,0,0,0.1);
+      position: fixed;
+      top: 0;
+      left: -280px;
+      width: 280px;
+      transition: all 0.3s ease;
+      z-index: 10001;
+   }
+
+   .main-sidebar.active {
+      left: 0;
+   }
+
+   .sidebar-close-toggler {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      z-index: 1000;
+   }
+
+   .close-btn {
+      background: rgba(255,255,255,0.1);
+      border: none;
+      border-radius: 50%;
+      width: 35px;
+      height: 35px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      text-decoration: none;
+      transition: all 0.3s ease;
+   }
+
+   .close-btn:hover {
+      background: rgba(255,255,255,0.2);
+      transform: rotate(90deg);
+      color: white;
+      text-decoration: none;
+   }
+
+   .user-profile-section {
+      padding: 60px 20px 20px;
+   }
+
+   .profile-card {
+      background: rgba(255,255,255,0.1);
+      border-radius: 20px;
+      padding: 20px;
+      text-align: center;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,0.1);
+   }
+
+   .profile-img-wrapper {
+      position: relative;
+      display: inline-block;
+      margin-bottom: 15px;
+   }
+
+   .profile-img {
+      width: 70px;
+      height: 70px;
+      border-radius: 50%;
+      border: 3px solid rgba(255,255,255,0.3);
+      object-fit: cover;
+   }
+
+   .online-status {
+      position: absolute;
+      bottom: 5px;
+      right: 5px;
+      width: 15px;
+      height: 15px;
+      background: #4CAF50;
+      border-radius: 50%;
+      border: 2px solid white;
+   }
+
+   .username {
+      color: white;
+      font-size: 18px;
+      font-weight: 600;
+      margin: 0 0 5px 0;
+   }
+
+   .ref-code {
+      color: rgba(255,255,255,0.8);
+      font-size: 12px;
+      margin: 0;
+      background: rgba(255,255,255,0.1);
+      padding: 4px 12px;
+      border-radius: 15px;
+      display: inline-block;
+   }
+
+   .sidebar-divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+      margin: 20px 0;
+   }
+
+   .navigation-menu {
+      padding: 0 15px 20px;
+   }
+
+   .nav-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+   }
+
+   .nav-item {
+      margin-bottom: 5px;
+   }
+
+   .nav-link {
+      display: flex;
+      align-items: center;
+      padding: 12px 15px;
+      color: rgba(255,255,255,0.9);
+      text-decoration: none;
+      border-radius: 12px;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+   }
+
+   .nav-link:before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+      transition: left 0.5s ease;
+   }
+
+   .nav-link:hover {
+      background: rgba(255,255,255,0.15);
+      color: white;
+      text-decoration: none;
+      transform: translateX(5px);
+   }
+
+   .nav-link:hover:before {
+      left: 100%;
+   }   .nav-icon {
+      width: 20px;
+      text-align: center;
+      margin-right: 12px;
+      font-size: 16px;
+      transition: all 0.3s ease;
+   }
+
+   /* Individual icon colors for better visual distinction */
+   .nav-link:hover .nav-icon,
+   .nav-link.active .nav-icon {
+      transform: scale(1.1);
+   }
+
+   /* Profile icon */
+   .nav-link[href="./profile.html"] .nav-icon {
+      color: #4FC3F7;
+   }
+   .nav-link[href="./profile.html"]:hover .nav-icon {
+      color: #29B6F6;
+   }
+
+   /* Deposits icon */
+   .nav-link[href="./deposits.html"] .nav-icon {
+      color: #66BB6A;
+   }
+   .nav-link[href="./deposits.html"]:hover .nav-icon {
+      color: #4CAF50;
+   }
+
+   /* Withdrawals icon */
+   .nav-link[href="./withdraws.html"] .nav-icon {
+      color: #FFA726;
+   }
+   .nav-link[href="./withdraws.html"]:hover .nav-icon {
+      color: #FF9800;
+   }
+
+   /* Certificates icon */
+   .nav-link[href="./certificates.html"] .nav-icon {
+      color: #FFD54F;
+   }
+   .nav-link[href="./certificates.html"]:hover .nav-icon {
+      color: #FFC107;
+   }
+
+   /* Events icon */
+   .nav-link[href="./events.html"] .nav-icon {
+      color: #AB47BC;
+   }
+   .nav-link[href="./events.html"]:hover .nav-icon {
+      color: #9C27B0;
+   }
+
+   /* Memberships icon */
+   .nav-link[href="./memberships.html"] .nav-icon {
+      color: #EC407A;
+   }
+   .nav-link[href="./memberships.html"]:hover .nav-icon {
+      color: #E91E63;
+   }
+
+   /* Terms icon */
+   .nav-link[href="./terms.html"] .nav-icon {
+      color: #8D6E63;
+   }
+   .nav-link[href="./terms.html"]:hover .nav-icon {
+      color: #795548;
+   }
+
+   /* FAQs icon */
+   .nav-link[href="./faqs.html"] .nav-icon {
+      color: #FFCA28;
+   }
+   .nav-link[href="./faqs.html"]:hover .nav-icon {
+      color: #FFC107;
+   }
+
+   /* About Us icon */
+   .nav-link[href="./company.html"] .nav-icon {
+      color: #42A5F5;
+   }
+   .nav-link[href="./company.html"]:hover .nav-icon {
+      color: #2196F3;
+   }
+
+   /* Logout icon with special styling */
+   .logout-item .nav-icon {
+      color: #FF8A80 !important;
+      animation: pulse 2s infinite;
+   }
+   .logout-item:hover .nav-icon {
+      color: #FF5722 !important;
+      animation: none;
+   }
+
+   @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+   }
+
+   .nav-text {
+      font-size: 14px;
+      font-weight: 500;
+      text-transform: capitalize;
+   }
+
+   .logout-item {
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid rgba(255,255,255,0.1);
+   }
+
+   .logout-item .nav-link {
+      background: rgba(244, 67, 54, 0.2);
+      color: #ffcdd2;
+   }
+
+   .logout-item .nav-link:hover {
+      background: rgba(244, 67, 54, 0.3);
+      color: white;
+   }
+
+   .language-switcher {
+      padding: 20px;
+      margin-top: auto;
+      border-top: 1px solid rgba(255,255,255,0.1);
+   }
+
+   .switcher-header {
+      display: flex;
+      align-items: center;
+      margin-bottom: 10px;
+      color: rgba(255,255,255,0.9);
+      font-size: 14px;
+   }
+
+   .switcher-header i {
+      margin-right: 8px;
+      font-size: 16px;
+   }
+
+   .language-select {
+      width: 100%;
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 8px;
+      color: white;
+      padding: 8px 12px;
+      font-size: 13px;
+      backdrop-filter: blur(10px);
+   }
+
+   .language-select option {
+      background: #667eea;
+      color: white;
+   }
+
+   /* Active state for current page */
+   .nav-link.active {
+      background: rgba(255,255,255,0.2);
+      color: white;
+   }
+
+   .nav-link.active .nav-icon {
+      color: #FFD700;
+   }
+
+   /* Responsive */
+   @media (max-width: 768px) {
+      .main-sidebar {
+         width: 260px;
+      }
+      
+      .profile-card {
+         padding: 15px;
+      }
+      
+      .nav-link {
+         padding: 10px 12px;
+      }
+   }
+
+   /* Scrollbar styling */
+   .main-sidebar::-webkit-scrollbar {
+      width: 4px;
+   }
+
+   .main-sidebar::-webkit-scrollbar-track {
+      background: rgba(255,255,255,0.1);
+   }
+
+   .main-sidebar::-webkit-scrollbar-thumb {
+      background: rgba(255,255,255,0.3);
+      border-radius: 2px;
+   }
+
+   .main-sidebar::-webkit-scrollbar-thumb:hover {
+      background: rgba(255,255,255,0.5);
+   }
+
+   /* Body scroll lock when sidebar is open */
+   body.sidebar-open {
+      overflow: hidden;
+   }
+
+   /* Enhanced overlay styling */
+   .bg-overlay {
+      position: fixed;
+      width: 100%;
+      height: 100vh;
+      top: 0;
+      left: 0;
+      background-color: rgba(0, 0, 0, 0.5);
+      opacity: 0;
+      visibility: hidden;
+      z-index: 10000;
+      transition: opacity 0.3s ease, visibility 0.3s ease;
+   }
+
+   .bg-overlay.active {
+      opacity: 1;
+      visibility: visible;
+   }
+   </style>
+
+   <script>
+   // Enhanced sidebar functionality
+   document.addEventListener('DOMContentLoaded', function() {
+      const sidebar = document.querySelector('.main-sidebar');
+      const overlay = document.querySelector('.bg-overlay');
+      const body = document.body;
+      const closeButton = document.getElementById('sidebar-close-button');
+
+      // Function to open sidebar
+      function openSidebar() {
+         sidebar.classList.add('active');
+         overlay.classList.add('active');
+         body.classList.add('sidebar-open');
+      }
+
+      // Function to close sidebar
+      function closeSidebar() {
+         sidebar.classList.remove('active');
+         overlay.classList.remove('active');
+         body.classList.remove('sidebar-open');
+      }
+
+      // Close button event
+      if (closeButton) {
+         closeButton.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            closeSidebar();
+         });
+      }
+
+      // Overlay click event
+      if (overlay) {
+         overlay.addEventListener('click', function(e) {
+            e.preventDefault();
+            closeSidebar();
+         });
+      }
+
+      // Listen for sidebar toggle events from other scripts
+      document.addEventListener('toggleSidebar', function() {
+         if (sidebar.classList.contains('active')) {
+            closeSidebar();
+         } else {
+            openSidebar();
+         }
+      });
+
+      // ESC key to close sidebar
+      document.addEventListener('keydown', function(e) {
+         if (e.key === 'Escape' && sidebar.classList.contains('active')) {
+            closeSidebar();
+         }
+      });
+
+      // Make functions globally available
+      window.openSidebar = openSidebar;
+      window.closeSidebar = closeSidebar;
+   });
+   </script>
 </div>

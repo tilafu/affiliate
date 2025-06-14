@@ -1,3 +1,24 @@
+// Helper functions for modal error handling
+function showModalError(errorElement, message) {
+    if (errorElement) {
+        const span = errorElement.querySelector('span') || errorElement;
+        span.textContent = message;
+        errorElement.classList.remove('d-none');
+        errorElement.style.display = 'block';
+    }
+}
+
+function clearModalError(errorElement) {
+    if (errorElement) {
+        errorElement.classList.add('d-none');
+        errorElement.style.display = 'none';
+        const span = errorElement.querySelector('span');
+        if (span) {
+            span.textContent = '';
+        }
+    }
+}
+
 // Function to format date (adjust format as needed)
 function formatDate(dateString) {
     if (!dateString) return 'N/A';
@@ -180,11 +201,8 @@ async function initializeProfilePage() {
             }
 
             submitLoginBtn.disabled = true;
-            submitLoginBtn.textContent = 'Saving...';
-
-            try {
-                // TODO: Define and use the correct API endpoint
-                const response = await fetchWithAuth('/api/user/password/login', { // Placeholder endpoint
+            submitLoginBtn.textContent = 'Saving...';            try {
+                const response = await fetchWithAuth('/api/user/password/login', {
                     method: 'PUT',
                     body: JSON.stringify({ currentPassword, newPassword })
                 });
@@ -192,13 +210,31 @@ async function initializeProfilePage() {
                 if (response.success) {
                     showNotification('Login password updated successfully!', 'success');
                     loginForm.reset();
+                    clearModalError(loginPasswordErrorEl);
                     bootstrap.Modal.getInstance(loginModalEl).hide(); // Close modal
                 } else {
                     showModalError(loginPasswordErrorEl, response.message || 'Failed to update password.');
                 }
             } catch (error) {
-                 console.error('Error updating login password:', error);
-                 showModalError(loginPasswordErrorEl, 'An error occurred. Please try again.');
+                console.error('Error updating login password:', error);
+                
+                // Handle different types of errors
+                let errorMessage = 'An error occurred. Please try again.';
+                
+                if (error.message.includes('Incorrect current password')) {
+                    errorMessage = 'Current password is incorrect. Please try again.';
+                } else if (error.message.includes('New password must be at least')) {
+                    errorMessage = 'New password must be at least 6 characters long.';
+                } else if (error.message.includes('Server error')) {
+                    errorMessage = 'Server error. Please try again later or contact support.';
+                } else if (error.message.includes('Network error')) {
+                    errorMessage = 'Network error. Please check your connection and try again.';
+                } else if (error.message !== 'Unauthorized') {
+                    // For other errors, show the actual error message if it's meaningful
+                    errorMessage = error.message || 'An unexpected error occurred.';
+                }
+                
+                showModalError(loginPasswordErrorEl, errorMessage);
             } finally {
                 submitLoginBtn.disabled = false;
                 submitLoginBtn.textContent = 'Save Changes';
@@ -228,11 +264,8 @@ async function initializeProfilePage() {
             }
 
             submitWithdrawBtn.disabled = true;
-            submitWithdrawBtn.textContent = 'Saving...';
-
-            try {
-                 // TODO: Define and use the correct API endpoint
-                const response = await fetchWithAuth('/api/user/password/withdraw', { // Placeholder endpoint
+            submitWithdrawBtn.textContent = 'Saving...';            try {
+                const response = await fetchWithAuth('/api/user/password/withdraw', {
                     method: 'PUT',
                     body: JSON.stringify({ currentPassword, newPassword }) // Send current LOGIN password for verification
                 });
@@ -240,13 +273,31 @@ async function initializeProfilePage() {
                 if (response.success) {
                     showNotification('Withdraw password updated successfully!', 'success');
                     withdrawForm.reset();
+                    clearModalError(withdrawPasswordErrorEl);
                     bootstrap.Modal.getInstance(withdrawModalEl).hide(); // Close modal
                 } else {
                     showModalError(withdrawPasswordErrorEl, response.message || 'Failed to update password.');
                 }
             } catch (error) {
-                 console.error('Error updating withdraw password:', error);
-                 showModalError(withdrawPasswordErrorEl, 'An error occurred. Please try again.');
+                console.error('Error updating withdraw password:', error);
+                
+                // Handle different types of errors
+                let errorMessage = 'An error occurred. Please try again.';
+                
+                if (error.message.includes('Incorrect current')) {
+                    errorMessage = 'Current login password is incorrect. Please try again.';
+                } else if (error.message.includes('New withdrawal password must be at least')) {
+                    errorMessage = 'New password must be at least 6 characters long.';
+                } else if (error.message.includes('Server error')) {
+                    errorMessage = 'Server error. Please try again later or contact support.';
+                } else if (error.message.includes('Network error')) {
+                    errorMessage = 'Network error. Please check your connection and try again.';
+                } else if (error.message !== 'Unauthorized') {
+                    // For other errors, show the actual error message if it's meaningful
+                    errorMessage = error.message || 'An unexpected error occurred.';
+                }
+                
+                showModalError(withdrawPasswordErrorEl, errorMessage);
             } finally {
                 submitWithdrawBtn.disabled = false;
                 submitWithdrawBtn.textContent = 'Save Changes';

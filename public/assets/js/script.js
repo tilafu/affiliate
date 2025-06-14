@@ -5,23 +5,40 @@
     $(window).on('load', function () {  // Updated to newer jQuery syntax
         // Animate loader off screen
         $("#loader-page").delay(500).fadeOut("slow");
-    });
-
-    //===== Main Sidebar =====//
+    });    //===== Main Sidebar =====//
     // Toggle sidebar when clicking navbar button
     $(document).on('click', '.navbar-btn', function (e) {
         // Prevent default if it's a link
         if ($(this).is('a') || $(this).find('a').length) {
             e.preventDefault();
         }
-        $('.main-sidebar').toggleClass("active"); 
-        $('.bg-overlay').toggleClass("active"); 
+        
+        // Use enhanced sidebar functions if available
+        if (typeof window.openSidebar === 'function' && typeof window.closeSidebar === 'function') {
+            const sidebar = $('.main-sidebar');
+            if (sidebar.hasClass('active')) {
+                window.closeSidebar();
+            } else {
+                window.openSidebar();
+            }
+        } else {
+            // Fallback to original functionality
+            $('.main-sidebar').toggleClass("active"); 
+            $('.bg-overlay').toggleClass("active");
+            // Add body class for scroll prevention
+            $('body').toggleClass('sidebar-open');
+        }
     });
     
-    // Close sidebar when clicking the overlay (MOVED OUTSIDE navbar-btn handler)
+    // Close sidebar when clicking the overlay
     $(document).on('click', '.bg-overlay', function () {
-        $('.main-sidebar').removeClass("active");
-        $('.bg-overlay').removeClass("active");
+        if (typeof window.closeSidebar === 'function') {
+            window.closeSidebar();
+        } else {
+            $('.main-sidebar').removeClass("active");
+            $('.bg-overlay').removeClass("active");
+            $('body').removeClass('sidebar-open');
+        }
     });
     
     // Close sidebar when clicking close button
@@ -30,8 +47,26 @@
         if ($(this).is('a') || $(this).find('a').length) {
             e.preventDefault();
         }
-        $('.main-sidebar').removeClass("active");
-        $('.bg-overlay').removeClass("active");
+        if (typeof window.closeSidebar === 'function') {
+            window.closeSidebar();
+        } else {
+            $('.main-sidebar').removeClass("active");
+            $('.bg-overlay').removeClass("active");
+            $('body').removeClass('sidebar-open');
+        }
+    });
+
+    // ESC key to close sidebar
+    $(document).on('keydown', function(e) {
+        if (e.key === 'Escape' && $('.main-sidebar').hasClass('active')) {
+            if (typeof window.closeSidebar === 'function') {
+                window.closeSidebar();
+            } else {
+                $('.main-sidebar').removeClass("active");
+                $('.bg-overlay').removeClass("active");
+                $('body').removeClass('sidebar-open');
+            }
+        }
     });
 
     //===== Main Slider =====//
