@@ -1,5 +1,9 @@
 // Ensure API_BASE_URL and showNotification are available (assuming from main.js)
 // If not, define them here or ensure main.js is loaded first.
+if (typeof API_BASE_URL === 'undefined') {
+    console.error('API_BASE_URL is not defined! Make sure main.js is loaded first.');
+    window.API_BASE_URL = 'http://localhost:3000'; // Fallback
+}
 
 // --- Global Variables (Unlimited Task Sets Design) ---
 var oid = null; // Will be set by startDrive response if needed (using session ID?) // This seems unused, consider removing.
@@ -37,8 +41,7 @@ function initializeTaskPage() {
   
   // Store auth data globally for use in other functions
   globalAuthData = authData;
-  
-  // Get references to key elements
+    // Get references to key elements
   autoStartButton = document.getElementById('autoStart');
   productCardContainer = document.getElementById('product-card-container'); // Get reference to the new container
   walletBalanceElement = document.querySelector('.datadrive-balance');  // Select the balance element directly
@@ -48,12 +51,31 @@ function initializeTaskPage() {
   driveProgressBar = document.getElementById('drive-progress-bar'); // Main progress bar at the top
   progressTextElement = document.getElementById('progress-text'); // Text element for progress 
   orderLoadingOverlay = document.getElementById('order-loading-overlay'); // Get reference to the loading overlay
-  // Initial UI state: Hide elements by default, will be shown based on drive status
+
+  // Debug: Check if elements are found
+  console.log('Element references:', {
+    autoStartButton: !!autoStartButton,
+    productCardContainer: !!productCardContainer,
+    walletBalanceElement: !!walletBalanceElement,
+    driveCommissionElement: !!driveCommissionElement,
+    tasksProgressElement: !!tasksProgressElement,
+    tasksProgressBar: !!tasksProgressBar,
+    driveProgressBar: !!driveProgressBar,
+    progressTextElement: !!progressTextElement,
+    orderLoadingOverlay: !!orderLoadingOverlay
+  });  // Initial UI state: Hide elements by default, will be shown based on drive status
   if (autoStartButton) autoStartButton.style.display = 'none'; // Don't show until we check drive status
   if (productCardContainer) productCardContainer.style.display = 'none';
   if (orderLoadingOverlay) orderLoadingOverlay.style.display = 'none';
+  
   // Initialize progress bars with default values for unlimited task sets design
-  updateProgressBar(0, 0); // Start with 0/0 for unlimited design// Initial balance fetch
+  updateProgressBar(0, 0); // Start with 0/0 initially
+  
+  // Initialize commission display
+  totalDriveCommission = 0;
+  updateDriveCommission();
+  
+  // Initial balance fetch
   refreshWalletBalance();
     // Check for existing drive session on page load - this will show the appropriate UI
   checkForExistingDrive(authData.token);
@@ -332,23 +354,12 @@ function updateProgressBar(currentStep, totalProducts) {
             progressBar.classList.add('progress-flash');
         }, 10);
     }
-    
-    // Update progress text for unlimited task sets design
+      // Update progress text for unlimited task sets design
     if (progressText) {
-        if (total === 0) {
-            progressText.textContent = 'Drive starting...';
-        } else {
-            progressText.textContent = `${displayCompleted} / ${displayTotal} products completed`;
-        }
-    }
-    
-    // Update tasks count for unlimited design
+        progressText.textContent = `${displayCompleted} / ${displayTotal} products completed`;
+    }// Update tasks count for unlimited design
     if (tasksProgressElement) {
-        if (total === 0) {
-            tasksProgressElement.textContent = '(initializing...)';
-        } else {
-            tasksProgressElement.textContent = `(${displayCompleted} / ${displayTotal})`;
-        }
+        tasksProgressElement.textContent = `(${displayCompleted} / ${displayTotal})`;
     }
     
     // Update global variables for unlimited task sets design
@@ -838,10 +849,49 @@ async function handlePurchase(token, productData) {
         product_id: productData.product_id,
         order_amount: productData.product_price, 
         product_slot_to_complete: determined_slot 
-    };
-    console.log('Constructed payload for saveorder:', payload);
-    console.log('--- handlePurchase End of Logging ---');
-      try {
+    };    console.log('Constructed payload for saveorder:', payload);    console.log('--- handlePurchase End of Logging ---');
+    console.log('API_BASE_URL:', API_BASE_URL);  
+    console.log('Full URL:', `${API_BASE_URL}/api/drive/saveorder`);
+    console.log('Token:', token ? `${token.substring(0, 20)}...` : 'Missing');
+    console.log('Token length:', token ? token.length : 0);
+    
+    // Validate token format
+    if (token && token.split('.').length !== 3) {
+        console.error('Invalid JWT token format');
+        throw new Error('Invalid authentication token format');
+    }
+      // Test if the server API is working at all
+    console.log('Testing server health endpoint...');
+    try {
+        const healthResponse = await fetch(`${API_BASE_URL}/api/health`);
+        console.log('Health endpoint response:', healthResponse.status);
+        const healthData = await healthResponse.json();
+        console.log('Health data:', healthData);
+    } catch (error) {
+        console.error('Health endpoint failed:', error);
+    }
+    
+    // Test if the token is working by calling the status endpoint first
+    console.log('Testing token with status endpoint...');
+    try {
+        const statusResponse = await fetch(`${API_BASE_URL}/api/drive/status`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+        console.log('Status endpoint response:', statusResponse.status);
+        if (!statusResponse.ok) {
+            console.error('Status endpoint failed, token might be invalid');
+            const errorText = await statusResponse.text();
+            console.error('Status endpoint error:', errorText.substring(0, 200));
+        }
+    } catch (error) {
+        console.error('Error testing status endpoint:', error);
+    }
+    
+    try {
         const response = await fetch(`${API_BASE_URL}/api/drive/saveorder`, {
             method: 'POST',
             headers: {
@@ -849,7 +899,28 @@ async function handlePurchase(token, productData) {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify(payload)
-        });        const data = await response.json();
+        });
+
+        console.log('Response status:', response.status);
+        console.log('Response headers:', response.headers);
+          // Check if response is actually JSON
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            const responseText = await response.text();
+            console.error('Expected JSON but got:', contentType);
+            console.error('Response body (first 500 chars):', responseText.substring(0, 500));
+            
+            // Check if it's an authentication issue
+            if (response.status === 401) {
+                throw new Error('Authentication failed. Please log in again.');
+            } else if (response.status === 404) {
+                throw new Error('API endpoint not found. Check server configuration.');
+            } else {
+                throw new Error(`Server returned ${response.status} ${response.statusText}. Expected JSON but got ${contentType}.`);
+            }
+        }
+
+        const data = await response.json();
         if (orderLoadingOverlay) orderLoadingOverlay.style.display = 'none';
           if (response.ok && data.code === 0) { // Order processed successfully
             console.log('Order saved successfully (saveorder):', data);            
@@ -1186,16 +1257,17 @@ function checkDriveStatus(token) {
                     tasksCompleted = data.tasks_completed; // Should be equal to totalTasksRequired
                     updateProgressBar(tasksCompleted, totalTasksRequired);
                 }
-                return true;
-            } else if (data.status === 'no_session') {
+                return true;            } else if (data.status === 'no_session') {
                 console.log('checkDriveStatus: No active session found.');
                 if (autoStartButton) autoStartButton.style.display = 'block';
                 if (productCardContainer) productCardContainer.style.display = 'none';
                 
                 clearSessionData();
                 totalDriveCommission = 0; // Reset commission
+                tasksCompleted = 0;
+                totalTasksRequired = 45; // Default drive requirement
                 updateDriveCommission(); // Update UI and persist
-                updateProgressBar(0, totalTasksRequired || 0); // Reset progress bar
+                updateProgressBar(tasksCompleted, totalTasksRequired); // Show proper progress
                 return false;
             }
         }
@@ -1322,17 +1394,18 @@ async function checkDriveStatus(token) {
                     console.log('Drive is complete');
                     displayDriveComplete(data.info || 'Drive completed successfully.');
                     if (autoStartButton) autoStartButton.style.display = 'none';
-                    
-                } else if (data.status === 'no_session') {
+                      } else if (data.status === 'no_session') {
                     console.log('No active drive session');
                     if (autoStartButton) autoStartButton.style.display = 'block';
                     if (productCardContainer) productCardContainer.style.display = 'none';
                     
-                    // Reset state for no session
+                    // Reset state for no session - show default drive requirements
                     clearSessionData();
                     totalDriveCommission = 0;
+                    tasksCompleted = 0;
+                    totalTasksRequired = 45; // Default drive requirement
                     updateDriveCommission();
-                    updateProgressBar(0, totalTasksRequired || 45);
+                    updateProgressBar(tasksCompleted, totalTasksRequired);
                 }
                 
                 // Always update wallet balance for consistency

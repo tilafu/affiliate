@@ -15,151 +15,8 @@
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
-    <!-- Custom Account Styles -->
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-            min-height: 100vh;
-        }
-        
-        .account-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 2rem 0;
-            margin-bottom: 2rem;
-            border-radius: 0 0 25px 25px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-        }
-        
-        .account-card {
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.08);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            overflow: hidden;
-            margin-bottom: 2rem;
-        }
-        
-        .account-item {
-            border-bottom: 1px solid #f8f9fa;
-            padding: 1.5rem;
-            transition: all 0.3s ease;
-        }
-        
-        .account-item:last-child {
-            border-bottom: none;
-        }
-        
-        .account-item:hover {
-            background: rgba(102, 126, 234, 0.05);
-        }
-        
-        .account-image {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            border: 4px solid #667eea;
-            object-fit: cover;
-            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
-        }
-        
-        .account-label {
-            font-weight: 600;
-            color: #495057;
-            margin-bottom: 0.5rem;
-        }
-        
-        .account-value {
-            color: #6c757d;
-            margin-bottom: 0;
-        }
-        
-        .btn-custom {
-            background: linear-gradient(45deg, #667eea, #764ba2);
-            border: none;
-            border-radius: 25px;
-            padding: 0.5rem 1.5rem;
-            color: white;
-            font-weight: 500;
-            transition: all 0.3s ease;
-        }
-        
-        .btn-custom:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
-            color: white;
-        }
-        
-        .credit-score-bar {
-            height: 10px;
-            border-radius: 5px;
-            background-color: #e9ecef;
-            overflow: hidden;
-        }
-        
-        .credit-score-progress {
-            height: 100%;
-            background: linear-gradient(90deg, #4fd1c5, #38b2ac);
-            width: 100%;
-        }
-        
-        .back-btn {
-            background: rgba(255, 255, 255, 0.2);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            border-radius: 50%;
-            width: 45px;
-            height: 45px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            text-decoration: none;
-            transition: all 0.3s ease;
-        }
-        
-        .back-btn:hover {
-            background: rgba(255, 255, 255, 0.3);
-            color: white;
-            transform: translateY(-2px);
-        }
-        
-        .icon-circle {
-            width: 50px;
-            height: 50px;
-            background: linear-gradient(45deg, #667eea, #764ba2);
-            border-radius: 50%;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 1.2rem;
-            margin-right: 1rem;
-        }
-        
-        .footer-link {
-            color: #6c757d;
-            transition: all 0.3s ease;
-        }
-        
-        .footer-link:hover, .footer-link.active {
-            color: #667eea;
-        }
-        
-        .footer-icon {
-            font-size: 1.2rem;
-            transition: all 0.3s ease;
-        }
-        
-        .footer-link:hover .footer-icon, .footer-link.active .footer-icon {
-            transform: translateY(-2px);
-        }
-        
-        .footer-text {
-            font-size: 0.8rem;
-            font-weight: 500;
-        }
-    </style>
+    <!-- Custom CSS for shared styles -->
+    <link rel="stylesheet" href="css/task-account-styles.css">
 </head>
 <body>
 
@@ -169,7 +26,7 @@
 <!-- End Sidebar Placeholder -->
 
 <!-- Modern Account Header -->
-<div class="account-header">
+<div class="page-header">
     <div class="container">
         <div class="d-flex align-items-center justify-content-between">
             <a href="javascript:history.back()" class="back-btn">
@@ -187,7 +44,7 @@
 <main class="main-content">
     <div class="container">
         <!-- Profile Information Card -->
-        <div class="account-card">
+        <div class="app-card">
             <!-- Profile Image Section -->
             <div class="account-item">
                 <div class="d-flex align-items-center justify-content-between">
@@ -258,7 +115,7 @@
         </div>
 
         <!-- Balances Card -->
-        <div class="account-card">
+        <div class="app-card">
             <!-- Daily Profits Section -->
             <div class="account-item">
                 <div class="d-flex align-items-center justify-content-between">
@@ -315,7 +172,7 @@
         </div>
 
         <!-- Navigation Card -->
-        <div class="account-card">
+        <div class="app-card">
             <div class="account-item">
                 <a href="./profile.html" class="text-decoration-none d-flex align-items-center justify-content-between">
                     <div class="d-flex align-items-center">
@@ -374,7 +231,7 @@
             </div>
         </div>        <!-- Sign Out Button -->
         <div class="d-grid gap-2 mt-4">
-            <a href="#" class="btn btn-custom btn-lg logout" id="account-logout-btn">
+            <a href="#" class="btn btn-modern btn-lg logout" id="account-logout-btn">
                 <i class="fas fa-sign-out-alt me-2"></i> Sign Out
             </a>
         </div>
@@ -401,7 +258,7 @@
                         <div class="footer-icon mb-1">
                             <svg fill="currentColor" width="24" height="24" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 469.341 469.341">
                                 <path d="M448.004,236.639v-65.965c0-22.368-17.35-40.559-39.271-42.323l-61.26-107c-5.677-9.896-14.844-16.969-25.813-19.906c-10.917-2.917-22.333-1.385-32.104,4.302L79.553,128.007H42.67c-23.531,0-42.667,19.135-42.667,42.667v256c0,23.531,19.135,42.667,42.667,42.667h362.667c23.531,0,42.667-19.135,42.667-42.667v-65.965c12.389-4.418,21.333-16.147,21.333-30.035v-64C469.337,252.786,460.393,241.057,448.004,236.639z M383.944,128.007h-92.971l69.729-40.596L383.944,128.007z M350.103,68.898l-101.529,59.109h-42.113l133.112-77.5L350.103,68.898z M300.295,24.184c4.823-2.823,10.458-3.573,15.844-2.135c5.448,1.458,9.99,4.979,12.813,9.906l0.022,0.039l-164.91,96.013h-42.111L300.295,24.184z M426.67,426.674c0,11.76-9.573,21.333-21.333,21.333H42.67c-11.76,0-21.333-9.573-21.333-21.333v-256c0-11.76,9.573-21.333,21.333-21.333h362.667c11.76,0,21.333,9.573,21.333,21.333v64h-64c-35.292,0-64,28.708-64,64c0,35.292,28.708,64,64,64h64V426.674z M448.004,330.674c0,5.885-4.781,10.667-10.667,10.667H362.67c-23.531,0-42.667-19.135-42.667-42.667c0-23.531,19.135-42.667,42.667-42.667h74.667c5.885,0,10.667,4.781,10.667,10.667V330.674z"/>
-                                <path d="M362.67,277.341c-11.76,0-21.333,9.573-21.333,21.333c0,11.80,9.573,21.333,21.333,21.333c11.76,0,21.333-9.573,21.333-21.333C384.004,286.914,374.431,277.341,362.67,277.341z"/>
+                                <path d="M362.67,277.341c-11.76,0-21.333,9.573-21.333,21.333c0,11.76,9.573,21.333,21.333,21.333c11.76,0,21.333-9.573,21.333-21.333C384.004,286.914,374.431,277.341,362.67,277.341z"/>
                             </svg>
                         </div>
                         <small class="footer-text">Starting</small>

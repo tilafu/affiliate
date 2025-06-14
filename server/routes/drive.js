@@ -26,7 +26,12 @@ router.get('/progress', protect, getDriveProgress);
 router.post('/getorder', protect, getOrder); // Changed to POST based on task.html usage
 
 // Route to save a completed single order (mimics task/saveorder)
-router.post('/saveorder', protect, saveOrder);
+router.post('/saveorder', (req, res, next) => {
+    console.log('Drive saveorder route called');
+    console.log('Request body:', req.body);
+    console.log('Authorization header:', req.headers.authorization ? 'Present' : 'Missing');
+    next();
+}, protect, saveOrder);
 
 // Route to save a completed combo order (mimics task/savecomboorder)
 router.post('/savecomboorder', protect, saveComboOrder);

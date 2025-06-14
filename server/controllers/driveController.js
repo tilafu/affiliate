@@ -619,6 +619,9 @@ const getOrder = async (req, res) => {
 };
 
 const saveOrder = async (req, res) => {
+    console.log('saveOrder called with body:', req.body);
+    console.log('saveOrder user:', req.user);
+    
     const userId = req.user.id;
     // Client sends: user_active_drive_item_id (parent item), product_id (of sub-product), 
     // order_amount (price of sub-product), earning_commission (for sub-product),

@@ -21,250 +21,8 @@
     <script charset="utf-8" src="./assets/frontend/shopva/common.js"></script>
     <link rel="stylesheet" href="./assets/frontend/shopva/layer.css">
     <script src="./assets/frontend/shopva/layer.js"></script>
-    
-    <!-- Custom Profile Styles -->
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-            min-height: 100vh;
-        }
-        
-        .profile-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 2rem 0;
-            margin-bottom: 2rem;
-            border-radius: 0 0 25px 25px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-        }
-        
-        .profile-card {
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.08);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            overflow: hidden;
-            margin-bottom: 2rem;
-        }
-        
-        .profile-item {
-            border-bottom: 1px solid #f8f9fa;
-            padding: 1.5rem;
-            transition: all 0.3s ease;
-        }
-        
-        .profile-item:last-child {
-            border-bottom: none;
-        }
-        
-        .profile-item:hover {
-            background: rgba(102, 126, 234, 0.05);
-        }
-        
-        .profile-image {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            border: 4px solid #667eea;
-            object-fit: cover;
-            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
-        }
-        
-        .profile-label {
-            font-weight: 600;
-            color: #495057;
-            margin-bottom: 0.5rem;
-        }
-        
-        .profile-value {
-            color: #6c757d;
-            margin-bottom: 0;
-        }
-        
-        .btn-custom {
-            background: linear-gradient(45deg, #667eea, #764ba2);
-            border: none;
-            border-radius: 25px;
-            padding: 0.5rem 1.5rem;
-            color: white;
-            font-weight: 500;
-            transition: all 0.3s ease;
-        }
-        
-        .btn-custom:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
-            color: white;
-        }
-        
-        .btn-password {
-            background: transparent;
-            border: 2px solid #667eea;
-            border-radius: 25px;
-            color: #667eea;
-            padding: 0.75rem 1.5rem;
-            transition: all 0.3s ease;
-            text-decoration: none;
-            display: inline-block;
-            font-weight: 500;
-        }
-        
-        .btn-password:hover {
-            background: #667eea;
-            color: white;
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
-        }
-        
-        .modal-content {
-            border-radius: 20px;
-            border: none;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
-        }
-        
-        .modal-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border-radius: 20px 20px 0 0;
-            border-bottom: none;
-        }
-        
-        .modal-header .btn-close {
-            filter: invert(1);
-        }
-        
-        .form-control {
-            border-radius: 12px;
-            border: 2px solid #e9ecef;
-            padding: 0.75rem 1rem;
-            transition: all 0.3s ease;
-        }
-        
-        .form-control:focus {
-            border-color: #667eea;
-            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
-        }
-        
-        .icon-circle {
-            width: 50px;
-            height: 50px;
-            background: linear-gradient(45deg, #667eea, #764ba2);
-            border-radius: 50%;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 1.2rem;
-            margin-right: 1rem;
-        }
-        
-        .back-btn {
-            background: rgba(255, 255, 255, 0.2);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            border-radius: 50%;
-            width: 45px;
-            height: 45px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            text-decoration: none;
-            transition: all 0.3s ease;
-        }
-        
-        .back-btn:hover {
-            background: rgba(255, 255, 255, 0.3);
-            color: white;
-            transform: translateY(-2px);
-        }
-
-        /* Task-specific styles */
-        .progress-container {
-            padding: 1rem;
-        }
-        
-        .progress {
-            height: 10px;
-            border-radius: 5px;
-        }
-        
-        .progress-bar {
-            background: linear-gradient(45deg, #667eea, #764ba2);
-        }
-        
-        #product-card-container {
-            transition: all 0.3s ease;
-        }
-        
-        .order-loading-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.7);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-            border-radius: 8px;
-        }
-        
-        .order-loading-overlay .spinner {
-            width: 50px;
-            height: 50px;
-            border: 5px solid rgba(255, 255, 255, 0.3);
-            border-radius: 50%;
-            border-top-color: #fff;
-            animation: spin 1s ease-in-out infinite;
-            margin-bottom: 15px;
-        }
-        
-        .order-loading-overlay .loading-text {
-            color: white;
-            font-size: 16px;
-            font-weight: bold;
-        }
-          @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-        
-        /* Frozen Account Modal Enhancements */
-        #frozenAccountModal .modal-header {
-            background: linear-gradient(135deg, #ffc107 0%, #ff8c00 100%);
-            border-bottom: 2px solid rgba(255, 193, 7, 0.3);
-        }
-        
-        #frozenAccountModal .icon-circle {
-            box-shadow: 0 4px 15px rgba(255, 193, 7, 0.3);
-        }
-        
-        #frozenAccountModal .alert-warning {
-            background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
-            border-left: 4px solid #ffc107;
-        }
-        
-        #frozenAccountModal .border {
-            transition: all 0.3s ease;
-        }
-        
-        #frozenAccountModal .border:hover {
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-            transform: translateY(-2px);
-        }
-        
-        .pulse-warning {
-            animation: pulseWarning 2s infinite;
-        }
-        
-        @keyframes pulseWarning {
-            0% { box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.7); }
-            70% { box-shadow: 0 0 0 10px rgba(255, 193, 7, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(255, 193, 7, 0); }
-        }
-    </style>
+    <!-- Custom CSS for shared styles -->
+    <link rel="stylesheet" href="css/task-account-styles.css">
 </head>
 <body>
 
@@ -273,157 +31,218 @@
 <div id="sidebar-placeholder"></div>
 <!-- End Sidebar Placeholder -->
 
-<!-- Modern Profile Header -->
-<div class="profile-header">
+<!-- Modern Task Header -->
+<header class="page-header">
     <div class="container">
         <div class="d-flex align-items-center justify-content-between">
             <a href="javascript:history.back()" class="back-btn">
                 <i class="fas fa-arrow-left"></i>
             </a>
             <div class="text-center flex-grow-1">
-                <h2 class="mb-0 fw-bold" data-i18n="taskPageTitle">Task</h2>
-                <p class="mb-0 opacity-75">Complete your daily tasks</p>
+                <h1 data-i18n="taskPageTitle">Task Center</h1>
+                <p class="subtitle">Complete tasks and earn rewards</p>
             </div>
-            <div style="width: 45px;"></div> <!-- Spacer for alignment -->
+            <div style="width: 44px;"></div> <!-- Spacer for alignment -->
         </div>
     </div>
-</div>
+</header>
 
 <main class="main-content">
-    <div class="container">
-        <!-- Drive Information Card -->
-        <div class="profile-card">
-            <div class="profile-item">
-                <div class="d-flex align-items-center justify-content-between">
-                    <div class="d-flex align-items-center">
-                        <div class="icon-circle">
-                            <i class="fas fa-database"></i>
-                        </div>
-                        <div>
-                            <h4 class="mb-0">Data Drive</h4>
-                            <small class="text-muted">Current drive information</small>
-                        </div>
+    <div class="container">        <!-- Dashboard Stats -->
+        <div class="stats-grid">
+            <div class="app-card animate-fade-in-up enhanced-hover">
+                <div class="stat-icon">
+                    <i class="fas fa-wallet"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-label">Wallet Balance</div>
+                    <div class="stat-value">
+                        <span class="datadrive-balance">Loading...</span>
                     </div>
-                    <div>
-                        <button id="refresh-drive-button" class="btn btn-custom btn-sm me-2" title="Refresh Drive Data">
-                            <i class="fas fa-sync-alt"></i>
+                </div>
+                <button id="refresh-drive-button" class="stat-refresh rotate-on-hover" title="Refresh Balance">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+            </div>
+            
+            <div class="app-card animate-fade-in-up enhanced-hover">
+                <div class="stat-icon success">
+                    <i class="fas fa-coins"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-label">Commission Earned</div>
+                    <div class="stat-value gradient-text">
+                        <span class="datadrive-commission">0.00 USDT</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="app-card animate-fade-in-up enhanced-hover">
+                <div class="stat-icon warning">
+                    <i class="fas fa-tasks"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-label">Tasks Completed</div>
+                    <div class="stat-value">
+                        <span id="tasks-count">0 / 45</span>
+                    </div>
+                </div>
+            </div>
+        </div>        <!-- Progress Section -->
+        <div class="progress-section animate-slide-in-right">
+            <div class="app-card enhanced-hover">
+                <div class="progress-header">
+                    <h3 class="text-shadow">Drive Progress</h3>
+                    <span id="progress-text" class="progress-status">Drive starting...</span>
+                </div>
+                <div class="modern-progress">
+                    <div id="drive-progress-bar" class="progress-fill glow" style="width: 0%"></div>
+                </div>
+            </div>
+        </div>        <!-- Task Controls -->
+        <div class="task-controls animate-bounce-in">
+            <input type="hidden" name="user_status" id="user_status" value="1">
+            <button class="btn-modern btn-primary btn-lg enhanced-focus pulse" id="autoStart">
+                <i class="fas fa-play"></i>
+                <span>Start Tasks</span>
+                <div class="btn-shine"></div>
+            </button>
+            <a href="./orders.html" class="btn-modern btn-secondary btn-lg enhanced-focus">
+                <i class="fas fa-list"></i>
+                <span>View Records</span>
+                <div class="btn-shine"></div>
+            </a>
+        </div>        <!-- Product Display Section (hidden by default) -->
+        <div class="product-section animate-fade-in-up" id="product-card-container" style="display: none;">
+            <div class="product-preview glass-card" id="order-loading-overlay" style="display: none;">
+                <div class="loading-spinner"></div>
+                <p class="loading-text">Loading next product...</p>
+            </div>
+            
+            <div class="product-card enhanced-hover float" id="product-display">
+                <div class="product-image-container">
+                    <img id="product-image" src="" alt="Product Image" class="product-image">
+                    <div class="product-overlay">
+                        <button class="btn-view-product enhanced-focus" onclick="openProductModal()">
+                            <i class="fas fa-eye"></i>
+                            View Details
                         </button>
-                        <a href="./orders.html" class="btn btn-custom btn-sm">
-                            <i class="fas fa-list"></i> Records
-                        </a>
                     </div>
                 </div>
-            </div>
-            
-            <div class="profile-item">
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="profile-label">Wallet balance</div>
-                        <h3 class="profile-value">
-                            <span class="datadrive-balance fw-bold">Loading...</span>
-                        </h3>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="profile-label">Commission earned (this drive)</div>
-                        <h3 class="profile-value">
-                            <span class="datadrive-commission fw-bold">0.00 <small>USDT</small></span>
-                        </h3>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Progress Bar Card -->
-        <div class="profile-card">
-            <div class="profile-item">
-                <div class="d-flex align-items-center">
-                    <div class="icon-circle">
-                        <i class="fas fa-tasks"></i>
-                    </div>
-                    <div class="ms-3">
-                        <h5 class="mb-0">Drive Progress</h5>
-                        <small class="text-muted">Your current task completion</small>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="profile-item">
-                <div class="progress-container">
-                    <div class="progress">
-                        <div id="drive-progress-bar" class="progress-bar progress-bar-striped progress-bar-animated" 
-                             role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%"></div>
-                    </div>
-                    <div class="text-center mt-2">
-                        <span id="progress-text" class="profile-value">Drive starting...</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Product Display Card (hidden by default) -->
-        <div class="profile-card" id="product-card-container" style="display: none;">
-            <div class="profile-item">
-                <div class="text-center position-relative">
-                    <div id="order-loading-overlay" class="order-loading-overlay" style="display: none;">
-                        <div class="spinner"></div>
-                        <div class="loading-text">Fetching Product...</div>
-                    </div>
-                    
-                    <img id="product-image" src="" alt="Product Image" class="img-fluid mb-3" style="max-height: 200px; border-radius: 10px;">
-                    <h4 id="product-name" class="profile-label">Product Name</h4>
-                    
-                    <div class="row mt-3">
-                        <div class="col-md-6">
-                            <div class="profile-label">Commission</div>
-                            <h5 id="product-commission" class="profile-value">0.00 USDT</h5>
+                <div class="product-info">
+                    <h3 id="product-name" class="product-title gradient-text text-shadow">Product Name</h3>
+                    <div class="product-stats">
+                        <div class="product-stat">
+                            <span class="stat-label">Commission</span>
+                            <span id="product-commission" class="stat-value gradient-text">0.00 USDT</span>
                         </div>
-                        <div class="col-md-6">
-                            <div class="profile-label">Price</div>
-                            <h5 id="product-price" class="profile-value">$0.00</h5>
+                        <div class="product-stat">
+                            <span class="stat-label">Price</span>
+                            <span id="product-price" class="stat-value">$0.00</span>
                         </div>
                     </div>
-                    
-                    <button id="purchase-button" class="btn btn-custom mt-4 w-100">
-                        <i class="fas fa-shopping-cart me-2"></i> Purchase
+                    <button id="purchase-button" class="btn-modern btn-success btn-lg enhanced-focus">
+                        <i class="fas fa-shopping-cart"></i>
+                        <span>Purchase Now</span>
+                        <div class="btn-shine"></div>
                     </button>
                 </div>
             </div>
-        </div>
-        
-        <!-- Task Controls Card -->
-        <div class="profile-card">
-            <div class="profile-item text-center">
-                <input type="hidden" name="user_status" id="user_status" value="1">
-                <button class="btn btn-custom w-100" id="autoStart">
-                    <i class="fas fa-play me-2"></i> Start
-                </button>
-                
-                <div class="mt-4">
-                    <div class="profile-label">Tasks Completed</div>
-                    <h4 id="tasks-count" class="profile-value fw-bold">0 / 45</h4>
+        </div>        <!-- Information Cards -->
+        <div class="info-cards">
+            <div class="info-card enhanced-hover animate-fade-in-up">
+                <div class="info-icon">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <div class="info-content">
+                    <h4 class="text-shadow">Operating Hours</h4>
+                    <p>10:00 AM - 11:00 PM daily</p>
                 </div>
             </div>
-        </div>
-        
-        <!-- Information Card -->
-        <div class="profile-card">
-            <div class="profile-item">
-                <div class="d-flex align-items-center">
-                    <div class="icon-circle">
-                        <i class="fas fa-info-circle"></i>
-                    </div>
-                    <div class="ms-3">
-                        <h5 class="mb-2">Important Hints</h5>
-                        <ul class="list-unstyled">
-                            <li class="mb-2"><i class="fas fa-clock me-2"></i> Operating hours 10:00 - 23:00</li>
-                            <li><i class="fas fa-exclamation-triangle me-2"></i> System pauses product distribution during non-operating hours</li>
-                        </ul>
-                    </div>
+            
+            <div class="info-card enhanced-hover animate-fade-in-up">
+                <div class="info-icon warning">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <div class="info-content">
+                    <h4 class="text-shadow">Important Notice</h4>
+                    <p>System pauses product distribution during non-operating hours</p>
                 </div>
             </div>
         </div>
     </div>
 </main>
+
+<!-- Full-Screen Product Modal -->
+<div class="product-modal" id="product-modal">
+    <div class="product-modal-content">
+        <div class="product-modal-header">
+            <button class="modal-close" onclick="closeProductModal()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        
+        <div class="product-modal-body">
+            <div class="product-grid"> <!-- Added product-grid wrapper -->
+                <div class="product-image-section"> <!-- Renamed from modal-product-image -->
+                    <img id="modal-product-image" src="" alt="Product Image" class="product-image">
+                </div>
+                
+                <div class="product-details-section"> <!-- Renamed from modal-product-details -->
+                    <div class="product-badge">Featured Product</div>
+                    <h2 id="modal-product-name" class="product-title">Product Name</h2> <!-- Changed class to product-title -->
+                    <p id="modal-product-description" class="modal-product-description">
+                        Detailed product description will be displayed here with all the features and benefits.
+                    </p>
+                    
+                    <div class="modal-product-stats">
+                        <div class="modal-stat-card">
+                            <div class="modal-stat-icon">
+                                <i class="fas fa-dollar-sign"></i>
+                            </div>
+                            <div class="modal-stat-content">
+                                <span class="modal-stat-label">Price</span>
+                                <span id="modal-product-price" class="modal-stat-value">$0.00</span>
+                            </div>
+                        </div>
+                        
+                        <div class="modal-stat-card success">
+                            <div class="modal-stat-icon">
+                                <i class="fas fa-coins"></i>
+                            </div>
+                            <div class="modal-stat-content">
+                                <span class="modal-stat-label">Commission</span>
+                                <span id="modal-product-commission" class="modal-stat-value">0.00 USDT</span>
+                            </div>
+                        </div>
+                        
+                        <div class="modal-stat-card warning">
+                            <div class="modal-stat-icon">
+                                <i class="fas fa-percentage"></i>
+                            </div>
+                            <div class="modal-stat-content">
+                                <span class="modal-stat-label">Commission Rate</span>
+                                <span id="modal-commission-rate" class="modal-stat-value">0%</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="modal-actions">
+                        <button id="modal-purchase-button" class="btn-modern btn-success btn-xl">
+                            <i class="fas fa-shopping-cart"></i>
+                            <span>Complete Purchase</span>
+                            <div class="btn-shine"></div>
+                        </button>
+                        <button class="btn-modern btn-secondary btn-xl" onclick="closeProductModal()">
+                            <i class="fas fa-times"></i>
+                            <span>Cancel</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
 <!-- Modal for Frozen Account -->
 <div class="modal fade" id="frozenAccountModal" tabindex="-1" aria-labelledby="frozenAccountModalLabel" aria-hidden="true">
@@ -582,45 +401,341 @@
 
 <script src="./js/auth.js"></script>
 
-<!-- Initialize Owl Carousel -->
+<!-- Product Modal Functions -->
 <script>
-$(document).ready(function(){
-  // Initialize the product carousel
-  $('.product-carousel').owlCarousel({
-    loop: true,
-    margin: 10,
-    nav: true,
-    dots: true,
-    autoplay: true,
-    autoplayTimeout: 3000,
-    autoplayHoverPause: true,
-    responsive: {
-      0: {
-        items: 1
-      },
-      600: {
-        items: 1
-      },
-      1000: {
-        items: 1
-      }
+// Product Modal Functions
+function openProductModal() {
+    const modal = document.getElementById('product-modal');
+    const productImage = document.getElementById('product-image');
+    const productName = document.getElementById('product-name');
+    const productPrice = document.getElementById('product-price');
+    const productCommission = document.getElementById('product-commission');
+    
+    // Copy data to modal
+    document.getElementById('modal-product-image').src = productImage.src;
+    document.getElementById('modal-product-name').textContent = productName.textContent;
+    document.getElementById('modal-product-price').textContent = productPrice.textContent;
+    document.getElementById('modal-product-commission').textContent = productCommission.textContent;
+    
+    // Calculate commission rate (placeholder calculation)
+    const price = parseFloat(productPrice.textContent.replace('$', ''));
+    const commission = parseFloat(productCommission.textContent.replace(' USDT', ''));
+    const rate = price > 0 ? ((commission / price) * 100).toFixed(1) : 0;
+    document.getElementById('modal-commission-rate').textContent = rate + '%';
+    
+    // Show modal
+    modal.classList.add('show');
+    document.body.style.overflow = 'hidden';
+    
+    // Set up modal purchase button
+    const modalPurchaseBtn = document.getElementById('modal-purchase-button');
+    const originalPurchaseBtn = document.getElementById('purchase-button');
+    
+    modalPurchaseBtn.onclick = function() {
+        // Trigger the original purchase logic
+        if (originalPurchaseBtn.onclick) {
+            originalPurchaseBtn.onclick();
+        } else if (originalPurchaseBtn.click) {
+            originalPurchaseBtn.click();
+        }
+        closeProductModal();
+    };
+}
+
+function closeProductModal() {
+    const modal = document.getElementById('product-modal');
+    modal.classList.remove('show');
+    document.body.style.overflow = '';
+}
+
+// Close modal when clicking outside
+document.getElementById('product-modal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeProductModal();
     }
-  });
-  
-  // Add custom styling to carousel navigation
-  $('.owl-prev, .owl-next').css({
-    'position': 'absolute',
-    'top': '50%',
-    'transform': 'translateY(-50%)',
-    'background': 'rgba(0,0,0,0.5)',
-    'color': '#fff',
-    'padding': '5px 10px',
-    'border-radius': '50%'
-  });
-  
-  $('.owl-prev').css('left', '10px');
-  $('.owl-next').css('right', '10px');
+});
+
+// Close modal with Escape key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeProductModal();
+    }
+});
+
+// Enhanced button animations
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize animation observer
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+                entry.target.style.animationPlayState = 'running';
+            }
+        });
+    });
+
+    // Observe animated elements
+    document.querySelectorAll('.animate-fade-in-up, .animate-slide-in-right, .animate-bounce-in').forEach((el) => {
+        el.style.animationPlayState = 'paused';
+        observer.observe(el);
+    });
+
+    // Add ripple effect to buttons
+    const buttons = document.querySelectorAll('.btn-modern');
+    buttons.forEach(button => {
+        button.addEventListener('click', function(e) {
+            // Remove existing ripples
+            const existingRipples = button.querySelectorAll('.ripple');
+            existingRipples.forEach(ripple => ripple.remove());
+            
+            const ripple = document.createElement('span');
+            ripple.classList.add('ripple');
+            
+            const rect = button.getBoundingClientRect();
+            const size = Math.max(rect.width, rect.height);
+            const x = e.clientX - rect.left - size / 2;
+            const y = e.clientY - rect.top - size / 2;
+            
+            ripple.style.width = ripple.style.height = size + 'px';
+            ripple.style.left = x + 'px';
+            ripple.style.top = y + 'px';
+            
+            button.appendChild(ripple);
+            
+            setTimeout(() => {
+                ripple.remove();
+            }, 600);
+        });
+    });
+    
+    // Refresh button animation
+    const refreshBtn = document.getElementById('refresh-drive-button');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', function() {
+            const icon = this.querySelector('i');
+            icon.classList.add('rotate-on-hover');
+            icon.style.animation = 'spin 1s linear';
+            setTimeout(() => {
+                icon.style.animation = '';
+                icon.classList.remove('rotate-on-hover');
+            }, 1000);
+        });
+    }
+
+    // Add smooth scrolling to all links
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+            e.preventDefault();
+            const target = document.querySelector(this.getAttribute('href'));
+            if (target) {
+                target.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start'
+                });
+            }
+        });
+    });
+
+    // Add loading skeleton effect
+    function showLoadingSkeleton(element) {
+        element.classList.add('loading-skeleton');
+        element.textContent = 'Loading...';
+    }
+
+    function hideLoadingSkeleton(element, content) {
+        element.classList.remove('loading-skeleton');
+        element.textContent = content;
+    }
+
+    // Progress bar animation enhancement
+    function animateProgressBar(element, targetWidth, duration = 1000) {
+        const startWidth = parseFloat(element.style.width) || 0;
+        const difference = targetWidth - startWidth;
+        const startTime = performance.now();
+
+        function updateProgress(currentTime) {
+            const elapsed = currentTime - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            
+            // Use easing function for smooth animation
+            const easeOutCubic = 1 - Math.pow(1 - progress, 3);
+            const currentWidth = startWidth + (difference * easeOutCubic);
+            
+            element.style.width = currentWidth + '%';
+            
+            if (progress < 1) {
+                requestAnimationFrame(updateProgress);
+            }
+        }
+        
+        requestAnimationFrame(updateProgress);
+    }
+
+    // Add parallax effect to floating elements
+    window.addEventListener('scroll', function() {
+        const scrolled = window.pageYOffset;
+        const parallaxElements = document.querySelectorAll('.float');
+        
+        parallaxElements.forEach((element, index) => {
+            const speed = 0.5 + (index * 0.1);
+            const yPos = -(scrolled * speed);
+            element.style.transform = `translateY(${yPos}px)`;
+        });
+    });
+
+    // Add auto-hide notification for long messages
+    function showNotificationWithAutoHide(message, type = 'info', duration = 5000) {
+        // Assuming showNotification function exists
+        if (typeof showNotification === 'function') {
+            showNotification(message, type);
+            
+            // Auto-hide after duration
+            setTimeout(() => {
+                const notifications = document.querySelectorAll('.notification, .alert');
+                notifications.forEach(notification => {
+                    notification.style.opacity = '0';
+                    setTimeout(() => {
+                        notification.remove();
+                    }, 300);
+                });
+            }, duration);
+        }
+    }
+
+    // Add keyboard navigation support
+    document.addEventListener('keydown', function(e) {
+        // ESC key functionality
+        if (e.key === 'Escape') {
+            // Close any open modals
+            const modals = document.querySelectorAll('.product-modal.show');
+            modals.forEach(modal => {
+                if (typeof closeProductModal === 'function') {
+                    closeProductModal();
+                }
+            });
+        }
+        
+        // Enter key on buttons
+        if (e.key === 'Enter' && e.target.classList.contains('btn-modern')) {
+            e.target.click();
+        }
+    });
+
+    // Enhance form validation with real-time feedback
+    const forms = document.querySelectorAll('form');
+    forms.forEach(form => {
+        form.addEventListener('submit', function(e) {
+            const inputs = form.querySelectorAll('input, select, textarea');
+            let isValid = true;
+            
+            inputs.forEach(input => {
+                if (input.hasAttribute('required') && !input.value.trim()) {
+                    input.classList.add('is-invalid');
+                    isValid = false;
+                } else {
+                    input.classList.remove('is-invalid');
+                }
+            });
+            
+            if (!isValid) {
+                e.preventDefault();
+                showNotificationWithAutoHide('Please fill in all required fields', 'error');
+            }
+        });
+    });
+
+    // Add dynamic favicon update based on activity
+    function updateFavicon(active = false) {
+        const link = document.querySelector('link[rel="shortcut icon"]');
+        if (link && active) {
+            // Could add different favicon for active state
+            link.href = link.href; // Refresh current favicon
+        }
+    }
+
+    // Performance monitoring and optimization
+    function optimizePerformance() {
+        // Lazy load images
+        const images = document.querySelectorAll('img[data-src]');
+        const imageObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const img = entry.target;
+                    img.src = img.dataset.src;
+                    img.removeAttribute('data-src');
+                    imageObserver.unobserve(img);
+                }
+            });
+        });
+        
+        images.forEach(img => imageObserver.observe(img));
+        
+        // Preload critical resources
+        const criticalResources = [
+            './css/task-account-styles.css',
+            './js/task.js'
+        ];
+        
+        criticalResources.forEach(resource => {
+            const link = document.createElement('link');
+            link.rel = 'preload';
+            link.href = resource;
+            link.as = resource.includes('.css') ? 'style' : 'script';
+            document.head.appendChild(link);
+        });
+    }
+    
+    // Initialize performance optimizations
+    optimizePerformance();
+    
+    // Add connection status indicator
+    function updateConnectionStatus() {
+        const indicator = document.createElement('div');
+        indicator.id = 'connection-status';
+        indicator.style.cssText = `
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            z-index: 1000;
+            transition: all 0.3s ease;
+        `;
+        
+        function updateStatus() {
+            if (navigator.onLine) {
+                indicator.textContent = '🟢 Online';
+                indicator.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+                indicator.style.color = 'white';
+            } else {
+                indicator.textContent = '🔴 Offline';
+                indicator.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
+                indicator.style.color = 'white';
+            }
+        }
+        
+        updateStatus();
+        document.body.appendChild(indicator);
+        
+        window.addEventListener('online', updateStatus);
+        window.addEventListener('offline', updateStatus);
+        
+        // Auto-hide after 3 seconds if online
+        setTimeout(() => {
+            if (navigator.onLine) {
+                indicator.style.opacity = '0';
+                setTimeout(() => indicator.remove(), 300);
+            }
+        }, 3000);
+    }
+    
+    // Initialize connection status
+    updateConnectionStatus();
 });
 </script>
+
+<!-- Initialize Owl Carousel -->
+<!-- Removed Owl Carousel initialization as it's not used in the current HTML structure -->
 </body>
 </html>

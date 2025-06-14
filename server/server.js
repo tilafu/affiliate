@@ -15,6 +15,16 @@ const { calculateCommission } = require('./utils/commission'); // Import commiss
 app.use(cors());
 app.use(express.json());
 
+// Add request logging
+app.use((req, res, next) => {
+    console.log(`${req.method} ${req.path}`);
+    console.log('Headers:', req.headers);
+    if (req.body && Object.keys(req.body).length > 0) {
+        console.log('Body:', req.body);
+    }
+    next();
+});
+
 // Serve static files from the public directory
 app.use(express.static(path.join(__dirname, '../public')));
 
