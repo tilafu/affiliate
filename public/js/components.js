@@ -201,6 +201,36 @@ function loadInitialComponents() {
     // }
 }
 
+/**
+ * Loads the standard header navigation component
+ */
+async function loadHeaderNavigation() {
+    return loadComponent('/components/header-navigation.html', 'header-navigation-placeholder');
+}
+
+/**
+ * Loads the standard footer navigation component
+ */
+async function loadFooterNavigation() {
+    return loadComponent('/components/footer-navigation.html', 'footer-navigation-placeholder');
+}
+
+/**
+ * Loads all standard navigation components
+ */
+async function loadStandardNavigation() {
+    try {
+        await Promise.all([
+            loadComponent('/components/sidebar.html', 'sidebar-placeholder'),
+            loadHeaderNavigation(),
+            loadFooterNavigation()
+        ]);
+        console.log('All standard navigation components loaded successfully');
+    } catch (error) {
+        console.error('Error loading standard navigation components:', error);
+    }
+}
+
 // Automatically load components when both DOM and i18n are ready
 document.addEventListener('DOMContentLoaded', () => {
     console.log('Components.js: DOM loaded, checking i18n status...');

@@ -85,11 +85,9 @@ const getWithdrawableBalance = async (req, res) => {
  */
 const getWithdrawHistory = async (req, res) => {
   try {
-    const userId = req.user.id;
-
-    // Query to fetch withdraw history from the withdrawals table
+    const userId = req.user.id;    // Query to fetch withdraw history from the withdrawals table
     const result = await pool.query(
-      `SELECT id, amount, status, created_at AS date, description, txn_hash
+      `SELECT id, amount, status, created_at AS date, address, description, txn_hash
        FROM withdrawals
        WHERE user_id = $1
        ORDER BY created_at DESC`,

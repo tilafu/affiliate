@@ -4,6 +4,23 @@ document.addEventListener('DOMContentLoaded', () => {
   if (!authData) {
     return; // requireAuth will handle redirect
   }
+  
+  // Get the token from localStorage
+  const authToken = localStorage.getItem('auth_token');
+  if (!authToken) {
+    console.error('No auth token found');
+    window.location.href = './login.html';
+    return;
+  }
+  
+  // Get token from localStorage
+  const token = localStorage.getItem('auth_token');
+  if (!token) {
+    console.error('No auth token found');
+    window.location.href = './login.html';
+    return;
+  }
+  
   // Initialize i18n (simplified - no longer using i18next)
   if (typeof updateContent === 'function') {
     updateContent(); // Apply text conversions immediately
@@ -11,14 +28,13 @@ document.addEventListener('DOMContentLoaded', () => {
   } else {
     console.warn('updateContent function not found');
   }
-
   // Helper function to fetch data
   const fetchData = async (url, callback) => {
     try {
       const response = await fetch(url, {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          'Authorization': `Bearer ${authToken}`,
           'Content-Type': 'application/json',
         },
       });
@@ -45,35 +61,42 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             console.warn('Total withdrawn amount element not found.');
         }
-      });
-
-      // Fetch and display the withdrawable balance (Main account balance)
-      fetchData('/api/user/balance', (data) => { // Using /api/user/balance as it's the main account
+      });      // Fetch and display the withdrawable balance (Main account balance)
+      fetchData('/api/user/withdrawable-balance', (data) => { // Using correct endpoint
         const balanceElement = document.getElementById('withdrawable-balance');
         if (balanceElement) {
-            balanceElement.innerHTML = `<strong>${data.balance.toFixed(2)}<small style="font-size:14px"> USDT</small></strong>`;
+            balanceElement.innerHTML = `<strong>${data.withdrawableBalance.toFixed(2)}<small style="font-size:14px"> USDT</small></strong>`;
         } else {
             console.warn('Withdrawable balance element not found.');
         }
-      });
-
-      // Fetch and display the withdraw history
+      });// Fetch and display the withdraw history
       fetchData('/api/user/withdraw-history', (data) => {
-        const historyElement = document.querySelector('#withdraws table tbody'); // Select the tbody within the history tab
+        const historyElement = document.querySelector('#withdraw-history-tbody'); // Select the tbody within the history tab
         if (historyElement) {
-          historyElement.innerHTML = data.history
-            .map(
-              (entry) => `
-                <tr>
-                  <td>${new Date(entry.date).toLocaleDateString()}</td>
-                  <td>${new Date(entry.date).toLocaleTimeString()}</td>
-                  <td>${parseFloat(entry.amount).toFixed(2)} USDT</td>
-                  <td>${entry.address || 'N/A'}</td> 
-                  <td>${entry.status}</td>
-                </tr>
-              `
-            )
-            .join('');
+          if (data.history && data.history.length > 0) {
+            historyElement.innerHTML = data.history
+              .map(
+                (entry) => `
+                  <tr>
+                    <td>${new Date(entry.date).toLocaleDateString()}</td>
+                    <td>${new Date(entry.date).toLocaleTimeString()}</td>
+                    <td>${parseFloat(entry.amount).toFixed(2)} USDT</td>
+                    <td class="text-truncate" style="max-width: 150px;" title="${entry.address || 'N/A'}">${(entry.address || 'N/A').substring(0, 20)}${(entry.address && entry.address.length > 20) ? '...' : ''}</td> 
+                    <td><span class="status-badge status-${entry.status.toLowerCase()}">${entry.status}</span></td>
+                  </tr>
+                `
+              )
+              .join('');
+          } else {
+            historyElement.innerHTML = `
+              <tr>
+                <td colspan="5" class="empty-state">
+                  <i class="fas fa-history"></i>
+                  <p>No withdrawal history found</p>
+                </td>
+              </tr>
+            `;
+          }
         } else {
           console.warn('Withdraw history table body not found.');
         }
@@ -123,21 +146,15 @@ document.addEventListener('DOMContentLoaded', () => {
         withdrawal_password: withdrawal_password,
         withdrawal_account_details: withdrawal_account_details,
         // method: method, // Include other fields
-      };
-
-      try {
-        // Show loading indicator (using the existing dialog logic from the HTML script)
-        let loading = $(document).dialog({
-           type : 'notice',
-           infoIcon: baseurl + '/assets/frontend/shopva/img/loading.gif',
-           infoText: 'Submitting withdrawal request...',
-           autoClose: 0
-        });
-
-        const response = await fetch('/api/user/withdraw/request', {
+      };      try {
+        // Show loading indicator
+        const withdrawButton = document.getElementById('withdraw');
+        const originalText = withdrawButton.innerHTML;
+        withdrawButton.disabled = true;
+        withdrawButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';        const response = await fetch('/api/user/withdraw/request', {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${token}`,
+            'Authorization': `Bearer ${authToken}`,
             'Content-Type': 'application/json',
             // 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') // If CSRF is needed
           },
@@ -146,10 +163,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const data = await response.json();
 
-        loading.close(); // Close loading indicator
+        // Restore button
+        withdrawButton.disabled = false;
+        withdrawButton.innerHTML = originalText;
 
         if (data.success) {
-          $(document).dialog({ infoText: data.message, autoClose: 2000 });
+          // Show success message
+          alert('Success: ' + data.message);
           // Clear form
           if (amountInput) amountInput.value = '';
           if (passwordInput) passwordInput.value = '';
@@ -157,15 +177,15 @@ document.addEventListener('DOMContentLoaded', () => {
           // Refresh data on the page
           refreshWithdrawalData();
         } else {
-          $(document).dialog({ infoText: data.message || 'Failed to submit withdrawal request.', autoClose: 2000 });
+          alert('Error: ' + (data.message || 'Failed to submit withdrawal request.'));
         }
       } catch (error) {
         console.error('Error submitting withdrawal request:', error);
-        // Ensure loading is closed even on error
-        if (loading && typeof loading.close === 'function') {
-           loading.close();
-        }
-        $(document).dialog({ infoText: 'An error occurred while submitting the withdrawal request.', autoClose: 2000 });
+        // Restore button
+        const withdrawButton = document.getElementById('withdraw');
+        withdrawButton.disabled = false;
+        withdrawButton.innerHTML = '<i class="fas fa-paper-plane me-2"></i>Submit Withdrawal';
+        alert('An error occurred while submitting the withdrawal request.');
       }
     });
   } else {

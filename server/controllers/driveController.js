@@ -619,10 +619,9 @@ const getOrder = async (req, res) => {
 };
 
 const saveOrder = async (req, res) => {
-    console.log('saveOrder called with body:', req.body);
-    console.log('saveOrder user:', req.user);
-    
     const userId = req.user.id;
+    logger.debug(`saveOrder called for user ID: ${userId} with body:`, req.body);
+    
     // Client sends: user_active_drive_item_id (parent item), product_id (of sub-product), 
     // order_amount (price of sub-product), earning_commission (for sub-product),
     // product_slot_to_complete (0-indexed, which sub-product this is: 0, 1, or 2)
@@ -634,22 +633,32 @@ const saveOrder = async (req, res) => {
         product_slot_to_complete   // 0, 1, or 2, indicating which sub-product this is
     } = req.body;
 
+    logger.debug(`saveOrder params - Item ID: ${user_active_drive_item_id}, Product ID: ${product_id}, Amount: ${order_amount}, Slot: ${product_slot_to_complete}`);
+
     if (!user_active_drive_item_id || !product_id || order_amount === undefined || product_slot_to_complete === undefined) {
+        logger.warn(`saveOrder: Missing required fields for user ${userId}`, { user_active_drive_item_id, product_id, order_amount, product_slot_to_complete });
         return res.status(400).json({ code: 1, info: 'Missing required fields for saving order.' });
     }
+    
     const parsedUserActiveDriveItemId = parseInt(user_active_drive_item_id);
     const subProductPrice = parseFloat(order_amount);
     const slotIndex = parseInt(product_slot_to_complete); // 0, 1, or 2
+    
+    logger.debug(`saveOrder parsed values - Item ID: ${parsedUserActiveDriveItemId}, Price: ${subProductPrice}, Slot: ${slotIndex}`);
 
     if (isNaN(parsedUserActiveDriveItemId) || isNaN(subProductPrice) || isNaN(slotIndex) || slotIndex < 0 || slotIndex > 2) {
+        logger.warn(`saveOrder: Invalid input data for user ${userId}`, { parsedUserActiveDriveItemId, subProductPrice, slotIndex });
         return res.status(400).json({ code: 1, info: 'Invalid input data.' });
     }
 
     const client = await pool.connect();
+    let clientReleased = false;
     try {
         await client.query('BEGIN');
+        logger.debug(`saveOrder: Transaction started for user ${userId}`);
 
         // 1. Fetch active session and verify the submitted item is the current one
+        logger.debug(`saveOrder: Fetching active session for user ${userId}`);
         const sessionResult = await client.query(
             `SELECT id as drive_session_id, status, drive_configuration_id, current_user_active_drive_item_id, tasks_required as total_task_sets_in_drive
              FROM drive_sessions
@@ -658,15 +667,28 @@ const saveOrder = async (req, res) => {
             [userId]
         );
 
+        logger.debug(`saveOrder: Session query returned ${sessionResult.rows.length} rows`);
+        if (sessionResult.rows.length > 0) {
+            logger.debug(`saveOrder: Active session found:`, sessionResult.rows[0]);
+        }
+
         if (sessionResult.rows.length === 0) {
-            await client.query('ROLLBACK'); client.release();
+            await client.query('ROLLBACK'); client.release(); clientReleased = true;
+            logger.warn(`saveOrder: No active drive session found for user ${userId}`);
             return res.status(404).json({ code: 1, info: 'No active drive session found.' });
         }
+        
         const session = sessionResult.rows[0];
+        logger.debug(`saveOrder: Current session item ID: ${session.current_user_active_drive_item_id}, Submitted item ID: ${parsedUserActiveDriveItemId}`);
+        
         if (session.current_user_active_drive_item_id !== parsedUserActiveDriveItemId) {
-            await client.query('ROLLBACK'); client.release();
+            await client.query('ROLLBACK'); client.release(); clientReleased = true;
+            logger.warn(`saveOrder: Item mismatch for user ${userId} - Current: ${session.current_user_active_drive_item_id}, Submitted: ${parsedUserActiveDriveItemId}`);
             return res.status(400).json({ code: 1, info: 'Submitted item is not the current active task.' });
-        }        // 2. Fetch details of the user_active_drive_item and verify the sub-product
+        }
+
+        // 2. Fetch details of the user_active_drive_item and verify the sub-product
+        logger.debug(`saveOrder: Fetching item details for item ${parsedUserActiveDriveItemId}`);
         const itemDetailsResult = await client.query(
             `SELECT uadi.id, uadi.user_status, uadi.current_product_slot_processed,
                     uadi.product_id_1, p1.price as p1_price,
@@ -684,98 +706,154 @@ const saveOrder = async (req, res) => {
             [parsedUserActiveDriveItemId, session.drive_session_id]
         );
 
+        logger.debug(`saveOrder: Item details query returned ${itemDetailsResult.rows.length} rows`);
+        if (itemDetailsResult.rows.length > 0) {
+            const item = itemDetailsResult.rows[0];
+            logger.debug(`saveOrder: Item details:`, {
+                id: item.id,
+                user_status: item.user_status,
+                current_product_slot_processed: item.current_product_slot_processed,
+                product_id_1: item.product_id_1,
+                product_id_2: item.product_id_2,
+                product_id_3: item.product_id_3,
+                p1_price: item.p1_price,
+                p2_price: item.p2_price,
+                p3_price: item.p3_price,
+                total_products_in_task_set: item.total_products_in_task_set,
+                is_combo: item.is_combo
+            });
+        }
+
         if (itemDetailsResult.rows.length === 0) {
-            await client.query('ROLLBACK'); client.release();
+            await client.query('ROLLBACK'); client.release(); clientReleased = true;
+            logger.warn(`saveOrder: Active drive item not found - Item: ${parsedUserActiveDriveItemId}, Session: ${session.drive_session_id}`);
             return res.status(404).json({ code: 1, info: 'Active drive item not found.' });
         }
         const currentItem = itemDetailsResult.rows[0];
 
         if (currentItem.user_status !== 'CURRENT') {
-            await client.query('ROLLBACK'); client.release();
+            await client.query('ROLLBACK'); client.release(); clientReleased = true;
+            logger.warn(`saveOrder: Cannot save item with status ${currentItem.user_status} for user ${userId}`);
             return res.status(400).json({ code: 1, info: `Cannot save item with status ${currentItem.user_status}.` });
         }
+        
         if (currentItem.current_product_slot_processed !== slotIndex) {
-            await client.query('ROLLBACK'); client.release();
+            await client.query('ROLLBACK'); client.release(); clientReleased = true;
+            logger.warn(`saveOrder: Product slot mismatch for user ${userId} - Expected: ${currentItem.current_product_slot_processed}, Got: ${slotIndex}`);
             return res.status(400).json({ code: 1, info: `Mismatch in expected product slot. Expected ${currentItem.current_product_slot_processed}, got ${slotIndex}.` });
         }
 
         // Verify product_id and price match the expected slot
         let expectedProductId, expectedPrice;
-        if (slotIndex === 0) { expectedProductId = currentItem.product_id_1; expectedPrice = currentItem.p1_price; }
-        else if (slotIndex === 1) { expectedProductId = currentItem.product_id_2; expectedPrice = currentItem.p2_price; }
-        else if (slotIndex === 2) { expectedProductId = currentItem.product_id_3; expectedPrice = currentItem.p3_price; }
+        if (slotIndex === 0) { 
+            expectedProductId = currentItem.product_id_1; 
+            expectedPrice = currentItem.p1_price; 
+        } else if (slotIndex === 1) { 
+            expectedProductId = currentItem.product_id_2; 
+            expectedPrice = currentItem.p2_price; 
+        } else if (slotIndex === 2) { 
+            expectedProductId = currentItem.product_id_3; 
+            expectedPrice = currentItem.p3_price; 
+        }
+
+        logger.debug(`saveOrder: Product verification - Slot: ${slotIndex}, Expected PID: ${expectedProductId}, Expected Price: ${expectedPrice}, Submitted PID: ${product_id}, Submitted Price: ${subProductPrice}`);
 
         if (!expectedProductId || parseInt(product_id) !== expectedProductId || Math.abs(parseFloat(expectedPrice) - subProductPrice) > 0.001) {
-            await client.query('ROLLBACK'); client.release();
-            logger.warn(`Sub-product mismatch for item ${parsedUserActiveDriveItemId}, slot ${slotIndex}. Expected PID: ${expectedProductId}, Price: ${expectedPrice}. Got PID: ${product_id}, Price: ${subProductPrice}`);
+            await client.query('ROLLBACK'); client.release(); clientReleased = true;
+            logger.warn(`saveOrder: Sub-product mismatch for user ${userId} - Item: ${parsedUserActiveDriveItemId}, Slot: ${slotIndex}, Expected PID: ${expectedProductId}, Price: ${expectedPrice}, Got PID: ${product_id}, Price: ${subProductPrice}`);
             return res.status(400).json({ code: 1, info: 'Sub-product details do not match expected values for this slot.' });
         }
 
         // 3. Check balance
+        logger.debug(`saveOrder: Checking balance for user ${userId}`);
         const accountResult = await client.query(
             'SELECT id, balance FROM accounts WHERE user_id = $1 AND type = $2 FOR UPDATE', [userId, 'main']
         );
+        
+        if (accountResult.rows.length === 0) {
+            await client.query('ROLLBACK'); client.release(); clientReleased = true;
+            logger.error(`saveOrder: User account not found for user ${userId}`);
+            throw new Error('User account not found');
+        }
+        
         const account = accountResult.rows[0];
-        if (!account) { /* ... error handling ... */ await client.query('ROLLBACK'); client.release(); throw new Error('User account not found'); }
-        const currentBalance = parseFloat(account.balance);        if (currentBalance < subProductPrice) {
+        const currentBalance = parseFloat(account.balance);
+        logger.debug(`saveOrder: Current balance for user ${userId}: ${currentBalance}, Required: ${subProductPrice}`);
+
+        if (currentBalance < subProductPrice) {
             const amountNeeded = (subProductPrice - currentBalance).toFixed(2);
+            logger.info(`saveOrder: Insufficient balance for user ${userId} - Current: ${currentBalance}, Required: ${subProductPrice}, Needed: ${amountNeeded}`);
             
             // Calculate total session commission for frozen state response
             const totalCommissionResult = await client.query(
                 `SELECT COALESCE(SUM(commission_amount), 0) as total_commission
                  FROM commission_logs WHERE drive_session_id = $1`,
                 [session.drive_session_id]
-            );            const totalSessionCommission = parseFloat(totalCommissionResult.rows[0]?.total_commission || 0);
+            );
+
+            const totalSessionCommission = parseFloat(totalCommissionResult.rows[0]?.total_commission || 0);
+            logger.debug(`saveOrder: Total session commission before freeze: ${totalSessionCommission}`);
             
             // Calculate unlimited task sets progress for frozen state response
             const unlimitedProgress = await calculateUnlimitedProgress(session.drive_session_id, client);
+            logger.debug(`saveOrder: Progress before freeze:`, unlimitedProgress);
             
             await client.query(
                 "UPDATE drive_sessions SET status = 'frozen', frozen_amount_needed = $1 WHERE id = $2",
                 [subProductPrice, session.drive_session_id] // Store the sub-product price as amount needed for this freeze
             );
-            // user_active_drive_items status remains 'CURRENT', current_product_slot_processed is not incremented.
-            await client.query('COMMIT'); client.release();
-            return res.status(400).json({ // HTTP 400 or 402 might be more appropriate
+            
+            logger.info(`saveOrder: Drive session ${session.drive_session_id} frozen for user ${userId}, amount needed: ${subProductPrice}`);
+            
+            await client.query('COMMIT'); client.release(); clientReleased = true;
+            return res.status(400).json({
                 code: 3, // Insufficient balance code
                 info: `Insufficient balance. You need ${amountNeeded} USDT more for this product. Drive frozen.`,
                 status: 'frozen',
-                frozen_amount_needed: subProductPrice.toFixed(2), // Amount needed for this specific sub-product
+                frozen_amount_needed: subProductPrice.toFixed(2),
                 total_session_commission: totalSessionCommission.toFixed(2),
-                tasks_completed: unlimitedProgress.currentStep, // Current product step (unlimited design)
-                tasks_required: unlimitedProgress.totalProducts // Total products across all task sets (unlimited design)
+                tasks_completed: unlimitedProgress.currentStep,
+                tasks_required: unlimitedProgress.totalProducts
             });
-        }        // 4. Calculate commission for this sub-product
+        }
+
+        // 4. Calculate commission for this sub-product
         let commissionData, subProductCommission;
         try {
-            logger.debug(`Calculating commission for user ${userId}, price ${subProductPrice}, is_combo: ${currentItem.is_combo}`);
-            commissionData = await tierCommissionService.calculateCommissionForUser(userId, subProductPrice, currentItem.is_combo || false); // Use combo rate for combo task sets, default to false
+            logger.debug(`saveOrder: Calculating commission for user ${userId}, price ${subProductPrice}, is_combo: ${currentItem.is_combo}`);
+            commissionData = await tierCommissionService.calculateCommissionForUser(userId, subProductPrice, currentItem.is_combo || false);
             subProductCommission = commissionData.commissionAmount;
-            logger.debug(`Commission calculated: ${subProductCommission}`);
+            logger.debug(`saveOrder: Commission calculated for user ${userId}: ${subProductCommission}`, commissionData);
         } catch (commissionError) {
-            logger.error(`Error calculating commission for user ${userId}:`, commissionError);
+            logger.error(`saveOrder: Error calculating commission for user ${userId}:`, commissionError);
             await client.query('ROLLBACK'); 
-            client.release();
+            client.release(); clientReleased = true;
             return res.status(500).json({ code: 1, info: 'Error calculating commission.' });
         }
 
         // 5. Update balance
         const newBalance = currentBalance - subProductPrice + subProductCommission;
+        logger.debug(`saveOrder: Balance calculation for user ${userId} - Current: ${currentBalance}, Product: ${subProductPrice}, Commission: ${subProductCommission}, New: ${newBalance}`);
+        
         await client.query('UPDATE accounts SET balance = $1 WHERE id = $2', [newBalance.toFixed(2), account.id]);
+        logger.debug(`saveOrder: Balance updated for user ${userId} to ${newBalance.toFixed(2)}`);
 
         // 6. Log commission for this sub-product
-        await client.query(
+        const commissionLogResult = await client.query(
             `INSERT INTO commission_logs (user_id, source_user_id, account_type, commission_amount, commission_type, description, reference_id, source_action_id, drive_session_id)
-             VALUES ($1, $1, 'main', $2, 'data_drive_sub_product', $3, $4, $5, $6)`,
+             VALUES ($1, $1, 'main', $2, 'data_drive_sub_product', $3, $4, $5, $6) RETURNING id`,
             [userId, subProductCommission.toFixed(2), 
              `Commission for sub-product #${product_id} (slot ${slotIndex}) of item ${parsedUserActiveDriveItemId}`,
-             `${parsedUserActiveDriveItemId}-${slotIndex}`, // reference_id: item_id + slot
-             product_id, // source_action_id: the sub-product_id
+             `${parsedUserActiveDriveItemId}-${slotIndex}`,
+             product_id,
              session.drive_session_id]
         );
+        logger.debug(`saveOrder: Commission logged for user ${userId}, log ID: ${commissionLogResult.rows[0]?.id}`);
 
         // 7. Update current_product_slot_processed for the item
         const newSlotProcessed = currentItem.current_product_slot_processed + 1;
+        logger.debug(`saveOrder: Updating slot processed from ${currentItem.current_product_slot_processed} to ${newSlotProcessed} for item ${parsedUserActiveDriveItemId}`);
+        
         await client.query(
             "UPDATE user_active_drive_items SET current_product_slot_processed = $1, updated_at = NOW() WHERE id = $2",
             [newSlotProcessed, parsedUserActiveDriveItemId]
@@ -785,6 +863,8 @@ const saveOrder = async (req, res) => {
         const totalProductsInItem = parseInt(currentItem.total_products_in_task_set, 10);
         let itemCompleted = newSlotProcessed >= totalProductsInItem;
         
+        logger.debug(`saveOrder: Item completion check - New slot: ${newSlotProcessed}, Total products: ${totalProductsInItem}, Completed: ${itemCompleted}`);
+        
         let nextUserActiveDriveItemId = null;
         let driveFullyCompleted = false;
 
@@ -793,7 +873,7 @@ const saveOrder = async (req, res) => {
                 "UPDATE user_active_drive_items SET user_status = 'COMPLETED', updated_at = NOW() WHERE id = $1",
                 [parsedUserActiveDriveItemId]
             );
-            logger.info(`Item ${parsedUserActiveDriveItemId} completed by user ${userId}.`);
+            logger.info(`saveOrder: Item ${parsedUserActiveDriveItemId} completed by user ${userId}`);
 
             // Check total completed items (task sets) in the drive
             const completedItemsCountResult = await client.query(
@@ -801,6 +881,7 @@ const saveOrder = async (req, res) => {
                 [session.drive_session_id]
             );
             const itemsCompletedSoFar = parseInt(completedItemsCountResult.rows[0].count, 10);
+            logger.debug(`saveOrder: Completed items check - Items completed: ${itemsCompletedSoFar}, Total required: ${session.total_task_sets_in_drive}`);
 
             if (itemsCompletedSoFar >= session.total_task_sets_in_drive) {
                 driveFullyCompleted = true;
@@ -808,17 +889,23 @@ const saveOrder = async (req, res) => {
                     "UPDATE drive_sessions SET status = 'pending_reset', completed_at = NOW(), current_user_active_drive_item_id = NULL WHERE id = $1",
                     [session.drive_session_id]
                 );
-                logger.info(`Drive session ${session.drive_session_id} fully completed by user ${userId}. Status set to pending_reset.`);
+                logger.info(`saveOrder: Drive session ${session.drive_session_id} fully completed by user ${userId}. Status set to pending_reset`);
             } else {
                 // Find next PENDING user_active_drive_item for this session
+                logger.debug(`saveOrder: Looking for next pending item for session ${session.drive_session_id}`);
                 const nextItemResult = await client.query(
                     `SELECT id FROM user_active_drive_items 
                      WHERE drive_session_id = $1 AND user_status = 'PENDING' 
                      ORDER BY order_in_drive ASC LIMIT 1`,
                     [session.drive_session_id]
                 );
+                
+                logger.debug(`saveOrder: Next item query returned ${nextItemResult.rows.length} rows`);
+                
                 if (nextItemResult.rows.length > 0) {
                     nextUserActiveDriveItemId = nextItemResult.rows[0].id;
+                    logger.debug(`saveOrder: Next item found: ${nextUserActiveDriveItemId}`);
+                    
                     await client.query(
                         "UPDATE user_active_drive_items SET user_status = 'CURRENT', current_product_slot_processed = 0, updated_at = NOW() WHERE id = $1",
                         [nextUserActiveDriveItemId]
@@ -827,69 +914,90 @@ const saveOrder = async (req, res) => {
                         "UPDATE drive_sessions SET current_user_active_drive_item_id = $1 WHERE id = $2",
                         [nextUserActiveDriveItemId, session.drive_session_id]
                     );
-                    logger.info(`Advanced to next item ${nextUserActiveDriveItemId} in session ${session.drive_session_id}.`);
+                    logger.info(`saveOrder: Advanced to next item ${nextUserActiveDriveItemId} in session ${session.drive_session_id}`);
                 } else {
-                    // Should be caught by driveFullyCompleted, but as a safeguard:
-                    driveFullyCompleted = true; // No more pending items, means drive is done.
-                     await client.query(
+                    driveFullyCompleted = true;
+                    await client.query(
                         "UPDATE drive_sessions SET status = 'pending_reset', completed_at = NOW(), current_user_active_drive_item_id = NULL WHERE id = $1",
                         [session.drive_session_id]
                     );
-                    logger.warn(`Session ${session.drive_session_id} marked pending_reset: item completed, total items match, but no next PENDING item found explicitly.`);
+                    logger.warn(`saveOrder: Session ${session.drive_session_id} marked pending_reset: item completed, total items match, but no next PENDING item found explicitly`);
                 }
             }
         } else {
-            // Item (combo) not yet fully complete, user continues with this item.
-            // current_user_active_drive_item_id on session remains the same.
-            logger.info(`Sub-product slot ${slotIndex} of item ${parsedUserActiveDriveItemId} completed. Item not yet fully complete.`);
+            logger.info(`saveOrder: Sub-product slot ${slotIndex} of item ${parsedUserActiveDriveItemId} completed. Item not yet fully complete`);
         }
-          await driveProgressService.updateDriveCompletion(userId);
+
+        await driveProgressService.updateDriveCompletion(userId);
+        logger.debug(`saveOrder: Drive progress updated for user ${userId}`);
 
         // Calculate total session commission to return to frontend
         const totalCommissionResult = await client.query(
             `SELECT COALESCE(SUM(commission_amount), 0) as total_commission
              FROM commission_logs WHERE drive_session_id = $1`,
             [session.drive_session_id]
-        );        // Calculate unlimited task sets progress to return to frontend
+        );
+        const totalSessionCommission = parseFloat(totalCommissionResult.rows[0]?.total_commission || 0);
+
+        // Calculate unlimited task sets progress to return to frontend
         const unlimitedProgress = await calculateUnlimitedProgress(session.drive_session_id, client);
+        logger.debug(`saveOrder: Final progress calculation:`, unlimitedProgress);
 
         await client.query('COMMIT');
-        client.release();
+        logger.debug(`saveOrder: Transaction committed for user ${userId}`);
 
         let responsePayload = {
             code: 0,
             info: 'Product purchased successfully.',
             new_balance: newBalance.toFixed(2),
             total_session_commission: totalSessionCommission.toFixed(2),
-            tasks_completed: unlimitedProgress.currentStep, // Current product step (unlimited design)
-            tasks_required: unlimitedProgress.totalProducts, // Total products across all task sets (unlimited design)
+            tasks_completed: unlimitedProgress.currentStep,
+            tasks_required: unlimitedProgress.totalProducts,
             next_action: ''
         };
 
         if (driveFullyCompleted) {
             responsePayload.next_action = 'drive_complete';
             responsePayload.info = 'Congratulations! You have completed all tasks in this drive.';
+            logger.info(`saveOrder: Drive completed for user ${userId}`);
         } else if (itemCompleted && nextUserActiveDriveItemId) {
-            responsePayload.next_action = 'fetch_next_order'; // To get the first sub-product of the new item
+            responsePayload.next_action = 'fetch_next_order';
             responsePayload.info = 'Task set completed. Loading next task set.';
+            logger.debug(`saveOrder: Task set completed, next item: ${nextUserActiveDriveItemId}`);
         } else if (!itemCompleted) {
-            responsePayload.next_action = 'fetch_next_order'; // To get the next sub-product of the current item
+            responsePayload.next_action = 'fetch_next_order';
             responsePayload.info = 'Product purchased. Loading next product in combo.';
+            logger.debug(`saveOrder: Product purchased, continuing with current item`);
         } else {
-             // Should not happen: item completed but no next item and drive not fully completed
             responsePayload.next_action = 'error_state';
             responsePayload.info = 'Product purchased, but encountered an issue determining next step.';
             logger.error(`saveOrder: Inconsistent state after purchase for item ${parsedUserActiveDriveItemId}. ItemCompleted: ${itemCompleted}, NextItemID: ${nextUserActiveDriveItemId}, DriveFullyCompleted: ${driveFullyCompleted}`);
         }
+
+        logger.debug(`saveOrder: Response payload for user ${userId}:`, responsePayload);
         
+        client.release();
+        clientReleased = true;
         return res.json(responsePayload);
 
     } catch (error) {
-        if (client) {
-            try { await client.query('ROLLBACK'); } catch (rbError) { logger.error('Rollback error in saveOrder:', rbError); }
+        if (client && !clientReleased) {
+            try { 
+                await client.query('ROLLBACK'); 
+                logger.debug(`saveOrder: Transaction rolled back for user ${userId}`);
+            } catch (rbError) { 
+                logger.error('saveOrder: Rollback error:', rbError); 
+            }
             client.release();
         }
-        logger.error(`Error in saveOrder for user ID ${userId}, item ${user_active_drive_item_id}, slot ${product_slot_to_complete}: ${error.message}`, { stack: error.stack });
+        logger.error(`saveOrder: Error for user ID ${userId}, item ${user_active_drive_item_id}, slot ${product_slot_to_complete}: ${error.message}`, { 
+            stack: error.stack, 
+            userId, 
+            user_active_drive_item_id, 
+            product_slot_to_complete,
+            product_id,
+            order_amount 
+        });
         res.status(500).json({ code: 1, info: 'Server error saving order: ' + error.message });
     }
 };

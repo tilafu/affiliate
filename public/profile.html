@@ -507,6 +507,9 @@
     }
 </style>
 
+<!-- Standard Footer Navigation -->
+<div id="footer-navigation"></div>
+
 <script>let baseurl = '.';</script> <!-- Use relative base URL -->
 
 <!-- Bootstrap 5 JS Bundle -->
@@ -522,5 +525,12 @@
 <script src="./js/main.js"></script> <!-- Contains fetchWithAuth, etc. -->
 <script src="./js/auth-check.js"></script> <!-- Centralized authentication -->
 <script src="./js/profile.js"></script> <!-- Script for this page -->
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Load standard navigation components
+    loadStandardNavigation('profile');
+});
+</script>
 </body>
 </html>

@@ -27,8 +27,6 @@ let orderLoadingOverlay; // Reference to the new loading overlay
 let currentProductData = null; // Store data of the currently displayed product
 
 // --- Drive Animation/Start Logic ---
-let countDown = 5; // Reset countdown for each start attempt
-let animationTimeout = null; // To store the timeout ID for animation
 let globalAuthData = null; // Global auth data
 
 // --- Initialization ---
@@ -435,47 +433,14 @@ function startDriveProcess(token) {
         return;
     }
     console.log("startDriveProcess called.");
-
-    countDown = 5; // Reset countdown
-    
-    $('.product-carousel').trigger('stop.owl.autoplay');
-    $('.product-carousel').trigger('play.owl.autoplay', [500]);
     
     if (autoStartButton) {
         autoStartButton.innerHTML = '<i class="fas fa-hourglass-half me-2"></i>Starting...';
         autoStartButton.disabled = true;
     }
     
-    animationTimeout = setTimeout(() => animateAndStart(token), 1000);
-}
-
-function animateAndStart(token) {
-    console.log("animateAndStart called with countdown: " + countDown);
-    
-    // Check if countdown has reached 0 before displaying
-    if (countDown <= 0) {
-        console.log("Countdown complete, calling API");
-        $('.product-carousel').trigger('stop.owl.autoplay');
-        $('.product-carousel').trigger('play.owl.autoplay', [3000]);
-        callStartDriveAPI(token);
-        return;
-    }
-    
-    // Display the current countdown value
-    if (autoStartButton) {
-        autoStartButton.innerHTML = `<i class="fas fa-hourglass-half me-2"></i>Starting in ${countDown}...`;
-        autoStartButton.disabled = true;
-    }
-    
-    $('.product-carousel .item img').css({
-        'transform': 'scale(' + (1 + Math.random() * 0.2) + ')',
-        'transition': 'transform 0.5s ease'
-    });
-    $('.product-carousel').trigger('next.owl.carousel', [300]);
-    
-    // Decrement and continue countdown
-    countDown--;
-    animationTimeout = setTimeout(() => animateAndStart(token), 1000);
+    // Call API directly without countdown
+    callStartDriveAPI(token);
 }
 
 function callStartDriveAPI(token) {
@@ -849,47 +814,7 @@ async function handlePurchase(token, productData) {
         product_id: productData.product_id,
         order_amount: productData.product_price, 
         product_slot_to_complete: determined_slot 
-    };    console.log('Constructed payload for saveorder:', payload);    console.log('--- handlePurchase End of Logging ---');
-    console.log('API_BASE_URL:', API_BASE_URL);  
-    console.log('Full URL:', `${API_BASE_URL}/api/drive/saveorder`);
-    console.log('Token:', token ? `${token.substring(0, 20)}...` : 'Missing');
-    console.log('Token length:', token ? token.length : 0);
-    
-    // Validate token format
-    if (token && token.split('.').length !== 3) {
-        console.error('Invalid JWT token format');
-        throw new Error('Invalid authentication token format');
-    }
-      // Test if the server API is working at all
-    console.log('Testing server health endpoint...');
-    try {
-        const healthResponse = await fetch(`${API_BASE_URL}/api/health`);
-        console.log('Health endpoint response:', healthResponse.status);
-        const healthData = await healthResponse.json();
-        console.log('Health data:', healthData);
-    } catch (error) {
-        console.error('Health endpoint failed:', error);
-    }
-    
-    // Test if the token is working by calling the status endpoint first
-    console.log('Testing token with status endpoint...');
-    try {
-        const statusResponse = await fetch(`${API_BASE_URL}/api/drive/status`, {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            }
-        });
-        console.log('Status endpoint response:', statusResponse.status);
-        if (!statusResponse.ok) {
-            console.error('Status endpoint failed, token might be invalid');
-            const errorText = await statusResponse.text();
-            console.error('Status endpoint error:', errorText.substring(0, 200));
-        }
-    } catch (error) {
-        console.error('Error testing status endpoint:', error);
-    }
+    };    console.log('Constructed payload for saveorder:', payload);
     
     try {
         const response = await fetch(`${API_BASE_URL}/api/drive/saveorder`, {
@@ -921,65 +846,24 @@ async function handlePurchase(token, productData) {
         }
 
         const data = await response.json();
-        if (orderLoadingOverlay) orderLoadingOverlay.style.display = 'none';
-          if (response.ok && data.code === 0) { // Order processed successfully
+        if (orderLoadingOverlay) orderLoadingOverlay.style.display = 'none';        if (response.ok && data.code === 0) { // Order processed successfully
             console.log('Order saved successfully (saveorder):', data);            
+              // Show success notification briefly before refresh
             if (typeof showNotification === 'function') {
                 showNotification(data.info || "Order Sent successfully!", 'success');
-            } else { alert(data.info || "Order Sent successfully!"); }
-              // Update total commission from backend's total_session_commission
-            if (data.total_session_commission !== undefined) {
-                totalDriveCommission = parseFloat(data.total_session_commission);
-                updateDriveCommission(); // This will update UI and save to localStorage
-            }
-              // Update progress bar with tasks_completed (task sets)
-            if (data.tasks_completed !== undefined && data.tasks_required !== undefined) {
-                tasksCompleted = data.tasks_completed;
-                totalTasksRequired = data.tasks_required; // Should remain constant, but good to sync
-                updateProgressBar(tasksCompleted, totalTasksRequired);
+            } else { 
+                alert(data.info || "Order Sent successfully!"); 
             }
             
-            // Comprehensive refresh after successful submission
-            await performPostSubmissionRefresh(data);
+            // Refresh the entire page after a brief delay to show the notification
+            console.log('Refreshing entire page after successful purchase...');
+            setTimeout(() => {
+                window.location.reload();
+            }, 500); // Half second delay to show success message
+              // Note: Code below this point won't execute due to page refresh
+            // but keeping it for fallback in case reload fails
             
-            // Force wallet balance refresh after successful purchase
-            refreshWalletBalance();
-
-            // Backend now sends next_order or completion status
-            if (data.next_order) {
-                currentProductData = data.next_order;                // Add a small delay to ensure commission display updates properly
-                setTimeout(async () => {
-                    // Perform additional refresh to ensure data consistency
-                    try {
-                        await checkDriveStatus(token);
-                        // Force balance update after successful purchase
-                        refreshWalletBalance();
-                        // Update commission display one more time to ensure consistency
-                        updateDriveCommission();
-                    } catch (error) {
-                        console.warn('Failed to refresh drive status after purchase:', error);
-                    }
-                    
-                    renderProductCard(data.next_order);
-                    if (purchaseButton) {
-                        purchaseButton.disabled = false;
-                        purchaseButton.textContent = 'Purchase';
-                    }
-                }, 100); // Small delay to ensure DOM updates
-                
-            } else if (data.drive_complete) {
-                console.log("Drive complete after saveorder.");
-                displayDriveComplete(data.info || "Congratulations! Your data drive is complete.");
-            } else {
-                // Should not happen if backend logic is correct (either next_order, complete, or frozen)
-                console.warn("saveOrder successful, but no next_order and not drive_complete. State:", data);
-                // Potentially re-enable button or fetch status if unsure
-                 if (purchaseButton) {
-                     purchaseButton.disabled = false;
-                     purchaseButton.textContent = 'Purchase';
-                 }
-                 // fetchNextOrder(token); // Consider if this is a safe fallback
-            }        } else if (data.code === 3) { // Frozen state
+        } else if (data.code === 3) { // Frozen state
              if (typeof showNotification === 'function') {
                 showNotification(data.info || "Session frozen due to insufficient balance.", 'warning');
              } else { alert(data.info || "Session frozen due to insufficient balance."); }
@@ -1170,11 +1054,6 @@ function animateUIRefresh() {
 // --- Drive Status Check for Persistence ---
 function checkDriveStatus(token) {
     console.log('checkDriveStatus function called.');
-    if (animationTimeout) {
-        clearTimeout(animationTimeout);
-        animationTimeout = null;
-        console.log('Cleared pending animation timeout.');
-    }
     if (!token) {
         console.log('checkDriveStatus: No token found, returning.');
         return;
