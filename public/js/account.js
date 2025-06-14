@@ -103,11 +103,35 @@ document.addEventListener('DOMContentLoaded', () => {
     updateAccountData().catch(error => {
         console.error('Initial account data load failed:', error);
         setErrorState(`Error loading account data: ${error.message}`);
-    });
-
-    // Initialize logout functionality
+    });    // Initialize logout functionality
     if (typeof attachLogoutHandlers === 'function') {
         attachLogoutHandlers();
+    } else {
+        console.warn('attachLogoutHandlers not available, setting up fallback');
+        // Fallback logout handler for account page
+        const accountLogoutBtn = document.getElementById('account-logout-btn');
+        if (accountLogoutBtn) {
+            accountLogoutBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                console.log('Account logout clicked (fallback)...');
+                
+                if (confirm('Are you sure you want to logout?')) {
+                    // Clear authentication data
+                    localStorage.removeItem('auth_token');
+                    localStorage.removeItem('user_data');
+                    
+                    // Show notification if available
+                    if (typeof showNotification === 'function') {
+                        showNotification('Logout successful!', 'success');
+                        setTimeout(() => {
+                            window.location.href = 'login.html';
+                        }, 1000);
+                    } else {
+                        window.location.href = 'login.html';
+                    }
+                }
+            });
+        }
     }
 
     // Set up auto-refresh every 30 seconds

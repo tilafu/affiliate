@@ -178,6 +178,92 @@
             color: white;
             transform: translateY(-2px);
         }
+
+        /* Task-specific styles */
+        .progress-container {
+            padding: 1rem;
+        }
+        
+        .progress {
+            height: 10px;
+            border-radius: 5px;
+        }
+        
+        .progress-bar {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+        }
+        
+        #product-card-container {
+            transition: all 0.3s ease;
+        }
+        
+        .order-loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            border-radius: 8px;
+        }
+        
+        .order-loading-overlay .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+            margin-bottom: 15px;
+        }
+        
+        .order-loading-overlay .loading-text {
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+        }
+          @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Frozen Account Modal Enhancements */
+        #frozenAccountModal .modal-header {
+            background: linear-gradient(135deg, #ffc107 0%, #ff8c00 100%);
+            border-bottom: 2px solid rgba(255, 193, 7, 0.3);
+        }
+        
+        #frozenAccountModal .icon-circle {
+            box-shadow: 0 4px 15px rgba(255, 193, 7, 0.3);
+        }
+        
+        #frozenAccountModal .alert-warning {
+            background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+            border-left: 4px solid #ffc107;
+        }
+        
+        #frozenAccountModal .border {
+            transition: all 0.3s ease;
+        }
+        
+        #frozenAccountModal .border:hover {
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            transform: translateY(-2px);
+        }
+        
+        .pulse-warning {
+            animation: pulseWarning 2s infinite;
+        }
+        
+        @keyframes pulseWarning {
+            0% { box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(255, 193, 7, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 193, 7, 0); }
+        }
     </style>
 </head>
 <body>
@@ -186,6 +272,7 @@
 <!-- Sidebar Placeholder -->
 <div id="sidebar-placeholder"></div>
 <!-- End Sidebar Placeholder -->
+
 <!-- Modern Profile Header -->
 <div class="profile-header">
     <div class="container">
@@ -204,176 +291,215 @@
 
 <main class="main-content">
     <div class="container">
-         <section>
-       <div class="row mb-3">
-      <div class="col-md-5 mx-auto">
-         <div class="card profile-card"> 
-            <div class="card-body"> 
-               <div data-v-c26261c6="" class="col-span-1 flex flex-col p-3 bg-[#F6F5F7] mr-3">                  <h4 class="mb-3">Data Drive 
-                     <span style="float: right; font-size: 15px">
-                        <button id="refresh-drive-button" class="btn btn-outline-primary btn-sm me-2" style="padding: 2px 8px; font-size: 12px;" title="Refresh Drive Data">
-                           <i class="fas fa-sync-alt"></i>
+        <!-- Drive Information Card -->
+        <div class="profile-card">
+            <div class="profile-item">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div class="d-flex align-items-center">
+                        <div class="icon-circle">
+                            <i class="fas fa-database"></i>
+                        </div>
+                        <div>
+                            <h4 class="mb-0">Data Drive</h4>
+                            <small class="text-muted">Current drive information</small>
+                        </div>
+                    </div>
+                    <div>
+                        <button id="refresh-drive-button" class="btn btn-custom btn-sm me-2" title="Refresh Drive Data">
+                            <i class="fas fa-sync-alt"></i>
                         </button>
-                        <a href="./orders.html">
-                           <img src="./assets/uploads/img/4.png" style="margin-right: 2px;" width="20px"> Records <i class="fas fa-angle-right"></i>
+                        <a href="./orders.html" class="btn btn-custom btn-sm">
+                            <i class="fas fa-list"></i> Records
                         </a>
-                     </span>
-                  </h4>
-                  <div class="item-card">
-                     <span>Wallet balance</span>
-                     <h2 class="main1">
-                        <p class="datadrive-balance"><strong>Loading...</strong></p>
-                     </h2>
-                  </div>
-                  <div class="item-card mt-3">
-                     <span>Commission earned (this drive)</span>
-                     <h3 class="main1">
-                        <p class="datadrive-commission"><strong>0.00<small style="font-size:14px"> USDT</small></strong></p>
-                     </h3>
-                  </div>
-               </div>
-            </div>
-         </div>
-      </div>
-   </div>
-
-   <!-- Progress Bar Container -->
-   <div class="row mb-3">
-      <div class="col-md-5 mx-auto">
-         <div class="card profile-card">
-            <div class="card-body">
-               <h5 class="card-title">Drive Progress</h5>
-               <div class="progress-container">
-                  <div class="progress">
-                     <div id="drive-progress-bar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%"></div>
-                  </div>
-                  <div class="text-center mt-2">
-                     <span id="progress-text">Drive starting...</span>
-                  </div>
-               </div>
-            </div>
-         </div>
-      </div>
-   </div>
-   
-   <div class="row justify-content-center" style="display:none;">
-      <div class="col-md-5 mx-auto" style="margin-bottom: 70px;">
-         <div class="card carddd bg-ssuccess">
-            <div class="p_machine">
-               <div class="owl-carousel product-carousel">
-                  <div class="item">
-                     <img src="./assets/uploads/ph.png" alt="Placeholder">
-                  </div>
-                  <div class="item">
-                     <img src="./assets/uploads/products/newegg-1.jpg" alt="Product 1">
-                  </div>
-                  <div class="item">
-                     <img src="./assets/uploads/products/newegg-2.jpg" alt="Product 2">
-                  </div>
-                  <div class="item">
-                     <img src="./assets/uploads/products/newegg-3.jpeg" alt="Product 3">
-                  </div>
-                  <div class="item">
-                     <img src="./assets/uploads/products/newegg-4.jpeg" alt="Product 4">
-                  </div>
-                  <div class="item">
-                     <img src="./assets/uploads/products/newegg-5.jpeg" alt="Product 5">
-                  </div>
-                  <div class="item">
-                     <img src="./assets/uploads/products/newegg-6.jpeg" alt="Product 6">
-                  </div>
-                  <div class="item">
-                     <img src="./assets/uploads/products/newegg-7.jpeg" alt="Product 7">
-                  </div>
-                  <div class="item">
-                     <img src="./assets/uploads/products/newegg-8.jpeg" alt="Product 8">
-                  </div>
-                  <div class="item">
-                     <img src="./assets/uploads/products/newegg-9.jpeg" alt="Product 9">
-                  </div>
-                  <div class="item">
-                     <img src="./assets/uploads/products/newegg-10.jpeg" alt="Product 10">
-                  </div>
-               </div>
-            </div>
-
-            <div class="van-overlay" role="button" tabindex="0" style="z-index: 2009;display: none;" id="order1"> </div>
-            <div role="dialog" tabindex="0" class="van-popup van-popup--center van-dialog" style="z-index: 2009;display: none;" id="order2">
-            </div>
-
-            <!--<span style="display: none;">-->
-            <!--    <audio id="audio" src=" ./assets/frontend/shopva/img/hongbao.mp3" controls="controls"></audio>-->
-            <!--</span>-->
-         </div>
-      </div>
-   </div>
-
-   <div class="row mb-3">
-      <div class="col-md-5 mx-auto" id="product-card-container" style="display: none;">
-         <!-- Dynamic product card will be loaded here -->
-         <div class="card profile-card">
-            <div class="card-body text-center">
-               <div id="order-loading-overlay" class="order-loading-overlay" style="display: none;">
-                  <div class="spinner"></div>
-                  <div class="loading-text">Fetching Product...</div>
-               </div>
-               <img id="product-image" src="" alt="Product Image" class="img-fluid mb-3" style="max-height: 200px;">
-               <h5 id="product-name" class="card-title">Product Name</h5>
-               <p id="product-commission" class="card-text">Commission: </p>
-               <p id="product-price" class="card-text">Price: </p>
-               <button id="purchase-button" class="btn btn-custom mt-3">Purchase</button>
-            </div>
-         </div>
-      </div>
-   </div>   <div class="row">
-      <div class="col-md-3 col-8 mx-auto">
-         <div class="card-body">
-            <input type="hidden" name="user_status" id="user_status" value="1">            <a class="btn btn-custom  w-100" id="autoStart"><span>Start</span></a>
-  
-            
-            <div class="item-card mt-3">
-                <div class="text-center">
-                    <p class="mb-0">Tasks</p>
-                    <h5 class="mt-1 mb-0" id="tasks-count">(0 / 45)</h5>
+                    </div>
                 </div>
             </div>
-         </div>
-      </div>
-   </div>
-   
-   <div class="row">
-      <div class="col-md-5 mx-auto">
-         <div >
-            <div class="mb-5">
-               <h6>Important Hints</h6>
-               <p style="font-size: 13px">- Operating hours 10:00 - 23:00</p>
-               <p style="font-size: 13px">- During non-operating hours, the system will cease to distribute product</p>
+            
+            <div class="profile-item">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="profile-label">Wallet balance</div>
+                        <h3 class="profile-value">
+                            <span class="datadrive-balance fw-bold">Loading...</span>
+                        </h3>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="profile-label">Commission earned (this drive)</div>
+                        <h3 class="profile-value">
+                            <span class="datadrive-commission fw-bold">0.00 <small>USDT</small></span>
+                        </h3>
+                    </div>
+                </div>
             </div>
-            <div class="text-center">
-                <p  style="font-size: 13px"><small>Copyright @ 2025 Digistore. All Rights Reserved</small></p>
-            </div>
-         </div>
-      </div>
-   </div>
+        </div>
 
-</section>
+        <!-- Progress Bar Card -->
+        <div class="profile-card">
+            <div class="profile-item">
+                <div class="d-flex align-items-center">
+                    <div class="icon-circle">
+                        <i class="fas fa-tasks"></i>
+                    </div>
+                    <div class="ms-3">
+                        <h5 class="mb-0">Drive Progress</h5>
+                        <small class="text-muted">Your current task completion</small>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="profile-item">
+                <div class="progress-container">
+                    <div class="progress">
+                        <div id="drive-progress-bar" class="progress-bar progress-bar-striped progress-bar-animated" 
+                             role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%"></div>
+                    </div>
+                    <div class="text-center mt-2">
+                        <span id="progress-text" class="profile-value">Drive starting...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Product Display Card (hidden by default) -->
+        <div class="profile-card" id="product-card-container" style="display: none;">
+            <div class="profile-item">
+                <div class="text-center position-relative">
+                    <div id="order-loading-overlay" class="order-loading-overlay" style="display: none;">
+                        <div class="spinner"></div>
+                        <div class="loading-text">Fetching Product...</div>
+                    </div>
+                    
+                    <img id="product-image" src="" alt="Product Image" class="img-fluid mb-3" style="max-height: 200px; border-radius: 10px;">
+                    <h4 id="product-name" class="profile-label">Product Name</h4>
+                    
+                    <div class="row mt-3">
+                        <div class="col-md-6">
+                            <div class="profile-label">Commission</div>
+                            <h5 id="product-commission" class="profile-value">0.00 USDT</h5>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="profile-label">Price</div>
+                            <h5 id="product-price" class="profile-value">$0.00</h5>
+                        </div>
+                    </div>
+                    
+                    <button id="purchase-button" class="btn btn-custom mt-4 w-100">
+                        <i class="fas fa-shopping-cart me-2"></i> Purchase
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Task Controls Card -->
+        <div class="profile-card">
+            <div class="profile-item text-center">
+                <input type="hidden" name="user_status" id="user_status" value="1">
+                <button class="btn btn-custom w-100" id="autoStart">
+                    <i class="fas fa-play me-2"></i> Start
+                </button>
+                
+                <div class="mt-4">
+                    <div class="profile-label">Tasks Completed</div>
+                    <h4 id="tasks-count" class="profile-value fw-bold">0 / 45</h4>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Information Card -->
+        <div class="profile-card">
+            <div class="profile-item">
+                <div class="d-flex align-items-center">
+                    <div class="icon-circle">
+                        <i class="fas fa-info-circle"></i>
+                    </div>
+                    <div class="ms-3">
+                        <h5 class="mb-2">Important Hints</h5>
+                        <ul class="list-unstyled">
+                            <li class="mb-2"><i class="fas fa-clock me-2"></i> Operating hours 10:00 - 23:00</li>
+                            <li><i class="fas fa-exclamation-triangle me-2"></i> System pauses product distribution during non-operating hours</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </main>
+
 <!-- Modal for Frozen Account -->
 <div class="modal fade" id="frozenAccountModal" tabindex="-1" aria-labelledby="frozenAccountModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
-      <div class="modal-header bg-danger text-white">
-        <h5 class="modal-title" id="frozenAccountModalLabel">Account Frozen</h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      <div class="modal-header bg-warning text-dark">
+        <div class="d-flex align-items-center">
+          <div class="icon-circle bg-warning text-dark me-3">
+            <i class="fas fa-exclamation-triangle"></i>
+          </div>
+          <div>
+            <h5 class="modal-title mb-0" id="frozenAccountModalLabel">Account Temporarily Frozen</h5>
+            <small class="text-muted">Action Required</small>
+          </div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
-        <p>Your account is currently frozen. This may be due to insufficient funds or other reasons. Please contact support to resolve this issue.</p>
-        <p><strong>Action Required:</strong> You may need to deposit funds or contact our support team to continue using the services.</p>
+        <div class="alert alert-warning border-0 mb-4">
+          <div class="d-flex align-items-start">
+            <i class="fas fa-info-circle me-3 mt-1"></i>
+            <div>
+              <h6 class="alert-heading mb-2">Why is my account frozen?</h6>
+              <p class="mb-0">Your account has been temporarily frozen due to insufficient balance during a drive operation. This is a protective measure to prevent negative balances.</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="mb-4">
+          <h6 class="fw-bold mb-3">Current Status:</h6>
+          <div class="row">
+            <div class="col-md-6">
+              <div class="border rounded p-3 text-center">
+                <i class="fas fa-wallet text-primary mb-2 d-block" style="font-size: 1.5rem;"></i>
+                <small class="text-muted d-block">Available Balance</small>
+                <strong id="modal-current-balance" class="text-primary">Loading...</strong>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="border rounded p-3 text-center">
+                <i class="fas fa-dollar-sign text-success mb-2 d-block" style="font-size: 1.5rem;"></i>
+                <small class="text-muted d-block">Amount Needed</small>
+                <strong id="modal-amount-needed" class="text-success">Calculating...</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-light rounded p-3 mb-4">
+          <h6 class="fw-bold mb-2">
+            <i class="fas fa-lightbulb text-warning me-2"></i>
+            How to resolve this:
+          </h6>
+          <ol class="mb-0 ps-3">
+            <li>Make a deposit to add funds to your account</li>
+            <li>Wait for the deposit to be confirmed</li>
+            <li>Your account will be automatically unfrozen once sufficient funds are available</li>
+            <li>If the issue persists, contact our support team</li>
+          </ol>
+        </div>
+        
+        <div class="text-center">
+          <p class="text-muted mb-0">
+            <i class="fas fa-shield-alt me-1"></i>
+            Your account security and funds are protected during this process.
+          </p>
+        </div>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-        <a href="support.html" class="btn btn-primary">Contact Support</a>
+        <button type="button" class="btn btn-light" data-bs-dismiss="modal">I'll Handle This Later</button>
+        <a href="deposits.html" class="btn btn-warning">
+          <i class="fas fa-plus-circle me-2"></i>Make Deposit
+        </a>
+        <a href="support.html" class="btn btn-custom">
+          <i class="fas fa-headset me-2"></i>Contact Support
+        </a>
       </div>
     </div>
   </div>
@@ -405,20 +531,23 @@
                         <small class="footer-text" data-i18n="footerStartingLink">Starting</small>
                     </div>
                 </a>
-                
                 <a href="./account.html" class="footer-link text-decoration-none">
                     <div class="text-center">
                         <div class="footer-icon mb-1">
                             <svg viewBox="-42 0 512 512.001" width="24" height="24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
                                 <path d="m210.351562 246.632812c33.882813 0 63.21875-12.152343 87.195313-36.128906 23.96875-23.972656 36.125-53.304687 36.125-87.191406 0-33.875-12.152344-63.210938-36.128906-87.191406-23.976563-23.96875-53.3125-36.121094-87.191407-36.121094-33.886718 0-63.21875 12.152344-87.191406 36.125s-36.128906 53.308594-36.128906 87.1875c0 33.886719 12.15625 63.222656 36.128906 87.195312 23.980469 23.96875 53.316406 36.125 87.191406 36.125zm-65.972656-189.292968c18.394532-18.394532 39.972656-27.335938 65.972656-27.335938 25.996094 0 47.578126 8.941406 65.976563 27.335938 18.394531 18.398437 27.339844 39.980468 27.339844 65.972656 0 26-8.945313 47.578125-27.339844 65.976562-18.398437 18.398438-39.980469 27.339844-65.976563 27.339844-25.992187 0-47.570312-8.945312-65.972656-27.339844-18.398437-18.394531-27.34375-39.976562-27.34375-65.976562 0-25.992188 8.945313-47.574219 27.34375-65.972656zm0 0"/>
-                        <path d="m426.128906 393.703125c-.691406-9.976563-2.089844-20.859375-4.148437-32.351563-2.078125-11.578124-4.753907-22.523437-7.957031-32.527343-3.3125-10.339844-7.808594-20.550781-13.375-30.335938-5.769532-10.15625-12.550782-19-20.160157-26.277343-7.957031-7.613282-17.699219-13.734376-28.964843-18.199219-11.226563-4.441407-23.667969-6.691407-36.976563-6.691407-5.226563 0-10.28125 2.144532-20.042969 8.5-6.007812 3.917969-13.035156 8.449219-20.878906 13.460938-6.707031 4.273438-15.792969 8.277344-27.015625 11.902344-10.949219 3.542968-22.066406 5.339844-33.042969 5.339844-10.96875 0-22.085937-1.796876-33.042968-5.339844-11.210938-3.621094-20.300782-7.625-26.996094-11.898438-7.769532-4.964844-14.800782-9.496094-20.898438-13.46875-9.753906-6.355468-14.808594-8.5-20.035156-8.5-13.3125 0-25.75 2.253906-36.972656 6.699219-11.257813 4.457031-21.003906 10.578125-28.96875 18.199219-7.609375 7.28125-14.390625 16.121094-20.15625 26.273437-5.558594 9.785157-10.058594 19.992188-13.371094 30.339844-3.199219 10.003906-5.875 20.945313-7.953125 32.523437-2.0625 11.476563-3.457031 22.363282-4.148437 32.363282-.679688 9.777344-1.023438 19.953125-1.023438 30.234375 0 26.726562 8.496094 48.363281 25.25 64.320312 16.546875 15.746094 38.4375 23.730469 65.066406 23.730469h246.53125c26.621094 0 48.511719-7.984375 65.0625-23.730469 16.757813-15.945312 25.253906-37.589843 25.253906-64.324219-.003906-10.316406-.351562-20.492187-1.035156-30.242187zm-44.90625 72.828125c-10.933594 10.40625-25.449218 15.464844-44.378906 15.464844h-246.527344c-18.933594 0-33.449218-5.058594-44.378906-15.460938-10.722656-10.207031-15.933594-24.140625-15.933594-42.585937 0-9.59375.316406-19.066407.949219-28.160157.617187-8.921874 1.878906-18.722656 3.75-29.136718 1.847656-10.285156 4.199219-19.9375 6.996094-28.675782 2.683593-8.378906 6.34375-16.675781 10.882812-24.667968 4.332031-7.617188 9.316407-14.152344 14.816407-19.417969 5.144531-4.925781 11.628906-8.957031 19.269531-11.980469 7.066406-2.796875 15.007812-4.328125 23.628906-4.558594 1.050781.558594 2.921875 1.625 5.953125 3.601563 6.167969 4.019531 13.277344 8.605469 21.136719 13.625 8.859375 5.648437 20.273437 10.75 33.910156 15.152344 13.941406 4.507812 28.160156 6.796875 42.273437 6.796875 14.113282 0 28.335938-2.289063 42.269532-6.792969 13.648437-4.410156 25.058594-9.507813 33.929687-15.164063 8.042969-5.140624 14.953125-9.59375 21.121094-13.617187 3.03125-1.972656 4.902344-3.042969 5.953125-3.601563 8.625.230469 16.566406 1.761719 23.636719 4.558594 7.636719 3.023438 14.121093 7.058594 19.265625 11.980469 5.5 5.261719 10.484375 11.796875 14.816406 19.421875 4.542969 7.988281 8.207031 16.289062 10.886719 24.660156 2.800781 8.75 5.15625 18.398438 7 28.675782 1.867187 10.433593 3.132812 20.238281 3.75 29.144531v.007812c.636719 9.058594.957031 18.527344.960937 28.148438-.003906 18.449219-5.214844 32.378906-15.9375 42.582031zm0 0"/>
-                    </svg> <span data-i18n="footerProfileLink">Profile</span>
+                                <path d="m426.128906 393.703125c-.691406-9.976563-2.089844-20.859375-4.148437-32.351563-2.078125-11.578124-4.753907-22.523437-7.957031-32.527343-3.3125-10.339844-7.808594-20.550781-13.375-30.335938-5.769532-10.15625-12.550782-19-20.160157-26.277343-7.957031-7.613282-17.699219-13.734376-28.964843-18.199219-11.226563-4.441407-23.667969-6.691407-36.976563-6.691407-5.226563 0-10.28125 2.144532-20.042969 8.5-6.007812 3.917969-13.035156 8.449219-20.878906 13.460938-6.707031 4.273438-15.792969 8.277344-27.015625 11.902344-10.949219 3.542968-22.066406 5.339844-33.042969 5.339844-10.96875 0-22.085937-1.796876-33.042968-5.339844-11.210938-3.621094-20.300782-7.625-26.996094-11.898438-7.769532-4.964844-14.800782-9.496094-20.898438-13.46875-9.753906-6.355468-14.808594-8.5-20.035156-8.5-13.3125 0-25.75 2.253906-36.972656 6.699219-11.257813 4.457031-21.003906 10.578125-28.96875 18.199219-7.609375 7.28125-14.390625 16.121094-20.15625 26.273437-5.558594 9.785157-10.058594 19.992188-13.371094 30.339844-3.199219 10.003906-5.875 20.945313-7.953125 32.523437-2.0625 11.476563-3.457031 22.363282-4.148437 32.363282-.679688 9.777344-1.023438 19.953125-1.023438 30.234375 0 26.726562 8.496094 48.363281 25.25 64.320312 16.546875 15.746094 38.4375 23.730469 65.066406 23.730469h246.53125c26.621094 0 48.511719-7.984375 65.0625-23.730469 16.757813-15.945312 25.253906-37.589843 25.253906-64.324219-.003906-10.316406-.351562-20.492187-1.035156-30.242187zm-44.90625 72.828125c-10.933594 10.40625-25.449218 15.464844-44.378906 15.464844h-246.527344c-18.933594 0-33.449218-5.058594-44.378906-15.460938-10.722656-10.207031-15.933594-24.140625-15.933594-42.585937 0-9.59375.316406-19.066407.949219-28.160157.617187-8.921874 1.878906-18.722656 3.75-29.136718 1.847656-10.285156 4.199219-19.9375 6.996094-28.675782 2.683593-8.378906 6.34375-16.675781 10.882812-24.667968 4.332031-7.617188 9.316407-14.152344 14.816407-19.417969 5.144531-4.925781 11.628906-8.957031 19.269531-11.980469 7.066406-2.796875 15.007812-4.328125 23.628906-4.558594 1.050781.558594 2.921875 1.625 5.953125 3.601563 6.167969 4.019531 13.277344 8.605469 21.136719 13.625 8.859375 5.648437 20.273437 10.75 33.910156 15.152344 13.941406 4.507812 28.160156 6.796875 42.273437 6.796875 14.113282 0 28.335938-2.289063 42.269532-6.792969 13.648437-4.410156 25.058594-9.507813 33.929687-15.164063 8.042969-5.140624 14.953125-9.59375 21.121094-13.617187 3.03125-1.972656 4.902344-3.042969 5.953125-3.601563 8.625.230469 16.566406 1.761719 23.636719 4.558594 7.636719 3.023438 14.121093 7.058594 19.265625 11.980469 5.5 5.261719 10.484375 11.796875 14.816406 19.421875 4.542969 7.988281 8.207031 16.289062 10.886719 24.660156 2.800781 8.75 5.15625 18.398438 7 28.675782 1.867187 10.433593 3.132812 20.238281 3.75 29.144531v.007812c.636719 9.058594.957031 18.527344.960937 28.148438-.003906 18.449219-5.214844 32.378906-15.9375 42.582031zm0 0"/>
+                            </svg>
+                        </div>
+                        <small class="footer-text" data-i18n="footerAccountLink">Account</small>
+                    </div>
                 </a>
-                
+            </div>
         </div>
     </div>
-</footer> <!-- <script> let baseurl = 'http://127.0.0.1:5500/'; </script> -->
-<script> let baseurl = '.'; </script> <!-- Use relative base URL -->
+</footer>
+
+<script>let baseurl = '.';</script> <!-- Use relative base URL -->
 
 <script src="./assets/frontend/js/bootstrap.bundle.min.js"></script>
 
@@ -430,7 +559,6 @@
         document.write('<script src="../node_modules/owl.carousel/dist/owl.carousel.min.js"><\/script>');
     }
 </script>
-<!-- <script src="./assets/frontend/js/owl.carousel.min.js"></script> -->
 
 <!-- Load general site script (uses jQuery) -->
 <script src="./assets/frontend/js/script.js"></script>
@@ -453,8 +581,6 @@
 <script src="./js/task.js"></script>
 
 <script src="./js/auth.js"></script>
-
-
 
 <!-- Initialize Owl Carousel -->
 <script>
@@ -496,127 +622,5 @@ $(document).ready(function(){
   $('.owl-next').css('right', '10px');
 });
 </script>
-
-<!-- Add custom styles for the carousel and animations -->
-<style>
-.product-carousel .item {
-  padding: 20px;
-  text-align: center;
-}
-
-.product-carousel .item img {
-  max-width: 100%;
-  height: auto;
-  border-radius: 8px;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-  transition: transform 0.3s ease;
-}
-
-.product-carousel .item img:hover {
-  transform: scale(1.05);
-}
-
-.owl-nav button {
-  font-size: 24px !important;
-}
-
-.owl-dots {
-  margin-top: 15px;
-}
-
-/* Highlighted product in carousel */
-.highlighted-product {
-  border: 3px solid #28a745;
-  border-radius: 10px;
-  animation: pulse 1.5s infinite;
-}
-
-/* Loading overlay for order fetching */
-.order-loading-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.7);
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-  border-radius: 8px;
-}
-
-.order-loading-overlay .spinner {
-  width: 50px;
-  height: 50px;
-  border: 5px solid rgba(255, 255, 255, 0.3);
-  border-radius: 50%;
-  border-top-color: #fff;
-  animation: spin 1s ease-in-out infinite;
-  margin-bottom: 15px;
-}
-
-.order-loading-overlay .loading-text {
-  color: white;
-  font-size: 16px;
-  font-weight: bold;
-}
-
-/* Animation for the starting drive effect */
-.starting-drive {
-  position: relative;
-}
-
-.starting-drive::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(45deg, rgba(0,123,255,0.2), rgba(40,167,69,0.2));
-  border-radius: 8px;
-  z-index: 5;
-}
-
-/* Animations */
-@keyframes pulse {
-  0% {
-    box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.7);
-  }
-  70% {
-    box-shadow: 0 0 0 10px rgba(40, 167, 69, 0);
-  }
-  100% {
-    box-shadow: 0 0 0 0 rgba(40, 167, 69, 0);
-  }
-}
-
-@keyframes spin {  to {
-    transform: rotate(360deg);
-  }
-}
-
-/* Progress bar animation */
-@keyframes progress-flash {
-  0% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.6;
-  }
-  100% {
-    opacity: 1;
-  }
-}
-
-.progress-flash {
-  animation: progress-flash 0.7s ease;
-}
-</style>
-
-
-
 </body>
 </html>

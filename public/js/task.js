@@ -41,8 +41,8 @@ function initializeTaskPage() {
   // Get references to key elements
   autoStartButton = document.getElementById('autoStart');
   productCardContainer = document.getElementById('product-card-container'); // Get reference to the new container
-  walletBalanceElement = document.querySelector('.datadrive-balance strong');  // Select the strong element directly
-  driveCommissionElement = document.querySelector('.datadrive-commission strong'); // Element for drive commission
+  walletBalanceElement = document.querySelector('.datadrive-balance');  // Select the balance element directly
+  driveCommissionElement = document.querySelector('.datadrive-commission'); // Element for drive commission
   tasksProgressElement = document.getElementById('tasks-count'); // Element displaying tasks completed/required
   tasksProgressBar = document.getElementById('tasks-progress-bar'); // Progress bar element for tasks card
   driveProgressBar = document.getElementById('drive-progress-bar'); // Main progress bar at the top
@@ -57,8 +57,7 @@ function initializeTaskPage() {
   refreshWalletBalance();
     // Check for existing drive session on page load - this will show the appropriate UI
   checkForExistingDrive(authData.token);
-  
-  // Set up periodic auto-refresh (every 30 seconds)
+    // Set up periodic auto-refresh (every 30 seconds)
   setInterval(() => {
       if (globalAuthData && globalAuthData.token) {
           // Only auto-refresh if we're not currently processing a purchase
@@ -69,6 +68,14 @@ function initializeTaskPage() {
           }
       }
   }, 30000); // 30 seconds
+  
+  // Set up periodic frozen account check (every 60 seconds) - more frequent than regular refresh
+  setInterval(() => {
+      if (globalAuthData && globalAuthData.token) {
+          // Check if account is frozen and can be unfrozen
+          checkFrozenAccountStatus(globalAuthData.token);
+      }
+  }, 60000); // 60 seconds
   
   // --- Event Listeners ---
   // Attach listener for the refresh button
@@ -157,10 +164,14 @@ function fetchBalance(token) {
     if (!token) return;
 
     const balanceElement = document.querySelector('.datadrive-balance');
-    const balanceLabel = document.querySelector('.datadrive-balance').closest('.item-card').querySelector('span');
-    if (!balanceElement) return;
-
-    // First check drive status to see if account is frozen
+    if (!balanceElement) {
+        console.warn('Balance element not found');
+        return;
+    }
+    
+    // Find the balance label (the div containing "Wallet balance" text)
+    const balanceContainer = balanceElement.closest('.col-md-6');
+    const balanceLabel = balanceContainer ? balanceContainer.querySelector('.profile-label') : null;    // First check drive status to see if account is frozen
     fetch(`${API_BASE_URL}/api/drive/status`, {
         method: 'GET',
         headers: {
@@ -171,13 +182,34 @@ function fetchBalance(token) {
     .then(response => response.json())
     .then(statusData => {
         const isFrozen = statusData.success && statusData.status === 'frozen';
-        
-        if (isFrozen) {
-            // Show the frozen account modal
+        const frozenAmountNeeded = statusData.frozen_amount_needed ? parseFloat(statusData.frozen_amount_needed) : 0;
+          if (isFrozen) {
+            // Show the frozen account modal with current status
             const frozenModalElement = document.getElementById('frozenAccountModal');
             if (frozenModalElement) {
                 const frozenModal = bootstrap.Modal.getOrCreateInstance(frozenModalElement);
+                
+                // Update modal with current frozen amount needed
+                const modalAmountNeeded = document.getElementById('modal-amount-needed');
+                if (modalAmountNeeded && frozenAmountNeeded > 0) {
+                    modalAmountNeeded.textContent = `$${frozenAmountNeeded.toFixed(2)} USDT`;
+                } else if (modalAmountNeeded) {
+                    modalAmountNeeded.textContent = 'Contact Support';
+                }
+                
+                // Add visual effects when modal is shown
                 frozenModal.show();
+                
+                // Add pulse effect to the modal
+                frozenModalElement.addEventListener('shown.bs.modal', function() {
+                    const modalContent = frozenModalElement.querySelector('.modal-content');
+                    if (modalContent) {
+                        modalContent.classList.add('pulse-warning');
+                        setTimeout(() => {
+                            modalContent.classList.remove('pulse-warning');
+                        }, 3000);
+                    }
+                }, { once: true });
             }
         }
         
@@ -200,13 +232,26 @@ function fetchBalance(token) {
                 const mainBalance = parseFloat(data.balances.main_balance || 0);
                 const frozenBalance = parseFloat(data.balances.frozen_balance || 0);
                 
+                // Update modal balance display
+                const modalCurrentBalance = document.getElementById('modal-current-balance');
+                if (modalCurrentBalance) {
+                    modalCurrentBalance.textContent = `$${mainBalance.toFixed(2)} USDT`;
+                }
+                
+                // Check if user has sufficient balance to unfreeze automatically
+                if (isFrozen && frozenAmountNeeded > 0 && mainBalance >= frozenAmountNeeded) {
+                    // Attempt automatic unfreeze since user now has sufficient balance
+                    attemptAutoUnfreeze(token, mainBalance, frozenAmountNeeded);
+                }
+                
                 if (isFrozen && frozenBalance > 0) {
                     // Show frozen balance when account is frozen
                     if (balanceLabel) {
                         balanceLabel.textContent = 'Frozen Balance';
                         balanceLabel.style.color = '#dc3545'; // Red color to indicate frozen
                     }
-                    balanceElement.innerHTML = `<strong style="color: #dc3545">${frozenBalance.toFixed(2)}<small style="font-size:14px"> USDT</small></strong>`;
+                    balanceElement.innerHTML = `${frozenBalance.toFixed(2)} <small>USDT</small>`;
+                    balanceElement.style.color = '#dc3545'; // Red color for frozen balance
                     balanceElement.title = `Your balance of ${frozenBalance.toFixed(2)} USDT is currently frozen. Please deposit funds to continue.`;
                 } else {
                     // Show normal wallet balance
@@ -214,14 +259,16 @@ function fetchBalance(token) {
                         balanceLabel.textContent = 'Wallet balance';
                         balanceLabel.style.color = ''; // Reset color
                     }
-                    balanceElement.innerHTML = `<strong>${mainBalance.toFixed(2)}<small style="font-size:14px"> USDT</small></strong>`;
+                    balanceElement.innerHTML = `${mainBalance.toFixed(2)} <small>USDT</small>`;
+                    balanceElement.style.color = ''; // Reset color
                     balanceElement.title = ''; // Clear title
-                }            } else {
+                }} else {
                 console.error('Failed to fetch balance:', data.message);
                 if (typeof showNotification === 'function') {
                     showNotification(`Failed to fetch balance: ${data.message}`, 'error');
                 }
-                balanceElement.innerHTML = '<strong>Error</strong>';
+                balanceElement.innerHTML = 'Error';
+                balanceElement.style.color = '#dc3545'; // Red color for error
             }
         })
         .catch(error => {
@@ -229,7 +276,8 @@ function fetchBalance(token) {
             if (typeof showNotification === 'function') {
                 showNotification(`Error fetching balance: ${error.message}`, 'error');
             }
-            balanceElement.innerHTML = '<strong>Error</strong>';
+            balanceElement.innerHTML = 'Error';
+            balanceElement.style.color = '#dc3545'; // Red color for error
         });
     })
     .catch(error => {
@@ -237,14 +285,21 @@ function fetchBalance(token) {
         if (typeof showNotification === 'function') {
             showNotification(`Error checking drive status: ${error.message}`, 'error');
         }
-        balanceElement.innerHTML = '<strong>Error</strong>';
+        balanceElement.innerHTML = 'Error';
+        balanceElement.style.color = '#dc3545'; // Red color for error
     });
 }
 
 // --- Helper to safely update wallet balance everywhere ---
 function refreshWalletBalance() {
     if (globalAuthData && globalAuthData.token) {
-        fetchBalance(globalAuthData.token);
+        // Check if the balance element exists before trying to fetch balance
+        const balanceElement = document.querySelector('.datadrive-balance');
+        if (balanceElement) {
+            fetchBalance(globalAuthData.token);
+        } else {
+            console.warn('Balance element not found, skipping balance refresh');
+        }
     }
 }
 
@@ -375,7 +430,10 @@ function startDriveProcess(token) {
     $('.product-carousel').trigger('stop.owl.autoplay');
     $('.product-carousel').trigger('play.owl.autoplay', [500]);
     
-    if (autoStartButton) autoStartButton.querySelector('span').textContent = 'Starting...';
+    if (autoStartButton) {
+        autoStartButton.innerHTML = '<i class="fas fa-hourglass-half me-2"></i>Starting...';
+        autoStartButton.disabled = true;
+    }
     
     animationTimeout = setTimeout(() => animateAndStart(token), 1000);
 }
@@ -393,7 +451,10 @@ function animateAndStart(token) {
     }
     
     // Display the current countdown value
-    if (autoStartButton) autoStartButton.querySelector('span').textContent = 'Starting in ' + countDown + '...';
+    if (autoStartButton) {
+        autoStartButton.innerHTML = `<i class="fas fa-hourglass-half me-2"></i>Starting in ${countDown}...`;
+        autoStartButton.disabled = true;
+    }
     
     $('.product-carousel .item img').css({
         'transform': 'scale(' + (1 + Math.random() * 0.2) + ')',
@@ -459,12 +520,14 @@ function callStartDriveAPI(token) {
                     loadingIndicator.close();
                 } else {
                      console.log("No specific loading indicator to close or method unknown.");
-                }
-            } catch (e) {
+                }            } catch (e) {
                 console.error("Error closing loading indicator:", e);
             }
             if (orderLoadingOverlay) orderLoadingOverlay.style.display = 'none';
-            if (autoStartButton) autoStartButton.querySelector('span').textContent = 'Start';
+            if (autoStartButton) {
+                autoStartButton.innerHTML = '<i class="fas fa-play me-2"></i>Start';
+                autoStartButton.disabled = false;
+            }
             $('.product-carousel').removeClass('starting-drive');
             $('.product-carousel').css({
                 'animation': '',
@@ -542,12 +605,14 @@ function callStartDriveAPI(token) {
                     loadingIndicator.close();
                 } else {
                      console.log("No specific loading indicator to close or method unknown.");
-                }
-            } catch (e) {
+                }            } catch (e) {
                 console.error("Error closing loading indicator on catch:", e);
             }
             if (orderLoadingOverlay) orderLoadingOverlay.style.display = 'none';
-            if (autoStartButton) autoStartButton.querySelector('span').textContent = 'Start';
+            if (autoStartButton) {
+                autoStartButton.innerHTML = '<i class="fas fa-play me-2"></i>Start';
+                autoStartButton.disabled = false;
+            }
             $('.product-carousel').removeClass('starting-drive');            $('.product-carousel').css({
                 'animation': '',
                 'box-shadow': ''
@@ -1334,11 +1399,11 @@ async function performBackgroundRefresh() {
 function displayDriveComplete(message) {
     console.log('displayDriveComplete called with message:', message);
     
-    // Hide the product card and show completion message
-    if (productCardContainer) productCardContainer.style.display = 'none';
+    // Hide the product card and show completion message    if (productCardContainer) productCardContainer.style.display = 'none';
     if (autoStartButton) {
         autoStartButton.style.display = 'block';
-        autoStartButton.querySelector('span').textContent = 'Start New Drive';
+        autoStartButton.innerHTML = '<i class="fas fa-play me-2"></i>Start New Drive';
+        autoStartButton.disabled = false;
     }
     
     // Show success notification
@@ -1357,11 +1422,11 @@ function displayDriveComplete(message) {
 
 function displayDriveError(message) {
     console.log('displayDriveError called with message:', message);
-    
-    // Show the start button and hide product card
+      // Show the start button and hide product card
     if (autoStartButton) {
         autoStartButton.style.display = 'block';
-        autoStartButton.querySelector('span').textContent = 'Start';
+        autoStartButton.innerHTML = '<i class="fas fa-play me-2"></i>Start';
+        autoStartButton.disabled = false;
     }
     if (productCardContainer) productCardContainer.style.display = 'none';
     
@@ -1542,3 +1607,107 @@ document.addEventListener('DOMContentLoaded', () => {
         refreshWalletBalance();
     }
 });
+
+// --- Auto Unfreeze Function ---
+function attemptAutoUnfreeze(token, currentBalance, requiredAmount) {
+    console.log(`Attempting auto-unfreeze: Balance ${currentBalance}, Required ${requiredAmount}`);
+    
+    // Make a request to check if account can be unfrozen
+    fetch(`${API_BASE_URL}/api/drive/check-unfreeze`, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            current_balance: currentBalance,
+            required_amount: requiredAmount
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success && data.unfrozen) {
+            // Account was successfully unfrozen
+            console.log('Account automatically unfrozen');
+            
+            // Show success notification
+            if (typeof showNotification === 'function') {
+                showNotification('Account unfrozen! You can now continue with your drive.', 'success');
+            }
+            
+            // Hide the frozen modal if it's showing
+            const frozenModalElement = document.getElementById('frozenAccountModal');
+            if (frozenModalElement) {
+                const frozenModal = bootstrap.Modal.getInstance(frozenModalElement);
+                if (frozenModal) {
+                    frozenModal.hide();
+                }
+            }
+            
+            // Refresh the page to update drive status
+            setTimeout(() => {
+                refreshWalletBalance();
+                checkForExistingDrive(token);
+            }, 1000);
+            
+        } else if (data.message) {
+            console.log('Auto-unfreeze not possible:', data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error attempting auto-unfreeze:', error);
+    });
+}
+
+// --- Periodic Frozen Account Check ---
+function checkFrozenAccountStatus(token) {
+    // Only check if no modal is currently showing to avoid spam
+    const frozenModalElement = document.getElementById('frozenAccountModal');
+    if (frozenModalElement) {
+        const existingModal = bootstrap.Modal.getInstance(frozenModalElement);
+        if (existingModal && existingModal._isShown) {
+            return; // Modal is already showing, don't check again
+        }
+    }
+    
+    fetch(`${API_BASE_URL}/api/drive/status`, {
+        method: 'GET',
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+        },
+    })
+    .then(response => response.json())
+    .then(statusData => {
+        const isFrozen = statusData.success && statusData.status === 'frozen';
+        const frozenAmountNeeded = statusData.frozen_amount_needed ? parseFloat(statusData.frozen_amount_needed) : 0;
+        
+        if (isFrozen && frozenAmountNeeded > 0) {
+            // Check current balance
+            fetch(`${API_BASE_URL}/api/user/balances`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+            })
+            .then(response => response.json())
+            .then(balanceData => {
+                if (balanceData.success && balanceData.balances) {
+                    const mainBalance = parseFloat(balanceData.balances.main_balance || 0);
+                    
+                    if (mainBalance >= frozenAmountNeeded) {
+                        console.log('Account can be auto-unfrozen - attempting...');
+                        attemptAutoUnfreeze(token, mainBalance, frozenAmountNeeded);
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error checking balance for auto-unfreeze:', error);
+            });
+        }
+    })
+    .catch(error => {
+        console.error('Error checking frozen account status:', error);
+    });
+}

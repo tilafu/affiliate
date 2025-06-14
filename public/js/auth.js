@@ -165,43 +165,102 @@ function attachLogoutHandlers() {
   logoutElements.forEach(function(el) {
     el.addEventListener('click', function(e) {
       e.preventDefault();
-      console.log('Logging out...');
+      console.log('Logout clicked...');
       
-      // Preserve drive session data before clearing localStorage
-      const driveSessionData = localStorage.getItem('current_drive_session');
-      
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('user_data');
-      
-      // Restore drive session data after clearing auth data
-      if (driveSessionData) {
-        localStorage.setItem('current_drive_session', driveSessionData);
-      }
-        // If you have a showNotification function:
-      if (typeof showNotification === 'function') {
-        // Ensure i18next is initialized before calling t()
-        if (window.i18next && window.i18next.isInitialized) {
-            showNotification(i18next.t('logoutSuccessNotification'), 'success');
-        } else {
-            // Fallback or wait for initialization
-            i18next.on('initialized', () => {
-                 showNotification(i18next.t('logoutSuccessNotification'), 'success');
-            });
-        }
-        // Redirect after a short delay to allow notification to show
-        setTimeout(() => {
-          window.location.href = 'login.html';
-        }, 1000);
-      } else {
-        // Redirect immediately if no notification
-        window.location.href = 'login.html';
+      // Show confirmation dialog
+      if (confirm('Are you sure you want to logout?')) {
+        performLogoutProcess();
       }
     });
   });
 }
 
+function performLogoutProcess() {
+  console.log('Performing logout process...');
+  
+  try {
+    // Get token before clearing
+    const token = localStorage.getItem('auth_token');
+    
+    // Preserve drive session data before clearing localStorage
+    const driveSessionData = localStorage.getItem('current_drive_session');
+    
+    // Clear authentication data
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('user_data');
+    
+    // Restore drive session data after clearing auth data
+    if (driveSessionData) {
+      localStorage.setItem('current_drive_session', driveSessionData);
+    }
+    
+    // Attempt server-side logout if token exists
+    if (token && typeof API_BASE_URL !== 'undefined') {
+      fetch(`${API_BASE_URL}/api/auth/logout`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      })
+      .then(response => response.json())
+      .then(data => {
+        console.log('Server-side logout response:', data);
+      })
+      .catch(error => {
+        console.warn('Server-side logout failed (continuing with client-side logout):', error);
+      });
+    }
+    
+    // Show notification and redirect
+    if (typeof showNotification === 'function') {
+      // Ensure i18next is initialized before calling t()
+      if (window.i18next && window.i18next.isInitialized) {
+        showNotification(i18next.t('logoutSuccessNotification') || 'Logout successful!', 'success');
+      } else {
+        showNotification('Logout successful!', 'success');
+      }
+      // Redirect after a short delay to allow notification to show
+      setTimeout(() => {
+        window.location.href = 'login.html';
+      }, 1000);
+    } else {
+      // Redirect immediately if no notification
+      window.location.href = 'login.html';    }
+  } catch (error) {
+    console.error('Error during logout:', error);
+    // Force redirect even if there's an error
+    window.location.href = 'login.html';
+  }
+}
+
 // Make the function available globally
 window.attachLogoutHandlers = attachLogoutHandlers;
+window.performLogoutProcess = performLogoutProcess;
+
+// Ensure logout handlers are attached when DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+  console.log('DOM loaded, attempting to attach logout handlers...');
+  
+  // Wait a bit for other scripts to load
+  setTimeout(() => {
+    if (typeof attachLogoutHandlers === 'function') {
+      attachLogoutHandlers();
+    }
+  }, 100);
+  
+  // Also set up a listener for when components are loaded (like sidebar)
+  document.addEventListener('componentLoaded', function(event) {
+    if (event.detail.path === '/components/sidebar.html') {
+      console.log('Sidebar component loaded, re-attaching logout handlers...');
+      setTimeout(() => {
+        if (typeof attachLogoutHandlers === 'function') {
+          attachLogoutHandlers();
+        }
+      }, 100);
+    }
+  });
+});
 
 // --- Forgot Password Form Handling ---
 async function handleForgotPasswordSubmit(event) {

@@ -1063,6 +1063,104 @@ const getDriveProgress = async (req, res) => {
   }
 };
 
+/**
+ * @desc    Check if a user's account can be automatically unfrozen
+ * @route   POST /api/drive/check-unfreeze
+ * @access  Private
+ */
+const checkAutoUnfreeze = async (req, res) => {
+  const userId = req.user.id;
+  const { current_balance, required_amount } = req.body;
+  
+  try {
+    logger.info(`Checking auto-unfreeze for user ${userId}: Balance ${current_balance}, Required ${required_amount}`);
+    
+    // Check if user has any frozen drive sessions
+    const frozenSessionResult = await pool.query(
+      `SELECT id, frozen_amount_needed, created_at 
+       FROM drive_sessions 
+       WHERE user_id = $1 AND status = 'frozen' 
+       ORDER BY created_at DESC 
+       LIMIT 1`,
+      [userId]
+    );
+    
+    if (frozenSessionResult.rows.length === 0) {
+      return res.json({
+        success: true,
+        message: 'No frozen sessions found',
+        unfrozen: false
+      });
+    }
+    
+    const frozenSession = frozenSessionResult.rows[0];
+    const frozenAmountNeeded = parseFloat(frozenSession.frozen_amount_needed || 0);
+    const currentBalance = parseFloat(current_balance || 0);
+    
+    // Check if user now has sufficient balance
+    if (currentBalance >= frozenAmountNeeded && frozenAmountNeeded > 0) {
+      // Attempt to unfreeze the session
+      const client = await pool.connect();
+      
+      try {
+        await client.query('BEGIN');
+        
+        // Update the drive session status to active
+        await client.query(
+          `UPDATE drive_sessions 
+           SET status = 'active', 
+               frozen_amount_needed = NULL,
+               updated_at = NOW()
+           WHERE id = $1 AND user_id = $2`,
+          [frozenSession.id, userId]
+        );
+        
+        // Update any frozen drive items to active
+        await client.query(
+          `UPDATE user_active_drive_items 
+           SET user_status = 'active'
+           WHERE drive_session_id = $1 AND user_status = 'frozen'`,
+          [frozenSession.id]
+        );
+        
+        await client.query('COMMIT');
+        
+        logger.info(`Successfully auto-unfroze user ${userId} - session ${frozenSession.id}`);
+        
+        return res.json({
+          success: true,
+          message: 'Account automatically unfrozen',
+          unfrozen: true,
+          session_id: frozenSession.id
+        });
+        
+      } catch (error) {
+        await client.query('ROLLBACK');
+        throw error;
+      } finally {
+        client.release();
+      }
+      
+    } else {
+      return res.json({
+        success: true,
+        message: `Insufficient balance for auto-unfreeze. Required: ${frozenAmountNeeded}, Current: ${currentBalance}`,
+        unfrozen: false,
+        required_amount: frozenAmountNeeded,
+        current_balance: currentBalance
+      });
+    }
+    
+  } catch (error) {
+    logger.error(`Error in checkAutoUnfreeze for user ${userId}:`, error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error checking auto-unfreeze',
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   startDrive,
   getDriveStatus,
@@ -1071,5 +1169,6 @@ module.exports = {
   saveComboOrder,
   saveComboProduct,
   getDriveOrders,
-  getDriveProgress
+  getDriveProgress,
+  checkAutoUnfreeze
 };

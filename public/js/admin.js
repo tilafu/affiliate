@@ -411,21 +411,38 @@ async function loadFrozenUsers() {
         if (response.success) {
             const frozenUsersList = document.getElementById('frozen-users-list');
             if (frozenUsersList) {
-                if (response.users && response.users.length > 0) {
-                    frozenUsersList.innerHTML = response.users.map(user => `
-                        <tr>
+                if (response.users && response.users.length > 0) {                    frozenUsersList.innerHTML = response.users.map(user => `
+                        <tr ${user.frozen_sessions_count > 0 ? 'class="table-warning"' : ''}>
                             <td>${user.id}</td>
-                            <td>${user.username}</td>
+                            <td>
+                                <strong>${user.username}</strong>
+                                ${user.frozen_sessions_count > 0 ? '<span class="badge bg-danger ms-2">Frozen</span>' : ''}
+                            </td>
                             <td>${user.email}</td>
-                            <td>$${parseFloat(user.main_balance || 0).toFixed(2)}</td>
-                            <td>${user.frozen_sessions_count || 0}</td>
+                            <td>
+                                <span class="badge ${parseFloat(user.main_balance || 0) > 0 ? 'bg-success' : 'bg-secondary'}">
+                                    $${parseFloat(user.main_balance || 0).toFixed(2)}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge ${user.frozen_sessions_count > 0 ? 'bg-danger' : 'bg-secondary'}">
+                                    ${user.frozen_sessions_count || 0}
+                                </span>
+                            </td>
                             <td>${user.last_frozen ? new Date(user.last_frozen).toLocaleDateString() : 'N/A'}</td>
                             <td>
-                                <button class="btn btn-sm btn-success unfreeze-user-btn" 
-                                        data-user-id="${user.id}" 
-                                        data-username="${user.username}">
-                                    <i class="fas fa-unlock"></i> Unfreeze
-                                </button>
+                                ${user.frozen_sessions_count > 0 ? `
+                                    <button class="btn btn-sm btn-warning unfreeze-user-btn" 
+                                            data-user-id="${user.id}" 
+                                            data-username="${user.username}"
+                                            title="Unfreeze this user's account">
+                                        <i class="fas fa-unlock"></i> Unfreeze Account
+                                    </button>
+                                ` : `
+                                    <span class="text-muted">
+                                        <i class="fas fa-check-circle text-success"></i> Active
+                                    </span>
+                                `}
                             </td>
                         </tr>
                     `).join('');
@@ -469,8 +486,27 @@ async function loadFrozenUsers() {
 
 // Function to unfreeze a user account
 async function unfreezeUser(userId, username) {
-    if (!confirm(`Are you sure you want to unfreeze the account for user "${username}"? This will reactivate their frozen drive sessions.`)) {
+    // Create a more detailed confirmation dialog
+    const confirmMessage = `
+        Are you sure you want to unfreeze the account for user "${username}"?
+        
+        This action will:
+        • Reactivate their frozen drive sessions
+        • Allow them to continue with their current drive
+        • Remove any account restrictions
+        
+        Make sure the user has sufficient balance before proceeding.
+    `;
+    
+    if (!confirm(confirmMessage)) {
         return;
+    }
+    
+    // Show loading state on the button
+    const unfreezeButton = document.querySelector(`[data-user-id="${userId}"].unfreeze-user-btn`);
+    if (unfreezeButton) {
+        unfreezeButton.disabled = true;
+        unfreezeButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Unfreezing...';
     }
     
     try {
@@ -479,21 +515,27 @@ async function unfreezeUser(userId, username) {
         });
         
         if (response.success) {
-            showNotification(`Successfully unfroze account for user "${username}".`, 'success');
+            showNotification(`✓ Successfully unfroze account for user "${username}". They can now continue their drive.`, 'success');
             // Reload the frozen users list to reflect changes
             loadFrozenUsers();
         }
     } catch (error) {
         console.error('Error unfreezing user:', error);
         
-        let errorMessage = `Failed to unfreeze account for user "${username}".`;
+        let errorMessage = `❌ Failed to unfreeze account for user "${username}".`;
         if (error.data && error.data.message) {
-            errorMessage = error.data.message;
+            errorMessage += ` Reason: ${error.data.message}`;
         } else if (error.message) {
-            errorMessage = error.message;
+            errorMessage += ` Error: ${error.message}`;
         }
         
         showNotification(errorMessage, 'error');
+        
+        // Reset button state on error
+        if (unfreezeButton) {
+            unfreezeButton.disabled = false;
+            unfreezeButton.innerHTML = '<i class="fas fa-unlock"></i> Unfreeze Account';
+        }
     }
 }
 

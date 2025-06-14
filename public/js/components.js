@@ -74,8 +74,33 @@ async function initializeSidebarScripts() {
                 attachLogoutHandlers();
             } else {
                 console.error('attachLogoutHandlers function is still not available after delay.');
+                // Fallback: manually attach logout handlers
+                console.log('Attempting fallback logout handler attachment...');
+                const logoutElements = document.querySelectorAll('.logout');
+                logoutElements.forEach(function(el) {
+                    el.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        console.log('Fallback logout clicked...');
+                        performLogout();
+                    });
+                });
             }
         }, 500);
+    }
+    
+    // Additional specific handler for sidebar logout button
+    const sidebarLogoutBtn = document.getElementById('sidebar-logout-btn');
+    if (sidebarLogoutBtn) {
+        console.log('Found sidebar logout button, adding specific handler...');
+        sidebarLogoutBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            console.log('Sidebar logout clicked...');
+            if (typeof performLogoutProcess === 'function') {
+                performLogoutProcess();
+            } else {
+                performLogout();
+            }
+        });
     }// Initialize sidebar user data population
     await populateSidebarUserData();    // Apply i18n translations to the newly loaded sidebar
     if (typeof updateContent === 'function') {
@@ -210,3 +235,66 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 1000);
     }
 });
+
+// Fallback logout function
+function performLogout() {
+    console.log('Performing logout...');
+    
+    // Show confirmation dialog
+    if (confirm('Are you sure you want to logout?')) {
+        try {
+            // Get token before clearing
+            const token = localStorage.getItem('auth_token');
+            
+            // Preserve drive session data before clearing localStorage
+            const driveSessionData = localStorage.getItem('current_drive_session');
+            
+            // Clear authentication data
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('user_data');
+            
+            // Restore drive session data after clearing auth data
+            if (driveSessionData) {
+                localStorage.setItem('current_drive_session', driveSessionData);
+            }
+            
+            // Attempt server-side logout if token exists
+            if (token && typeof API_BASE_URL !== 'undefined') {
+                fetch(`${API_BASE_URL}/api/auth/logout`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json',
+                    },
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Server-side logout response:', data);
+                })
+                .catch(error => {
+                    console.warn('Server-side logout failed (continuing with client-side logout):', error);
+                });
+            }
+            
+            // Show notification if available
+            if (typeof showNotification === 'function') {
+                if (window.i18next && window.i18next.isInitialized) {
+                    showNotification(i18next.t('logoutSuccessNotification') || 'Logout successful!', 'success');
+                } else {
+                    showNotification('Logout successful!', 'success');
+                }
+                // Redirect after a short delay to allow notification to show
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 1000);
+            } else {
+                // Redirect immediately if no notification
+                window.location.href = 'login.html';
+            }
+        } catch (error) {
+            console.error('Error during logout:', error);
+            // Force redirect even if there's an error
+            window.location.href = 'login.html';
+        }
+    }
+}

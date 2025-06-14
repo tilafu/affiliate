@@ -196,8 +196,37 @@ const forgotPassword = async (req, res) => {
   res.status(200).json({ success: true, message: 'If a user with that email exists, a password reset link has been sent.' });
 };
 
+const logout = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const username = req.user.username;
+    
+    console.log(`User ${username} (ID: ${userId}) logging out`);
+    
+    // For JWT tokens, we don't need to do anything server-side
+    // since they're stateless. However, we can log the logout
+    // or perform any cleanup if needed.
+    
+    // Optional: Add logout logging to a sessions table if you have one
+    // Optional: Clear any server-side session data if you have any
+    
+    res.status(200).json({ 
+      success: true, 
+      message: 'Logout successful' 
+    });
+    
+  } catch (error) {
+    console.error('Logout error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server error during logout' 
+    });
+  }
+};
+
 module.exports = {
   register,
   login,
   forgotPassword,
+  logout,
 };
