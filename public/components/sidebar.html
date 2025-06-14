@@ -1,17 +1,19 @@
 <div class="main-sidebar">
-   <div class="sidebar-close-toggler navbar-btn">
-      <a href="#" id="sidebar-close-button" class="close-btn">
+   <div class="sidebar-header">
+      <button id="sidebar-close-button" class="close-btn">
          <i class="fas fa-times"></i>
-      </a>
+      </button>
    </div>   <div class="user-profile-section">
       <div class="profile-card">
-         <div class="profile-img-wrapper">
-            <img src="./assets/uploads/user.jpg" class="profile-img" alt="profile">
-            <div class="online-status"></div>
+         <div class="profile-avatar">
+            <div class="avatar-circle" id="sidebar-avatar">
+               <span id="sidebar-user-initials">RA</span>
+            </div>
+            <div class="online-indicator"></div>
          </div>
          <div class="profile-info">
-            <h4 class="username" id="dashboard-username">Loading...</h4>
-            <p class="ref-code" id="dashboard-refcode">REF: ------</p>
+            <h4 class="profile-name" id="dashboard-username">Loading...</h4>
+            <p class="profile-ref" id="dashboard-refcode">REF: ------</p>
          </div>
       </div>
    </div>
@@ -92,115 +94,179 @@
          <option value="fr">🇫🇷 Français</option>
       </select>
    </div>   <style>
-   .main-sidebar {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
+   :root {
+      --primary-blue: #007AFF;
+      --secondary-blue: #5AC8FA;
+      --success-green: #30D158;
+      --warning-orange: #FF9500;
+      --danger-red: #FF3B30;
+      --purple: #5856D6;
+      --pink: #FF2D92;
+      --background: #F2F2F7;
+      --card-background: #FFFFFF;
+      --text-primary: #000000;
+      --text-secondary: #8E8E93;
+      --border-color: #E5E5EA;
+      --shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+      --shadow-hover: 0 8px 32px rgba(0, 0, 0, 0.15);
+   }   .main-sidebar {
+      background: var(--background);
+      color: var(--text-primary);
       height: 100vh;
       overflow-y: auto;
-      box-shadow: 2px 0 15px rgba(0,0,0,0.1);
+      box-shadow: var(--shadow-hover);
       position: fixed;
       top: 0;
-      left: -280px;
-      width: 280px;
-      transition: all 0.3s ease;
+      left: -320px;
+      width: 320px;
+      transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
       z-index: 10001;
+      backdrop-filter: blur(20px);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      border-right: 1px solid var(--border-color);
+   }.main-sidebar.active {
+      left: 0;
    }
 
-   .main-sidebar.active {
-      left: 0;
+   .sidebar-header {
+      position: relative;
+      padding: 1.25rem;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: flex-end;
+      background: var(--card-background);
    }
 
    .sidebar-close-toggler {
       position: absolute;
-      top: 15px;
-      right: 15px;
+      top: 20px;
+      right: 20px;
       z-index: 1000;
    }
 
    .close-btn {
-      background: rgba(255,255,255,0.1);
+      background: var(--background);
       border: none;
       border-radius: 50%;
-      width: 35px;
-      height: 35px;
+      width: 40px;
+      height: 40px;
       display: flex;
       align-items: center;
       justify-content: center;
-      color: white;
+      color: var(--text-secondary);
       text-decoration: none;
       transition: all 0.3s ease;
-   }
-
-   .close-btn:hover {
-      background: rgba(255,255,255,0.2);
-      transform: rotate(90deg);
-      color: white;
-      text-decoration: none;
-   }
-
-   .user-profile-section {
-      padding: 60px 20px 20px;
+      box-shadow: var(--shadow);
+   }   .close-btn:hover {
+      background: var(--border-color);
+      color: var(--text-primary);
+      transform: translateY(-1px);
+   }   .user-profile-section {
+      padding: 1.5rem;
+      border-bottom: 1px solid var(--border-color);
    }
 
    .profile-card {
-      background: rgba(255,255,255,0.1);
+      background: linear-gradient(135deg, var(--primary-blue), var(--secondary-blue));
       border-radius: 20px;
-      padding: 20px;
+      padding: 2rem;
       text-align: center;
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(255,255,255,0.1);
+      box-shadow: var(--shadow);
+      position: relative;
+      overflow: hidden;
    }
 
-   .profile-img-wrapper {
+   .profile-card::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+      pointer-events: none;
+   }   .profile-img-wrapper {
       position: relative;
       display: inline-block;
       margin-bottom: 15px;
    }
 
-   .profile-img {
-      width: 70px;
-      height: 70px;
+   .profile-avatar {
+      position: relative;
+      display: inline-block;
+      margin-bottom: 1rem;
+   }
+
+   .avatar-circle {
+      width: 80px;
+      height: 80px;
+      background: rgba(255, 255, 255, 0.2);
       border-radius: 50%;
-      border: 3px solid rgba(255,255,255,0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 32px;
+      font-weight: 700;
+      border: 3px solid rgba(255, 255, 255, 0.3);
+      backdrop-filter: blur(10px);
+   }
+
+   .online-indicator {
+      position: absolute;
+      bottom: 8px;
+      right: 8px;
+      width: 18px;
+      height: 18px;
+      background: var(--success-green);
+      border-radius: 50%;
+      border: 3px solid white;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+   }.profile-img {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      border: 4px solid rgba(255,255,255,0.9);
       object-fit: cover;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.2);
    }
 
    .online-status {
       position: absolute;
-      bottom: 5px;
-      right: 5px;
-      width: 15px;
-      height: 15px;
-      background: #4CAF50;
+      bottom: 8px;
+      right: 8px;
+      width: 18px;
+      height: 18px;
+      background: var(--success-green);
       border-radius: 50%;
-      border: 2px solid white;
-   }
-
-   .username {
+      border: 3px solid white;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+   }   .username, .profile-name {
       color: white;
       font-size: 18px;
       font-weight: 600;
-      margin: 0 0 5px 0;
+      margin: 0 0 0.5rem 0;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.1);
    }
 
-   .ref-code {
-      color: rgba(255,255,255,0.8);
+   .ref-code, .profile-ref {
+      color: rgba(255,255,255,0.9);
       font-size: 12px;
+      font-weight: 500;
       margin: 0;
-      background: rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.2);
       padding: 4px 12px;
-      border-radius: 15px;
+      border-radius: 16px;
       display: inline-block;
-   }
-
-   .sidebar-divider {
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,0.3);
+   }   .sidebar-divider {
       height: 1px;
-      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
-      margin: 20px 0;
-   }
-
-   .navigation-menu {
-      padding: 0 15px 20px;
+      background: var(--border-color);
+      margin: 0;
+   }   .navigation-menu {
+      padding: 1.5rem;
+      flex: 1;
    }
 
    .nav-list {
@@ -210,93 +276,119 @@
    }
 
    .nav-item {
-      margin-bottom: 5px;
+      margin-bottom: 4px;
    }
 
    .nav-link {
       display: flex;
       align-items: center;
-      padding: 12px 15px;
-      color: rgba(255,255,255,0.9);
+      padding: 16px 20px;
+      color: var(--text-primary);
       text-decoration: none;
-      border-radius: 12px;
-      transition: all 0.3s ease;
+      border-radius: 16px;
+      transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
       position: relative;
       overflow: hidden;
+      font-weight: 500;
+      font-size: 16px;
    }
 
-   .nav-link:before {
+   .nav-link::before {
       content: '';
       position: absolute;
       top: 0;
-      left: -100%;
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
-      transition: left 0.5s ease;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: var(--background);
+      border-radius: 16px;
+      opacity: 0;
+      transition: all 0.3s ease;
+      z-index: -1;
    }
 
    .nav-link:hover {
-      background: rgba(255,255,255,0.15);
-      color: white;
+      color: var(--primary-blue);
       text-decoration: none;
-      transform: translateX(5px);
+      transform: translateX(4px);
    }
 
-   .nav-link:hover:before {
-      left: 100%;
+   .nav-link:hover::before {
+      opacity: 1;
+   }
+
+   .nav-link:active {
+      transform: translateX(2px) scale(0.98);
    }   .nav-icon {
-      width: 20px;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       text-align: center;
-      margin-right: 12px;
-      font-size: 16px;
+      margin-right: 16px;
+      font-size: 18px;
       transition: all 0.3s ease;
+      border-radius: 8px;
+      background: var(--background);
+      color: var(--text-secondary);
    }
 
-   /* Individual icon colors for better visual distinction */
-   .nav-link:hover .nav-icon,
-   .nav-link.active .nav-icon {
+   .nav-link:hover .nav-icon {
       transform: scale(1.1);
+      background: var(--primary-blue);
+      color: white;
    }
 
-   /* Profile icon */
+   .nav-text {
+      font-weight: 500;
+      letter-spacing: -0.01em;
+   }
+
+   /* Modern icon colors with subtle backgrounds */
    .nav-link[href="./profile.html"] .nav-icon {
-      color: #4FC3F7;
-   }
-   .nav-link[href="./profile.html"]:hover .nav-icon {
-      color: #29B6F6;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
    }
 
-   /* Deposits icon */
    .nav-link[href="./deposits.html"] .nav-icon {
-      color: #66BB6A;
-   }
-   .nav-link[href="./deposits.html"]:hover .nav-icon {
-      color: #4CAF50;
+      background: linear-gradient(135deg, var(--success-green), #28a745);
+      color: white;
    }
 
-   /* Withdrawals icon */
    .nav-link[href="./withdraws.html"] .nav-icon {
-      color: #FFA726;
-   }
-   .nav-link[href="./withdraws.html"]:hover .nav-icon {
-      color: #FF9800;
+      background: linear-gradient(135deg, var(--warning-orange), #fd7e14);
+      color: white;
    }
 
-   /* Certificates icon */
    .nav-link[href="./certificates.html"] .nav-icon {
-      color: #FFD54F;
-   }
-   .nav-link[href="./certificates.html"]:hover .nav-icon {
-      color: #FFC107;
+      background: linear-gradient(135deg, var(--purple), #6610f2);
+      color: white;
    }
 
-   /* Events icon */
    .nav-link[href="./events.html"] .nav-icon {
-      color: #AB47BC;
+      background: linear-gradient(135deg, var(--pink), #e83e8c);
+      color: white;
    }
-   .nav-link[href="./events.html"]:hover .nav-icon {
-      color: #9C27B0;
+
+   .nav-link[href="./memberships.html"] .nav-icon {
+      background: linear-gradient(135deg, #ffc107, #fd7e14);
+      color: white;
+   }
+
+   .nav-link[href="./terms.html"] .nav-icon {
+      background: linear-gradient(135deg, #6c757d, #495057);
+      color: white;
+   }
+
+   .nav-link[href="./faqs.html"] .nav-icon {
+      background: linear-gradient(135deg, #17a2b8, #138496);
+      color: white;
+   }
+
+   .nav-link[href="./company.html"] .nav-icon {
+      background: linear-gradient(135deg, #28a745, #20c997);
+      color: white;
    }
 
    /* Memberships icon */
@@ -350,57 +442,77 @@
       font-size: 14px;
       font-weight: 500;
       text-transform: capitalize;
-   }
-
+   }   /* Logout section styling */
    .logout-item {
-      margin-top: 20px;
-      padding-top: 20px;
-      border-top: 1px solid rgba(255,255,255,0.1);
+      margin-top: 32px;
+      padding-top: 24px;
+      border-top: 1px solid var(--border-color);
    }
 
    .logout-item .nav-link {
-      background: rgba(244, 67, 54, 0.2);
-      color: #ffcdd2;
+      background: linear-gradient(135deg, var(--danger-red), #dc3545);
+      color: white;
+      font-weight: 600;
    }
 
    .logout-item .nav-link:hover {
-      background: rgba(244, 67, 54, 0.3);
-      color: white;
+      background: linear-gradient(135deg, #dc3545, #c82333);
+      transform: translateX(4px) scale(1.02);
    }
 
-   .language-switcher {
-      padding: 20px;
+   .logout-item .nav-icon {
+      background: rgba(255,255,255,0.2) !important;
+      color: white !important;
+   }
+
+   .logout-item .nav-link:hover .nav-icon {
+      background: rgba(255,255,255,0.3) !important;
+      color: white !important;
+   }   .language-switcher {
+      padding: 1.5rem;
       margin-top: auto;
-      border-top: 1px solid rgba(255,255,255,0.1);
+      border-top: 1px solid var(--border-color);
+      background: var(--card-background);
    }
 
    .switcher-header {
       display: flex;
       align-items: center;
-      margin-bottom: 10px;
-      color: rgba(255,255,255,0.9);
+      margin-bottom: 0.75rem;
+      color: var(--text-primary);
       font-size: 14px;
+      font-weight: 500;
    }
 
    .switcher-header i {
-      margin-right: 8px;
+      margin-right: 0.5rem;
       font-size: 16px;
+      color: var(--primary-blue);
    }
 
    .language-select {
       width: 100%;
-      background: rgba(255,255,255,0.1);
-      border: 1px solid rgba(255,255,255,0.2);
-      border-radius: 8px;
-      color: white;
-      padding: 8px 12px;
-      font-size: 13px;
-      backdrop-filter: blur(10px);
+      background: var(--background);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      color: var(--text-primary);
+      padding: 0.75rem 1rem;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.3s ease;
+      cursor: pointer;
+   }
+
+   .language-select:focus {
+      outline: none;
+      border-color: var(--primary-blue);
+      box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
    }
 
    .language-select option {
-      background: #667eea;
-      color: white;
+      background: var(--card-background);
+      color: var(--text-primary);
+      padding: 0.5rem;
    }
 
    /* Active state for current page */

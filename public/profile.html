@@ -21,35 +21,64 @@
     <script charset="utf-8" src="./assets/frontend/shopva/common.js"></script>
     <link rel="stylesheet" href="./assets/frontend/shopva/layer.css">
     <script src="./assets/frontend/shopva/layer.js"></script>
-    
-    <!-- Custom Profile Styles -->
+      <!-- Custom Profile Styles -->
     <style>
+        :root {
+            --primary-blue: #007AFF;
+            --secondary-blue: #5AC8FA;
+            --success-green: #30D158;
+            --warning-orange: #FF9500;
+            --danger-red: #FF3B30;
+            --purple: #5856D6;
+            --pink: #FF2D92;
+            --background: #F2F2F7;
+            --card-background: #FFFFFF;
+            --text-primary: #000000;
+            --text-secondary: #8E8E93;
+            --border-color: #E5E5EA;
+            --shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+            --shadow-hover: 0 8px 32px rgba(0, 0, 0, 0.15);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
-            font-family: 'Inter', sans-serif;
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--background);
+            color: var(--text-primary);
+            line-height: 1.6;
             min-height: 100vh;
         }
         
         .profile-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, var(--primary-blue), var(--secondary-blue));
             color: white;
             padding: 2rem 0;
             margin-bottom: 2rem;
-            border-radius: 0 0 25px 25px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            border-radius: 0 0 24px 24px;
+            box-shadow: var(--shadow-hover);
         }
         
         .profile-card {
-            background: white;
+            background: var(--card-background);
             border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.08);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border-color);
             overflow: hidden;
             margin-bottom: 2rem;
+            transition: all 0.3s ease;
+        }
+
+        .profile-card:hover {
+            box-shadow: var(--shadow-hover);
         }
         
         .profile-item {
-            border-bottom: 1px solid #f8f9fa;
+            border-bottom: 1px solid var(--border-color);
             padding: 1.5rem;
             transition: all 0.3s ease;
         }
@@ -59,72 +88,80 @@
         }
         
         .profile-item:hover {
-            background: rgba(102, 126, 234, 0.05);
+            background: var(--background);
         }
         
         .profile-image {
             width: 80px;
             height: 80px;
             border-radius: 50%;
-            border: 4px solid #667eea;
+            border: 4px solid var(--primary-blue);
             object-fit: cover;
-            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+            box-shadow: var(--shadow);
         }
         
         .profile-label {
             font-weight: 600;
-            color: #495057;
+            color: var(--text-primary);
             margin-bottom: 0.5rem;
+            font-size: 14px;
         }
         
         .profile-value {
-            color: #6c757d;
+            color: var(--text-secondary);
             margin-bottom: 0;
+            font-size: 16px;
+            font-weight: 500;
         }
         
         .btn-custom {
-            background: linear-gradient(45deg, #667eea, #764ba2);
+            background: var(--primary-blue);
             border: none;
-            border-radius: 25px;
-            padding: 0.5rem 1.5rem;
+            border-radius: 20px;
+            padding: 0.75rem 1.5rem;
             color: white;
-            font-weight: 500;
+            font-weight: 600;
+            font-size: 14px;
             transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
         }
         
         .btn-custom:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+            background: var(--secondary-blue);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-hover);
             color: white;
         }
-        
-        .btn-password {
+          .btn-password {
             background: transparent;
-            border: 2px solid #667eea;
-            border-radius: 25px;
-            color: #667eea;
+            border: 2px solid var(--primary-blue);
+            border-radius: 20px;
+            color: var(--primary-blue);
             padding: 0.75rem 1.5rem;
             transition: all 0.3s ease;
             text-decoration: none;
             display: inline-block;
-            font-weight: 500;
+            font-weight: 600;
+            font-size: 14px;
         }
         
         .btn-password:hover {
-            background: #667eea;
+            background: var(--primary-blue);
             color: white;
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-hover);
         }
         
         .modal-content {
             border-radius: 20px;
-            border: none;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-hover);
         }
         
         .modal-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, var(--primary-blue), var(--secondary-blue));
             color: white;
             border-radius: 20px 20px 0 0;
             border-bottom: none;
@@ -136,20 +173,23 @@
         
         .form-control {
             border-radius: 12px;
-            border: 2px solid #e9ecef;
+            border: 2px solid var(--border-color);
             padding: 0.75rem 1rem;
             transition: all 0.3s ease;
+            background: var(--card-background);
+            color: var(--text-primary);
         }
         
         .form-control:focus {
-            border-color: #667eea;
-            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+            border-color: var(--primary-blue);
+            box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
+            outline: none;
         }
         
         .icon-circle {
             width: 50px;
             height: 50px;
-            background: linear-gradient(45deg, #667eea, #764ba2);
+            background: linear-gradient(135deg, var(--primary-blue), var(--secondary-blue));
             border-radius: 50%;
             display: inline-flex;
             align-items: center;
@@ -157,9 +197,9 @@
             color: white;
             font-size: 1.2rem;
             margin-right: 1rem;
+            box-shadow: var(--shadow);
         }
-        
-        .back-btn {
+          .back-btn {
             background: rgba(255, 255, 255, 0.2);
             border: 1px solid rgba(255, 255, 255, 0.3);
             border-radius: 50%;
@@ -171,34 +211,93 @@
             color: white;
             text-decoration: none;
             transition: all 0.3s ease;
-        }
-        
-        .back-btn:hover {
+            backdrop-filter: blur(10px);
+        }          .back-btn:hover {
             background: rgba(255, 255, 255, 0.3);
             color: white;
-            transform: translateY(-2px);
+            transform: translateY(-1px);
+        }
+
+        .menu-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            width: 45px;
+            height: 45px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+        
+        .menu-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            color: white;
+            transform: translateY(-1px);
+        }
+
+        /* Sidebar Overlay */
+        .sidebar-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .sidebar-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* Responsive sidebar styles */
+        @media (max-width: 768px) {
+            .main-sidebar {
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
+            }
+            
+            .main-sidebar.active {
+                transform: translateX(0);
+            }
         }
     </style>
 </head>
 <body>
 
 <div class="bg-overlay navbar-btn"></div>
-<!-- Sidebar Placeholder -->
-<div id="sidebar-placeholder"></div>
-<!-- End Sidebar Placeholder -->
+
+<!-- Sidebar -->
+<div id="sidebar-container"></div>
+
+<!-- Sidebar Overlay -->
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
 
 <!-- Modern Profile Header -->
 <div class="profile-header">
     <div class="container">
         <div class="d-flex align-items-center justify-content-between">
-            <a href="javascript:history.back()" class="back-btn">
-                <i class="fas fa-arrow-left"></i>
-            </a>
+            <div class="d-flex align-items-center gap-3">
+                <button class="menu-btn" id="menuBtn">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <a href="javascript:history.back()" class="back-btn">
+                    <i class="fas fa-arrow-left"></i>
+                </a>
+            </div>
             <div class="text-center flex-grow-1">
                 <h2 class="mb-0 fw-bold" data-i18n="editProfileTitle">Edit Profile</h2>
                 <p class="mb-0 opacity-75">Manage your account information</p>
             </div>
-            <div style="width: 45px;"></div> <!-- Spacer for alignment -->
+            <div style="width: 90px;"></div> <!-- Spacer for alignment -->
         </div>
     </div>
 </div>
@@ -530,7 +629,59 @@
 document.addEventListener('DOMContentLoaded', function() {
     // Load standard navigation components
     loadStandardNavigation('profile');
+    
+    // Load sidebar component
+    loadSidebarComponent();
+    
+    // Initialize menu functionality
+    initializeMenuControls();
 });
+
+// Load sidebar component
+async function loadSidebarComponent() {
+    try {
+        const response = await fetch('./components/sidebar.html');
+        if (response.ok) {
+            const sidebarHTML = await response.text();
+            document.getElementById('sidebar-container').innerHTML = sidebarHTML;
+        }
+    } catch (error) {
+        console.error('Error loading sidebar:', error);
+    }
+}
+
+// Initialize menu controls
+function initializeMenuControls() {
+    // Handle menu button clicks (delegated event handling)
+    document.addEventListener('click', function(e) {
+        if (e.target.matches('#menuBtn') || e.target.closest('#menuBtn')) {
+            const sidebar = document.querySelector('.main-sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            if (sidebar && overlay) {
+                sidebar.classList.add('active');
+                overlay.classList.add('active');
+            }
+        }
+        
+        if (e.target.matches('#sidebar-close-button') || e.target.closest('#sidebar-close-button')) {
+            const sidebar = document.querySelector('.main-sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            if (sidebar && overlay) {
+                sidebar.classList.remove('active');
+                overlay.classList.remove('active');
+            }
+        }
+        
+        if (e.target.matches('#sidebarOverlay')) {
+            const sidebar = document.querySelector('.main-sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            if (sidebar && overlay) {
+                sidebar.classList.remove('active');
+                overlay.classList.remove('active');
+            }
+        }
+    });
+}
 </script>
 </body>
 </html>
