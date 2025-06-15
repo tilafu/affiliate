@@ -1288,13 +1288,10 @@ function initializeHandlers() {
     // Cleanup on page unload
     window.addEventListener('beforeunload', () => {
         clearInterval(driveUpdateInterval);
-    });
-
-    // Event listener for the manual transaction button
+    });    // Event listener for the manual transaction button
     $(document).on('click', '#manual-transaction-button', async function() {
         const userId = $('#manage-user-id').text();
-        const type = $('#manual-transaction-type').val();
-        const amount = parseFloat($('#manual-transaction-amount').val());
+        const inputAmount = parseFloat($('#manual-transaction-amount').val());
         const description = $('#manual-transaction-description').val().trim();
 
         if (!userId) {
@@ -1302,10 +1299,14 @@ function initializeHandlers() {
             return;
         }
 
-        if (isNaN(amount) || amount <= 0) {
-            showAlert('Please enter a valid positive amount.', 'danger');
+        if (isNaN(inputAmount) || inputAmount === 0) {
+            showAlert('Please enter a valid amount (positive to add funds, negative to deduct funds).', 'danger');
             return;
         }
+
+        // Determine transaction type based on amount sign
+        const type = inputAmount > 0 ? 'deposit' : 'withdrawal';
+        const amount = Math.abs(inputAmount); // Use absolute value for the API
 
         // Standardize to use 'auth_token' as it seems to be the key used elsewhere (e.g., in logout logic)
         const token = localStorage.getItem('auth_token'); 
@@ -1323,6 +1324,7 @@ function initializeHandlers() {
         try {
             const apiUrl = `/api/admin/users/${userId}/transactions`;
             console.log(`[Admin Balance Adjustment] Request Details - User ID: ${userId}, Type: ${type}, Amount: ${amount}, Description: "${description}"`);
+            console.log(`[Admin Balance Adjustment] Original Input Amount: ${inputAmount} (${inputAmount > 0 ? 'Credit' : 'Debit'})`);
             console.log(`[Admin Balance Adjustment] API URL: ${apiUrl}`);
             console.log(`[Admin Balance Adjustment] Using token for Authorization header (from key 'auth_token'): Bearer ${token ? token.substring(0, 20) + '...' : 'null'}`); // Log a snippet
 
@@ -1356,10 +1358,9 @@ function initializeHandlers() {
                 }
                 // If parsing failed but response.ok was true (unlikely for this API), treat as error
                 result = { success: false, message: "Failed to parse server response. See raw body log." };
-            }
-
-            if (response.ok && result.success) {
-                showAlert(`Balance adjusted successfully for user ${userId}. New balance: ${result.newBalance || 'N/A'}.`, 'success');
+            }            if (response.ok && result.success) {
+                const actionType = inputAmount > 0 ? 'added to' : 'deducted from';
+                showAlert(`Balance adjusted successfully! $${Math.abs(inputAmount).toFixed(2)} ${actionType} user ${userId}. ${result.message || ''}`, 'success');
                 $('#manual-transaction-amount').val('');
                 $('#manual-transaction-description').val('');
                 loadUsers(); 

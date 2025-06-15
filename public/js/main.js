@@ -13,49 +13,291 @@ function showNotification(message, type = 'info', duration = 5000) {
         message = i18next.t(message);
     }
     
-    let notification = document.getElementById('notification');
-    
-    // Create notification element if it doesn't exist
-    if (!notification) {
-        notification = document.createElement('div');
-        notification.id = 'notification';
-        // Basic styling (can be enhanced with CSS)
-        notification.style.position = 'fixed';
-        notification.style.top = '20px';
-        notification.style.left = '50%';
-        notification.style.transform = 'translateX(-50%)';
-        notification.style.padding = '15px 25px';
-        notification.style.borderRadius = '4px';
-        notification.style.zIndex = '1001';
-        notification.style.display = 'none';
-        notification.style.boxShadow = '0 2px 10px rgba(0,0,0,0.2)';
-        document.body.appendChild(notification);
+    // Create notification container if it doesn't exist
+    let notificationContainer = document.getElementById('notification-container');
+    if (!notificationContainer) {
+        notificationContainer = document.createElement('div');
+        notificationContainer.id = 'notification-container';
+        notificationContainer.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 10000;
+            max-width: 400px;
+            pointer-events: none;
+        `;
+        document.body.appendChild(notificationContainer);
     }
+    
+    // Create individual notification
+    const notification = document.createElement('div');
+    notification.style.cssText = `
+        background: white;
+        border-radius: 12px;
+        padding: 16px 20px;
+        margin-bottom: 12px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+        border-left: 4px solid;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        font-size: 14px;
+        line-height: 1.4;
+        position: relative;
+        pointer-events: auto;
+        transform: translateX(100%);
+        transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        backdrop-filter: blur(10px);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    `;
+    
+    let icon = '';
+    let borderColor = '';
+    let backgroundColor = '';
     
     // Style based on type
     if (type === 'success') {
-        notification.style.backgroundColor = '#d4edda';
-        notification.style.color = '#155724';
-        notification.style.border = '1px solid #c3e6cb';
+        icon = '✓';
+        borderColor = '#10B981';
+        backgroundColor = 'rgba(16, 185, 129, 0.1)';
+        notification.style.color = '#065F46';
     } else if (type === 'error') {
-        notification.style.backgroundColor = '#f8d7da';
-        notification.style.color = '#721c24';
-        notification.style.border = '1px solid #f5c6cb';
-    } else { // Default to 'info'
-        notification.style.backgroundColor = '#cce5ff';
-        notification.style.color = '#004085';
-        notification.style.border = '1px solid #b8daff';
+        icon = '✕';
+        borderColor = '#EF4444';
+        backgroundColor = 'rgba(239, 68, 68, 0.1)';
+        notification.style.color = '#991B1B';
+    } else if (type === 'warning') {
+        icon = '⚠';
+        borderColor = '#F59E0B';
+        backgroundColor = 'rgba(245, 158, 11, 0.1)';
+        notification.style.color = '#92400E';
+    } else { // info
+        icon = 'ℹ';
+        borderColor = '#3B82F6';
+        backgroundColor = 'rgba(59, 130, 246, 0.1)';
+        notification.style.color = '#1E40AF';
     }
     
-    notification.textContent = message;
-    notification.style.display = 'block';
+    notification.style.borderLeftColor = borderColor;
+    notification.style.background = `linear-gradient(135deg, ${backgroundColor}, rgba(255, 255, 255, 0.9))`;
+    
+    // Add icon and message
+    notification.innerHTML = `
+        <div style="
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: ${borderColor};
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 12px;
+            flex-shrink: 0;
+        ">${icon}</div>
+        <div style="flex: 1;">${message}</div>
+        <div style="
+            cursor: pointer;
+            color: #6B7280;
+            font-size: 18px;
+            line-height: 1;
+            padding: 2px;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+        " onclick="this.parentElement.style.transform='translateX(100%)'; setTimeout(() => this.parentElement.remove(), 300);">×</div>
+    `;
+    
+    notificationContainer.appendChild(notification);
+    
+    // Animate in
+    setTimeout(() => {
+        notification.style.transform = 'translateX(0)';
+    }, 100);
     
     // Auto-hide after duration
     if (duration > 0) {
         setTimeout(() => {
-            notification.style.display = 'none';
+            notification.style.transform = 'translateX(100%)';
+            setTimeout(() => {
+                if (notification.parentElement) {
+                    notification.remove();
+                }
+            }, 300);
         }, duration);
     }
+    
+    return notification;
+}
+
+// Modern confirmation dialog
+function showConfirmDialog(message, title = 'Confirm', options = {}) {
+    return new Promise((resolve) => {
+        const {
+            confirmText = 'Confirm',
+            cancelText = 'Cancel',
+            type = 'info' // 'info', 'warning', 'danger'
+        } = options;
+        
+        // Create overlay
+        const overlay = document.createElement('div');
+        overlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            z-index: 15000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        `;
+        
+        // Create dialog
+        const dialog = document.createElement('div');
+        dialog.style.cssText = `
+            background: white;
+            border-radius: 16px;
+            padding: 32px;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            transform: scale(0.8);
+            transition: transform 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        `;
+        
+        let iconColor = '#3B82F6';
+        let confirmButtonColor = '#3B82F6';
+        
+        if (type === 'warning') {
+            iconColor = '#F59E0B';
+            confirmButtonColor = '#F59E0B';
+        } else if (type === 'danger') {
+            iconColor = '#EF4444';
+            confirmButtonColor = '#EF4444';
+        }
+        
+        dialog.innerHTML = `
+            <div style="text-align: center; margin-bottom: 24px;">
+                <div style="
+                    width: 64px;
+                    height: 64px;
+                    border-radius: 50%;
+                    background: ${iconColor}20;
+                    margin: 0 auto 16px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 24px;
+                ">${type === 'warning' ? '⚠️' : type === 'danger' ? '⚠️' : 'ℹ️'}</div>
+                <h3 style="
+                    margin: 0 0 12px 0;
+                    font-size: 20px;
+                    font-weight: 600;
+                    color: #111827;
+                ">${title}</h3>
+                <p style="
+                    margin: 0;
+                    font-size: 16px;
+                    color: #6B7280;
+                    line-height: 1.5;
+                ">${message}</p>
+            </div>
+            <div style="
+                display: flex;
+                gap: 12px;
+                justify-content: center;
+            ">
+                <button id="dialog-cancel" style="
+                    padding: 12px 24px;
+                    border: 2px solid #E5E7EB;
+                    background: white;
+                    color: #6B7280;
+                    border-radius: 12px;
+                    font-size: 14px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                    font-family: inherit;
+                ">${cancelText}</button>
+                <button id="dialog-confirm" style="
+                    padding: 12px 24px;
+                    border: none;
+                    background: ${confirmButtonColor};
+                    color: white;
+                    border-radius: 12px;
+                    font-size: 14px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                    font-family: inherit;
+                ">${confirmText}</button>
+            </div>
+        `;
+        
+        overlay.appendChild(dialog);
+        document.body.appendChild(overlay);
+        
+        // Animate in
+        setTimeout(() => {
+            overlay.style.opacity = '1';
+            dialog.style.transform = 'scale(1)';
+        }, 50);
+        
+        // Add hover effects
+        const cancelBtn = dialog.querySelector('#dialog-cancel');
+        const confirmBtn = dialog.querySelector('#dialog-confirm');
+        
+        cancelBtn.addEventListener('mouseenter', () => {
+            cancelBtn.style.borderColor = '#9CA3AF';
+            cancelBtn.style.color = '#374151';
+        });
+        
+        cancelBtn.addEventListener('mouseleave', () => {
+            cancelBtn.style.borderColor = '#E5E7EB';
+            cancelBtn.style.color = '#6B7280';
+        });
+        
+        confirmBtn.addEventListener('mouseenter', () => {
+            confirmBtn.style.transform = 'translateY(-1px)';
+            confirmBtn.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
+        });
+        
+        confirmBtn.addEventListener('mouseleave', () => {
+            confirmBtn.style.transform = 'translateY(0)';
+            confirmBtn.style.boxShadow = 'none';
+        });
+        
+        // Handle clicks
+        const closeDialog = (result) => {
+            overlay.style.opacity = '0';
+            dialog.style.transform = 'scale(0.8)';
+            setTimeout(() => {
+                document.body.removeChild(overlay);
+                resolve(result);
+            }, 300);
+        };
+        
+        cancelBtn.addEventListener('click', () => closeDialog(false));
+        confirmBtn.addEventListener('click', () => closeDialog(true));
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) closeDialog(false);
+        });
+        
+        // Handle escape key
+        const handleEscape = (e) => {
+            if (e.key === 'Escape') {
+                document.removeEventListener('keydown', handleEscape);
+                closeDialog(false);
+            }
+        };
+        document.addEventListener('keydown', handleEscape);
+    });
 }
 
 // Function to display validation errors near form elements

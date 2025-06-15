@@ -264,10 +264,10 @@
                         </button>
                     </h2>
                 </div>
-                <div id="collapseThree" class="collapse" aria-labelledby="headingThree" data-bs-parent="#manageUserAccordion">
-                    <div class="card-body">
+                <div id="collapseThree" class="collapse" aria-labelledby="headingThree" data-bs-parent="#manageUserAccordion">                    <div class="card-body">
                         <h6 class="mt-1">Manual Balance Adjustment:</h6>
-                        <div class="form-group mt-2">
+                        <!-- Transaction Type field hidden - admin adjustments are handled automatically -->
+                        <div class="form-group mt-2" style="display: none;">
                             <label for="manual-transaction-type">Transaction Type:</label>
                             <select id="manual-transaction-type" class="form-control">
                                 <option value="deposit">Deposit</option>
@@ -276,11 +276,11 @@
                         </div>
                         <div class="form-group mt-2">
                             <label for="manual-transaction-amount">Amount:</label>
-                            <input type="number" id="manual-transaction-amount" class="form-control" placeholder="Enter amount" step="0.01" min="0.01">
+                            <input type="number" id="manual-transaction-amount" class="form-control" placeholder="Enter amount (positive to add, negative to deduct)" step="0.01">
                         </div>
                         <div class="form-group mt-2">
-                            <label for="manual-transaction-description">Description (Optional):</label>
-                            <input type="text" id="manual-transaction-description" class="form-control" placeholder="E.g., Bonus, Correction">
+                            <label for="manual-transaction-description">Reason:</label>
+                            <input type="text" id="manual-transaction-description" class="form-control" placeholder="E.g., Bonus payment, Balance correction, Penalty">
                         </div>
                         <button id="manual-transaction-button" class="btn btn-warning mt-3">Adjust Balance</button>
                     </div>
@@ -636,13 +636,6 @@
     </div>
 
     <!-- Background Overlay for Mobile -->
-<<<<<<< HEAD
-    <div class="bg-overlay"></div>    <!-- Scripts -->
-    <script src="./assets/js/jquery.min.js"></script>
-    <script src="./assets/js/bootstrap.bundle.min.js"></script>    <script type="module" src="./js/admin.js"></script>
-    <script type="module" src="./js/admin-drives.js"></script> <!-- Ensure admin-drives.js is loaded as a module if not already -->
-    <script type="module" src="./js/enhanced-combo-creation.js"></script> <!-- Enhanced combo creation functionality -->
-=======
     <div class="bg-overlay"></div>    <!-- Scripts -->    <script src="./assets/js/jquery.min.js"></script>
     <script src="./assets/js/bootstrap.bundle.min.js"></script>    <script src="./js/main.js"></script>
     <script src="./js/auth.js"></script> <!-- Add centralized logout handling -->
@@ -650,7 +643,6 @@
     <script type="module" src="./js/admin.js"></script>
     <script type="module" src="./js/admin-drives.js"></script> <!-- Ensure admin-drives.js is loaded as a module if not already -->
     <script type="module" src="./js/enhanced-combo-creation.js"></script>
->>>>>>> post
 
     <!-- Modal for User Drive Progress -->
 <div class="modal fade" id="userDriveProgressModal" tabindex="-1" aria-labelledby="userDriveProgressModalLabel" aria-hidden="true">
@@ -691,15 +683,11 @@
                     </tbody>
                 </table>
             </div>
-<<<<<<< HEAD
-        </div>      </div>      <div class="modal-footer">
-=======
         </div>      </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-primary" id="create-combo-from-progress-btn" style="display: none;">
           <i class="fas fa-plus me-2"></i>Create Combo
         </button>
->>>>>>> post
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
       </div>
     </div>  </div>

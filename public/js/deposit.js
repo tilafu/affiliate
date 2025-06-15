@@ -1,8 +1,16 @@
 document.addEventListener('DOMContentLoaded', () => {
   // Use centralized authentication check
-  const authData = requireAuth();
+  const authData = checkAuthentication();
   if (!authData) {
-    return; // requireAuth will handle redirect
+    return; // checkAuthentication will handle redirect
+  }
+
+  console.log('Deposits page initialized');
+
+  // Check if required functions are available
+  if (typeof fetchWithAuth !== 'function') {
+    console.error('fetchWithAuth function not available');
+    return;
   }
 
   // Initialize i18next if not already initialized
@@ -14,59 +22,113 @@ document.addEventListener('DOMContentLoaded', () => {
     console.warn('i18next initialization function not found');
   }
 
-  // Helper function to fetch data
-  const fetchData = async (url, callback) => {
+  // Function to refresh all deposit data
+  const refreshDepositData = async () => {
     try {
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        callback(data);
-      } else {
-        console.error(`Failed to fetch data from ${url}:`, data.message);
-      }
+      console.log('Loading deposit data...');
+      
+      // Load deposit totals and history
+      await loadDepositTotals();
+      await loadDepositHistory();
+      
+      console.log('Deposit data loaded successfully');
     } catch (error) {
-      console.error(`Error fetching data from ${url}:`, error);
+      console.error('Error loading deposit data:', error);
     }
   };
-  // Fetch and display the user's total deposited amount on the Make Deposit tab
-  fetchData('/api/user/deposits/total', (data) => {
-    const depositElement = document.getElementById('user-deposited-amount');
-    if (depositElement) {
-      depositElement.innerHTML = `<strong>${data.totalDeposits.toFixed(2)}<small style="font-size:14px"> USDT</small></strong>`;
-    } else {
-      console.warn('Total deposited amount element not found.');
-    }
-  });
-  // Fetch and display the deposit history on the Deposit History tab
-  fetchData('/api/user/deposits', (data) => {
-    const historyElement = document.querySelector('#deposits table tbody'); // Select the tbody within the history tab
-    if (historyElement) {
-      historyElement.innerHTML = data.history
-        .map(
-          (entry) => `
-            <tr>
-              <td>${new Date(entry.date).toLocaleDateString()}</td>
-              <td>${new Date(entry.date).toLocaleTimeString()}</td>
-              <td>${parseFloat(entry.amount).toFixed(2)} USDT</td>
-              <td>${entry.description || 'N/A'}</td>
-              <td><span class="status-badge status-${entry.status.toLowerCase()}">${entry.status}</span></td>
-            </tr>
-          `
-        )
-        .join('');
-    } else {
-      console.warn('Deposit history table body not found.');
-    }
-  });
 
+  // Function to load deposit totals
+  const loadDepositTotals = async () => {
+    try {
+      const response = await fetchWithAuth('/api/user/deposits/total');
+      console.log('Deposit totals response:', response);
+
+      const depositElement = document.getElementById('user-deposited-amount');
+      if (depositElement && response.success) {
+        const totalDeposits = response.totalDeposits || response.data?.totalDeposits || 0;
+        depositElement.innerHTML = `$${parseFloat(totalDeposits).toFixed(2)}`;
+        console.log('Updated total deposits:', totalDeposits);
+      } else if (depositElement) {
+        depositElement.innerHTML = '$0.00';
+        console.log('No deposit data available, showing $0.00');
+      }
+    } catch (error) {
+      console.error('Error loading deposit totals:', error);
+      const depositElement = document.getElementById('user-deposited-amount');
+      if (depositElement) {
+        depositElement.innerHTML = '$0.00';
+      }
+    }
+  };
+  // Function to load deposit history (including admin adjustments)
+  const loadDepositHistory = async () => {
+    try {
+      const response = await fetchWithAuth('/api/user/deposits');
+      console.log('Deposit history response:', response);
+
+      const historyElement = document.querySelector('#deposits table tbody');
+      if (historyElement) {
+        if (response.success && response.data && response.data.length > 0) {
+          historyElement.innerHTML = response.data
+            .map((entry) => {
+              // Determine the type and styling for admin adjustments
+              let typeDisplay = entry.type || 'deposit';
+              let statusClass = 'status-completed';
+              let amountPrefix = '+';
+              
+              if (entry.type === 'admin_adjustment') {
+                if (entry.amount < 0) {
+                  typeDisplay = 'Admin Deduction';
+                  statusClass = 'status-warning';
+                  amountPrefix = '';
+                } else {
+                  typeDisplay = 'Admin Credit';
+                  statusClass = 'status-success';
+                }
+              } else if (entry.type === 'deposit') {
+                typeDisplay = 'Deposit';
+              }
+              
+              return `
+                <tr>
+                  <td>${new Date(entry.date || entry.created_at).toLocaleDateString()}</td>
+                  <td>${new Date(entry.date || entry.created_at).toLocaleTimeString()}</td>
+                  <td>${amountPrefix}$${Math.abs(parseFloat(entry.amount)).toFixed(2)}</td>
+                  <td><span class="status-badge ${statusClass}">${typeDisplay}</span></td>
+                  <td><span class="status-badge status-${(entry.status || 'completed').toLowerCase()}">${entry.status || 'Completed'}</span></td>
+                  ${entry.admin_note ? `<td><small class="text-muted">${entry.admin_note}</small></td>` : '<td>-</td>'}
+                </tr>
+              `;
+            })
+            .join('');
+        } else {
+          historyElement.innerHTML = `
+            <tr>
+              <td colspan="6" class="empty-state">
+                <i class="fas fa-history"></i>
+                <p>No deposit history found</p>
+              </td>
+            </tr>
+          `;
+        }
+      }
+    } catch (error) {
+      console.error('Error loading deposit history:', error);
+      const historyElement = document.querySelector('#deposits table tbody');
+      if (historyElement) {
+        historyElement.innerHTML = `
+          <tr>
+            <td colspan="6" class="empty-state">
+              <i class="fas fa-exclamation-triangle"></i>
+              <p>Error loading deposit history</p>
+            </td>
+          </tr>        `;
+      }
+    }
+  };
+
+  // Initial data load
+  refreshDepositData();
 
   // Set up the deposit form submission
   const depositButton = document.getElementById('deposit');
@@ -82,7 +144,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // const proofImage = document.getElementById('proof_image').files[0]; // Example for file upload
 
       if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
-        alert('Please enter a valid deposit amount.');
+        showNotification('Please enter a valid deposit amount.', 'warning');
         return;
       }
 
@@ -96,70 +158,34 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // Example of sending data (assuming JSON for now)
       try {
-        // Show loading indicator (using the existing dialog logic from the HTML script)
-        let loading = $(document).dialog({
-           type : 'notice',
-           infoIcon: baseurl + '/assets/frontend/shopva/img/loading.gif',
-           infoText: 'Submitting deposit request...',
-           autoClose: 0
-        });
+        // Show loading indicator
+        const originalText = depositButton.innerHTML;
+        depositButton.disabled = true;
+        depositButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
 
-        const response = await fetch('/api/user/deposit/request', {
+        const response = await fetchWithAuth('/api/user/deposit/request', {
           method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-            // 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') // If CSRF is needed
-          },
-          body: JSON.stringify(depositData),
+          body: JSON.stringify(depositData)
         });
 
-        const data = await response.json();
+        // Restore button
+        depositButton.disabled = false;
+        depositButton.innerHTML = originalText;
 
-        loading.close(); // Close loading indicator
-
-        if (data.success) {
-          $(document).dialog({ infoText: data.message, autoClose: 2000 });
+        if (response.success) {
+          showNotification('Deposit request submitted successfully! ' + (response.message || ''), 'success');
           // Clear form
           if (amountInput) amountInput.value = '';
-          // Refresh history and balance
-          // Re-fetch history
-          fetchData('/api/user/deposits', (data) => {
-            const historyElement = document.querySelector('#deposits table tbody');
-             if (historyElement) {
-               historyElement.innerHTML = data.history
-                 .map(
-                   (entry) => `
-                     <tr>
-                       <td>${new Date(entry.date).toLocaleDateString()}</td>
-                       <td>${new Date(entry.date).toLocaleTimeString()}</td>
-                       <td>${parseFloat(entry.amount).toFixed(2)} USDT</td>
-                       <td>${entry.description || 'N/A'}</td>
-                       <td>${entry.status}</td>
-                     </tr>
-                   `
-                 )
-                 .join('');
-             }
-          });
-          // Re-fetch balance
-          fetchData('/api/user/balance', (data) => {
-            const balanceElement = document.getElementById('user-deposited-amount');
-             if (balanceElement) {
-                balanceElement.innerHTML = `<strong>${data.balance.toFixed(2)}<small style="font-size:14px"> USDT</small></strong>`;
-             }
-          });
-
-        } else {
-          $(document).dialog({ infoText: data.message || 'Failed to submit deposit request.', autoClose: 2000 });
+          // Refresh deposit data
+          await refreshDepositData();        } else {
+          showNotification('Deposit failed: ' + (response.message || 'Failed to submit deposit request.'), 'error');
         }
       } catch (error) {
         console.error('Error submitting deposit request:', error);
-        // Ensure loading is closed even on error
-        if (loading && typeof loading.close === 'function') {
-           loading.close();
-        }
-        $(document).dialog({ infoText: 'An error occurred while submitting the deposit request.', autoClose: 2000 });
+        // Restore button
+        depositButton.disabled = false;
+        depositButton.innerHTML = originalText;
+        showNotification('An error occurred while submitting the deposit request.', 'error');
       }
     });
   } else {
@@ -167,7 +193,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
 });
-
 // Function to update translations on the deposit page
 function updateDepositTranslations() {
   // Only run if i18next is available and initialized

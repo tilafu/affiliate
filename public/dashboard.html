@@ -681,11 +681,9 @@
 
     <script>        document.addEventListener('DOMContentLoaded', function() {
             // Load standard navigation components
-            loadStandardNavigation('dashboard');
+            loadStandardNavigation();
             
-            // Load sidebar component
-            loadSidebarComponent();
-              // Initialize dashboard data (but don't require auth yet)
+            // Initialize dashboard data (but don't require auth yet)
             if (typeof initializeDashboard === 'function') {
                 // Use silent auth check to avoid redirects
                 const authData = isAuthenticated();
@@ -699,15 +697,19 @@
             
             // Initialize menu functionality
             initializeMenuControls();
-        });
-
-        // Load sidebar component
+        });// Load sidebar component
         async function loadSidebarComponent() {
             try {
                 const response = await fetch('./components/sidebar.html');
                 if (response.ok) {
                     const sidebarHTML = await response.text();
                     document.getElementById('sidebar-container').innerHTML = sidebarHTML;
+                      // Wait a moment for the sidebar script to initialize, then refresh user data
+                    setTimeout(() => {
+                        if (typeof window.refreshSidebarUserData === 'function') {
+                            window.refreshSidebarUserData();
+                        }
+                    }, 300);
                 }
             } catch (error) {
                 console.error('Error loading sidebar:', error);
@@ -761,36 +763,98 @@
             }
         }async function loadUserDashboardData() {
             try {
-                const token = localStorage.getItem('auth_token');
-                if (!token) {
+                const authData = isAuthenticated();
+                if (!authData) {
                     // Show default dashboard without redirecting immediately
                     console.log('No auth token found, showing default dashboard');
                     showDefaultDashboard();
                     return;
                 }
 
-                // Fetch user data from correct API endpoint
-                const response = await fetch('/api/user/profile', {
-                    method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    }
-                });
-
-                if (response.ok) {
-                    const userData = await response.json();
-                    updateDashboardUI(userData);
-                } else if (response.status === 401) {
-                    // Token expired or invalid
-                    localStorage.removeItem('auth_token');
-                    console.log('Invalid token, showing default dashboard');
+                // Check if fetchWithAuth is available
+                if (typeof fetchWithAuth !== 'function') {
+                    console.error('fetchWithAuth function not available');
                     showDefaultDashboard();
+                    return;
+                }
+
+                // Fetch user profile data
+                const profileData = await fetchWithAuth('/api/user/profile');
+                console.log('Dashboard profile API response:', profileData);
+
+                if (profileData.success && profileData.user) {
+                    const user = profileData.user;
+                      // Update user info
+                    if (user.username) {
+                        const initials = user.username.split(' ').map(name => name[0]).join('').toUpperCase();
+                        document.getElementById('userInitials').textContent = initials;
+                        
+                        // Also update sidebar initials if sidebar is loaded
+                        const sidebarInitials = document.getElementById('sidebar-user-initials');
+                        if (sidebarInitials) {
+                            sidebarInitials.textContent = initials;
+                        }
+                    }
+
+                    // Update notification count
+                    if (user.unreadNotifications !== undefined) {
+                        const badge = document.getElementById('notificationCount');
+                        if (user.unreadNotifications > 0) {
+                            badge.textContent = user.unreadNotifications;
+                            badge.style.display = 'flex';
+                        } else {
+                            badge.style.display = 'none';
+                        }
+                    }
+
+                    // Fetch balance data separately for accuracy
+                    try {
+                        const balanceData = await fetchWithAuth('/api/user/balances');
+                        console.log('Dashboard balance API response:', balanceData);
+                        
+                        if (balanceData.success && balanceData.balances) {
+                            const balances = balanceData.balances;
+                            const mainBalance = parseFloat(balances.main_balance || 0);
+                            const commissionBalance = parseFloat(balances.commission_balance || 0);
+                            const totalBalance = mainBalance + commissionBalance;
+                            
+                            // Update main balance display
+                            document.getElementById('currentBalance').textContent = `$${totalBalance.toFixed(2)}`;
+                            
+                            // Update other balance fields if they exist
+                            const depositBalanceEl = document.getElementById('depositBalance');
+                            if (depositBalanceEl) {
+                                depositBalanceEl.textContent = `$${mainBalance.toFixed(2)}`;
+                            }
+                            
+                            console.log(`Updated balances - Main: $${mainBalance}, Commission: $${commissionBalance}, Total: $${totalBalance}`);
+                        } else {
+                            // Fallback to single balance from profile if balances API fails
+                            const fallbackBalance = parseFloat(user.balance || 0);
+                            document.getElementById('currentBalance').textContent = `$${fallbackBalance.toFixed(2)}`;
+                            console.log('Using fallback balance from profile:', fallbackBalance);
+                        }
+                    } catch (balanceError) {
+                        console.error('Error fetching balance data:', balanceError);
+                        // Use profile balance as fallback
+                        const fallbackBalance = parseFloat(user.balance || 0);
+                        document.getElementById('currentBalance').textContent = `$${fallbackBalance.toFixed(2)}`;
+                    }
+
+                    // Update localStorage cache
+                    localStorage.setItem('user_data', JSON.stringify(user));
+                    
+                    // Hide login button when authenticated
+                    const loginBtn = document.getElementById('loginBtn');
+                    if (loginBtn) {
+                        loginBtn.style.display = 'none';
+                    }
+                    
                 } else {
-                    // Other errors, show default dashboard
-                    console.log('API error, showing default dashboard');
+                    console.error('Profile API call failed:', profileData.message);
                     showDefaultDashboard();
                 }
+                
             } catch (error) {
                 console.error('Error loading dashboard data:', error);
                 // On error, show default dashboard instead of redirecting
@@ -800,7 +864,11 @@
             // Update with default/demo data
             document.getElementById('userInitials').textContent = 'WU';
             document.getElementById('currentBalance').textContent = '$0.00';
-            document.getElementById('depositBalance').textContent = '$0.00';
+            
+            const depositBalanceEl = document.getElementById('depositBalance');
+            if (depositBalanceEl) {
+                depositBalanceEl.textContent = '$0.00';
+            }
             
             // Hide notification badge
             const badge = document.getElementById('notificationCount');
@@ -815,17 +883,62 @@
             }
         }
 
-        function updateDashboardUI(userData) {            // Update user avatar initials
+        // Function to refresh balance data independently
+        async function refreshBalanceData() {
+            try {
+                const authData = isAuthenticated();
+                if (!authData || typeof fetchWithAuth !== 'function') {
+                    return;
+                }
+
+                const balanceData = await fetchWithAuth('/api/user/balances');
+                if (balanceData.success && balanceData.balances) {
+                    const balances = balanceData.balances;
+                    const mainBalance = parseFloat(balances.main_balance || 0);
+                    const commissionBalance = parseFloat(balances.commission_balance || 0);
+                    const totalBalance = mainBalance + commissionBalance;
+                    
+                    // Update balance displays
+                    document.getElementById('currentBalance').textContent = `$${totalBalance.toFixed(2)}`;
+                    
+                    const depositBalanceEl = document.getElementById('depositBalance');
+                    if (depositBalanceEl) {
+                        depositBalanceEl.textContent = `$${mainBalance.toFixed(2)}`;
+                    }
+                    
+                    console.log('Balance refreshed successfully');
+                    return balances;
+                }
+            } catch (error) {
+                console.error('Error refreshing balance:', error);
+            }
+        }
+
+        // Make refresh function globally available
+        window.refreshDashboardBalance = refreshBalanceData;        function updateDashboardUI(userData) {            // Update user avatar initials
             if (userData.username) {
                 const initials = userData.username.split(' ').map(name => name[0]).join('').toUpperCase();
                 document.getElementById('userInitials').textContent = initials;
+                
+                // Also update sidebar initials if sidebar is loaded
+                const sidebarInitials = document.getElementById('sidebar-user-initials');
+                if (sidebarInitials) {
+                    sidebarInitials.textContent = initials;
+                }
             }
 
-            // Update balances
+            // Update balances (prefer separate balance API call)
             if (userData.balance !== undefined) {
-                document.getElementById('currentBalance').textContent = `$${userData.balance.toFixed(2)}`;
-                document.getElementById('depositBalance').textContent = `$${userData.balance.toFixed(2)}`;
-            }// Update notification count
+                const balance = parseFloat(userData.balance || 0);
+                document.getElementById('currentBalance').textContent = `$${balance.toFixed(2)}`;
+                
+                const depositBalanceEl = document.getElementById('depositBalance');
+                if (depositBalanceEl) {
+                    depositBalanceEl.textContent = `$${balance.toFixed(2)}`;
+                }
+            }
+
+            // Update notification count
             if (userData.unreadNotifications !== undefined) {
                 const badge = document.getElementById('notificationCount');
                 if (userData.unreadNotifications > 0) {

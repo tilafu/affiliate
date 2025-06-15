@@ -70,6 +70,10 @@ async function initializeDashboard() {
             updateMembershipTier(user.tier || 'bronze');
               // Fetch and update drive progress
             await fetchDriveProgress(authData.token);
+            
+            // Fetch and update transaction balances
+            await updateTransactionBalances(authData.token);
+            
         } else {
             console.error('Profile API call failed:', data.message);
             showNotification(data.message || 'Failed to load profile data.', 'error');
@@ -346,3 +350,76 @@ function updateMembershipTier(tier) {
         }
     }
 }
+
+/**
+ * Function to update the Current Transaction section with real balance data
+ */
+async function updateTransactionBalances(token) {
+    try {
+        // Fetch current balance (main balance)
+        const balancesResponse = await fetch(`${window.API_BASE_URL || API_BASE_URL}/api/user/balances`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        // Fetch total withdrawals
+        const withdrawalsResponse = await fetch(`${window.API_BASE_URL || API_BASE_URL}/api/user/withdrawals`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        const balancesData = await balancesResponse.json();
+        const withdrawalsData = await withdrawalsResponse.json();
+
+        // Update Current Balance (main balance)
+        const depositBalanceEl = document.getElementById('depositBalance');
+        if (depositBalanceEl && balancesData.success) {
+            const mainBalance = parseFloat(balancesData.balances?.main_balance || 0);
+            depositBalanceEl.textContent = `$${mainBalance.toFixed(2)}`;
+            console.log('Updated current balance:', mainBalance);
+        }
+
+        // Update Withdrawals
+        const withdrawBalanceEl = document.getElementById('withdrawBalance');
+        if (withdrawBalanceEl && withdrawalsData.success) {
+            const totalWithdrawals = parseFloat(withdrawalsData.totalWithdrawals || 0);
+            withdrawBalanceEl.textContent = `$${totalWithdrawals.toFixed(2)}`;
+            console.log('Updated total withdrawals:', totalWithdrawals);
+        }
+
+        // Update the transaction limit display if available
+        const transactionLimitEl = document.querySelector('.section-header .text-muted');
+        if (transactionLimitEl && balancesData.success) {
+            const mainBalance = parseFloat(balancesData.balances?.main_balance || 0);
+            const limit = 25000; // You can make this dynamic based on user tier
+            transactionLimitEl.textContent = `$${mainBalance.toFixed(2)} / $${limit.toLocaleString()}`;
+        }
+
+    } catch (error) {
+        console.error('Error updating transaction balances:', error);
+        
+        // Set fallback values on error
+        const depositBalanceEl = document.getElementById('depositBalance');
+        const withdrawBalanceEl = document.getElementById('withdrawBalance');
+        
+        if (depositBalanceEl) depositBalanceEl.textContent = '$0.00';
+        if (withdrawBalanceEl) withdrawBalanceEl.textContent = '$0.00';
+    }
+}
+
+/**
+ * Set up periodic refresh of transaction balances
+ */
+function setupTransactionBalanceRefresh() {
+    const authData = isAuthenticated();
+    if (!authData) return;
+
+    // Refresh transaction balances every 30 seconds
+    setInterval(async () => {
+        await updateTransactionBalances(authData.token);
+    }, 30000);
+}
+
+// Start the refresh when the page loads
+document.addEventListener('DOMContentLoaded', () => {
+    // Set up periodic refresh after a short delay
+    setTimeout(setupTransactionBalanceRefresh, 2000);
+});

@@ -143,6 +143,33 @@
             background-color: #f8d7da;
             color: #721c24;
         }
+
+        /* Admin adjustment specific styles */
+        .status-success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .status-warning {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+
+        /* Type badge styling */
+        .type-admin_adjustment {
+            background-color: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .type-deposit {
+            background-color: #f3e5f5;
+            color: #7b1fa2;
+        }
+
+        .text-muted {
+            color: #6c757d !important;
+            font-size: 0.875rem;
+        }
     </style>
 </head>
 <body>
@@ -230,14 +257,14 @@
                     <!-- History Tab -->
                     <div class="tab-pane fade" id="deposit-history" role="tabpanel">
                         <div class="table-responsive">
-                            <table class="table">
-                                <thead>
+                            <table class="table">                                <thead>
                                     <tr>
                                         <th scope="col">Date</th>
                                         <th scope="col">Time</th>
                                         <th scope="col">Amount</th>
-                                        <th scope="col">Details</th>
+                                        <th scope="col">Type</th>
                                         <th scope="col">Status</th>
+                                        <th scope="col">Note</th>
                                     </tr>
                                 </thead>
                                 <tbody>

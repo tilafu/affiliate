@@ -22,7 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (data.success) {
                 const currentAddress = data.address || 'Not set';
                 currentAddressElem.textContent = currentAddress;
-                addressInputElem.value = data.address || ''; // Pre-fill input if address exists
+                addressInputElem.value = ''; // Pre-fill input if address exists
                 console.log('Current withdrawal address fetched:', currentAddress);
             } else {
                 currentAddressElem.textContent = 'Could not load address.';
@@ -50,7 +50,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
             // TODO: Add more robust validation (e.g., TRC20 format check)
-            if (newAddress.length < 26 || !newAddress.startsWith('T')) { // Very basic TRC20 check
+            if (newAddress.length < 26 || !newAddress.startsWith('T')) { 
                  showNotification('Invalid TRC20 address format.', 'error');
                  return;
             }

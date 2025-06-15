@@ -163,12 +163,22 @@ function attachLogoutHandlers() {
   
   // Attach click event listeners to each logout element
   logoutElements.forEach(function(el) {
-    el.addEventListener('click', function(e) {
+    el.addEventListener('click', async function(e) {
       e.preventDefault();
       console.log('Logout clicked...');
       
-      // Show confirmation dialog
-      if (confirm('Are you sure you want to logout?')) {
+      // Show modern confirmation dialog
+      const confirmed = await showConfirmDialog(
+        'You will be signed out of your account.',
+        'Sign Out',
+        {
+          confirmText: 'Sign Out',
+          cancelText: 'Cancel',
+          type: 'warning'
+        }
+      );
+      
+      if (confirmed) {
         performLogoutProcess();
       }
     });

@@ -7,8 +7,8 @@
 async function loadComponent(componentPath, targetElementId) {
     const targetElement = document.getElementById(targetElementId);
     if (!targetElement) {
-        console.error(`Target element with ID "${targetElementId}" not found.`);
-        return Promise.reject(new Error(`Target element not found: ${targetElementId}`));
+        console.log(`Target element with ID "${targetElementId}" not found, skipping component "${componentPath}".`);
+        return Promise.resolve(); // Resolve instead of rejecting
     }
 
     try {
@@ -66,22 +66,29 @@ async function initializeSidebarScripts() {
         console.warn('attachLogoutHandlers function from auth.js is not available yet. Will retry after a delay.');
         // Retry after a short delay to allow auth.js to load
         setTimeout(() => {
-            if (typeof window.attachLogoutHandlers === 'function') {
-                console.log('Attaching logout handlers from auth.js (delayed)...');
+            if (typeof window.attachLogoutHandlers === 'function') {                console.log('Attaching logout handlers from auth.js (delayed)...');
                 window.attachLogoutHandlers();
             } else if (typeof attachLogoutHandlers === 'function') {
                 console.log('Attaching logout handlers from auth.js (delayed, global scope)...');
                 attachLogoutHandlers();
             } else {
-                console.error('attachLogoutHandlers function is still not available after delay.');
+                console.warn('attachLogoutHandlers function is still not available after delay. Using fallback.');
                 // Fallback: manually attach logout handlers
                 console.log('Attempting fallback logout handler attachment...');
-                const logoutElements = document.querySelectorAll('.logout');
+                const logoutElements = document.querySelectorAll('.logout, [data-action="logout"]');
                 logoutElements.forEach(function(el) {
-                    el.addEventListener('click', function(e) {
+                    el.addEventListener('click', async function(e) {
                         e.preventDefault();
                         console.log('Fallback logout clicked...');
-                        performLogout();
+                        // Simple logout implementation
+                        try {
+                            localStorage.removeItem('authToken');
+                            sessionStorage.removeItem('authToken');
+                            window.location.href = './login.html';
+                        } catch (error) {
+                            console.error('Fallback logout error:', error);
+                            window.location.href = './login.html';
+                        }
                     });
                 });
             }
@@ -205,14 +212,40 @@ function loadInitialComponents() {
  * Loads the standard header navigation component
  */
 async function loadHeaderNavigation() {
-    return loadComponent('/components/header-navigation.html', 'header-navigation-placeholder');
+    // Check which header element exists and use the appropriate one
+    const headerTarget = document.getElementById('header-navigation') ? 'header-navigation' : 'header-navigation-placeholder';
+    
+    // Only load if the target element exists
+    if (document.getElementById(headerTarget)) {
+        return loadComponent('/components/header-navigation.html', headerTarget);
+    } else {
+        console.log('No header navigation target found, skipping...');
+        return Promise.resolve();
+    }
 }
 
 /**
  * Loads the standard footer navigation component
  */
 async function loadFooterNavigation() {
-    return loadComponent('/components/footer-navigation.html', 'footer-navigation-placeholder');
+    // Check which footer element exists and use the appropriate one
+    const footerTarget = document.getElementById('footer-navigation') ? 'footer-navigation' : 'footer-navigation-placeholder';
+    
+    // Only load if the target element exists
+    if (document.getElementById(footerTarget)) {
+        // Ensure sticky footer CSS is loaded
+        if (!document.querySelector('link[href*="sticky-footer.css"]')) {
+            const link = document.createElement('link');
+            link.rel = 'stylesheet';
+            link.href = './css/sticky-footer.css';
+            document.head.appendChild(link);
+        }
+        
+        return loadComponent('/components/footer-navigation.html', footerTarget);
+    } else {
+        console.log('No footer navigation target found, skipping...');
+        return Promise.resolve();
+    }
 }
 
 /**
@@ -220,12 +253,33 @@ async function loadFooterNavigation() {
  */
 async function loadStandardNavigation() {
     try {
-        await Promise.all([
-            loadComponent('/components/sidebar.html', 'sidebar-placeholder'),
-            loadHeaderNavigation(),
-            loadFooterNavigation()
-        ]);
+        const promises = [];
+        
+        // Check which sidebar element exists and use the appropriate one
+        const sidebarTarget = document.getElementById('sidebar-container') ? 'sidebar-container' : 
+                             document.getElementById('sidebar-placeholder') ? 'sidebar-placeholder' : null;
+        
+        if (sidebarTarget) {
+            promises.push(loadComponent('/components/sidebar.html', sidebarTarget));
+        } else {
+            console.log('No sidebar target found, skipping sidebar component...');
+        }
+        
+        // Add header and footer navigation
+        promises.push(loadHeaderNavigation());
+        promises.push(loadFooterNavigation());
+        
+        await Promise.all(promises);
         console.log('All standard navigation components loaded successfully');
+        
+        // Refresh sidebar user data after loading (only if sidebar was loaded)
+        if (sidebarTarget) {
+            setTimeout(() => {
+                if (typeof window.refreshSidebarUserData === 'function') {
+                    window.refreshSidebarUserData();
+                }
+            }, 300);
+        }
     } catch (error) {
         console.error('Error loading standard navigation components:', error);
     }
@@ -267,11 +321,21 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // Fallback logout function
-function performLogout() {
+async function performLogout() {
     console.log('Performing logout...');
     
-    // Show confirmation dialog
-    if (confirm('Are you sure you want to logout?')) {
+    // Show modern confirmation dialog
+    const confirmed = await showConfirmDialog(
+        'You will be signed out of your account. Any unsaved changes may be lost.',
+        'Sign Out',
+        {
+            confirmText: 'Sign Out',
+            cancelText: 'Cancel',
+            type: 'warning'
+        }
+    );
+    
+    if (confirmed) {
         try {
             // Get token before clearing
             const token = localStorage.getItem('auth_token');

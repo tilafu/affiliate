@@ -453,11 +453,14 @@
       background: linear-gradient(135deg, var(--danger-red), #dc3545);
       color: white;
       font-weight: 600;
-   }
-
-   .logout-item .nav-link:hover {
+   }   .logout-item .nav-link:hover {
       background: linear-gradient(135deg, #dc3545, #c82333);
       transform: translateX(4px) scale(1.02);
+      color: var(--danger-red) !important;
+   }
+
+   .logout-item .nav-link:hover .nav-text {
+      color: var(--danger-red) !important;
    }
 
    .logout-item .nav-icon {
@@ -636,11 +639,108 @@
          if (e.key === 'Escape' && sidebar.classList.contains('active')) {
             closeSidebar();
          }
-      });
-
-      // Make functions globally available
+      });      // Make functions globally available
       window.openSidebar = openSidebar;
       window.closeSidebar = closeSidebar;
-   });
+      window.refreshSidebarUserData = loadSidebarUserData;
+
+      // Load user data for sidebar
+      loadSidebarUserData();
+   });   // Function to load user data into sidebar
+   async function loadSidebarUserData() {
+      const authData = isAuthenticated();
+      if (!authData) {
+         console.log('No authentication data for sidebar');
+         return;
+      }
+
+      const usernameEl = document.getElementById('dashboard-username');
+      const refcodeEl = document.getElementById('dashboard-refcode');
+      const initialsEl = document.getElementById('sidebar-user-initials');
+
+      // Helper function to generate initials
+      function generateInitials(username) {
+         if (!username || typeof username !== 'string') {
+            return 'U'; // Default fallback
+         }
+         
+         const words = username.trim().split(' ').filter(word => word.length > 0);
+         if (words.length === 0) {
+            return 'U';
+         } else if (words.length === 1) {
+            // Single name: use first two characters or just first if name is short
+            return words[0].substring(0, 2).toUpperCase();
+         } else {
+            // Multiple names: use first character of first two words
+            return words.slice(0, 2).map(word => word[0]).join('').toUpperCase();
+         }
+      }
+
+      // Try to use cached data first
+      const cachedUserData = localStorage.getItem('user_data');
+      if (cachedUserData) {
+         try {
+            const user = JSON.parse(cachedUserData);
+            if (usernameEl && user.username) {
+               usernameEl.textContent = user.username;
+            }
+            if (refcodeEl && user.referral_code) {
+               refcodeEl.textContent = `REF: ${user.referral_code}`;
+            }
+            if (initialsEl) {
+               const initials = generateInitials(user.username);
+               initialsEl.textContent = initials;
+               console.log('Updated sidebar initials from cache:', initials);
+            }
+         } catch (e) {
+            console.error('Error parsing cached user data for sidebar:', e);
+         }
+      }
+
+      // Check if fetchWithAuth is available
+      if (typeof fetchWithAuth !== 'function') {
+         console.error('fetchWithAuth function not available for sidebar');
+         return;
+      }
+
+      // Fetch fresh data using the same method as profile.js
+      try {
+         console.log('Fetching sidebar user data...');
+         const data = await fetchWithAuth('/api/user/profile');
+         console.log('Sidebar API response:', data);
+
+         if (data.success && data.user) {
+            const user = data.user;
+            
+            // Update username
+            if (usernameEl && user.username) {
+               usernameEl.textContent = user.username;
+               console.log('Updated sidebar username:', user.username);
+            }
+            
+            // Update referral code
+            if (refcodeEl && user.referral_code) {
+               refcodeEl.textContent = `REF: ${user.referral_code}`;
+               console.log('Updated sidebar referral code:', user.referral_code);
+            }
+            
+            // Update initials
+            if (initialsEl) {
+               const initials = generateInitials(user.username);
+               initialsEl.textContent = initials;
+               console.log('Updated sidebar initials from API:', initials, 'for username:', user.username);
+            }
+            
+            // Update localStorage cache
+            localStorage.setItem('user_data', JSON.stringify(user));
+            console.log('Sidebar user data updated successfully');
+         } else {
+            console.error('Sidebar API call failed:', data.message);
+         }
+      } catch (error) {
+         console.error('Error loading sidebar user data:', error);
+         // Don't show notification for sidebar errors to avoid spam
+      }
+   }
    </script>
 </div>

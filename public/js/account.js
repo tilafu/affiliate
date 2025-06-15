@@ -109,13 +109,22 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
         console.warn('attachLogoutHandlers not available, setting up fallback');
         // Fallback logout handler for account page
-        const accountLogoutBtn = document.getElementById('account-logout-btn');
-        if (accountLogoutBtn) {
-            accountLogoutBtn.addEventListener('click', function(e) {
+        const accountLogoutBtn = document.getElementById('account-logout-btn');        if (accountLogoutBtn) {
+            accountLogoutBtn.addEventListener('click', async function(e) {
                 e.preventDefault();
                 console.log('Account logout clicked (fallback)...');
                 
-                if (confirm('Are you sure you want to logout?')) {
+                const confirmed = await showConfirmDialog(
+                    'You will be signed out of your account. Any unsaved changes may be lost.',
+                    'Sign Out',
+                    {
+                        confirmText: 'Sign Out',
+                        cancelText: 'Cancel',
+                        type: 'warning'
+                    }
+                );
+                
+                if (confirmed) {
                     // Clear authentication data
                     localStorage.removeItem('auth_token');
                     localStorage.removeItem('user_data');

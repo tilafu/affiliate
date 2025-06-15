@@ -502,6 +502,313 @@ async function checkDriveStatus() { // Removed token parameter, use global token
     }
 }
 
+// Drive progress tracking variables
+    let driveProgressData = {
+        totalItems: 0,
+        completedItems: 0,
+        currentItemIndex: 0,
+        currentItemProgress: {
+            completed: 0,
+            total: 0
+        },
+        steps: [
+            { id: 1, label: 'Start Drive', status: 'pending' },
+            { id: 2, label: 'Process Items', status: 'pending' },
+            { id: 3, label: 'Complete Tasks', status: 'pending' },
+            { id: 4, label: 'Earn Commission', status: 'pending' },
+            { id: 5, label: 'Drive Complete', status: 'pending' }
+        ]
+    };
+
+    // Function to render drive progress component
+    function renderDriveProgress() {
+        const progressContainer = document.getElementById('drive-progress-container');
+        if (!progressContainer) return;
+
+        const progressPercent = driveProgressData.totalItems > 0 
+            ? ((driveProgressData.completedItems / driveProgressData.totalItems) * 100) 
+            : 0;
+
+        // Update step statuses based on progress
+        updateStepStatuses();
+
+        const progressHTML = `
+            <div class="drive-progress">
+                <!-- Progress Summary -->
+                <div class="progress-summary">
+                    <div class="summary-text">Drive Progress</div>
+                    <div class="summary-progress">${driveProgressData.completedItems} of ${driveProgressData.totalItems} items completed (${Math.round(progressPercent)}%)</div>
+                </div>
+
+                <!-- Progress Steps -->
+                <div class="progress-steps">
+                    <div class="progress-line" style="width: ${getProgressLineWidth()}%"></div>
+                    ${driveProgressData.steps.map(step => `
+                        <div class="progress-step">
+                            <div class="step-circle ${step.status}">
+                                ${step.status === 'completed' ? '<i class="fas fa-check"></i>' : step.id}
+                            </div>
+                            <div class="step-label ${step.status}">${step.label}</div>
+                        </div>
+                    `).join('')}
+                </div>
+
+                <!-- Current Item Progress -->
+                ${driveProgressData.currentItemProgress.total > 0 ? `
+                    <div class="current-item-progress">
+                        <div class="current-item-title">
+                            <i class="fas fa-clock me-1"></i>Current Item Progress
+                        </div>
+                        <div class="item-progress-bar">
+                            <div class="item-progress-fill" style="width: ${(driveProgressData.currentItemProgress.completed / driveProgressData.currentItemProgress.total) * 100}%"></div>
+                        </div>
+                        <div class="item-progress-text">
+                            ${driveProgressData.currentItemProgress.completed} of ${driveProgressData.currentItemProgress.total} products completed
+                        </div>
+                    </div>
+                ` : ''}
+
+                <!-- Drive Statistics -->
+                <div class="drive-stats">
+                    <div class="stat-item">
+                        <div class="stat-number">${driveProgressData.totalItems}</div>
+                        <div class="stat-label">Total Items</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">${driveProgressData.completedItems}</div>
+                        <div class="stat-label">Completed</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">${driveProgressData.totalItems - driveProgressData.completedItems}</div>
+                        <div class="stat-label">Remaining</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">${Math.round(progressPercent)}%</div>
+                        <div class="stat-label">Progress</div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        progressContainer.innerHTML = progressHTML;
+    }
+
+    // Function to update step statuses based on current progress
+    function updateStepStatuses() {
+        const steps = driveProgressData.steps;
+        const totalItems = driveProgressData.totalItems;
+        const completedItems = driveProgressData.completedItems;
+        const progressPercent = totalItems > 0 ? (completedItems / totalItems) * 100 : 0;
+
+        // Reset all steps to pending
+        steps.forEach(step => step.status = 'pending');
+
+        // Update based on progress
+        if (totalItems > 0) {
+            steps[0].status = 'completed'; // Start Drive
+            
+            if (progressPercent > 0) {
+                steps[1].status = 'active'; // Process Items
+            }
+            
+            if (progressPercent >= 25) {
+                steps[1].status = 'completed';
+                steps[2].status = 'active'; // Complete Tasks
+            }
+            
+            if (progressPercent >= 75) {
+                steps[2].status = 'completed';
+                steps[3].status = 'active'; // Earn Commission
+            }
+            
+            if (progressPercent >= 100) {
+                steps[3].status = 'completed';
+                steps[4].status = 'completed'; // Drive Complete
+            }
+        }
+    }
+
+    // Function to calculate progress line width
+    function getProgressLineWidth() {
+        const completedSteps = driveProgressData.steps.filter(step => step.status === 'completed').length;
+        const totalSteps = driveProgressData.steps.length;
+        return (completedSteps / (totalSteps - 1)) * 100; // -1 because line goes between steps
+    }
+
+    // Function to update progress data from API response
+    function updateProgressData(data) {
+        if (data.drive_progress) {
+            driveProgressData.totalItems = data.drive_progress.total_items || 0;
+            driveProgressData.completedItems = data.drive_progress.completed_items || 0;
+            driveProgressData.currentItemIndex = data.drive_progress.current_item_index || 0;
+        }
+
+        // Update current item progress if available
+        if (totalProductsInItem > 0) {
+            driveProgressData.currentItemProgress = {
+                completed: currentProductSlotInItem - 1, // -1 because currentProductSlotInItem is 1-based
+                total: totalProductsInItem
+            };
+        }
+
+        logDebug(`Progress updated: ${driveProgressData.completedItems}/${driveProgressData.totalItems} items, current item: ${driveProgressData.currentItemProgress.completed}/${driveProgressData.currentItemProgress.total}`, 'info');
+    }
+
+    // Function to show drive progress section
+    function showDriveProgress() {
+        const progressSection = document.getElementById('drive-progress-section');
+        const startSection = document.getElementById('start-drive-section');
+        
+        if (progressSection) {
+            progressSection.style.display = 'block';
+            renderDriveProgress();
+        }
+        
+        if (startSection) {
+            startSection.style.display = 'none';
+        }
+    }
+
+    // Function to hide drive progress section
+    function hideDriveProgress() {
+        const progressSection = document.getElementById('drive-progress-section');
+        const startSection = document.getElementById('start-drive-section');
+        
+        if (progressSection) {
+            progressSection.style.display = 'none';
+        }
+        
+        if (startSection) {
+            startSection.style.display = 'block';
+        }
+    }
+
+    // Function to show drive completion animation
+    function showDriveCompletion(message) {
+        const progressContainer = document.getElementById('drive-progress-container');
+        if (!progressContainer) return;
+
+        const completionHTML = `
+            <div class="completion-animation">
+                <div class="completion-icon">
+                    <i class="fas fa-trophy"></i>
+                </div>
+                <div class="completion-text">Drive Complete!</div>
+                <div class="completion-subtext">${message}</div>
+            </div>
+        `;
+
+        progressContainer.innerHTML = completionHTML;
+    }
+
+    // ...existing code...
+});
+
+// Function to check the current drive status and resume if necessary
+async function checkDriveStatus() { // Removed token parameter, use global token
+    logDebug('Checking drive status...', 'info');
+    const localToken = localStorage.getItem('auth_token'); // Use local token variable
+    if (!localToken) {
+        logDebug('checkDriveStatus: No token found, returning.', 'warn');
+        // requireAuth(); // This should have been called earlier
+        return;
+    }
+
+    // Get references to key elements for showing/hiding
+    const startDriveButton = document.getElementById('start-drive-button');
+    const driveContentArea = document.getElementById('drive-content-area');
+    const driveProgressSection = document.getElementById('drive-progress-section'); // Assuming this is the ID of the "Drive Progress" section
+    const noDriveMessageSection = document.getElementById('no-drive-message-section'); // New section for the message and button
+
+    // Clear any pending animation timeouts (if animationTimeout is defined elsewhere)
+    // if (typeof animationTimeout !== 'undefined' && animationTimeout) {
+    //     clearTimeout(animationTimeout);
+    //     animationTimeout = null;
+    //     logDebug('Cleared pending animation timeout.', 'dev');
+    // }
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/drive/status`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${localToken}`
+            }
+        });
+
+        const data = await response.json();
+        logDebug(`Drive status response: ${JSON.stringify(data)}`, 'dev');
+
+        if (response.ok && data.code === 0) {
+            if (data.status === 'active' && data.current_product_details) {
+                logDebug('Active session with current product found. Resuming drive.', 'info');
+                if(startDriveButton) startDriveButton.style.display = 'none';
+                if(driveContentArea) driveContentArea.style.display = 'block';
+                if(driveProgressSection) driveProgressSection.style.display = 'block'; // Show progress
+                if(noDriveMessageSection) noDriveMessageSection.style.display = 'none'; // Hide no-drive message
+                updateFrontendState(data); // Update state with all details
+                renderProductCard(data.current_product_details);
+                updateWalletBalance();
+            } else if (data.status === 'frozen') {
+                 logDebug('Frozen session found. Displaying frozen state.', 'info');
+                 if(startDriveButton) startDriveButton.style.display = 'none';
+                 if(driveContentArea) driveContentArea.style.display = 'block';
+                 if(driveProgressSection) driveProgressSection.style.display = 'block'; // Show progress
+                 if(noDriveMessageSection) noDriveMessageSection.style.display = 'none'; // Hide no-drive message
+                 displayFrozenState(data.info || 'Your drive is frozen.', data.frozen_amount_needed);
+                 updateWalletBalance();
+            } else if (data.status === 'complete' || data.status === 'pending_reset') { // pending_reset is also a form of completion
+                 logDebug('Drive complete or pending reset.', 'info');
+                 if(driveProgressSection) driveProgressSection.style.display = 'block'; // Show progress (even if complete)
+                 if(noDriveMessageSection) noDriveMessageSection.style.display = 'none'; // Hide no-drive message
+                 displayDriveComplete(data.info || 'Your data drive is complete.');
+                 updateWalletBalance();
+            } else if (data.status === 'no_session') {
+                 logDebug('No active drive session found.', 'info');
+                 if(startDriveButton) startDriveButton.style.display = 'block';
+                 if(driveContentArea) driveContentArea.style.display = 'none';
+                 if(driveProgressSection) driveProgressSection.style.display = 'none'; // Hide progress
+                 if(noDriveMessageSection) {
+                    noDriveMessageSection.innerHTML = '<p>No active data drive. Please contact support if you believe this is an error.</p><button id="contact-support-no-drive-btn" class="btn btn-primary">Contact Support</button>';
+                    noDriveMessageSection.style.display = 'block'; // Show no-drive message
+                    const contactBtn = document.getElementById('contact-support-no-drive-btn');
+                    if(contactBtn) {
+                        contactBtn.addEventListener('click', () => {
+                            window.location.href = './support.html';
+                        });
+                    }
+                 }
+                 // Reset frontend state if no session
+                 currentItemId = null;
+                 currentProductSlotInItem = 0;
+                 totalProductsInItem = 0;
+                 isLastProductInCurrentItem = false;
+                 currentProductData = null;
+            } else {
+                 logDebug(`Received unexpected status: ${data.status}. Data: ${JSON.stringify(data)}`, 'warn');
+                 if(startDriveButton) startDriveButton.style.display = 'block';
+                 if(driveContentArea) driveContentArea.style.display = 'none';
+                 if(driveProgressSection) driveProgressSection.style.display = 'none'; // Hide progress
+                 if(noDriveMessageSection) noDriveMessageSection.style.display = 'none'; // Hide no-drive message
+            }
+        } else {
+            logDebug(`Failed to check drive status: ${data.info || data.message || 'Unknown error'}`, 'error');
+            // Don't alert here as it can be annoying on page load if there's a transient issue
+            // console.error('Failed to check drive status:', data);
+            if(startDriveButton) startDriveButton.style.display = 'block'; 
+            if(driveContentArea) driveContentArea.style.display = 'none';
+            if(driveProgressSection) driveProgressSection.style.display = 'none'; // Hide progress
+            if(noDriveMessageSection) noDriveMessageSection.style.display = 'none'; // Hide no-drive message
+        }
+    } catch (error) {
+        logDebug(`Error checking drive status: ${error.message}`, 'error');
+        console.error('Error checking drive status:', error);
+        if(startDriveButton) startDriveButton.style.display = 'block'; 
+        if(driveContentArea) driveContentArea.style.display = 'none';
+        if(driveProgressSection) driveProgressSection.style.display = 'none'; // Hide progress
+        if(noDriveMessageSection) noDriveMessageSection.style.display = 'none'; // Hide no-drive message
+    }
+}
+
 // Remove the duplicate checkDriveStatus and related jQuery logic
 // $(document).ready(async function() { ... });
 // async function startDrive() { ... } // This logic is now in handleStartDrive
