@@ -1,6 +1,6 @@
 <!-- Standard Footer Navigation Component -->
-<footer class="bg-white border-top mt-5">
-    <div class="container">
+<footer class="sticky-footer bg-white border-top">
+    <div class="container-fluid">
         <div class="footer-bar py-3">
             <div class="d-flex justify-content-around align-items-center">
                 <a href="./dashboard.html" class="footer-link text-decoration-none" data-page="dashboard">
@@ -39,50 +39,6 @@
         </div>
     </div>
 </footer>
-
-<style>
-.footer-link {
-    color: #6c757d;
-    transition: all 0.3s ease;
-}
-
-.footer-link:hover, .footer-link.active {
-    color: #667eea;
-}
-
-.footer-icon {
-    font-size: 1.2rem;
-    transition: all 0.3s ease;
-}
-
-.footer-link:hover .footer-icon, .footer-link.active .footer-icon {
-    transform: translateY(-2px);
-}
-
-.footer-text {
-    font-size: 0.8rem;
-    font-weight: 500;
-}
-
-.footer-bar {
-    border-top: 1px solid #dee2e6;
-}
-
-/* Active state highlighting */
-.footer-link.active {
-    color: #667eea;
-}
-
-.footer-link.active .footer-icon {
-    color: #667eea;
-    transform: translateY(-2px);
-}
-
-.footer-link.active .footer-text {
-    color: #667eea;
-    font-weight: 600;
-}
-</style>
 
 <script>
 // Auto-highlight active footer link based on current page

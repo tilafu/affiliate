@@ -12,6 +12,9 @@ let tasksCompleted = 0; // Track the current product step being worked on (unlim
 let totalDriveCommission = 0; // Track total commission earned in this drive
 let isStartingDrive = false; // Flag to prevent unintentional start drive calls
 
+// --- Modal State Variables ---
+window.selectedAction = 'buy'; // Default modal action state
+
 // --- UI Element References ---
 let autoStartButton;
 let productCardContainer; // New container for the dynamic product card
@@ -49,7 +52,6 @@ function initializeTaskPage() {
   driveProgressBar = document.getElementById('drive-progress-bar'); // Main progress bar at the top
   progressTextElement = document.getElementById('progress-text'); // Text element for progress 
   orderLoadingOverlay = document.getElementById('order-loading-overlay'); // Get reference to the loading overlay
-
   // Debug: Check if elements are found
   console.log('Element references:', {
     autoStartButton: !!autoStartButton,
@@ -61,16 +63,38 @@ function initializeTaskPage() {
     driveProgressBar: !!driveProgressBar,
     progressTextElement: !!progressTextElement,
     orderLoadingOverlay: !!orderLoadingOverlay
-  });  // Initial UI state: Hide elements by default, will be shown based on drive status
+  });
+  
+  // Additional debug for tasks-count element specifically
+  console.log('Tasks count element details:', {
+    found: !!tasksProgressElement,
+    id: tasksProgressElement?.id,
+    currentText: tasksProgressElement?.textContent,
+    innerHTML: tasksProgressElement?.innerHTML
+  });// Initial UI state: Hide elements by default, will be shown based on drive status
   if (autoStartButton) autoStartButton.style.display = 'none'; // Don't show until we check drive status
   if (productCardContainer) productCardContainer.style.display = 'none';
   if (orderLoadingOverlay) orderLoadingOverlay.style.display = 'none';
+    // Try to restore session data from localStorage first
+  const savedSessionData = getCurrentSessionData();
+  if (savedSessionData) {
+    console.log('Restoring session data from localStorage:', savedSessionData);
+    totalDriveCommission = savedSessionData.totalCommission || 0;
+    tasksCompleted = savedSessionData.tasksCompleted || 0;
+    totalTasksRequired = savedSessionData.totalTasksRequired || 0;
+    console.log('Values after restoration:', { totalDriveCommission, tasksCompleted, totalTasksRequired });
+  } else {
+    console.log('No saved session data found, initializing with defaults');
+    totalDriveCommission = 0;
+    tasksCompleted = 0;
+    totalTasksRequired = 0;
+    console.log('Values after default initialization:', { totalDriveCommission, tasksCompleted, totalTasksRequired });
+  }
   
-  // Initialize progress bars with default values for unlimited task sets design
-  updateProgressBar(0, 0); // Start with 0/0 initially
+  // Initialize progress bars with restored or default values
+  updateProgressBar(tasksCompleted, totalTasksRequired);
   
-  // Initialize commission display
-  totalDriveCommission = 0;
+  // Initialize commission display with restored value
   updateDriveCommission();
   
   // Initial balance fetch
@@ -168,6 +192,9 @@ function initializeTaskPage() {
           }
       });
   }
+
+  // Initialize modern modal event delegation
+  initializeModalEventDelegation();
 
    return true; // Indicate successful initialization
 }
@@ -323,6 +350,121 @@ function refreshWalletBalance() {
     }
 }
 
+// --- Enhanced Balance Refresh with Retry Logic ---
+async function refreshWalletBalanceWithRetry(maxRetries = 3, delay = 1000) {
+    console.log(`Starting enhanced balance refresh with ${maxRetries} retries...`);
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+            console.log(`Balance refresh attempt ${attempt}/${maxRetries}`);
+            
+            if (globalAuthData && globalAuthData.token) {
+                const balanceElement = document.querySelector('.datadrive-balance');
+                if (balanceElement) {
+                    // Call the existing fetchBalance function
+                    await fetchBalanceAsync(globalAuthData.token);
+                    console.log(`Balance refresh attempt ${attempt} completed successfully`);
+                    return true; // Success
+                } else {
+                    console.warn('Balance element not found during enhanced refresh');
+                }
+            } else {
+                console.warn('No auth data available for enhanced balance refresh');
+            }
+        } catch (error) {
+            console.error(`Balance refresh attempt ${attempt} failed:`, error);
+            
+            if (attempt < maxRetries) {
+                console.log(`Waiting ${delay}ms before next attempt...`);
+                await new Promise(resolve => setTimeout(resolve, delay));
+            }
+        }
+    }
+    
+    console.warn(`All ${maxRetries} balance refresh attempts failed`);
+    return false;
+}
+
+// --- Async version of fetchBalance for better control ---
+async function fetchBalanceAsync(token) {
+    if (!token) return;
+
+    const balanceElement = document.querySelector('.datadrive-balance');
+    if (!balanceElement) {
+        console.warn('Balance element not found');
+        return;
+    }
+    
+    try {
+        // First check drive status to see if account is frozen
+        const statusResponse = await fetch(`${API_BASE_URL}/api/drive/status`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+            },
+        });
+        
+        const statusData = await statusResponse.json();
+        const isFrozen = statusData.success && statusData.status === 'frozen';
+        const frozenAmountNeeded = statusData.frozen_amount_needed ? parseFloat(statusData.frozen_amount_needed) : 0;
+        
+        // Then fetch balances
+        const response = await fetch(`${API_BASE_URL}/api/user/balances`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+            },
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        if (data.success && data.balances) {
+            const mainBalance = parseFloat(data.balances.main_balance || 0);
+            const frozenBalance = parseFloat(data.balances.frozen_balance || 0);
+            
+            console.log('Balance updated:', { mainBalance, frozenBalance, isFrozen });
+            
+            // Update modal balance display if modal is open
+            const modalCurrentBalance = document.getElementById('modal-current-balance');
+            if (modalCurrentBalance) {
+                modalCurrentBalance.textContent = `$${mainBalance.toFixed(2)} USDT`;
+            }
+            
+            // Check if user has sufficient balance to unfreeze automatically
+            if (isFrozen && frozenAmountNeeded > 0 && mainBalance >= frozenAmountNeeded) {
+                console.log('User has sufficient balance to unfreeze, attempting auto-unfreeze...');
+                // Could add auto-unfreeze logic here if needed
+            }
+            
+            if (isFrozen && frozenBalance > 0) {
+                // Show frozen balance when account is frozen
+                balanceElement.innerHTML = `${frozenBalance.toFixed(2)} <small>USDT</small>`;
+                balanceElement.style.color = '#dc3545'; // Red color for frozen balance
+                balanceElement.title = `Your balance of ${frozenBalance.toFixed(2)} USDT is currently frozen. Please deposit funds to continue.`;
+            } else {
+                // Show normal wallet balance
+                balanceElement.innerHTML = `${mainBalance.toFixed(2)} <small>USDT</small>`;
+                balanceElement.style.color = ''; // Reset color
+                balanceElement.title = ''; // Clear title
+            }
+        } else {
+            console.error('Failed to fetch balance:', data.message);
+            balanceElement.innerHTML = 'Error';
+            balanceElement.style.color = '#dc3545'; // Red color for error
+        }
+    } catch (error) {
+        console.error('Error in fetchBalanceAsync:', error);
+        balanceElement.innerHTML = 'Error';
+        balanceElement.style.color = '#dc3545'; // Red color for error
+        throw error; // Re-throw for retry logic
+    }
+}
+
 // --- Update Progress Bar Function (Unlimited Task Sets Design) ---
 function updateProgressBar(currentStep, totalProducts) {
     // Get DOM elements
@@ -355,11 +497,16 @@ function updateProgressBar(currentStep, totalProducts) {
       // Update progress text for unlimited task sets design
     if (progressText) {
         progressText.textContent = `${displayCompleted} / ${displayTotal} products completed`;
-    }// Update tasks count for unlimited design
+    }    // Update tasks count for unlimited design
     if (tasksProgressElement) {
-        tasksProgressElement.textContent = `(${displayCompleted} / ${displayTotal})`;
+        const newText = `${displayCompleted} / ${displayTotal}`;
+        tasksProgressElement.textContent = newText;
+        console.log(`Tasks count updated: ${newText} (element found: ${!!tasksProgressElement})`);
+    } else {
+        console.warn('Tasks progress element (tasks-count) not found - cannot update task count display');
     }
     
+
     // Update global variables for unlimited task sets design
     // Repurpose these variables to track products instead of task sets
     tasksCompleted = completed; // Now tracks current product step
@@ -740,17 +887,19 @@ function renderProductCard(productData) {
                 </div>
             </div>`;
         }
-        
-        productCardContainer.innerHTML = `
+          productCardContainer.innerHTML = `
             <div class="card">
                 <div class="card-body text-center">
                     <h4>${productTitle}${comboInfo}</h4>
                     <img src="${productData.product_image || './assets/uploads/images/ph.png'}" alt="${productData.product_name || 'Product Image'}" style="max-width: 150px; margin: 10px auto; display: block;">
                     <p>Price: <strong>${parseFloat(productData.product_price).toFixed(2)}</strong> USDT</p>
-                    <p>Commission for this item: <strong>${parseFloat(productData.order_commission).toFixed(2)}</strong> USDT</p>
+                    <p>Commission for this item: <strong class="text-success">+${parseFloat(productData.order_commission).toFixed(2)}</strong> USDT</p>
+                    <div class="alert alert-info py-2 my-3">
+                        <small><i class="fas fa-info-circle"></i> <strong>Refund Policy:</strong> Purchase amount will be refunded after completion!</small>
+                    </div>
                     <p class="text-success small">Total drive commission so far: <strong>${totalDriveCommission.toFixed(2)}</strong> USDT</p>
                     ${taskProgress}
-                    <button id="purchase-button" class="btn btn-primary mt-3">Purchase</button>
+                    <button id="purchase-button" class="btn btn-primary mt-3">Purchase & Earn</button>
                 </div>
             </div>
         `;
@@ -848,18 +997,133 @@ async function handlePurchase(token, productData) {
         const data = await response.json();
         if (orderLoadingOverlay) orderLoadingOverlay.style.display = 'none';        if (response.ok && data.code === 0) { // Order processed successfully
             console.log('Order saved successfully (saveorder):', data);            
-              // Show success notification briefly before refresh
-            if (typeof showNotification === 'function') {
-                showNotification(data.info || "Order Sent successfully!", 'success');
-            } else { 
-                alert(data.info || "Order Sent successfully!"); 
+            
+            // Process refund for the purchase amount
+            try {
+                console.log(`Processing refund of ${productData.product_price} USDT for product purchase`);
+                const refundResponse = await fetch(`${API_BASE_URL}/api/drive/refund`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        user_active_drive_item_id: productData.user_active_drive_item_id,
+                        product_id: productData.product_id,
+                        refund_amount: productData.product_price,
+                        reason: 'Post-purchase refund as per drive policy'
+                    })
+                });
+
+                const refundData = await refundResponse.json();
+                console.log('Refund response:', refundData);                if (refundResponse.ok && refundData.success) {
+                    console.log(`Refund successful: ${productData.product_price} USDT refunded`);
+                    
+                    // Update commission and task progress after successful purchase and refund
+                    const previousCompleted = tasksCompleted;
+                    const previousCommission = totalDriveCommission;
+                    
+                    totalDriveCommission += parseFloat(productData.order_commission || 0);
+                    tasksCompleted += 1; // Increment tasks completed
+                    
+                    console.log(`Task progress updated: ${previousCompleted} -> ${tasksCompleted} (total: ${totalTasksRequired})`);
+                    console.log(`Commission updated: ${previousCommission} -> ${totalDriveCommission}`);
+                    
+                    // Save updated session data
+                    updateDriveCommission(); // This calls saveCurrentSessionData()
+                    updateProgressBar(tasksCompleted, totalTasksRequired);                    // Refresh wallet balance immediately after successful refund
+                    console.log('Refreshing wallet balance after successful refund...');
+                    refreshWalletBalanceWithRetry(3, 500); // 3 retries with 500ms delay (no await to avoid syntax issues)
+                    
+                    // Show success notification including refund info
+                    if (typeof showNotification === 'function') {
+                        showNotification(`Purchase completed! ${productData.product_price} USDT refunded + ${productData.order_commission} USDT commission earned`, 'success');
+                    } else { 
+                        alert(`Order completed! ${productData.product_price} USDT refunded + ${productData.order_commission} USDT commission earned`); 
+                    }                } else {
+                    console.warn('Refund failed but purchase was successful:', refundData);
+                    
+                    // Still update commission since purchase was successful
+                    const previousCompleted = tasksCompleted;
+                    const previousCommission = totalDriveCommission;
+                    
+                    totalDriveCommission += parseFloat(productData.order_commission || 0);
+                    tasksCompleted += 1; // Increment tasks completed
+                    
+                    console.log(`Task progress updated (refund failed): ${previousCompleted} -> ${tasksCompleted} (total: ${totalTasksRequired})`);
+                    console.log(`Commission updated (refund failed): ${previousCommission} -> ${totalDriveCommission}`);
+                    
+                    // Save updated session data
+                    updateDriveCommission(); // This calls saveCurrentSessionData()
+                    updateProgressBar(tasksCompleted, totalTasksRequired);
+                    
+                    // Refresh wallet balance even if refund failed (commission should still be added)
+                    console.log('Refreshing wallet balance after purchase (refund failed)...');
+                    refreshWalletBalance();
+                    
+                    // Show standard success message if refund fails
+                    if (typeof showNotification === 'function') {
+                        showNotification(data.info || "Order Sent successfully!", 'success');
+                    } else { 
+                        alert(data.info || "Order Sent successfully!"); 
+                    }
+                }} catch (refundError) {
+                console.error('Error processing refund:', refundError);
+                
+                // Still update commission since purchase was successful
+                const previousCompleted = tasksCompleted;
+                const previousCommission = totalDriveCommission;
+                
+                totalDriveCommission += parseFloat(productData.order_commission || 0);
+                tasksCompleted += 1; // Increment tasks completed
+                
+                console.log(`Task progress updated (refund error): ${previousCompleted} -> ${tasksCompleted} (total: ${totalTasksRequired})`);
+                console.log(`Commission updated (refund error): ${previousCommission} -> ${totalDriveCommission}`);
+                  // Save updated session data
+                updateDriveCommission(); // This calls saveCurrentSessionData()
+                updateProgressBar(tasksCompleted, totalTasksRequired);
+                
+                // Refresh wallet balance even if refund had an error (commission should still be added)
+                console.log('Refreshing wallet balance after purchase (refund error)...');
+                refreshWalletBalance();
+                  // Show standard success message if refund fails
+                if (typeof showNotification === 'function') {
+                    showNotification(data.info || "Order Sent successfully!", 'success');
+                } else { 
+                    alert(data.info || "Order Sent successfully!"); 
+                }
             }
             
-            // Refresh the entire page after a brief delay to show the notification
+            // Ensure session data is saved before page reload
+            console.log('Ensuring session data is saved before page reload...');
+            saveCurrentSessionData(); // Explicit save
+            
+            // Final balance refresh before page reload
+            console.log('Final balance refresh before page reload...');
+            refreshWalletBalance();
+            
+            // Log final values before reload
+            console.log('Final values before reload:', {
+                tasksCompleted,
+                totalTasksRequired, 
+                totalDriveCommission,
+                savedData: getCurrentSessionData()
+            });
+            
+            // Refresh the entire page after a brief delay to show the notification and allow balance update
             console.log('Refreshing entire page after successful purchase...');
             setTimeout(() => {
+                // Additional balance refresh right before reload
+                console.log('Final balance refresh right before reload...');
+                refreshWalletBalance();
+                
+                // Small additional delay to ensure balance update completes
+                setTimeout(() => {
+                    window.location.reload();
+                }, 500); // Extra 500ms to ensure balance update completes
+            }, 2000); // Increased delay to 2 seconds to show refund message and allow processing
                 window.location.reload();
-            }, 500); // Half second delay to show success message
+            }, 1500); // Increased delay to show refund message
               // Note: Code below this point won't execute due to page refresh
             // but keeping it for fallback in case reload fails
             
@@ -1067,25 +1331,43 @@ function checkDriveStatus(token) {
         }
     })
     .then(res => res.json())
-    .then(data => {
-        console.log('Drive status response received (/api/drive/status):', data);
+    .then(data => {        console.log('Drive status response received (/api/drive/status):', data);
         // console.log('Drive status:', data.status); // data.status might be deprecated if using code + current_order
-
+        
         if (data.code === 0) { // Indicates a valid status response
             // Load total_session_commission from backend if available
             if (data.total_session_commission !== undefined) {
                 totalDriveCommission = parseFloat(data.total_session_commission);
+                console.log('Updated commission from backend:', totalDriveCommission);
             } else {
-                // Fallback to localStorage if backend doesn't send it (should not happen for active/frozen/complete)
+                // Fallback to localStorage if backend doesn't send it
                 const sessionData = getCurrentSessionData();
                 if (sessionData && sessionData.totalCommission !== undefined) {
-                    totalDriveCommission = parseFloat(sessionData.totalCommission);                } else {
-                    totalDriveCommission = 0; // Default if nothing found
+                    totalDriveCommission = parseFloat(sessionData.totalCommission);
+                    console.log('Using commission from localStorage:', totalDriveCommission);
+                } else {
+                    console.log('No commission data found, keeping current value:', totalDriveCommission);
                 }
             }
+            
+            // Load task progress from backend if available
+            if (data.tasks_completed !== undefined && data.tasks_required !== undefined) {
+                totalTasksRequired = data.tasks_required;
+                tasksCompleted = data.tasks_completed;
+                console.log('Updated task progress from backend:', tasksCompleted, '/', totalTasksRequired);
+            } else {
+                // Fallback to localStorage if backend doesn't send it
+                const sessionData = getCurrentSessionData();
+                if (sessionData) {
+                    if (sessionData.tasksCompleted !== undefined) tasksCompleted = sessionData.tasksCompleted;
+                    if (sessionData.totalTasksRequired !== undefined) totalTasksRequired = sessionData.totalTasksRequired;
+                    console.log('Using task progress from localStorage:', tasksCompleted, '/', totalTasksRequired);
+                }
+            }
+            
+            // Update UI with current values
             updateDriveCommission(); // Update UI and persist
-
-            if (data.status === 'active' && data.current_order) {
+            updateProgressBar(tasksCompleted, totalTasksRequired);            if (data.status === 'active' && data.current_order) {
                 console.log('checkDriveStatus: Active session with current order found. Resuming drive.');
                 
                 // Clean up any frozen state displays when resuming
@@ -1098,19 +1380,7 @@ function checkDriveStatus(token) {
                     currentProductData = data.current_order;
                 }
                 
-                // Update commission display immediately
-                if (data.total_session_commission !== undefined) {
-                    totalDriveCommission = parseFloat(data.total_session_commission);
-                    updateDriveCommission();
-                }
-                
-                // tasks_completed and tasks_required now refer to Task Sets
-                if (data.tasks_completed !== undefined && data.tasks_required !== undefined) {
-                    totalTasksRequired = data.tasks_required;
-                    tasksCompleted = data.tasks_completed;
-                    updateProgressBar(tasksCompleted, totalTasksRequired);
-                }
-                  // Ensure wallet balance is up to date
+                // Ensure wallet balance is up to date
                 refreshWalletBalance();
                 
                 return true;
@@ -1131,12 +1401,7 @@ function checkDriveStatus(token) {
                 console.log('checkDriveStatus: Drive complete.');
                 displayDriveComplete(data.info || 'Drive completed successfully.');
                 if (autoStartButton) autoStartButton.style.display = 'none';
-                if (data.tasks_completed !== undefined && data.tasks_required !== undefined) { // Update progress to show 100%
-                    totalTasksRequired = data.tasks_required;
-                    tasksCompleted = data.tasks_completed; // Should be equal to totalTasksRequired
-                    updateProgressBar(tasksCompleted, totalTasksRequired);
-                }
-                return true;            } else if (data.status === 'no_session') {
+                  } else if (data.status === 'no_session') {
                 console.log('checkDriveStatus: No active session found.');
                 if (autoStartButton) autoStartButton.style.display = 'block';
                 if (productCardContainer) productCardContainer.style.display = 'none';
@@ -1662,4 +1927,332 @@ function checkFrozenAccountStatus(token) {
     .catch(error => {
         console.error('Error checking frozen account status:', error);
     });
+}
+
+// --- Modal JS Separation: Use custom JS classes for modal actions ---
+document.addEventListener('DOMContentLoaded', function() {
+    // Open modal
+    document.body.addEventListener('click', function(e) {
+        if (e.target.closest('.js-modal-open')) {
+            openProductModal();
+        }
+    });
+    // Close modal
+    document.body.addEventListener('click', function(e) {
+        if (e.target.closest('.js-modal-close')) {
+            closeProductModal();
+        }
+    });
+    // Purchase from modal
+    document.body.addEventListener('click', function(e) {
+        if (e.target.closest('.js-modal-purchase')) {
+            // The purchase logic is handled in openProductModal, but you can move it here if needed
+            // For now, just trigger the click on the original purchase button
+            const originalPurchaseBtn = document.getElementById('purchase-button');
+            if (originalPurchaseBtn) {
+                if (originalPurchaseBtn.onclick) {
+                    originalPurchaseBtn.onclick();
+                } else if (originalPurchaseBtn.click) {
+                    originalPurchaseBtn.click();
+                }
+            }
+            closeProductModal();
+        }
+    });
+    // Close modal on backdrop click
+    document.body.addEventListener('click', function(e) {
+        if (e.target.classList.contains('product-modal-backdrop')) {
+            closeProductModal();
+        }
+    });
+    
+    // Close modal on ESC key
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') {
+            const modal = document.getElementById('product-modal');
+            if (modal && modal.classList.contains('show')) {
+                closeProductModal();
+            }
+        }
+    });
+});
+
+// --- Modern Modal Event Delegation ---
+function initializeModalEventDelegation() {
+  console.log('Initializing modern modal event delegation...');
+  
+  // Use event delegation on document body to handle all modal-related clicks
+  document.body.addEventListener('click', function(event) {
+    const target = event.target;
+    
+    // Handle modal open buttons
+    if (target.classList.contains('js-modal-open') || target.closest('.js-modal-open')) {
+      event.preventDefault();
+      console.log('Modal open triggered via JS class');
+      openProductModal();
+    }
+    
+    // Handle modal close buttons
+    if (target.classList.contains('js-modal-close') || target.closest('.js-modal-close')) {
+      event.preventDefault();
+      console.log('Modal close triggered via JS class');
+      closeProductModal();
+    }
+    
+    // Handle modal purchase buttons
+    if (target.classList.contains('js-modal-purchase') || target.closest('.js-modal-purchase')) {
+      event.preventDefault();
+      console.log('Modal purchase triggered via JS class');
+      
+      // Get the original purchase button and trigger its functionality
+      const originalPurchaseBtn = document.getElementById('purchase-button');
+      if (originalPurchaseBtn) {
+        // Apply coupon if entered
+        const couponCode = document.getElementById('coupon-code')?.value?.trim();
+        if (couponCode) {
+          applyCoupon(couponCode);
+        }
+        
+        // Trigger the original purchase logic
+        if (currentProductData) {
+          handlePurchase(globalAuthData?.token, currentProductData);
+        } else {
+          console.error("Modal purchase clicked but no current product data available.");
+          if (typeof showNotification === 'function') {
+            showNotification('Error: No product data to purchase.', 'error');
+          } else { 
+            alert('Error: No product data to purchase.'); 
+          }
+        }
+        closeProductModal();
+      } else {
+        console.error('Original purchase button not found');
+      }
+    }
+      // Handle backdrop clicks (close modal)
+    if (target.classList.contains('product-modal-backdrop')) {
+      event.preventDefault();
+      console.log('Modal backdrop clicked - closing modal');
+      closeProductModal();
+    }
+    
+    // Handle action buttons in modal
+    if (target.classList.contains('action-btn') || target.closest('.action-btn')) {
+      event.preventDefault();
+      const actionBtn = target.classList.contains('action-btn') ? target : target.closest('.action-btn');
+      const action = actionBtn.getAttribute('data-action');
+      
+      if (action) {
+        console.log('Action button clicked:', action);
+        
+        // Remove active class from all action buttons
+        document.querySelectorAll('.action-btn').forEach(btn => btn.classList.remove('active'));
+        
+        // Add active class to clicked button
+        actionBtn.classList.add('active');
+        
+        // Update selected action
+        window.selectedAction = action;
+        
+        // Update total return based on selected action
+        updateTotalReturn();
+      }
+    }
+    
+    // Handle coupon apply button
+    if (target.classList.contains('coupon-apply-btn') || target.closest('.coupon-apply-btn')) {
+      event.preventDefault();
+      const couponInput = document.getElementById('coupon-code');
+      const couponCode = couponInput?.value?.trim();
+      
+      if (couponCode) {
+        console.log('Applying coupon via JS class:', couponCode);
+        applyCoupon(couponCode);
+      }
+    }
+  });
+  
+  // Handle ESC key for modal close
+  document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+      const modal = document.getElementById('product-modal');
+      if (modal && modal.classList.contains('show')) {
+        console.log('ESC key pressed - closing modal');
+        closeProductModal();
+      }
+    }
+  });
+  
+  console.log('Modal event delegation initialized successfully');
+}
+
+// --- Enhanced Modal Functions ---
+function openProductModal() {
+  console.log('Opening product modal...');
+  const modal = document.getElementById('product-modal');
+  if (!modal) {
+    console.error('Product modal element not found');
+    return;
+  }
+  
+  const productImage = document.getElementById('product-image');
+  const productName = document.getElementById('product-name');
+  const productPrice = document.getElementById('product-price');
+  const productCommission = document.getElementById('product-commission');
+  
+  if (!productImage || !productName || !productPrice || !productCommission) {
+    console.error('Product data elements not found');
+    return;
+  }
+  
+  // Copy data to modal
+  const modalImage = document.getElementById('modal-product-image');
+  const modalName = document.getElementById('modal-product-name');
+  const modalPrice = document.getElementById('modal-product-price');
+  const modalCommission = document.getElementById('modal-product-commission');
+  
+  if (modalImage) modalImage.src = productImage.src;
+  if (modalName) modalName.textContent = productName.textContent;
+  if (modalPrice) modalPrice.textContent = productPrice.textContent;
+  if (modalCommission) modalCommission.textContent = productCommission.textContent;
+  
+  // Set current date and time
+  const now = new Date();
+  const dateElement = document.getElementById('product-date');
+  const timeElement = document.getElementById('product-time');
+  if (dateElement) dateElement.textContent = now.toLocaleDateString('en-GB');
+  if (timeElement) timeElement.textContent = Date.now().toString();
+  
+  // Calculate total return
+  updateTotalReturn();
+  
+  // Show modal
+  modal.classList.add('show');
+  document.body.style.overflow = 'hidden';
+  
+  console.log('Product modal opened successfully');
+}
+
+function closeProductModal() {
+  console.log('Closing product modal...');
+  const modal = document.getElementById('product-modal');
+  if (!modal) {
+    console.error('Product modal element not found');
+    return;
+  }
+  
+  modal.classList.remove('show');
+  document.body.style.overflow = '';
+  
+  // Reset form
+  const couponInput = document.getElementById('coupon-code');
+  if (couponInput) couponInput.value = '';
+  
+  // Reset selected action
+  window.selectedAction = 'buy';
+  
+  // Reset action buttons
+  const actionButtons = document.querySelectorAll('.action-btn');
+  actionButtons.forEach(btn => btn.classList.remove('active'));
+  const buyButton = document.querySelector('[data-action="buy"]');
+  if (buyButton) buyButton.classList.add('active');
+  
+  console.log('Product modal closed successfully');
+}
+
+function updateTotalReturn() {
+  const commissionElement = document.getElementById('modal-product-commission');
+  const totalReturnElement = document.getElementById('total-return-value');
+  
+  if (!commissionElement || !totalReturnElement) {
+    console.warn('Modal commission or total return elements not found');
+    return;
+  }
+  
+  const commissionText = commissionElement.textContent;
+  const commission = parseFloat(commissionText.replace(/[^0-9.]/g, '')) || 0;
+  
+  let totalReturn = commission;
+  const selectedAction = window.selectedAction || 'buy';
+  
+  // Adjust return based on selected action
+  switch (selectedAction) {
+    case 'buy':
+      totalReturn = commission;
+      break;
+    case 'cashback':
+      totalReturn = commission * 1.1; // 10% bonus for cashback
+      break;
+    case 'gift':
+      totalReturn = commission * 0.9; // 10% less for gift
+      break;
+    case 'reference':
+      totalReturn = commission * 1.05; // 5% bonus for reference
+      break;
+  }
+  
+  totalReturnElement.textContent = '$' + totalReturn.toFixed(2);
+}
+
+function applyCoupon(couponCode) {
+  console.log('Applying coupon:', couponCode);
+  
+  // Mock coupon validation
+  const validCoupons = {
+    'SAVE10': 0.1,
+    'WELCOME': 0.05,
+    'BONUS20': 0.2
+  };
+  
+  const discount = validCoupons[couponCode.toUpperCase()];
+  
+  if (discount) {
+    const totalReturnElement = document.getElementById('total-return-value');
+    if (totalReturnElement) {
+      const currentReturn = parseFloat(totalReturnElement.textContent.replace('$', ''));
+      const newReturn = currentReturn * (1 + discount);
+      totalReturnElement.textContent = '$' + newReturn.toFixed(2);
+    }
+    
+    // Show success feedback
+    const couponInput = document.getElementById('coupon-code');
+    const applyBtn = document.querySelector('.coupon-apply-btn');
+    
+    if (couponInput) {
+      couponInput.style.borderColor = '#10b981';
+      couponInput.style.background = '#ecfdf5';
+    }
+    
+    if (applyBtn) {
+      applyBtn.innerHTML = '<i class="fas fa-check"></i>';
+      applyBtn.style.background = '#10b981';
+    }
+    
+    setTimeout(() => {
+      if (couponInput) {
+        couponInput.style.borderColor = '';
+        couponInput.style.background = '';
+      }
+      if (applyBtn) {
+        applyBtn.innerHTML = '<i class="fas fa-check"></i>';
+        applyBtn.style.background = '';
+      }
+    }, 3000);
+    
+    console.log('Coupon applied successfully:', couponCode);
+  } else {
+    // Show error feedback
+    const couponInput = document.getElementById('coupon-code');
+    if (couponInput) {
+      couponInput.style.borderColor = '#ef4444';
+      couponInput.style.background = '#fef2f2';
+      
+      setTimeout(() => {
+        couponInput.style.borderColor = '';
+        couponInput.style.background = '';
+      }, 3000);
+    }
+    
+    console.log('Invalid coupon code:', couponCode);
+  }
 }

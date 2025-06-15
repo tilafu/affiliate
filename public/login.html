@@ -3,96 +3,166 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title data-i18n-title="pageTitle">Login to Digistore24</title>    <!-- i18next scripts REMOVED - using fallback text only -->
-    <!-- <script src="https://unpkg.com/i18next/i18next.min.js"></script> -->
-    <!-- <script src="https://unpkg.com/i18next-http-backend/i18nextHttpBackend.min.js"></script> -->
+    <title data-i18n-title="pageTitle">Login to CDOT Database</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/public-pages.css">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-        }
-
         body {
-            background-color: #f5f6f8;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
         }
 
-        .back-link {
-            display: flex;
-            align-items: center;
-            gap: 8px;
+        .login-container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            overflow: hidden;
+            max-width: 1000px;
+            width: 100%;
+        }
+
+        .logo-section {
+            text-align: center;
             padding: 20px;
-            color: #000;
-            text-decoration: none;
-            font-size: 14px;
+            background: rgba(255, 255, 255, 0.1);
         }
 
         .logo {
-            width: 64px;
-            height: 64px;
-            margin: 20px;
-            background-color: #0066ff;
-            border-radius: 12px;
+            width: 60px;
+            height: 60px;
+            margin: 0 auto 10px;
+            background-color: #007bff;
+            border-radius: 15px;
             display: flex;
             align-items: center;
             justify-content: center;
         }
 
-        .logo svg {
-            width: 40px;
-            height: 40px;
-            fill: white;
+        .logo img {
+            height: 80%;
         }
 
-        .container {
-            display: flex;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-            gap: 40px;
+        .language-switcher {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
         }
 
-        .login-form {
-            flex: 1;
-            max-width: 480px;
+        .form-section {
+            padding: 40px;
         }
 
-        .login-form h1 {
-            font-size: 36px;
-            margin-bottom: 40px;
-        }
-
-        .form-group {
-            margin-bottom: 24px;
-        }
-
-        .form-group label {
-            display: block;
-            text-transform: uppercase;
-            font-size: 12px;
-            font-weight: 600;
-            margin-bottom: 8px;
-        }
-
-        .form-group input {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
+        .form-control {
+            border-radius: 15px;
+            border: 2px solid #e9ecef;
+            padding: 15px 20px;
             font-size: 16px;
+            transition: all 0.3s ease;
         }
 
-        .form-group input:focus {
-            outline: none;
-            border-color: #0066ff;
+        .form-control:focus {
+            border-color: #007bff;
+            box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+        }
+
+        .form-label {
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 10px;
+        }
+
+        .btn-login {
+            background: linear-gradient(45deg, #007bff, #0056b3);
+            border: none;
+            border-radius: 15px;
+            padding: 15px 30px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 123, 255, 0.3);
+        }
+
+        .btn-login:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(0, 123, 255, 0.4);
+        }
+
+        .signup-cta {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .signup-cta h3 {
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .signup-cta p {
+            opacity: 0.9;
+            margin-bottom: 25px;
+        }
+
+        .btn-signup {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 25px;
+            padding: 12px 30px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(5px);
+            display: inline-block;
+        }
+
+        .btn-signup:hover {
+            background: rgba(255, 255, 255, 0.3);
+            color: white;
+            transform: translateY(-2px);
+            text-decoration: none;
+        }
+
+        .back-link {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: white;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .back-link:hover {
+            color: #ffc107;
+            text-decoration: none;
         }
 
         .error-text {
-            color: #ff4444;
-            font-size: 14px;
-            margin-top: 4px;
+            color: #dc3545;
+            font-size: 0.875rem;
+            margin-top: 5px;
             display: none;
         }
 
@@ -100,139 +170,131 @@
             display: block;
         }
 
-        .login-button {
-            width: 100%;
-            padding: 16px;
-            background-color: #000;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-
-        .login-button:hover {
-            background-color: #333;
-        }
-
-        .signup-section {
-            flex: 1;
-            background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('https://images.unsplash.com/photo-1551434678-e076c223a692?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80');
-            background-size: cover;
-            background-position: center;
-            border-radius: 12px;
-            padding: 40px;
-            color: white;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            text-align: center;
-        }
-
-        .signup-section h2 {
-            font-size: 24px;
-            margin-bottom: 16px;
-        }
-
-        .signup-button {
-            display: inline-block;
-            padding: 12px 24px;
-            background-color: white;
-            color: #000;
-            text-decoration: none;
-            border-radius: 4px;
-            font-weight: 600;
-            margin-top: 20px;
-            transition: background-color 0.2s;
-        }
-
-        .signup-button:hover {
-            background-color: #f0f0f0;
-        }
-
         @media (max-width: 768px) {
-            .container {
-                flex-direction: column;
+            .login-container {
+                margin: 10px;
             }
-
-            .login-form {
-                max-width: 100%;
+            
+            .form-section,
+            .signup-cta {
+                padding: 30px 20px;
             }
-
-            .signup-section {
-                min-height: 300px;
+            
+            .language-switcher,
+            .back-link {
+                position: relative;
+                top: auto;
+                left: auto;
+                right: auto;
+                margin-bottom: 20px;
+                text-align: center;
             }
         }
     </style>
 </head>
 <body>
-    <div class="logo">
-       <img src="assets/uploads/favicon.png" style="height: 100%;" alt=""> <!-- Updated path -->
-    </div>
+    <!-- Back to Home Link -->
+    <a href="home.html" class="back-link">
+        <i class="fas fa-arrow-left"></i> Back to Home
+    </a>
 
-    <div style="text-align: right; padding: 0px 20px 10px 20px; position: relative; z-index: 1000; max-width: 480px; margin-left: auto; margin-right: auto;">
-        <label for="language-switcher" style="margin-right: 5px; font-size: 14px;">Language:</label>
-        <select id="language-switcher" style="padding: 5px; border-radius: 4px; font-size: 14px; border: 1px solid #ddd;">
+    <!-- Language Switcher -->
+    <div class="language-switcher">
+        <label for="language-switcher-select" class="visually-hidden">Language:</label>
+        <select id="language-switcher-select" class="form-select form-select-sm">
             <option value="en">English</option>
             <option value="fr">Français</option>
             <option value="es">Español</option>
         </select>
     </div>
 
-    <div class="container">
-        <div class="login-form">
-            <h1 data-i18n="loginHeader">Login to Digistore24</h1>
-            <form id="loginForm" onsubmit="return handleSubmit(event)">
-                <div class="form-group">
-                    <label for="username" data-i18n="emailOrUsernameLabel">EMAIL OR USERNAME</label>
-                    <input type="text" id="username" name="username" placeholder="name@example.com or username" required data-i18n="emailOrUsernamePlaceholder">
-                    <div class="error-text" id="usernameError" data-i18n="fieldRequiredError">Please complete this field.</div>
-                </div>
-                <div class="form-group">
-                    <label for="password" data-i18n="passwordLabel">PASSWORD</label>
-                    <input type="password" id="password" name="password" placeholder="Password" required data-i18n="passwordPlaceholder">
-                    <div class="error-text" id="passwordError" data-i18n="fieldRequiredError">Please complete this field.</div>
-                </div>
-                <button type="submit" class="login-button" data-i18n="loginButton">Login</button>
-            </form>
-            <div style="text-align: center; margin-top: 20px;">
-                <a href="forgetpassword.html" data-i18n="forgotPasswordLink">Forgot Password?</a>
+    <div class="login-container">
+        <!-- Logo Section -->
+        <div class="logo-section">
+            <div class="logo">
+                <img src="assets/uploads/favicon.png" alt="CDOT Database Logo">
             </div>
+            <h4 class="mb-0 text-dark">CDOT Database</h4>
         </div>
 
-        <div class="signup-section">
-            <h2 data-i18n="noAccountHeader">Don't have an account?</h2>
-            <p>Sign up for free.</p>
-            <a href="register.html" class="signup-button" data-i18n="signUpButton">Sign up</a> <!-- Updated path -->
+        <div class="row g-0">
+            <!-- Login Form Section -->
+            <div class="col-lg-7">
+                <div class="form-section">
+                    <h1 class="h2 fw-bold mb-4 text-center" data-i18n="loginHeader">Welcome Back</h1>
+                    <p class="text-muted text-center mb-4">Sign in to your account to continue</p>
+                    
+                    <form id="loginForm" onsubmit="return handleSubmit(event)">
+                        <div class="mb-3">
+                            <label for="username" class="form-label" data-i18n="emailOrUsernameLabel">Email or Username</label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   id="username" 
+                                   name="username" 
+                                   placeholder="name@example.com or username" 
+                                   required 
+                                   data-i18n="emailOrUsernamePlaceholder">
+                            <div class="error-text" id="usernameError" data-i18n="fieldRequiredError">Please complete this field.</div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="password" class="form-label" data-i18n="passwordLabel">Password</label>
+                            <input type="password" 
+                                   class="form-control" 
+                                   id="password" 
+                                   name="password" 
+                                   placeholder="Enter your password" 
+                                   required 
+                                   data-i18n="passwordPlaceholder">
+                            <div class="error-text" id="passwordError" data-i18n="fieldRequiredError">Please complete this field.</div>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-login btn-primary w-100 mb-3" data-i18n="loginButton">
+                            <i class="fas fa-sign-in-alt me-2"></i>Login
+                        </button>
+                    </form>
+                    
+                    <div class="text-center">
+                        <a href="forgetpassword.html" class="text-decoration-none" data-i18n="forgotPasswordLink">
+                            <i class="fas fa-key me-1"></i>Forgot Password?
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sign Up CTA Section -->
+            <div class="col-lg-5">
+                <div class="signup-cta h-100">
+                    <div>
+                        <h3 data-i18n="noAccountHeader">New to CDOT Database?</h3>
+                        <p>Join thousands of professionals managing their careers with us.</p>
+                        <a href="register.html" class="btn-signup" data-i18n="signUpButton">
+                            <i class="fas fa-user-plus me-2"></i>Create Account
+                        </a>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
-    <!-- i18next and app scripts -->
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- App Scripts -->
     <script src="js/i18n.js"></script> 
-    <!-- Link to new JS files -->
     <script src="js/main.js"></script> 
-    <script src="js/auth.js"></script> 
-
-    <script>
+    <script src="js/auth.js"></script>    <script>
         // Keep DOMContentLoaded for initial checks, but move handleSubmit logic
         document.addEventListener('DOMContentLoaded', function() { 
-            // Check if user is already logged in
-            /*
-            const authToken = localStorage.getItem('auth_token');
-            if (authToken) {
-                try {
-                    const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
-                    // Redirect logic might change based on API integration
-                    const redirectPath = userData.isAdmin ? 'admin/dashboard.html' : 'dashboard.html'; // Relative paths
-                    window.location.href = redirectPath;
-                } catch (error) {
-                    console.error("Auth check error:", error);
-                }
+            // Language switcher functionality
+            const languageSwitcher = document.getElementById('language-switcher-select');
+            if (languageSwitcher) {
+                languageSwitcher.addEventListener('change', function() {
+                    // Language switching logic would go here
+                    console.log('Language changed to:', this.value);
+                });
             }
-            */            // Check if user just registered
+
+            // Check if user just registered
             const registeredUsername = sessionStorage.getItem('registered_username');
             if (registeredUsername) {
                 document.getElementById('username').value = registeredUsername;
@@ -241,32 +303,30 @@
                 sessionStorage.removeItem('registered_username');
             }
             
-            function showNotification(message, type, options = {}) { // Modified to accept direct message
-                // message is now a direct string, no translation needed
+            function showNotification(message, type, options = {}) {
+                // Create notification element if it doesn't exist
                 let notification = document.getElementById('notification');
                 if (!notification) {
                     notification = document.createElement('div');
                     notification.id = 'notification';
-                    notification.style.padding = '15px';
-                    notification.style.margin = '0 0 20px 0';
-                    notification.style.borderRadius = '4px';
+                    notification.className = 'alert alert-dismissible fade show';
+                    notification.style.position = 'fixed';
+                    notification.style.top = '20px';
+                    notification.style.right = '20px';
+                    notification.style.zIndex = '9999';
+                    notification.style.minWidth = '300px';
                     notification.style.display = 'none';
                     
-                    const heading = document.querySelector('h1');
-                    heading.parentNode.insertBefore(notification, heading.nextSibling);
+                    document.body.appendChild(notification);
                 }
                 
-                if (type === 'success') {
-                    notification.style.backgroundColor = '#d4edda';
-                    notification.style.color = '#155724';
-                    notification.style.border = '1px solid #c3e6cb';
-                } else {
-                    notification.style.backgroundColor = '#f8d7da';
-                    notification.style.color = '#721c24';
-                    notification.style.border = '1px solid #f5c6cb';
-                }
+                // Set alert type
+                notification.className = `alert alert-${type === 'success' ? 'success' : 'danger'} alert-dismissible fade show`;
                 
-                notification.textContent = message;
+                notification.innerHTML = `
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                `;
                 notification.style.display = 'block';
                 
                 if (type === 'success') {

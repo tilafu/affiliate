@@ -3,7 +3,7 @@ const bcrypt = require('bcrypt'); // Import bcrypt for password handling
 const logger = require('../logger'); // Import logger
 
 /**
- * @desc    Get user's deposit history
+ * @desc    Get user's deposit history (including admin adjustments)
  * @route   GET /api/user/deposits
  * @access  Private (requires token)
  */
@@ -11,16 +11,40 @@ const getUserDeposits = async (req, res) => {
   try {
     const userId = req.user.id;
 
-    // Query to fetch deposit history from the deposits table
-    const result = await pool.query(
-      `SELECT id, amount, status, created_at AS date, description, txn_hash
-       FROM deposits
-       WHERE user_id = $1
-       ORDER BY created_at DESC`,
-      [userId]
-    );
+    // Query to fetch deposit history from the deposits table AND admin deposits from commission_logs
+    const depositsQuery = `
+      SELECT 
+        id, 
+        amount, 
+        status, 
+        created_at AS date, 
+        description, 
+        txn_hash,
+        'deposit' as type,
+        NULL as admin_note
+      FROM deposits
+      WHERE user_id = $1
+      
+      UNION ALL
+      
+      SELECT 
+        id,
+        commission_amount as amount,
+        'completed' as status,
+        created_at AS date,
+        description,
+        NULL as txn_hash,
+        'admin_adjustment' as type,
+        description as admin_note
+      FROM commission_logs
+      WHERE user_id = $1 AND commission_type = 'admin_deposit'
+      
+      ORDER BY date DESC
+    `;
 
-    res.json({ success: true, history: result.rows });
+    const result = await pool.query(depositsQuery, [userId]);
+
+    res.json({ success: true, data: result.rows });
   } catch (error) {
     logger.error('Error fetching user deposit history:', { userId, error: error.message, stack: error.stack });
     res.status(500).json({ success: false, message: 'Server error fetching deposit history' });
@@ -28,7 +52,7 @@ const getUserDeposits = async (req, res) => {
 };
 
 /**
- * @desc    Get user's total withdrawn amount
+ * @desc    Get user's total withdrawn amount including admin adjustments
  * @route   GET /api/user/withdrawals
  * @access  Private (requires token)
  */
@@ -36,13 +60,15 @@ const getUserWithdrawals = async (req, res) => {
   try {
     const userId = req.user.id;
 
-    // Query to calculate the total approved withdrawn amount
-    const result = await pool.query(
-      `SELECT COALESCE(SUM(amount), 0) AS total_withdrawals
-       FROM withdrawals
-       WHERE user_id = $1 AND status = 'APPROVED'`,
-      [userId]
-    );
+    // Query to calculate the total approved withdrawn amount plus admin withdrawals
+    const result = await pool.query(`
+      SELECT 
+        COALESCE(
+          (SELECT SUM(amount) FROM withdrawals WHERE user_id = $1 AND status = 'APPROVED') + 
+          (SELECT COALESCE(SUM(commission_amount), 0) FROM commission_logs WHERE user_id = $1 AND commission_type = 'admin_withdrawal'),
+          0
+        ) AS total_withdrawals
+    `, [userId]);
 
     const totalWithdrawals = result.rows[0].total_withdrawals;
 
@@ -79,22 +105,50 @@ const getWithdrawableBalance = async (req, res) => {
 };
 
 /**
- * @desc    Get user's withdraw history
+ * @desc    Get user's withdraw history (including admin adjustments)
  * @route   GET /api/user/withdraw-history
  * @access  Private (requires token)
  */
 const getWithdrawHistory = async (req, res) => {
   try {
-    const userId = req.user.id;    // Query to fetch withdraw history from the withdrawals table
-    const result = await pool.query(
-      `SELECT id, amount, status, created_at AS date, address, description, txn_hash
-       FROM withdrawals
-       WHERE user_id = $1
-       ORDER BY created_at DESC`,
-      [userId]
-    );
+    const userId = req.user.id;
 
-    res.json({ success: true, history: result.rows });
+    // Query to fetch withdraw history from the withdrawals table AND admin withdrawals from commission_logs
+    const withdrawalsQuery = `
+      SELECT 
+        id, 
+        amount, 
+        status, 
+        created_at AS date, 
+        address, 
+        description, 
+        txn_hash,
+        'withdrawal' as type,
+        NULL as admin_note
+      FROM withdrawals
+      WHERE user_id = $1
+      
+      UNION ALL
+      
+      SELECT 
+        id,
+        -ABS(commission_amount) as amount,
+        'completed' as status,
+        created_at AS date,
+        NULL as address,
+        description,
+        NULL as txn_hash,
+        'admin_adjustment' as type,
+        description as admin_note
+      FROM commission_logs
+      WHERE user_id = $1 AND commission_type = 'admin_withdrawal'
+      
+      ORDER BY date DESC
+    `;
+
+    const result = await pool.query(withdrawalsQuery, [userId]);
+
+    res.json({ success: true, data: result.rows });
   } catch (error) {
     logger.error('Error fetching withdraw history:', { userId, error: error.message, stack: error.stack });
     res.status(500).json({ success: false, message: 'Server error fetching withdraw history' });
@@ -702,7 +756,7 @@ const markNotificationAsRead = async (req, res) => {
 };
 
 /**
- * @desc    Get user's total deposited amount from accounts.deposit field
+ * @desc    Get user's total deposited amount including admin adjustments
  * @route   GET /api/user/deposits/total
  * @access  Private (requires token)
  */
@@ -710,11 +764,15 @@ const getUserTotalDeposits = async (req, res) => {
     try {
         const userId = req.user.id;
 
-        // Query to get the deposit field from accounts table
-        const result = await pool.query(
-            'SELECT COALESCE(deposit, 0) AS total_deposits FROM accounts WHERE user_id = $1 AND type = $2',
-            [userId, 'main']
-        );
+        // Query to get total from regular deposits plus admin deposits
+        const result = await pool.query(`
+            SELECT 
+                COALESCE(
+                    (SELECT SUM(amount) FROM deposits WHERE user_id = $1 AND status = 'completed') + 
+                    (SELECT COALESCE(SUM(commission_amount), 0) FROM commission_logs WHERE user_id = $1 AND commission_type = 'admin_deposit'),
+                    0
+                ) AS total_deposits
+        `, [userId]);
 
         const totalDeposits = result.rows.length > 0 ? result.rows[0].total_deposits : 0;
 
