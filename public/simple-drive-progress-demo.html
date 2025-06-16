@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Drive Progress Demo</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Simple Drive Progress CSS -->
+    <link rel="stylesheet" href="css/simple-drive-progress.css">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            padding: 2rem 0;
+        }
+        
+        .demo-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 0 1rem;
+        }
+        
+        .demo-header {
+            text-align: center;
+            margin-bottom: 3rem;
+            background: white;
+            padding: 2rem;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        }
+        
+        .demo-controls {
+            background: white;
+            padding: 2rem;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            margin-bottom: 2rem;
+        }
+        
+        .demo-control-group {
+            margin-bottom: 1rem;
+        }
+        
+        .demo-control-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #1e293b;
+        }
+        
+        .demo-control-group input, 
+        .demo-control-group select {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 0.9rem;
+        }
+        
+        .demo-button {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            margin: 0.25rem;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .demo-button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 16px rgba(59, 130, 246, 0.3);
+        }
+        
+        .demo-button.success {
+            background: linear-gradient(135deg, #10b981, #059669);
+        }
+        
+        .demo-button.warning {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-container">
+        <!-- Demo Header -->
+        <div class="demo-header">
+            <h1><i class="fas fa-chart-line me-2"></i>Simple Drive Progress Demo</h1>
+            <p class="text-muted">Automatic progress tracking for data drive completion</p>
+        </div>
+        
+        <!-- Demo Controls -->
+        <div class="demo-controls">
+            <h3><i class="fas fa-cogs me-2"></i>Demo Controls</h3>
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="demo-control-group">
+                        <label for="tier-select">Membership Tier:</label>
+                        <select id="tier-select">
+                            <option value="bronze">Bronze (45 products)</option>
+                            <option value="silver">Silver (45 products)</option>
+                            <option value="gold">Gold (50 products)</option>
+                            <option value="platinum">Platinum (50 products)</option>
+                            <option value="diamond">Diamond (50 products)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="demo-control-group">
+                        <label for="progress-input">Current Progress:</label>
+                        <input type="number" id="progress-input" min="0" max="50" value="0">
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="demo-control-group">
+                        <label for="commission-input">Total Commission:</label>
+                        <input type="number" id="commission-input" min="0" step="0.01" value="0">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="text-center mt-3">
+                <button class="demo-button" onclick="updateProgress()">
+                    <i class="fas fa-sync me-2"></i>Update Progress
+                </button>
+                <button class="demo-button success" onclick="simulateProgress()">
+                    <i class="fas fa-play me-2"></i>Simulate Progress
+                </button>
+                <button class="demo-button warning" onclick="resetProgress()">
+                    <i class="fas fa-undo me-2"></i>Reset
+                </button>
+            </div>
+        </div>
+        
+        <!-- Simple Drive Progress Component -->
+        <div id="drive-progress-demo">
+            <!-- Progress will be rendered here -->
+        </div>
+        
+        <!-- Info Panel -->
+        <div class="demo-controls mt-3">
+            <h4><i class="fas fa-info-circle me-2"></i>Features</h4>
+            <ul class="list-unstyled">
+                <li><i class="fas fa-check text-success me-2"></i>Automatic progress tracking based on membership tier</li>
+                <li><i class="fas fa-check text-success me-2"></i>Real-time commission updates</li>
+                <li><i class="fas fa-check text-success me-2"></i>Responsive design for all devices</li>
+                <li><i class="fas fa-check text-success me-2"></i>Smooth animations and transitions</li>
+                <li><i class="fas fa-check text-success me-2"></i>No complex modals or unnecessary steps</li>
+                <li><i class="fas fa-check text-success me-2"></i>Clean, modern interface</li>
+            </ul>
+        </div>
+    </div>
+    
+    <!-- Simple Drive Progress JS -->
+    <script src="js/simple-drive-progress.js"></script>
+    
+    <script>
+        let demoProgress;
+        
+        // Initialize demo
+        document.addEventListener('DOMContentLoaded', function() {
+            demoProgress = initializeDriveProgress('drive-progress-demo', {
+                tier: 'bronze',
+                currentProgress: 0,
+                totalCommission: 0
+            });
+        });
+        
+        // Update progress based on form inputs
+        function updateProgress() {
+            const tier = document.getElementById('tier-select').value;
+            const progress = parseInt(document.getElementById('progress-input').value) || 0;
+            const commission = parseFloat(document.getElementById('commission-input').value) || 0;
+            
+            if (demoProgress) {
+                demoProgress.setTier(tier);
+                demoProgress.updateProgress(progress, commission);
+            }
+        }
+        
+        // Simulate automatic progress
+        function simulateProgress() {
+            const tier = document.getElementById('tier-select').value;
+            const maxProducts = tier === 'gold' || tier === 'platinum' || tier === 'diamond' ? 50 : 45;
+            
+            let currentProgress = 0;
+            let currentCommission = 0;
+            
+            const interval = setInterval(() => {
+                currentProgress++;
+                currentCommission += Math.random() * 2 + 1; // Random commission between 1-3
+                
+                document.getElementById('progress-input').value = currentProgress;
+                document.getElementById('commission-input').value = currentCommission.toFixed(2);
+                
+                if (demoProgress) {
+                    demoProgress.updateProgress(currentProgress, currentCommission);
+                }
+                
+                if (currentProgress >= maxProducts) {
+                    clearInterval(interval);
+                    console.log('Drive completed!');
+                }
+            }, 1000); // Update every second
+        }
+        
+        // Reset progress
+        function resetProgress() {
+            document.getElementById('progress-input').value = 0;
+            document.getElementById('commission-input').value = 0;
+            
+            if (demoProgress) {
+                demoProgress.updateProgress(0, 0);
+            }
+        }
+        
+        // Update tier when dropdown changes
+        document.getElementById('tier-select').addEventListener('change', function() {
+            const tier = this.value;
+            const maxProducts = tier === 'gold' || tier === 'platinum' || tier === 'diamond' ? 50 : 45;
+            
+            document.getElementById('progress-input').max = maxProducts;
+            
+            if (demoProgress) {
+                demoProgress.setTier(tier);
+            }
+        });
+    </script>
+</body>
+</html>

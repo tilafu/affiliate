@@ -10,12 +10,8 @@
     
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Font Awesome -            // Wait a moment for the sidebar script to initialize, then refresh user data
-            setTimeout(() => {
-                if (typeof window.refreshSidebarUserData === 'function') {
-                    window.refreshSidebarUserData();
-                }
-            }, 300);  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
@@ -25,29 +21,23 @@
     <script charset="utf-8" src="./assets/frontend/shopva/common.js"></script>
     <link rel="stylesheet" href="./assets/frontend/shopva/layer.css">
     <script src="./assets/frontend/shopva/layer.js"></script>
-      <!-- Custom Profile Styles -->
+    
+    <!-- Custom Profile Styles -->
     <style>
         :root {
-            --primary-blue: #007AFF;
-            --secondary-blue: #5AC8FA;
-            --success-green: #30D158;
-            --warning-orange: #FF9500;
-            --danger-red: #FF3B30;
-            --purple: #5856D6;
-            --pink: #FF2D92;
-            --background: #F2F2F7;
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+            --success-color: #30D158;
+            --warning-color: #FF9500;
+            --danger-color: #FF3B30;
+            --background: #F8F9FA;
             --card-background: #FFFFFF;
-            --text-primary: #000000;
-            --text-secondary: #8E8E93;
-            --border-color: #E5E5EA;
-            --shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-            --shadow-hover: 0 8px 32px rgba(0, 0, 0, 0.15);
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+            --text-primary: #2D3748;
+            --text-secondary: #4A5568;
+            --border-color: #E2E8F0;
+            --shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            --shadow-hover: 0 15px 40px rgba(0, 0, 0, 0.15);
         }
 
         body {
@@ -58,32 +48,51 @@
             min-height: 100vh;
         }
         
-        .profile-header {
-            background: linear-gradient(135deg, var(--primary-blue), var(--secondary-blue));
+        .profile-hero-section {
+            background: var(--primary-gradient);
             color: white;
-            padding: 2rem 0;
-            margin-bottom: 2rem;
-            border-radius: 0 0 24px 24px;
-            box-shadow: var(--shadow-hover);
+            padding: 120px 0 80px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .profile-hero-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.2);
+        }
+        
+        .profile-hero-section .container {
+            position: relative;
+            z-index: 2;
+        }
+        
+        .profile-hero-section .highlight-yellow {
+            color: #ffc107;
         }
         
         .profile-card {
             background: var(--card-background);
             border-radius: 20px;
+            padding: 25px;
+            margin-bottom: 20px;
             box-shadow: var(--shadow);
             border: 1px solid var(--border-color);
-            overflow: hidden;
-            margin-bottom: 2rem;
             transition: all 0.3s ease;
         }
 
         .profile-card:hover {
+            transform: translateY(-5px);
             box-shadow: var(--shadow-hover);
         }
         
         .profile-item {
+            padding: 20px;
             border-bottom: 1px solid var(--border-color);
-            padding: 1.5rem;
             transition: all 0.3s ease;
         }
         
@@ -92,22 +101,28 @@
         }
         
         .profile-item:hover {
-            background: var(--background);
+            background: rgba(102, 126, 234, 0.02);
         }
         
         .profile-image {
-            width: 80px;
-            height: 80px;
+            width: 100px;
+            height: 100px;
             border-radius: 50%;
-            border: 4px solid var(--primary-blue);
+            border: 4px solid white;
             object-fit: cover;
             box-shadow: var(--shadow);
+            transition: all 0.3s ease;
+        }
+        
+        .profile-image:hover {
+            transform: scale(1.05);
+            box-shadow: var(--shadow-hover);
         }
         
         .profile-label {
             font-weight: 600;
             color: var(--text-primary);
-            margin-bottom: 0.5rem;
+            margin-bottom: 4px;
             font-size: 14px;
         }
         
@@ -118,43 +133,42 @@
             font-weight: 500;
         }
         
-        .btn-custom {
-            background: var(--primary-blue);
+        .btn-modern {
+            background: var(--primary-gradient);
             border: none;
-            border-radius: 20px;
-            padding: 0.75rem 1.5rem;
+            border-radius: 25px;
+            padding: 12px 30px;
             color: white;
             font-weight: 600;
-            font-size: 14px;
             transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
             display: inline-flex;
             align-items: center;
             gap: 0.5rem;
         }
         
-        .btn-custom:hover {
-            background: var(--secondary-blue);
-            transform: translateY(-1px);
-            box-shadow: var(--shadow-hover);
+        .btn-modern:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(102, 126, 234, 0.4);
             color: white;
         }
-          .btn-password {
+        
+        .btn-outline-modern {
             background: transparent;
-            border: 2px solid var(--primary-blue);
-            border-radius: 20px;
-            color: var(--primary-blue);
-            padding: 0.75rem 1.5rem;
+            border: 2px solid var(--primary-color);
+            border-radius: 25px;
+            color: var(--primary-color);
+            padding: 12px 30px;
             transition: all 0.3s ease;
             text-decoration: none;
             display: inline-block;
             font-weight: 600;
-            font-size: 14px;
         }
         
-        .btn-password:hover {
-            background: var(--primary-blue);
+        .btn-outline-modern:hover {
+            background: var(--primary-gradient);
             color: white;
-            transform: translateY(-1px);
+            transform: translateY(-2px);
             box-shadow: var(--shadow-hover);
         }
         
@@ -165,7 +179,7 @@
         }
         
         .modal-header {
-            background: linear-gradient(135deg, var(--primary-blue), var(--secondary-blue));
+            background: var(--primary-gradient);
             color: white;
             border-radius: 20px 20px 0 0;
             border-bottom: none;
@@ -176,52 +190,47 @@
         }
         
         .form-control {
-            border-radius: 12px;
+            border-radius: 15px;
             border: 2px solid var(--border-color);
-            padding: 0.75rem 1rem;
+            padding: 12px 20px;
             transition: all 0.3s ease;
             background: var(--card-background);
             color: var(--text-primary);
+            font-size: 16px;
         }
         
         .form-control:focus {
-            border-color: var(--primary-blue);
-            box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
             outline: none;
         }
         
         .icon-circle {
+            background: var(--primary-gradient);
+            color: white;
             width: 50px;
             height: 50px;
-            background: linear-gradient(135deg, var(--primary-blue), var(--secondary-blue));
             border-radius: 50%;
             display: inline-flex;
             align-items: center;
             justify-content: center;
+            margin-right: 15px;
+            font-size: 1.2rem;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+        
+        .back-btn {
             color: white;
             font-size: 1.2rem;
-            margin-right: 1rem;
-            box-shadow: var(--shadow);
-        }
-          .back-btn {
-            background: rgba(255, 255, 255, 0.2);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            border-radius: 50%;
-            width: 45px;
-            height: 45px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
             text-decoration: none;
             transition: all 0.3s ease;
-            backdrop-filter: blur(10px);
-        }          .back-btn:hover {
-            background: rgba(255, 255, 255, 0.3);
-            color: white;
-            transform: translateY(-1px);
         }
-
+        
+        .back-btn:hover {
+            color: #ffc107;
+            transform: translateX(-5px);
+        }
+        
         .menu-btn {
             background: rgba(255, 255, 255, 0.2);
             border: 1px solid rgba(255, 255, 255, 0.3);
@@ -240,389 +249,279 @@
         .menu-btn:hover {
             background: rgba(255, 255, 255, 0.3);
             color: white;
-            transform: translateY(-1px);
+            transform: translateY(-2px);
         }
 
-        /* Sidebar Overlay */
-        .sidebar-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 999;
-            opacity: 0;
-            visibility: hidden;
-            transition: all 0.3s ease;
+        /* Form Switch Styling */
+        .form-check-input {
+            width: 3em;
+            height: 1.5em;
+            margin-top: 0.25em;
+            vertical-align: top;
+            background-color: #fff;
+            background-repeat: no-repeat;
+            background-position: center;
+            background-size: contain;
+            border: 1px solid rgba(0, 0, 0, 0.25);
+            appearance: none;
+            color-adjust: exact;
+            print-color-adjust: exact;
+            transition: background-position .15s ease-in-out;
         }
 
-        .sidebar-overlay.active {
-            opacity: 1;
-            visibility: visible;
+        .form-check-input:checked {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
         }
 
-        /* Responsive sidebar styles */
-        @media (max-width: 768px) {
-            .main-sidebar {
-                transform: translateX(-100%);
-                transition: transform 0.3s ease;
-            }
-            
-            .main-sidebar.active {
-                transform: translateX(0);
-            }
+        .form-check-input:focus {
+            border-color: var(--primary-color);
+            outline: 0;
+            box-shadow: 0 0 0 0.25rem rgba(102, 126, 234, 0.25);
+        }
+
+        /* Card Headers */
+        .profile-card h5 {
+            color: var(--text-primary);
+            font-weight: 600;
+            font-size: 1.1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        /* Form Labels */
+        .form-label {
+            color: var(--text-primary);
+            font-weight: 500;
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+
+        /* Small Text */
+        .text-muted {
+            color: var(--text-secondary) !important;
+            font-size: 0.85rem;
         }
     </style>
 </head>
 <body>
 
 <div class="bg-overlay navbar-btn"></div>
+<!-- Sidebar Placeholder -->
+<div id="sidebar-placeholder"></div>
+<!-- End Sidebar Placeholder -->
 
-<!-- Sidebar -->
-<div id="sidebar-container"></div>
-
-<!-- Sidebar Overlay -->
-<div class="sidebar-overlay" id="sidebarOverlay"></div>
-
-<!-- Modern Profile Header -->
-<div class="profile-header">
+<!-- Modern Profile Hero Section -->
+<section class="profile-hero-section">
     <div class="container">
         <div class="d-flex align-items-center justify-content-between">
-            <div class="d-flex align-items-center gap-3">
-                <button class="menu-btn" id="menuBtn">
-                    <i class="fas fa-bars"></i>
-                </button>
-                <a href="javascript:history.back()" class="back-btn">
-                    <i class="fas fa-arrow-left"></i>
-                </a>
-            </div>
+            <a href="javascript:history.back()" class="back-btn">
+                <i class="fas fa-arrow-left"></i>
+            </a>
             <div class="text-center flex-grow-1">
-                <h2 class="mb-0 fw-bold" data-i18n="editProfileTitle">Edit Profile</h2>
-                <p class="mb-0 opacity-75">Manage your account information</p>
+                <h2 class="mb-0 fw-bold">Edit <span class="highlight-yellow">Profile</span></h2>
+                <p class="mb-0 opacity-75">Update your personal information</p>
             </div>
-            <div style="width: 90px;"></div> <!-- Spacer for alignment -->
+            <div style="width: 45px;"></div> <!-- Spacer for alignment -->
         </div>
     </div>
-</div>
+</section>
 
-<main class="main-content">
+<main class="main-content py-5">
     <div class="container">
-        <!-- Profile Information Card -->
+        <!-- Profile Image Card -->
         <div class="profile-card">
-            <!-- Profile Image Section -->
-            <div class="profile-item">
-                <div class="d-flex align-items-center justify-content-between">
-                    <div class="d-flex align-items-center">
-                        <div class="icon-circle">
-                            <i class="fas fa-user"></i>
-                        </div>
-                        <div>
-                            <div class="profile-label" data-i18n="profileImageLabel">Profile Image</div>
-                            <small class="text-muted">Update your profile picture</small>
-                        </div>
-                    </div>
-                    <img src="./assets/uploads/user.jpg" class="profile-image" alt="Profile Picture">
-                </div>
-            </div>
-
-            <!-- Username Section -->
-            <div class="profile-item">
-                <div class="d-flex align-items-center justify-content-between">
-                    <div class="d-flex align-items-center">
-                        <div class="icon-circle">
-                            <i class="fas fa-id-card"></i>
-                        </div>
-                        <div>
-                            <div class="profile-label" data-i18n="usernameLabel">Username</div>
-                            <small class="text-muted">Your unique identifier</small>
-                        </div>
-                    </div>
-                    <div class="text-end">
-                        <span class="profile-value fw-semibold" id="profile-username">Loading...</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Mobile Number Section -->
-            <div class="profile-item">
-                <div class="row align-items-center">
-                    <div class="col-12 col-md-7">
-                        <div class="d-flex align-items-center">
-                            <div class="icon-circle">
-                                <i class="fas fa-phone"></i>
-                            </div>
-                            <div>
-                                <div class="profile-label" data-i18n="mobileNumberLabel">Mobile Number</div>
-                                <small class="text-muted">Used for account verification</small>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-12 col-md-5 mt-3 mt-md-0">
-                        <div class="d-flex gap-2">
-                            <input type="tel" id="profile-mobile-input" class="form-control flex-grow-1" value="Loading..." placeholder="Enter mobile number">
-                            <button id="profile-save-btn" class="btn btn-custom" data-i18n="saveButton">Save</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Registration Date Section -->
-            <div class="profile-item">
-                <div class="d-flex align-items-center justify-content-between">
-                    <div class="d-flex align-items-center">
-                        <div class="icon-circle">
-                            <i class="fas fa-calendar-alt"></i>
-                        </div>
-                        <div>
-                            <div class="profile-label" data-i18n="registrationDateLabel">Registration Date</div>
-                            <small class="text-muted">When you joined us</small>
-                        </div>
-                    </div>
-                    <div class="text-end">
-                        <span class="profile-value fw-semibold" id="profile-registration-date">Loading...</span>
-                    </div>
-                </div>
+            <div class="profile-item text-center">
+                <img src="./assets/uploads/user.jpg" class="profile-image mb-3" alt="Profile Picture" id="profile-image">
+                <h4 class="mb-2" id="profile-username">Loading...</h4>
+                <p class="text-muted mb-0" id="profile-email">Loading...</p>
             </div>
         </div>
 
-        <!-- Password Management Card -->
+        <!-- Personal Information Card -->
         <div class="profile-card">
             <div class="profile-item">
-                <div class="d-flex align-items-center justify-content-between">
+                <h5 class="mb-4">Personal Information</h5>
+                <form id="profile-form">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="profile-label">First Name</label>
+                            <input type="text" class="form-control" id="first-name" placeholder="Enter your first name">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="profile-label">Last Name</label>
+                            <input type="text" class="form-control" id="last-name" placeholder="Enter your last name">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="profile-label">Email Address</label>
+                        <input type="email" class="form-control" id="email" placeholder="Enter your email address" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label class="profile-label">Phone Number</label>
+                        <input type="tel" class="form-control" id="phone" placeholder="Enter your phone number">
+                    </div>
+                    <div class="text-end">
+                        <button type="submit" class="btn btn-modern">
+                            <i class="fas fa-save"></i> Save Changes
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Security Card -->
+        <div class="profile-card">
+            <div class="profile-item">
+                <h5 class="mb-4">Security</h5>
+                <div class="d-flex align-items-center justify-content-between mb-3">
                     <div class="d-flex align-items-center">
                         <div class="icon-circle">
                             <i class="fas fa-lock"></i>
                         </div>
                         <div>
-                            <div class="profile-label" data-i18n="withdrawPasswordLabel">Withdraw Password</div>
-                            <small class="text-muted">Secure your withdrawals</small>
+                            <div class="profile-label">Password</div>
+                            <small class="text-muted">Last changed 30 days ago</small>
                         </div>
                     </div>
-                    <button type="button" class="btn-password" data-bs-toggle="modal" data-bs-target="#changeWithdrawPasswordModal">
-                        Change <i class="fas fa-arrow-right ms-2"></i>
+                    <button class="btn btn-outline-modern" data-bs-toggle="modal" data-bs-target="#changePasswordModal">
+                        <i class="fas fa-key"></i> Change Password
                     </button>
                 </div>
             </div>
+        </div>
 
+        <!-- Additional Settings Card -->
+        <div class="profile-card">
             <div class="profile-item">
+                <h5 class="mb-4">Additional Settings</h5>
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <div class="d-flex align-items-center">
+                        <div class="icon-circle">
+                            <i class="fas fa-bell"></i>
+                        </div>
+                        <div>
+                            <div class="profile-label">Notifications</div>
+                            <small class="text-muted">Manage your notification preferences</small>
+                        </div>
+                    </div>
+                    <a href="./notifications.html" class="btn btn-outline-modern">
+                        <i class="fas fa-cog"></i> Manage
+                    </a>
+                </div>
                 <div class="d-flex align-items-center justify-content-between">
                     <div class="d-flex align-items-center">
                         <div class="icon-circle">
-                            <i class="fas fa-key"></i>
+                            <i class="fas fa-shield-alt"></i>
                         </div>
                         <div>
-                            <div class="profile-label" data-i18n="loginPasswordLabel">Login Password</div>
-                            <small class="text-muted">Your account access password</small>
+                            <div class="profile-label">Privacy Settings</div>
+                            <small class="text-muted">Control your privacy preferences</small>
                         </div>
                     </div>
-                    <button type="button" class="btn-password" data-bs-toggle="modal" data-bs-target="#changeLoginPasswordModal">
-                        Change <i class="fas fa-arrow-right ms-2"></i>
+                    <button class="btn btn-outline-modern" data-bs-toggle="modal" data-bs-target="#privacySettingsModal">
+                        <i class="fas fa-cog"></i> Manage
                     </button>
                 </div>
             </div>
-        </div>    <!-- Enhanced Modals for Password Change -->
-    <!-- Login Password Modal -->
-    <div class="modal fade" id="changeLoginPasswordModal" tabindex="-1" aria-labelledby="changeLoginPasswordModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title fw-bold" id="changeLoginPasswordModalLabel" data-i18n="changeLoginPasswordModalTitle">Change Login Password</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body p-4">
-                    <div class="text-center mb-4">
-                        <div class="icon-circle mx-auto mb-3" style="width: 80px; height: 80px; font-size: 2rem;">
-                            <i class="fas fa-key"></i>
-                        </div>
-                        <p class="text-muted">Update your login password to keep your account secure</p>
-                    </div>
-                    <form id="loginPasswordForm">
-                        <div class="mb-4">
-                            <label for="currentLoginPassword" class="form-label fw-semibold" data-i18n="currentPasswordLabel">Current Password</label>
-                            <div class="input-group">
-                                <span class="input-group-text bg-light border-2" style="border-color: #e9ecef; border-radius: 12px 0 0 12px;">
-                                    <i class="fas fa-lock text-muted"></i>
-                                </span>
-                                <input type="password" class="form-control border-start-0" id="currentLoginPassword" required style="border-radius: 0 12px 12px 0;">
-                            </div>
-                        </div>
-                        <div class="mb-4">
-                            <label for="newLoginPassword" class="form-label fw-semibold" data-i18n="newPasswordLabel">New Password</label>
-                            <div class="input-group">
-                                <span class="input-group-text bg-light border-2" style="border-color: #e9ecef; border-radius: 12px 0 0 12px;">
-                                    <i class="fas fa-key text-muted"></i>
-                                </span>
-                                <input type="password" class="form-control border-start-0" id="newLoginPassword" required style="border-radius: 0 12px 12px 0;">
-                            </div>
-                        </div>
-                        <div class="mb-4">
-                            <label for="confirmNewLoginPassword" class="form-label fw-semibold" data-i18n="confirmNewPasswordLabel">Confirm New Password</label>
-                            <div class="input-group">
-                                <span class="input-group-text bg-light border-2" style="border-color: #e9ecef; border-radius: 12px 0 0 12px;">
-                                    <i class="fas fa-check text-muted"></i>
-                                </span>
-                                <input type="password" class="form-control border-start-0" id="confirmNewLoginPassword" required style="border-radius: 0 12px 12px 0;">
-                            </div>
-                        </div>
-                        <div id="loginPasswordError" class="alert alert-danger d-none" role="alert">
-                            <i class="fas fa-exclamation-triangle me-2"></i>
-                            <span></span>
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer border-0 p-4 pt-0">
-                    <button type="button" class="btn btn-light me-2" data-bs-dismiss="modal" data-i18n="closeButton" style="border-radius: 25px; padding: 0.75rem 1.5rem;">Cancel</button>
-                    <button type="button" class="btn btn-custom" id="submitLoginPasswordChange" data-i18n="saveChangesButton">Save Changes</button>
-                </div>
-            </div>
         </div>
     </div>
-
-    <!-- Withdraw Password Modal -->
-    <div class="modal fade" id="changeWithdrawPasswordModal" tabindex="-1" aria-labelledby="changeWithdrawPasswordModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title fw-bold" id="changeWithdrawPasswordModalLabel" data-i18n="changeWithdrawPasswordModalTitle">Change Withdraw Password</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body p-4">
-                    <div class="text-center mb-4">
-                        <div class="icon-circle mx-auto mb-3" style="width: 80px; height: 80px; font-size: 2rem;">
-                            <i class="fas fa-shield-alt"></i>
-                        </div>
-                        <p class="text-muted mb-2">Secure your withdrawal transactions</p>
-                        <div class="alert alert-info" role="alert" style="border-radius: 12px;">
-                            <i class="fas fa-info-circle me-2"></i>
-                            <small data-i18n="withdrawPasswordDefaultText">If not set, the withdrawal password defaults to your login password.</small>
-                        </div>
-                    </div>
-                    <form id="withdrawPasswordForm">
-                        <div class="mb-4">
-                            <label for="currentWithdrawPassword" class="form-label fw-semibold" data-i18n="currentPasswordLoginPasswordLabel">Current Password (Login Password)</label>
-                            <div class="input-group">
-                                <span class="input-group-text bg-light border-2" style="border-color: #e9ecef; border-radius: 12px 0 0 12px;">
-                                    <i class="fas fa-lock text-muted"></i>
-                                </span>
-                                <input type="password" class="form-control border-start-0" id="currentWithdrawPassword" required style="border-radius: 0 12px 12px 0;">
-                            </div>
-                            <small class="text-muted mt-1" data-i18n="currentLoginPasswordVerificationText">Enter your current login password to verify.</small>
-                        </div>
-                        <div class="mb-4">
-                            <label for="newWithdrawPassword" class="form-label fw-semibold" data-i18n="newWithdrawPasswordLabel">New Withdraw Password</label>
-                            <div class="input-group">
-                                <span class="input-group-text bg-light border-2" style="border-color: #e9ecef; border-radius: 12px 0 0 12px;">
-                                    <i class="fas fa-key text-muted"></i>
-                                </span>
-                                <input type="password" class="form-control border-start-0" id="newWithdrawPassword" required style="border-radius: 0 12px 12px 0;">
-                            </div>
-                        </div>
-                        <div class="mb-4">
-                            <label for="confirmNewWithdrawPassword" class="form-label fw-semibold" data-i18n="confirmNewWithdrawPasswordLabel">Confirm New Withdraw Password</label>
-                            <div class="input-group">
-                                <span class="input-group-text bg-light border-2" style="border-color: #e9ecef; border-radius: 12px 0 0 12px;">
-                                    <i class="fas fa-check text-muted"></i>
-                                </span>
-                                <input type="password" class="form-control border-start-0" id="confirmNewWithdrawPassword" required style="border-radius: 0 12px 12px 0;">
-                            </div>
-                        </div>
-                        <div id="withdrawPasswordError" class="alert alert-danger d-none" role="alert">
-                            <i class="fas fa-exclamation-triangle me-2"></i>
-                            <span></span>
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer border-0 p-4 pt-0">
-                    <button type="button" class="btn btn-light me-2" data-bs-dismiss="modal" data-i18n="closeButton" style="border-radius: 25px; padding: 0.75rem 1.5rem;">Cancel</button>
-                    <button type="button" class="btn btn-custom" id="submitWithdrawPasswordChange" data-i18n="saveChangesButton">Save Changes</button>
-                </div>
-            </div>
-        </div>
-    </div>
-    <!-- End Enhanced Modals -->    </div>
 </main>
 
-<!-- Standard Footer Navigation -->
+<!-- Change Password Modal -->
+<div class="modal fade" id="changePasswordModal" tabindex="-1" aria-labelledby="changePasswordModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="changePasswordModalLabel">Change Password</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="change-password-form">
+                    <div class="mb-3">
+                        <label class="profile-label">Current Password</label>
+                        <input type="password" class="form-control" id="current-password" placeholder="Enter current password">
+                    </div>
+                    <div class="mb-3">
+                        <label class="profile-label">New Password</label>
+                        <input type="password" class="form-control" id="new-password" placeholder="Enter new password">
+                    </div>
+                    <div class="mb-3">
+                        <label class="profile-label">Confirm New Password</label>
+                        <input type="password" class="form-control" id="confirm-password" placeholder="Confirm new password">
+                    </div>
+                    <div class="text-end">
+                        <button type="submit" class="btn btn-modern">
+                            <i class="fas fa-save"></i> Update Password
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Privacy Settings Modal -->
+<div class="modal fade" id="privacySettingsModal" tabindex="-1" aria-labelledby="privacySettingsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="privacySettingsModalLabel">Privacy Settings</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="privacy-settings-form">
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="profile-visibility">
+                            <label class="form-check-label" for="profile-visibility">Public Profile</label>
+                        </div>
+                        <small class="text-muted">Allow others to view your profile information</small>
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="activity-status">
+                            <label class="form-check-label" for="activity-status">Show Activity Status</label>
+                        </div>
+                        <small class="text-muted">Display your online status to other users</small>
+                    </div>
+                    <div class="text-end">
+                        <button type="submit" class="btn btn-modern">
+                            <i class="fas fa-save"></i> Save Settings
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Footer Navigation -->
 <div id="footer-navigation"></div>
 
 <script>let baseurl = '.';</script> <!-- Use relative base URL -->
 
 <!-- Bootstrap 5 JS Bundle -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+<script src="./js/components.js"></script>
 <!-- Important: i18n.js must be loaded before other scripts -->
 <script src="./js/i18n.js"></script>
-<!-- i18n initialization is now handled automatically by i18n.js -->
-<script>
-    // i18n system is now simplified and initializes automatically
-    console.log('i18n system loaded (using fallback text conversion)');
-</script>
-<script src="./js/components.js"></script>
-<script src="./js/main.js"></script> <!-- Contains fetchWithAuth, etc. -->
+<script src="./js/main.js"></script>
 <script src="./js/auth-check.js"></script> <!-- Centralized authentication -->
-<script src="./js/profile.js"></script> <!-- Script for this page -->
+<script src="./js/profile.js"></script>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Load standard navigation components
-    loadStandardNavigation();
-    
-    // Initialize menu functionality
-    initializeMenuControls();
-});
-
-// Load sidebar component
-async function loadSidebarComponent() {
-    try {
-        const response = await fetch('./components/sidebar.html');
-        if (response.ok) {
-            const sidebarHTML = await response.text();
-            document.getElementById('sidebar-container').innerHTML = sidebarHTML;
-            
-            // Wait a moment for the sidebar script to initialize, then refresh user data
-            setTimeout(() => {
-                if (typeof window.refreshSidebarUserData === 'function') {
-                    window.refreshSidebarUserData();
-                }
-            }, 100);
-        }
-    } catch (error) {
-        console.error('Error loading sidebar:', error);
-    }
-}
-
-// Initialize menu controls
-function initializeMenuControls() {
-    // Handle menu button clicks (delegated event handling)
-    document.addEventListener('click', function(e) {
-        if (e.target.matches('#menuBtn') || e.target.closest('#menuBtn')) {
-            const sidebar = document.querySelector('.main-sidebar');
-            const overlay = document.getElementById('sidebarOverlay');
-            if (sidebar && overlay) {
-                sidebar.classList.add('active');
-                overlay.classList.add('active');
-            }
-        }
+    // Initialize profile page
+    document.addEventListener('DOMContentLoaded', function() {
+        // Load user data
+        loadUserData();
         
-        if (e.target.matches('#sidebar-close-button') || e.target.closest('#sidebar-close-button')) {
-            const sidebar = document.querySelector('.main-sidebar');
-            const overlay = document.getElementById('sidebarOverlay');
-            if (sidebar && overlay) {
-                sidebar.classList.remove('active');
-                overlay.classList.remove('active');
-            }
-        }
+        // Initialize form handlers
+        initializeFormHandlers();
         
-        if (e.target.matches('#sidebarOverlay')) {
-            const sidebar = document.querySelector('.main-sidebar');
-            const overlay = document.getElementById('sidebarOverlay');
-            if (sidebar && overlay) {
-                sidebar.classList.remove('active');
-                overlay.classList.remove('active');
-            }
-        }
+        // Initialize modals
+        initializeModals();
     });
-}
 </script>
 </body>
 </html>
+

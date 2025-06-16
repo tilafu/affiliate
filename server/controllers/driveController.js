@@ -21,7 +21,7 @@ async function getUserDriveInfo(userId, client = pool) { // Added client paramet
 // Calculate unlimited task sets progress: current product step over total products across all task sets
 async function calculateUnlimitedProgress(driveSessionId, client) {
   try {
-    // Get all active drive items for this session, excluding combo task sets from progress calculation
+    // Get all active drive items for this session
     const itemsResult = await client.query(
       `SELECT 
          uadi.id,
@@ -30,6 +30,7 @@ async function calculateUnlimitedProgress(driveSessionId, client) {
          uadi.product_id_1,
          uadi.product_id_2, 
          uadi.product_id_3,
+         uadi.task_type,
          (SELECT COUNT(*) FROM drive_task_set_products dtsp 
           WHERE dtsp.task_set_id = uadi.drive_task_set_id_override) as products_in_task_set,
          dts.is_combo
@@ -38,35 +39,56 @@ async function calculateUnlimitedProgress(driveSessionId, client) {
        WHERE uadi.drive_session_id = $1
        ORDER BY uadi.order_in_drive ASC`,
       [driveSessionId]
-    );    let totalProducts = 0;
-    let currentStep = 0;
-      for (const item of itemsResult.rows) {
-      // Skip combo task sets from progress calculation (they don't count toward progress bar)
-      if (item.is_combo === true) {
-        continue;
-      }
-      
+    );
+
+    // Calculate original tasks progress (exclude combo tasks from total count, like admin modal)
+    const originalTasks = itemsResult.rows.filter(item => 
+      !item.is_combo && item.task_type !== 'combo_order'
+    );
+
+    let totalOriginalProducts = 0;
+    let completedOriginalProducts = 0;
+    
+    for (const item of originalTasks) {
       const productsInThisItem = parseInt(item.products_in_task_set) || 0;
-      totalProducts += productsInThisItem;
+      totalOriginalProducts += productsInThisItem;
       
       if (item.user_status === 'COMPLETED') {
-        // All products in this item are completed
-        currentStep += productsInThisItem;
+        // All products in this original task are completed
+        completedOriginalProducts += productsInThisItem;
       } else if (item.user_status === 'CURRENT') {
-        // Add completed products in current item
-        currentStep += parseInt(item.current_product_slot_processed) || 0;
+        // Add completed products in current original task
+        completedOriginalProducts += parseInt(item.current_product_slot_processed) || 0;
       }
-      // PENDING items don't contribute to current step
+      // PENDING items don't contribute to completed count
     }
     
     return {
-      currentStep,
-      totalProducts,
-      isComplete: currentStep >= totalProducts && totalProducts > 0
+      currentStep: completedOriginalProducts,
+      totalProducts: totalOriginalProducts,
+      isComplete: completedOriginalProducts >= totalOriginalProducts && totalOriginalProducts > 0,
+      // Also return all tasks info for backwards compatibility
+      allTasksCurrentStep: itemsResult.rows.reduce((acc, item) => {
+        if (item.user_status === 'COMPLETED') {
+          return acc + (parseInt(item.products_in_task_set) || 0);
+        } else if (item.user_status === 'CURRENT') {
+          return acc + (parseInt(item.current_product_slot_processed) || 0);
+        }
+        return acc;
+      }, 0),
+      allTasksTotalProducts: itemsResult.rows.reduce((acc, item) => {
+        return acc + (parseInt(item.products_in_task_set) || 0);
+      }, 0)
     };
   } catch (error) {
     logger.error(`Error calculating unlimited progress for session ${driveSessionId}:`, error);
-    return { currentStep: 0, totalProducts: 0, isComplete: false };
+    return { 
+      currentStep: 0, 
+      totalProducts: 0, 
+      isComplete: false,
+      allTasksCurrentStep: 0,
+      allTasksTotalProducts: 0
+    };
   }
 }
 
@@ -244,13 +266,13 @@ const startDrive = async (req, res) => {
             drive_session_id: newDriveSessionId,
             tasks_in_configuration: unlimitedProgress.totalProducts, // Total products across all task sets  
             tasks_completed_in_session: unlimitedProgress.currentStep, // Current product step completed
-            total_session_commission: "0.00",
-            current_order: { // Details of the first sub-product to process
+            total_session_commission: "0.00",            current_order: { // Details of the first sub-product to process
                 user_active_drive_item_id: firstItemData.uadi_id, // ID of the parent user_active_drive_item
                 task_set_id: firstItemData.task_set_id,
                 product_id: firstSubProduct.product_id,
                 product_name: `${firstSubProduct.product_name}${firstItemData.total_products_in_task_set > 1 ? ' (1/' + firstItemData.total_products_in_task_set + ')' : ''}`,
                 product_image: firstSubProduct.product_image,
+                product_description: firstSubProduct.product_description || 'High-quality product available for purchase in your data drive.',
                 product_price: firstSubProduct.product_price, // Price of this specific sub-product
                 order_commission: commissionData.commissionAmount.toFixed(2), // Commission for this specific sub-product
                 order_id: uuidv4(), // Unique ID for this sub-transaction attempt (can be generated on client too)
@@ -308,15 +330,17 @@ const getDriveStatus = async (req, res) => {
              FROM commission_logs WHERE drive_session_id = $1`,
             [driveSessionId]
         );
-        const totalSessionCommission = parseFloat(commissionResult.rows[0]?.total_commission || 0);
-
-        // 4. Handle 'pending_reset' (drive completed) status
+        const totalSessionCommission = parseFloat(commissionResult.rows[0]?.total_commission || 0);        // 4. Handle 'pending_reset' (drive completed) status
         if (session.session_status === 'pending_reset') {
             client.release();
             return res.json({
                 code: 0, status: 'complete',
-                tasks_completed: unlimitedProgress.currentStep, // Current product step
-                tasks_required: unlimitedProgress.totalProducts, // Total products across all task sets
+                tasks_completed: unlimitedProgress.currentStep, // Original tasks completed
+                tasks_required: unlimitedProgress.totalProducts, // Original tasks required
+                original_tasks_completed: unlimitedProgress.currentStep, // Original tasks completed
+                original_tasks_required: unlimitedProgress.totalProducts, // Original tasks required
+                all_tasks_completed: unlimitedProgress.allTasksCurrentStep, // All tasks including combos
+                all_tasks_total: unlimitedProgress.allTasksTotalProducts, // All tasks including combos
                 total_commission: totalSessionCommission.toFixed(2),
                 drive_session_id: driveSessionId,
                 info: 'Drive completed. Pending admin reset.'
@@ -326,8 +350,12 @@ const getDriveStatus = async (req, res) => {
             client.release();
             return res.json({
                 code: 0, status: 'frozen',
-                tasks_completed: unlimitedProgress.currentStep, // Current product step
-                tasks_required: unlimitedProgress.totalProducts, // Total products across all task sets
+                tasks_completed: unlimitedProgress.currentStep, // Original tasks completed
+                tasks_required: unlimitedProgress.totalProducts, // Original tasks required
+                original_tasks_completed: unlimitedProgress.currentStep, // Original tasks completed
+                original_tasks_required: unlimitedProgress.totalProducts, // Original tasks required
+                all_tasks_completed: unlimitedProgress.allTasksCurrentStep, // All tasks including combos
+                all_tasks_total: unlimitedProgress.allTasksTotalProducts, // All tasks including combos
                 total_commission: totalSessionCommission.toFixed(2),
                 frozen_amount_needed: session.frozen_amount_needed ? parseFloat(session.frozen_amount_needed).toFixed(2) : null,
                 drive_session_id: driveSessionId,
@@ -410,8 +438,12 @@ const getDriveStatus = async (req, res) => {
             return res.json({
                 code: 0,
                 status: 'active',
-                tasks_completed: unlimitedProgress.currentStep, // Current product step (unlimited design)
-                tasks_required: unlimitedProgress.totalProducts, // Total products across all task sets (unlimited design)
+                tasks_completed: unlimitedProgress.currentStep, // Original tasks completed
+                tasks_required: unlimitedProgress.totalProducts, // Original tasks required
+                original_tasks_completed: unlimitedProgress.currentStep, // Original tasks completed
+                original_tasks_required: unlimitedProgress.totalProducts, // Original tasks required
+                all_tasks_completed: unlimitedProgress.allTasksCurrentStep, // All tasks including combos
+                all_tasks_total: unlimitedProgress.allTasksTotalProducts, // All tasks including combos
                 total_commission: totalSessionCommission.toFixed(2), // Overall session commission
                 drive_session_id: driveSessionId,
                 current_order: {
@@ -595,6 +627,7 @@ const getOrder = async (req, res) => {
                 product_id: itemState.next_sub_product_id,
                 product_name: `${itemState.next_sub_product_name}${totalProductsInItem > 1 ? ` (${currentSubProductIndex}/${totalProductsInItem})` : ''}`,
                 product_image: itemState.next_sub_product_image_url || './assets/uploads/products/newegg-1.jpg',
+                product_description: itemState.next_sub_product_description || 'High-quality product available for purchase in your data drive.',
                 product_price: currentSubProductPrice.toFixed(2), // Price of this sub-product
                 order_commission: currentSubProductCommission.toFixed(2), // Commission for this sub-product
                 is_combo_product: totalProductsInItem > 1,
@@ -762,9 +795,7 @@ const saveOrder = async (req, res) => {
             await client.query('ROLLBACK'); client.release(); clientReleased = true;
             logger.warn(`saveOrder: Sub-product mismatch for user ${userId} - Item: ${parsedUserActiveDriveItemId}, Slot: ${slotIndex}, Expected PID: ${expectedProductId}, Price: ${expectedPrice}, Got PID: ${product_id}, Price: ${subProductPrice}`);
             return res.status(400).json({ code: 1, info: 'Sub-product details do not match expected values for this slot.' });
-        }
-
-        // 3. Check balance
+        }        // 3. Check balance - users must have sufficient balance for purchase (freeze protection)
         logger.debug(`saveOrder: Checking balance for user ${userId}`);
         const accountResult = await client.query(
             'SELECT id, balance FROM accounts WHERE user_id = $1 AND type = $2 FOR UPDATE', [userId, 'main']
@@ -829,14 +860,12 @@ const saveOrder = async (req, res) => {
             await client.query('ROLLBACK'); 
             client.release(); clientReleased = true;
             return res.status(500).json({ code: 1, info: 'Error calculating commission.' });
-        }
-
-        // 5. Update balance
-        const newBalance = currentBalance - subProductPrice + subProductCommission;
-        logger.debug(`saveOrder: Balance calculation for user ${userId} - Current: ${currentBalance}, Product: ${subProductPrice}, Commission: ${subProductCommission}, New: ${newBalance}`);
+        }        // 5. Update balance - Deduct product price first (will be refunded + commission later)
+        const newBalance = currentBalance - subProductPrice;
+        logger.debug(`saveOrder: Balance calculation for user ${userId} - Current: ${currentBalance}, Product deducted: ${subProductPrice}, Temporary balance: ${newBalance} (will be refunded + commission)`);
         
         await client.query('UPDATE accounts SET balance = $1 WHERE id = $2', [newBalance.toFixed(2), account.id]);
-        logger.debug(`saveOrder: Balance updated for user ${userId} to ${newBalance.toFixed(2)}`);
+        logger.debug(`saveOrder: Balance temporarily reduced for user ${userId} to ${newBalance.toFixed(2)} (awaiting refund + commission)`);
 
         // 6. Log commission for this sub-product
         const commissionLogResult = await client.query(
@@ -1272,6 +1301,125 @@ const checkAutoUnfreeze = async (req, res) => {
   }
 };
 
+const refundPurchase = async (req, res) => {
+    const userId = req.user.id;
+    logger.debug(`refundPurchase called for user ID: ${userId} with body:`, req.body);
+    
+    const { 
+        user_active_drive_item_id,
+        product_id,
+        refund_amount,
+        reason
+    } = req.body;
+
+    logger.debug(`refundPurchase params - Item ID: ${user_active_drive_item_id}, Product ID: ${product_id}, Refund Amount: ${refund_amount}, Reason: ${reason}`);
+
+    if (!user_active_drive_item_id || !product_id || refund_amount === undefined) {
+        logger.warn(`refundPurchase: Missing required fields for user ${userId}`, { user_active_drive_item_id, product_id, refund_amount });
+        return res.status(400).json({ success: false, message: 'Missing required fields for refund.' });
+    }
+    
+    const parsedRefundAmount = parseFloat(refund_amount);
+    if (isNaN(parsedRefundAmount) || parsedRefundAmount <= 0) {
+        logger.warn(`refundPurchase: Invalid refund amount for user ${userId}:`, parsedRefundAmount);
+        return res.status(400).json({ success: false, message: 'Invalid refund amount.' });
+    }
+
+    const client = await pool.connect();
+    let clientReleased = false;
+    try {
+        await client.query('BEGIN');
+        logger.debug(`refundPurchase: Transaction started for user ${userId}`);
+
+        // 1. Get user account
+        const accountResult = await client.query(
+            'SELECT id, balance FROM accounts WHERE user_id = $1 AND type = $2 FOR UPDATE', 
+            [userId, 'main']
+        );
+        
+        if (accountResult.rows.length === 0) {
+            await client.query('ROLLBACK'); 
+            client.release(); 
+            clientReleased = true;
+            logger.error(`refundPurchase: User account not found for user ${userId}`);
+            return res.status(404).json({ success: false, message: 'User account not found.' });
+        }
+        
+        const account = accountResult.rows[0];
+        const currentBalance = parseFloat(account.balance);
+        logger.debug(`refundPurchase: Current balance for user ${userId}: ${currentBalance}`);
+
+        // 2. Calculate commission for the refund
+        let commissionData, refundCommission;
+        try {
+            logger.debug(`refundPurchase: Calculating commission for refund - user ${userId}, amount ${parsedRefundAmount}`);
+            commissionData = await tierCommissionService.calculateCommissionForUser(userId, parsedRefundAmount, false);
+            refundCommission = commissionData.commissionAmount;
+            logger.debug(`refundPurchase: Refund commission calculated for user ${userId}: ${refundCommission}`, commissionData);
+        } catch (commissionError) {
+            logger.error(`refundPurchase: Error calculating commission for user ${userId}:`, commissionError);
+            await client.query('ROLLBACK'); 
+            client.release(); 
+            clientReleased = true;
+            return res.status(500).json({ success: false, message: 'Error calculating commission for refund.' });
+        }
+
+        // 3. Update balance: refund product price + add commission
+        const finalBalance = currentBalance + parsedRefundAmount + refundCommission;
+        logger.debug(`refundPurchase: Balance calculation for user ${userId} - Current: ${currentBalance}, Refund: ${parsedRefundAmount}, Commission: ${refundCommission}, Final: ${finalBalance}`);
+        
+        await client.query('UPDATE accounts SET balance = $1 WHERE id = $2', [finalBalance.toFixed(2), account.id]);
+        logger.debug(`refundPurchase: Balance updated for user ${userId} to ${finalBalance.toFixed(2)}`);
+
+        // 4. Get drive session for commission log
+        const sessionResult = await client.query(
+            `SELECT id as drive_session_id FROM drive_sessions
+             WHERE user_id = $1 AND status IN ('active', 'frozen')
+             ORDER BY started_at DESC LIMIT 1`,
+            [userId]
+        );
+
+        const driveSessionId = sessionResult.rows.length > 0 ? sessionResult.rows[0].drive_session_id : null;
+
+        // 5. Log the refund commission
+        if (refundCommission > 0) {
+            await client.query(
+                `INSERT INTO commission_logs (user_id, source_user_id, account_type, commission_amount, commission_type, description, reference_id, source_action_id, drive_session_id)
+                 VALUES ($1, $1, 'main', $2, 'data_drive_refund', $3, $4, $5, $6)`,
+                [userId, refundCommission.toFixed(2), 
+                 `Refund commission for product #${product_id} - ${reason || 'Post-purchase refund'}`,
+                 `refund-${user_active_drive_item_id}-${product_id}`,
+                 product_id,
+                 driveSessionId]
+            );
+            logger.debug(`refundPurchase: Commission logged for user ${userId}: ${refundCommission}`);
+        }
+
+        await client.query('COMMIT');
+        logger.debug(`refundPurchase: Transaction committed for user ${userId}`);
+
+        res.json({
+            success: true,
+            message: `Refund processed successfully. ${parsedRefundAmount} USDT refunded + ${refundCommission} USDT commission earned.`,
+            refund_amount: parsedRefundAmount.toFixed(2),
+            commission_amount: refundCommission.toFixed(2),
+            new_balance: finalBalance.toFixed(2)
+        });
+
+    } catch (error) {
+        logger.error(`refundPurchase: Error processing refund for user ${userId}:`, error);
+        if (!clientReleased) {
+            await client.query('ROLLBACK');
+            client.release();
+        }
+        res.status(500).json({ success: false, message: 'Error processing refund.' });
+    } finally {
+        if (!clientReleased) {
+            client.release();
+        }
+    }
+};
+
 module.exports = {
   startDrive,
   getDriveStatus,
@@ -1281,5 +1429,6 @@ module.exports = {
   saveComboProduct,
   getDriveOrders,
   getDriveProgress,
-  checkAutoUnfreeze
+  checkAutoUnfreeze,
+  refundPurchase
 };

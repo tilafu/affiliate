@@ -4,24 +4,147 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <meta http-equiv="X-UA-Compatible" content="IE=Edge"/>
-    <title>Packages</title>
+    <title>Latest Events</title>
     <meta name="csrf-token" content="t9EtiRskFKx5XpnOFvbrimp5ZgsKIg3UU1Ea1iDM">
     <link rel="shortcut icon" href="./assets/uploads/generals/favicon-665b8c8a863b91717275786.png">
     <link rel="stylesheet" href="./assets/frontend/shopva/public.css">
-      <!-- <script charset="utf-8" src="./assets/frontend/shopva/jquery.min.js"></script> -->
-      <script src="./assets/frontend/js/jquery.min.js"></script>
-      <script charset="utf-8" src="./assets/frontend/shopva/dialog.min.js"></script>
-      <script charset="utf-8" src="./assets/frontend/shopva/common.js"></script>
-      <link rel="stylesheet" href="./assets/frontend/shopva/layer.css">
-      <script src="./assets/frontend/shopva/layer.js"></script>
-      <link rel="stylesheet" href="./assets/frontend/shopva/tye.css">
-    <link href="https://fonts.googleapis.com/css?family=Nunito:300,400,600,700,900" rel="stylesheet">
+    <script src="./assets/frontend/js/jquery.min.js"></script>
+    <script charset="utf-8" src="./assets/frontend/shopva/dialog.min.js"></script>
+    <script charset="utf-8" src="./assets/frontend/shopva/common.js"></script>
+    <link rel="stylesheet" href="./assets/frontend/shopva/layer.css">
+    <script src="./assets/frontend/shopva/layer.js"></script>
+    <link rel="stylesheet" href="./assets/frontend/shopva/tye.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="./assets/frontend/css/bootstrap.min.css" type="text/css" media="all"/>
     <link rel="stylesheet" type="text/css" href="./assets/frontend/css/fontawesome-all.min.css">
     <link rel="stylesheet" href="./assets/frontend/css/animate.min.css" type="text/css" media="all"/>
     <link rel="stylesheet" href="./assets/frontend/css/owl.carousel.min.css" type="text/css" media="all"/>
     <link rel="stylesheet" href="./assets/frontend/css/style.css" type="text/css" media="all"/>
-    </head>
+    <style>
+        :root {
+            --primary-color: #6c5ce7;
+            --secondary-color: #a29bfe;
+            --success-color: #00b894;
+            --danger-color: #d63031;
+            --background-color: #f8f9fa;
+            --text-color: #2d3436;
+            --card-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+        }
+
+        .hero-section {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('./assets/uploads/pattern.png') repeat;
+            opacity: 0.1;
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .back-button {
+            color: white;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: var(--transition);
+        }
+
+        .back-button:hover {
+            transform: translateX(-5px);
+            color: white;
+        }
+
+        .event-card {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: var(--card-shadow);
+            transition: var(--transition);
+            margin-bottom: 2rem;
+        }
+
+        .event-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .event-image {
+            width: 100%;
+            height: 250px;
+            object-fit: cover;
+            transition: var(--transition);
+        }
+
+        .event-card:hover .event-image {
+            transform: scale(1.05);
+        }
+
+        .event-content {
+            padding: 1.5rem;
+        }
+
+        .event-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--text-color);
+        }
+
+        .event-date {
+            color: var(--primary-color);
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+
+        .event-description {
+            color: #666;
+            line-height: 1.6;
+        }
+
+        .header-main {
+            background: transparent;
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+        }
+
+        .brookwood-txt h3 {
+            color: white;
+            font-weight: 600;
+        }
+
+        @media (max-width: 768px) {
+            .event-image {
+                height: 200px;
+            }
+        }
+    </style>
+</head>
 <body>
 
 <div class="bg-overlay navbar-btn"></div>
@@ -124,37 +247,75 @@
 </div><header class="header-main">
     <div class="container">
         <div class="content-header d-flex align-items-center justify-content-between">
-                         <a href="javascript:history.back()">
-                    <i class="fas fa-angle-left" style="font-size: 20px"></i>
-                </a>
-             
-
+            <a href="javascript:history.back()" class="back-button">
+                <i class="fas fa-angle-left"></i>
+                <span>Back</span>
+            </a>
             <div class="brookwood-txt d-flex align-items-center">
-                                    <h3 class="main1">Packages</h3>
-                         
+                <h3 class="main1">Latest Events</h3>
             </div>
-
-            <div class="item-options">
-                 
-                
-            </div>
+            <div class="item-options"></div>
         </div>
     </div>
 </header><main class="main-content">
-    <div class="container">
-            <div class="container">
-        <div class="row">
-            <div class="col-12 col-md-6 col-lg-6 mx-auto">
-                <div class="h-190 shadow-sm rounded-10 coverimg mb-3">
-                    <img src="./assets/uploads/e3.jpg" alt="">
-                </div>
-                <div class="h-190 shadow-sm rounded-10 coverimg mb-3">
-                    <img src="./assets/uploads/e1.jpg" alt="">
-                </div>
-                
+    <div class="hero-section">
+        <div class="container">
+            <div class="hero-content text-center">
+                <h1 class="display-4 fw-bold mb-3">Latest Events</h1>
+                <p class="lead mb-0">Stay updated with our latest events and activities</p>
             </div>
         </div>
-   </div>    </div>
+    </div>
+
+    <div class="container">
+        <div class="row">
+            <div class="col-12 col-md-6 col-lg-4 mb-4">
+                <div class="event-card">
+                    <img src="./assets/uploads/e3.jpg" alt="Event 1" class="event-image">
+                    <div class="event-content">
+                        <div class="event-date">
+                            <i class="far fa-calendar-alt me-2"></i>
+                            March 15, 2024
+                        </div>
+                        <h3 class="event-title">Annual Conference</h3>
+                        <p class="event-description">
+                            Join us for our annual conference where we'll discuss the latest trends and innovations in the industry.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-md-6 col-lg-4 mb-4">
+                <div class="event-card">
+                    <img src="./assets/uploads/e1.jpg" alt="Event 2" class="event-image">
+                    <div class="event-content">
+                        <div class="event-date">
+                            <i class="far fa-calendar-alt me-2"></i>
+                            April 20, 2024
+                        </div>
+                        <h3 class="event-title">Workshop Series</h3>
+                        <p class="event-description">
+                            Enhance your skills with our comprehensive workshop series led by industry experts.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-md-6 col-lg-4 mb-4">
+                <div class="event-card">
+                    <img src="./assets/uploads/e2.jpg" alt="Event 3" class="event-image">
+                    <div class="event-content">
+                        <div class="event-date">
+                            <i class="far fa-calendar-alt me-2"></i>
+                            May 10, 2024
+                        </div>
+                        <h3 class="event-title">Networking Event</h3>
+                        <p class="event-description">
+                            Connect with professionals and expand your network at our exclusive networking event.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </main>
 
 <!-- Standard Footer Navigation -->
@@ -169,7 +330,6 @@
 <script src="./js/auth-check.js"></script>
 
 <script>
-// Load standard navigation components
 document.addEventListener('DOMContentLoaded', async function() {
     try {
         await loadStandardNavigation();
@@ -180,19 +340,15 @@ document.addEventListener('DOMContentLoaded', async function() {
 });
 </script>
 <script src="./js/components.js"></script>
-<!-- Import auth-check.js for authentication -->
 <script src="./js/auth-check.js"></script>
-<!-- Import auth.js for logout functionality -->
 <script src="./js/auth.js"></script>
 <script>
-  document.addEventListener('DOMContentLoaded', function() {
-    // Load standard navigation components
+document.addEventListener('DOMContentLoaded', function() {
     loadStandardNavigation('events');
-    // Initialize logout functionality
     if (typeof attachLogoutHandlers === 'function') {
-      attachLogoutHandlers();
+        attachLogoutHandlers();
     }
-  });
+});
 </script>
 </body>
 </html>

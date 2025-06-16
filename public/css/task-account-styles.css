@@ -376,6 +376,10 @@ body {
 
 /* === Product Modal: Modern Redesign (Overrides & Guidance) === */
 /*
+  DEPRECATION NOTICE: These styles are deprecated in favor of drive-unified-styles.css
+  They remain for backwards compatibility with task.js modal functionality
+  New drive functionality should use drive-unified-styles.css classes
+  
   To avoid future UI/JS conflicts, use custom classes for JS hooks (e.g., .js-modal-open, .js-modal-close, .js-purchase-btn) instead of UI classes like .btn, .modal, etc.
   This allows UI/UX to be updated without breaking JS functionality.
 */
@@ -460,6 +464,8 @@ body .product-modal .dot.active {
 }
 
 /* Remove/override old modal styles */
+/* DEPRECATED: These styles conflict with unified drive renderer */
+/* Use drive-unified-styles.css for new drive product styling */
 .product-modal-content,
 .product-modal.show .product-modal-content,
 .product-modal-header,

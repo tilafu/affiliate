@@ -5,6 +5,7 @@ const {
   startDrive,
   getOrder,
   saveOrder,
+  refundPurchase,
   saveComboOrder,
   getDriveOrders,
   saveComboProduct, // Added based on task.html logic
@@ -27,6 +28,9 @@ router.post('/getorder', protect, getOrder); // Changed to POST based on task.ht
 
 // Route to save a completed single order (mimics task/saveorder)
 router.post('/saveorder', protect, saveOrder);
+
+// Route to refund product purchase and add commission
+router.post('/refund', protect, refundPurchase);
 
 // Route to save a completed combo order (mimics task/savecomboorder)
 router.post('/savecomboorder', protect, saveComboOrder);

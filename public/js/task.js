@@ -467,53 +467,47 @@ async function fetchBalanceAsync(token) {
 
 // --- Update Progress Bar Function (Unlimited Task Sets Design) ---
 function updateProgressBar(currentStep, totalProducts) {
-    // Get DOM elements
+    // Get DOM elements for legacy support
     const progressBar = document.getElementById('drive-progress-bar');
     const progressText = document.getElementById('progress-text');
     const tasksProgressElement = document.getElementById('tasks-count');
     
-    // Ensure we have valid numbers for the unlimited task sets design
-    // currentStep = current product being worked on (across all task sets)
-    // totalProducts = total products across all current task sets
+    // Ensure we have valid numbers
     const completed = Math.max(0, parseInt(currentStep) || 0);
     const total = Math.max(0, parseInt(totalProducts) || 0);
-    const displayCompleted = completed;
-    const displayTotal = total || 0; // Default to 0 for unlimited design
     
-    // Calculate percentage for progress bar
+    // Calculate percentage for legacy progress bar
     const percentage = total > 0 ? Math.min(100, Math.max(0, (completed / total) * 100)) : 0;
     
-    // Update progress bar
+    // Update legacy progress bar (if exists)
     if (progressBar) {
         progressBar.style.width = `${percentage}%`;
         progressBar.setAttribute('aria-valuenow', percentage);
-        
-        // Add flash animation when progress updates
-        progressBar.classList.remove('progress-flash');
-        setTimeout(() => {
-            progressBar.classList.add('progress-flash');
-        }, 10);
-    }
-      // Update progress text for unlimited task sets design
-    if (progressText) {
-        progressText.textContent = `${displayCompleted} / ${displayTotal} products completed`;
-    }    // Update tasks count for unlimited design
-    if (tasksProgressElement) {
-        const newText = `${displayCompleted} / ${displayTotal}`;
-        tasksProgressElement.textContent = newText;
-        console.log(`Tasks count updated: ${newText} (element found: ${!!tasksProgressElement})`);
-    } else {
-        console.warn('Tasks progress element (tasks-count) not found - cannot update task count display');
     }
     
-
-    // Update global variables for unlimited task sets design
-    // Repurpose these variables to track products instead of task sets
-    tasksCompleted = completed; // Now tracks current product step
-    totalTasksRequired = total; // Now tracks total products across all task sets
+    // Update progress text (if exists)
+    if (progressText) {
+        progressText.textContent = `${completed} / ${total} products completed`;
+    }
+    
+    // Update tasks count (if exists)
+    if (tasksProgressElement) {
+        tasksProgressElement.textContent = `${completed} / ${total}`;
+    }
+    
+    // Update global variables
+    tasksCompleted = completed;
+    totalTasksRequired = total;
     saveCurrentSessionData();
     
-    console.log(`Unlimited Drive Progress updated: ${displayCompleted}/${displayTotal} products (${percentage.toFixed(1)}%)`);
+    // Update simple drive progress component
+    if (window.globalDriveProgress) {
+        window.globalDriveProgress.updateProgress(completed, totalDriveCommission);
+    } else {
+        // Trigger global progress update event
+        SimpleDriveProgress.updateGlobalProgress(completed, totalDriveCommission);    }
+    
+    console.log(`Drive Progress updated: ${completed}/${total} products (${percentage.toFixed(1)}%)`);
 }
 
 // --- Update Drive Commission Function ---
@@ -527,7 +521,14 @@ function updateDriveCommission() {
         driveCommissionElement.classList.remove('highlight-green');
         setTimeout(() => {
             driveCommissionElement.classList.add('highlight-green');
-        }, 10);
+        }, 10);    }
+    
+    // Update simple drive progress component with new commission
+    if (window.globalDriveProgress) {
+        window.globalDriveProgress.updateCommission(totalDriveCommission);
+    } else {
+        // Trigger global commission update event
+        SimpleDriveProgress.updateGlobalCommission(totalDriveCommission);
     }
     
     // Save current session data to localStorage for persistence
@@ -777,14 +778,26 @@ function fetchNextOrder(token) {
         console.log("Response from /api/drive/getorder:", data);
         $('.product-carousel').trigger('play.owl.autoplay', [3000]);
         if (orderLoadingOverlay) orderLoadingOverlay.style.display = 'none';
-        
-        if (data.code === 2) { // Drive complete
+          if (data.code === 2) { // Drive complete
             console.log("Drive complete message received from backend (getorder).");
             displayDriveComplete(data.info || 'Congratulations! Your data drive is complete.');
             if (data.total_session_commission !== undefined) {
                 totalDriveCommission = parseFloat(data.total_session_commission);
                 updateDriveCommission();
             }
+            
+            // Update drive progress component with completion status
+            if (window.globalDriveProgress && window.globalDriveProgress.updateFromDriveStatus) {
+                window.globalDriveProgress.updateFromDriveStatus({
+                    original_tasks_completed: data.tasks_completed || tasksCompleted,
+                    original_tasks_required: data.tasks_required || totalTasksRequired,
+                    all_tasks_completed: data.all_tasks_completed || data.tasks_completed || tasksCompleted,
+                    all_tasks_total: data.all_tasks_total || data.tasks_required || totalTasksRequired,
+                    total_commission: data.total_session_commission || totalDriveCommission,
+                    status: 'completed'
+                });
+            }
+            
             refreshWalletBalance();        } else if (data.code === 3) { // Drive Frozen
             console.warn("Drive Frozen message received from backend (getorder).");
             displayFrozenState(data.info || "Session frozen due to insufficient balance.", data.frozen_amount_needed, data);
@@ -792,6 +805,19 @@ function fetchNextOrder(token) {
                 totalDriveCommission = parseFloat(data.total_session_commission);
                 updateDriveCommission();
             }
+            
+            // Update drive progress component with frozen status
+            if (window.globalDriveProgress && window.globalDriveProgress.updateFromDriveStatus) {
+                window.globalDriveProgress.updateFromDriveStatus({
+                    original_tasks_completed: data.tasks_completed || tasksCompleted,
+                    original_tasks_required: data.tasks_required || totalTasksRequired,
+                    all_tasks_completed: data.all_tasks_completed || data.tasks_completed || tasksCompleted,
+                    all_tasks_total: data.all_tasks_total || data.tasks_required || totalTasksRequired,
+                    total_commission: data.total_session_commission || totalDriveCommission,
+                    status: 'frozen'
+                });
+            }
+            
             refreshWalletBalance();
         }
         else if (data.success && data.current_order) {
@@ -811,12 +837,22 @@ function fetchNextOrder(token) {
             }
 
             renderProductCard(data.current_order);
-            console.log("Current order received (getorder):", data.current_order);
-
-            if (data.tasks_completed !== undefined && data.tasks_required !== undefined) {
+            console.log("Current order received (getorder):", data.current_order);            if (data.tasks_completed !== undefined && data.tasks_required !== undefined) {
                 tasksCompleted = data.tasks_completed; // Task Sets completed
                 totalTasksRequired = data.tasks_required; // Total Task Sets
                 updateProgressBar(tasksCompleted, totalTasksRequired);
+                
+                // Update drive progress component with full drive status data
+                if (window.globalDriveProgress && window.globalDriveProgress.updateFromDriveStatus) {
+                    window.globalDriveProgress.updateFromDriveStatus({
+                        original_tasks_completed: data.tasks_completed,
+                        original_tasks_required: data.tasks_required,
+                        all_tasks_completed: data.all_tasks_completed || data.tasks_completed,
+                        all_tasks_total: data.all_tasks_total || data.tasks_required,
+                        total_commission: data.total_session_commission || totalDriveCommission,
+                        status: 'active'
+                    });
+                }
             }
             if (data.total_session_commission !== undefined) {
                 totalDriveCommission = parseFloat(data.total_session_commission);
@@ -851,65 +887,86 @@ function renderProductCard(productData) {
     // Enhanced to show combo information and task progress
     
     console.log('Rendering product card with data:', productData);
+    console.log('Product description from backend:', productData.product_description);
+    console.log('Alternative description field:', productData.description);
     
     // Enhanced fade effect for better UX and refresh indication
     productCardContainer.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
     productCardContainer.style.opacity = '0.3';
     productCardContainer.style.transform = 'scale(0.98)';
-    
-    setTimeout(() => {
-        // Determine if this is a combo product and show appropriate indicators
-        let comboInfo = '';
-        let productTitle = productData.product_name || 'Product';
-        
-        if (productData.is_combo) {
-            comboInfo = '<span class="badge bg-info text-dark ms-2">Combo Item</span>';
+      setTimeout(() => {
+        // Use the sophisticated drive product renderer if available
+        if (typeof renderDriveProductCard === 'function') {
+            renderDriveProductCard(productData, productCardContainer, {
+                showProgress: true,
+                showStats: true
+            });
+        } else {
+            // Fallback to basic card if drive product renderer is not available
+            // Determine if this is a combo product and show appropriate indicators
+            let comboInfo = '';
+            let productTitle = productData.product_name || 'Product';
             
-            // Show combo progress if available
-            if (productData.combo_progress) {
-                comboInfo += `<br><small class="text-muted">Combo Progress: ${productData.combo_progress}</small>`;
+            if (productData.is_combo) {
+                comboInfo = '<span class="badge bg-info text-dark ms-2">Combo Item</span>';
+                
+                // Show combo progress if available
+                if (productData.combo_progress) {
+                    comboInfo += `<br><small class="text-muted">Combo Progress: ${productData.combo_progress}</small>`;
+                }
+                
+                // Show which product in combo if available
+                if (productData.product_slot !== undefined && productData.total_products_in_item) {
+                    comboInfo += `<br><small class="text-primary">Product ${productData.product_slot + 1} of ${productData.total_products_in_item}</small>`;
+                }
             }
-            
-            // Show which product in combo if available
-            if (productData.product_slot !== undefined && productData.total_products_in_item) {
-                comboInfo += `<br><small class="text-primary">Product ${productData.product_slot + 1} of ${productData.total_products_in_item}</small>`;
-            }
-        }
-          // Show drive progress information (unlimited task sets design)
-        let taskProgress = '';
-        if (totalTasksRequired > 0) {
-            // In unlimited design: tasksCompleted = current product step, totalTasksRequired = total products
-            const currentProductStep = tasksCompleted + 1; // Next product to complete
-            taskProgress = `<div class="mt-2 mb-3">
-                <small class="text-muted">Drive Progress: ${tasksCompleted}/${totalTasksRequired} products completed</small>
-                <div class="progress mt-1" style="height: 8px;">
-                    <div class="progress-bar bg-success" style="width: ${(tasksCompleted / totalTasksRequired * 100)}%"></div>
-                </div>
-            </div>`;
-        }
-          productCardContainer.innerHTML = `
-            <div class="card">
-                <div class="card-body text-center">
-                    <h4>${productTitle}${comboInfo}</h4>
-                    <img src="${productData.product_image || './assets/uploads/images/ph.png'}" alt="${productData.product_name || 'Product Image'}" style="max-width: 150px; margin: 10px auto; display: block;">
-                    <p>Price: <strong>${parseFloat(productData.product_price).toFixed(2)}</strong> USDT</p>
-                    <p>Commission for this item: <strong class="text-success">+${parseFloat(productData.order_commission).toFixed(2)}</strong> USDT</p>
-                    <div class="alert alert-info py-2 my-3">
-                        <small><i class="fas fa-info-circle"></i> <strong>Refund Policy:</strong> Purchase amount will be refunded after completion!</small>
+
+            // Show drive progress information (unlimited task sets design)
+            let taskProgress = '';
+            if (totalTasksRequired > 0) {
+                // In unlimited design: tasksCompleted = current product step, totalTasksRequired = total products
+                const currentProductStep = tasksCompleted + 1; // Next product to complete
+                taskProgress = `<div class="mt-2 mb-3">
+                    <small class="text-muted">Drive Progress: ${tasksCompleted}/${totalTasksRequired} products completed</small>
+                    <div class="progress mt-1" style="height: 8px;">
+                        <div class="progress-bar bg-success" style="width: ${(tasksCompleted / totalTasksRequired * 100)}%"></div>
                     </div>
-                    <p class="text-success small">Total drive commission so far: <strong>${totalDriveCommission.toFixed(2)}</strong> USDT</p>
-                    ${taskProgress}
-                    <button id="purchase-button" class="btn btn-primary mt-3">Purchase & Earn</button>
+                </div>`;
+            }            // Product description section
+            const productDescription = (typeof getProductDescription === 'function') 
+                ? getProductDescription(productData)
+                : (productData.product_description || productData.description || 'High-quality product available for purchase in your data drive.');
+
+            productCardContainer.innerHTML = `
+                <div class="card">
+                    <div class="card-body text-center">
+                        <h4>${productTitle}${comboInfo}</h4>
+                        <img src="${productData.product_image || './assets/uploads/images/ph.png'}" alt="${productData.product_name || 'Product Image'}" style="max-width: 150px; margin: 10px auto; display: block;">
+                        
+                        <!-- Product Description -->
+                        <div class="alert alert-light border p-3 my-3 text-start">
+                            <h6 class="mb-2"><i class="fas fa-info-circle"></i> Product Description</h6>
+                            <p class="small mb-0">${productDescription}</p>
+                        </div>
+                        
+                        <p>Price: <strong>${parseFloat(productData.product_price).toFixed(2)}</strong> USDT</p>
+                        <p>Commission for this item: <strong class="text-success">+${parseFloat(productData.order_commission).toFixed(2)}</strong> USDT</p>
+                        <div class="alert alert-info py-2 my-3">
+                            <small><i class="fas fa-info-circle"></i> <strong>Refund Policy:</strong> Purchase amount will be refunded after completion!</small>
+                        </div>
+                        <p class="text-success small">Total drive commission so far: <strong>${totalDriveCommission.toFixed(2)}</strong> USDT</p>
+                        ${taskProgress}
+                        <button id="purchase-button" class="btn btn-primary mt-3">Purchase & Earn</button>
+                    </div>
                 </div>
-            </div>
-        `;
+            `;
+        }
         
         // Restore appearance with enhanced animation
         productCardContainer.style.opacity = '1';
         productCardContainer.style.transform = 'scale(1)';
-        
-        // Add a subtle highlight effect to indicate new content
-        const card = productCardContainer.querySelector('.card');
+          // Add a subtle highlight effect to indicate new content
+        const card = productCardContainer.querySelector('.card, .drive-product-card');
         if (card) {
             card.style.boxShadow = '0 0 20px rgba(0, 123, 255, 0.3)';
             setTimeout(() => {
@@ -998,9 +1055,9 @@ async function handlePurchase(token, productData) {
         if (orderLoadingOverlay) orderLoadingOverlay.style.display = 'none';        if (response.ok && data.code === 0) { // Order processed successfully
             console.log('Order saved successfully (saveorder):', data);            
             
-            // Process refund for the purchase amount
+            // Process refund for the purchase amount + commission
             try {
-                console.log(`Processing refund of ${productData.product_price} USDT for product purchase`);
+                console.log(`Processing refund of ${productData.product_price} USDT + commission for product purchase`);
                 const refundResponse = await fetch(`${API_BASE_URL}/api/drive/refund`, {
                     method: 'POST',
                     headers: {
@@ -1016,14 +1073,16 @@ async function handlePurchase(token, productData) {
                 });
 
                 const refundData = await refundResponse.json();
-                console.log('Refund response:', refundData);                if (refundResponse.ok && refundData.success) {
-                    console.log(`Refund successful: ${productData.product_price} USDT refunded`);
+                console.log('Refund response:', refundData);
+
+                if (refundResponse.ok && refundData.success) {
+                    console.log(`Refund successful: ${productData.product_price} USDT refunded + ${refundData.commission_amount} USDT commission`);
                     
                     // Update commission and task progress after successful purchase and refund
                     const previousCompleted = tasksCompleted;
                     const previousCommission = totalDriveCommission;
                     
-                    totalDriveCommission += parseFloat(productData.order_commission || 0);
+                    totalDriveCommission += parseFloat(refundData.commission_amount || productData.order_commission || 0);
                     tasksCompleted += 1; // Increment tasks completed
                     
                     console.log(`Task progress updated: ${previousCompleted} -> ${tasksCompleted} (total: ${totalTasksRequired})`);
@@ -1031,16 +1090,19 @@ async function handlePurchase(token, productData) {
                     
                     // Save updated session data
                     updateDriveCommission(); // This calls saveCurrentSessionData()
-                    updateProgressBar(tasksCompleted, totalTasksRequired);                    // Refresh wallet balance immediately after successful refund
+                    updateProgressBar(tasksCompleted, totalTasksRequired);
+
+                    // Refresh wallet balance immediately after successful refund
                     console.log('Refreshing wallet balance after successful refund...');
                     refreshWalletBalanceWithRetry(3, 500); // 3 retries with 500ms delay (no await to avoid syntax issues)
                     
                     // Show success notification including refund info
                     if (typeof showNotification === 'function') {
-                        showNotification(`Purchase completed! ${productData.product_price} USDT refunded + ${productData.order_commission} USDT commission earned`, 'success');
+                        showNotification(`Purchase completed! ${productData.product_price} USDT refunded + ${refundData.commission_amount} USDT commission earned`, 'success');
                     } else { 
-                        alert(`Order completed! ${productData.product_price} USDT refunded + ${productData.order_commission} USDT commission earned`); 
-                    }                } else {
+                        alert(`Order completed! ${productData.product_price} USDT refunded + ${refundData.commission_amount} USDT commission earned`); 
+                    }
+                } else {
                     console.warn('Refund failed but purchase was successful:', refundData);
                     
                     // Still update commission since purchase was successful
@@ -1067,7 +1129,8 @@ async function handlePurchase(token, productData) {
                     } else { 
                         alert(data.info || "Order Sent successfully!"); 
                     }
-                }} catch (refundError) {
+                }
+            } catch (refundError) {
                 console.error('Error processing refund:', refundError);
                 
                 // Still update commission since purchase was successful
@@ -1079,14 +1142,16 @@ async function handlePurchase(token, productData) {
                 
                 console.log(`Task progress updated (refund error): ${previousCompleted} -> ${tasksCompleted} (total: ${totalTasksRequired})`);
                 console.log(`Commission updated (refund error): ${previousCommission} -> ${totalDriveCommission}`);
-                  // Save updated session data
+                
+                // Save updated session data
                 updateDriveCommission(); // This calls saveCurrentSessionData()
                 updateProgressBar(tasksCompleted, totalTasksRequired);
                 
                 // Refresh wallet balance even if refund had an error (commission should still be added)
                 console.log('Refreshing wallet balance after purchase (refund error)...');
                 refreshWalletBalance();
-                  // Show standard success message if refund fails
+                
+                // Show standard success message if refund fails
                 if (typeof showNotification === 'function') {
                     showNotification(data.info || "Order Sent successfully!", 'success');
                 } else { 
@@ -1118,12 +1183,9 @@ async function handlePurchase(token, productData) {
                 refreshWalletBalance();
                 
                 // Small additional delay to ensure balance update completes
-                setTimeout(() => {
-                    window.location.reload();
+                setTimeout(() => {                    window.location.reload();
                 }, 500); // Extra 500ms to ensure balance update completes
             }, 2000); // Increased delay to 2 seconds to show refund message and allow processing
-                window.location.reload();
-            }, 1500); // Increased delay to show refund message
               // Note: Code below this point won't execute due to page refresh
             // but keeping it for fallback in case reload fails
             

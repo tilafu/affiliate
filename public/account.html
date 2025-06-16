@@ -17,6 +17,141 @@
     
     <!-- Custom CSS for shared styles -->
     <link rel="stylesheet" href="css/task-account-styles.css">
+    <style>
+        .account-hero-section {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 120px 0 80px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .account-hero-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.2);
+        }
+        
+        .account-hero-section .container {
+            position: relative;
+            z-index: 2;
+        }
+        
+        .account-hero-section .highlight-yellow {
+            color: #ffc107;
+        }
+        
+        .app-card {
+            background: white;
+            border-radius: 20px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+        }
+        
+        .app-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+        }
+        
+        .account-item {
+            padding: 20px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+        }
+        
+        .account-item:last-child {
+            border-bottom: none;
+        }
+        
+        .account-item:hover {
+            background: rgba(0, 0, 0, 0.02);
+        }
+        
+        .icon-circle {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+            font-size: 1.2rem;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+        
+        .account-label {
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 4px;
+        }
+        
+        .account-value {
+            color: #4a5568;
+            font-size: 1.1rem;
+        }
+        
+        .account-image {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid #fff;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .credit-score-bar {
+            height: 8px;
+            background: #e2e8f0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .credit-score-progress {
+            height: 100%;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            border-radius: 4px;
+            width: 75%;
+            transition: width 1s ease;
+        }
+        
+        .btn-modern {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            padding: 12px 30px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+        
+        .btn-modern:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(102, 126, 234, 0.4);
+            color: white;
+        }
+        
+        .back-btn {
+            color: white;
+            font-size: 1.2rem;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+        
+        .back-btn:hover {
+            color: #ffc107;
+            transform: translateX(-5px);
+        }
+    </style>
 </head>
 <body>
 
@@ -25,23 +160,23 @@
 <div id="sidebar-placeholder"></div>
 <!-- End Sidebar Placeholder -->
 
-<!-- Modern Account Header -->
-<div class="page-header">
+<!-- Modern Account Hero Section -->
+<section class="account-hero-section">
     <div class="container">
         <div class="d-flex align-items-center justify-content-between">
             <a href="javascript:history.back()" class="back-btn">
                 <i class="fas fa-arrow-left"></i>
             </a>
             <div class="text-center flex-grow-1">
-                <h2 class="mb-0 fw-bold">Account Overview</h2>
+                <h2 class="mb-0 fw-bold">Account <span class="highlight-yellow">Overview</span></h2>
                 <p class="mb-0 opacity-75">View your account details and balances</p>
             </div>
             <div style="width: 45px;"></div> <!-- Spacer for alignment -->
         </div>
     </div>
-</div>
+</section>
 
-<main class="main-content">
+<main class="main-content py-5">
     <div class="container">
         <!-- Profile Information Card -->
         <div class="app-card">
@@ -229,7 +364,9 @@
                     <i class="fas fa-chevron-right text-muted"></i>
                 </a>
             </div>
-        </div>        <!-- Sign Out Button -->
+        </div>
+
+        <!-- Sign Out Button -->
         <div class="d-grid gap-2 mt-4">
             <a href="#" class="btn btn-modern btn-lg logout" id="account-logout-btn">
                 <i class="fas fa-sign-out-alt me-2"></i> Sign Out
@@ -248,11 +385,8 @@
 <script src="./js/components.js"></script>
 <!-- Important: i18n.js must be loaded before other scripts -->
 <script src="./js/i18n.js"></script>
-<!-- Load Helper/Auth Scripts -->
 <script src="./js/main.js"></script>
 <script src="./js/auth-check.js"></script> <!-- Centralized authentication -->
-<!-- Load Page Specific Script -->
-<script src="./js/account.js"></script>
 
 <script>
 // Load standard navigation components

@@ -19,10 +19,11 @@
     <script src="./assets/frontend/js/jquery.min.js"></script>
     <script charset="utf-8" src="./assets/frontend/shopva/dialog.min.js"></script>
     <script charset="utf-8" src="./assets/frontend/shopva/common.js"></script>
-    <link rel="stylesheet" href="./assets/frontend/shopva/layer.css">
-    <script src="./assets/frontend/shopva/layer.js"></script>
-    <!-- Custom CSS for shared styles -->
-    <link rel="stylesheet" href="css/task-account-styles.css">
+    <link rel="stylesheet" href="./assets/frontend/shopva/layer.css">    <script src="./assets/frontend/shopva/layer.js"></script>    <!-- Custom CSS for shared styles -->
+    <link rel="stylesheet" href="css/task-account-styles.css">    <!-- Drive unified styles -->
+    <link rel="stylesheet" href="css/drive-unified-styles.css">
+    <!-- Simple automatic drive progress -->
+    <link rel="stylesheet" href="css/simple-drive-progress.css">
 </head>
 <body>
 
@@ -48,7 +49,9 @@
 </header>
 
 <main class="main-content">
-    <div class="container">        <!-- Dashboard Stats -->
+    <div class="container">        
+        
+        <!-- Dashboard Stats -->
         <div class="stats-grid">
             <div class="app-card animate-fade-in-up enhanced-hover">
                 <div class="stat-icon">
@@ -80,26 +83,19 @@
             <div class="app-card animate-fade-in-up enhanced-hover">
                 <div class="stat-icon warning">
                     <i class="fas fa-tasks"></i>
-                </div>
-                <div class="stat-content">
-                    <div class="stat-label">Tasks Completed</div>
+                </div>                <div class="stat-content">
+                    <div class="stat-label">Original Tasks Completed</div>
                     <div class="stat-value">
                         <span id="tasks-count">0 / 45</span>
                     </div>
                 </div>
             </div>
-        </div>        <!-- Progress Section -->
-        <div class="progress-section animate-slide-in-right">
-            <div class="app-card enhanced-hover">
-                <div class="progress-header">
-                    <h3 class="text-shadow">Drive Progress</h3>
-                    <span id="progress-text" class="progress-status">Drive starting...</span>
-                </div>
-                <div class="modern-progress">
-                    <div id="drive-progress-bar" class="progress-fill glow" style="width: 0%"></div>
-                </div>
+        </div>        <!-- Simple Drive Progress Section -->
+        <div class="simple-progress-section">
+            <div id="simple-drive-progress">
+                <!-- Simple automatic drive progress will be rendered here -->
             </div>
-        </div>        <!-- Task Controls -->
+        </div><!-- Task Controls -->
         <div class="task-controls animate-bounce-in">
             <input type="hidden" name="user_status" id="user_status" value="1">
             <button class="btn-modern btn-primary btn-lg enhanced-focus pulse" id="autoStart">
@@ -376,6 +372,31 @@
 <!-- Load Helper/Auth Scripts -->
 <script src="./js/main.js"></script>
 <script src="./js/auth-check.js"></script> <!-- Centralized authentication -->
+
+<!-- Drive unified product renderer -->
+<script src="./js/drive-product-renderer.js"></script>
+
+<!-- Enhanced order progress component -->
+<script src="./js/simple-drive-progress.js"></script>
+
+<!-- Order progress integration -->
+<!-- Simple drive progress auto-sync -->
+<script>
+// Initialize simple drive progress when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    // Get user tier from global data or default to bronze
+    const userTier = window.globalAuthData?.user?.tier || 'bronze';
+    
+    // Initialize simple drive progress
+    const driveProgress = initializeDriveProgress('simple-drive-progress', {
+        tier: userTier,
+        currentProgress: window.tasksCompleted || 0,
+        totalCommission: window.totalDriveCommission || 0
+    });
+    
+    console.log('Simple drive progress initialized for tier:', userTier);
+});
+</script>
 
 <!-- Withdrawable balance -->
 <script src="./js/task.js"></script>
