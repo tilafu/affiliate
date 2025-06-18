@@ -81,7 +81,7 @@ export async function loadDrives() {
         return;
     }
     try {
-        const response = await fetchWithAuth('/admin/drives');
+        const response = await fetchWithAuth('/api/admin/drive-management/drives');
         if (!response.success) {
             console.warn('Failed to load drives:', response);
             showNotification('Failed to load drives data', 'error');
@@ -394,7 +394,6 @@ export function initializeDriveHandlers() {
                 event.preventDefault();
                 if (!userId) {
                     console.error('Reset drive clicked but userId is missing');
-                    showNotification('Error: Could not identify user', 'error');
                     return;
                 }
 

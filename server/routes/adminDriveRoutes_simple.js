@@ -13,7 +13,4 @@ router.put('/drives/:driveId/status', adminDriveController.updateDriveStatus);
 router.post('/drives/:driveId/tasks', adminDriveController.addTaskToDrive);
 router.put('/drives/:driveId/tasks/:taskId/status', adminDriveController.updateTaskStatus);
 
-// Drive Configuration Routes
-router.get('/configurations', adminDriveController.getDriveConfigurations);
-
 module.exports = router;

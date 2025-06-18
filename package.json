@@ -6,9 +6,17 @@
     "pg": "^8.16.0",
     "puppeteer": "^24.6.1",
     "winston": "^3.17.0"
-  },
-  "scripts": {
-    "start": "node server/server.js",
-    "dev": "nodemon server/server.js"
+  },  "scripts": {
+    "start": "cd server && npm run start:both",
+    "start:client": "cd server && npm run start",
+    "start:admin": "cd server && npm run start:admin",
+    "dev": "cd server && npm run dev",
+    "dev:client": "cd server && npm run dev:client",
+    "dev:admin": "cd server && npm run dev:admin",
+    "production": "pm2 start ecosystem.config.js --env production",
+    "production:stop": "pm2 stop all",
+    "production:restart": "pm2 restart all",
+    "production:logs": "pm2 logs",
+    "production:monitor": "pm2 monit"
   }
 }

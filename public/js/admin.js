@@ -74,7 +74,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Helper function for authenticated API calls
 async function fetchWithAuth(endpoint, options = {}) {
-    const token = localStorage.getItem('auth_token');
+    // Use DualAuth system to get admin token, fallback to old system
+    let token;
+    if (typeof DualAuth !== 'undefined') {
+        token = DualAuth.getToken('admin');
+    } else {
+        token = localStorage.getItem('auth_token');
+    }
+    
     const defaultHeaders = {
         'Authorization': `Bearer ${token}`,
         // 'Content-Type': 'application/json' // Default Content-Type will be handled below
@@ -303,6 +310,11 @@ function loadSection(sectionName) {
             loadNotificationCategories();
             loadGeneralNotifications();
             break;
+        case 'tier-management':
+            if (typeof window.tierManagement !== 'undefined') {
+                window.tierManagement.refreshData();
+            }
+            break;
         // Parent sections don't need to load data
         case 'general':
         case 'finance':
@@ -314,7 +326,7 @@ function loadSection(sectionName) {
 // Dashboard Statistics
 async function loadDashboardStats() {
     try {
-        const response = await fetchWithAuth('/admin/stats');
+        const response = await fetchWithAuth('/api/admin/stats');
         if (response.success) {
             document.getElementById('total-users').textContent = response.stats.totalUsers;
             document.getElementById('total-deposits').textContent = `$${response.stats.totalDeposits}`;
@@ -1410,9 +1422,9 @@ let notificationCategories = [];
 // Load and display notification categories
 async function loadNotificationCategories() {
     try {
-        const response = await fetchWithAuth('/admin/notification-categories');
-        if (response.success) {
-            notificationCategories = response.categories;
+        const data = await fetchWithAuth('/api/admin/notification-categories');
+        if (data.success) {
+            notificationCategories = data.categories;
             renderNotificationCategories();
             populateCategoryDropdowns();
         } else {
@@ -1496,7 +1508,7 @@ async function createCategory() {
     };
 
     try {
-        const response = await fetchWithAuth('/admin/notification-categories', {
+        const response = await fetchWithAuth('/api/admin/notification-categories', {
             method: 'POST',
             body: JSON.stringify(categoryData)
         });
@@ -1527,7 +1539,7 @@ async function editCategory(categoryId) {
     const newName = prompt('Enter new category name:', category.name);
     if (newName && newName !== category.name) {
         try {
-            const response = await fetchWithAuth(`/admin/notification-categories/${categoryId}`, {
+            const response = await fetchWithAuth(`/api/admin/notification-categories/${categoryId}`, {
                 method: 'PUT',
                 body: JSON.stringify({ name: newName })
             });
@@ -1552,7 +1564,7 @@ async function deleteCategory(categoryId) {
     }
 
     try {
-        const response = await fetchWithAuth(`/admin/notification-categories/${categoryId}`, {
+        const response = await fetchWithAuth(`/api/admin/notification-categories/${categoryId}`, {
             method: 'DELETE'
         });
 

@@ -1,15 +1,14 @@
 require('dotenv').config();
-const logger = require('./logger'); // Import logger
+const logger = require('./logger');
 const express = require('express');
 const cors = require('cors');
 const pool = require('./config/db');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 
-
 const app = express();
 const PORT = process.env.PORT || 3000;
-const { calculateCommission } = require('./utils/commission'); // Import commission helper
+const { calculateCommission } = require('./utils/commission');
 
 // Middleware
 app.use(cors());
@@ -20,89 +19,33 @@ app.use(express.static(path.join(__dirname, '../public')));
 
 // Basic health check route
 app.get('/api/health', (req, res) => {
-  res.status(200).json({ status: 'Server is running' });
+  res.status(200).json({ status: 'Client server is running' });
 });
 
 // Define Routes
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/user');
+const driveRoutes = require('./routes/drive');
 const adminRoutes = require('./routes/admin'); // Import admin routes
-const driveRoutes = require('./routes/drive'); // Import drive routes
+const notificationRoutes = require('./routes/notificationRoutes'); // Import notification routes
 const adminDriveRoutes = require('./routes/adminDriveRoutes'); // Import admin drive routes
 
 // Apply routes
 app.use('/api/auth', authRoutes);
-app.use('/api/user', userRoutes); // This will include the support message routes
-app.use('/api/admin', adminRoutes); // Use admin routes
-app.use('/api/drive', driveRoutes); // Use drive routes
-app.use('/api/admin/drive-management', adminDriveRoutes); // Use admin drive routes
-
-// Routes
-// app.use('/api/admin', require('./routes/admin')); // This line is redundant and can be removed if adminRoutes is already used above.
-
-// --- COMMISSION SERVICE TESTING ---
-async function testCommissionService() {
-  const CommissionService = require('./services/commissionService');
-
-  try {
-    // 1. Get test user (admin)
-    const userResult = await pool.query('SELECT id, upliner_id FROM users WHERE username = $1', ['admin']);
-    const testUser = userResult.rows[0];
-if (!testUser) {
-  logger.error('Admin user not found for commission testing.');
-  return;
-    }
-    const userTier = userResult.rows[0].tier || 'bronze'; // Get user tier
-
-    // 2. Get test product (Basic Data Drive) - Remove commission_rate
-    const productResult = await pool.query('SELECT id, price FROM products WHERE name = $1', ['Basic Data Drive']);
-    const testProduct = productResult.rows[0];
-if (!testProduct) {
-  logger.error('Basic Data Drive product not found for commission testing.');
-  return;
-}
-
-    // Calculate commission based on tier for testing
-    const testCommission = calculateCommission(testProduct.price, userTier);
-
-logger.info('--- Testing Direct Drive Commission ---');
-    // Pass calculated commission or let the service calculate it internally if it fetches tier
-    // Assuming CommissionService.calculateDirectDriveCommission now fetches tier internally or accepts it
-    await CommissionService.calculateDirectDriveCommission(
-      testUser.id,
-      testProduct.id,
-      testProduct.price
-      // testCommission // Pass calculated commission if needed by the service
-    );
-
-    // Upline commission should also be handled internally by the service based on tiers
-
-logger.info('--- Testing Training Account Commission ---');
-    await CommissionService.calculateTrainingCommission(
-      testUser.id,
-      testProduct.id,
-      testProduct.price,
-      0.25
-    );
-
-logger.info('--- Testing Training Cap Check & Transfer ---');
-    await CommissionService.checkAndTransferTrainingCap(testUser.id);
-  } catch (error) {
-    logger.error('Commission service testing error:', error);
-  }
-}
-// --- END COMMISSION SERVICE TESTING ---
+app.use('/api/user', userRoutes);
+app.use('/api/drive', driveRoutes);
+app.use('/api/admin', adminRoutes); // Mount admin routes
+app.use('/api/admin', notificationRoutes); // Mount notification routes under /api/admin
+app.use('/api/admin/drive-management', adminDriveRoutes); // Mount admin drive routes
 
 // Start server
 app.listen(PORT, () => {
-  logger.info(`Server running on port ${PORT}`);
+  logger.info(`Client server running on port ${PORT}`);
   pool.query('SELECT NOW()', (err, res) => {
     if (err) {
       logger.error('Database connection error:', err);
     } else {
-      logger.info('Database connected:', res.rows[0].now);
+      logger.info('Client server database connected:', res.rows[0].now);
     }
   });
-
-  testCommissionService(); // Run the test function after server starts
 });

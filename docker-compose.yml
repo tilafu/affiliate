@@ -1,0 +1,67 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15
+    container_name: affiliate-db
+    environment:
+      POSTGRES_DB: affiliate_db
+      POSTGRES_USER: ${DB_USER:-affiliate_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-secure_password}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./sql:/docker-entrypoint-initdb.d
+    ports:
+      - "5432:5432"
+    networks:
+      - affiliate-network
+    restart: unless-stopped
+
+  # Affiliate Application (Client + Admin)
+  affiliate-app:
+    build: .
+    container_name: affiliate-app
+    environment:
+      NODE_ENV: production
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: affiliate_db
+      DB_USER: ${DB_USER:-affiliate_user}
+      DB_PASSWORD: ${DB_PASSWORD:-secure_password}
+      JWT_SECRET: ${JWT_SECRET:-your-jwt-secret}
+      PORT: 3000
+      ADMIN_PORT: 3001
+    ports:
+      - "3000:3000"
+      - "3001:3001"
+    depends_on:
+      - postgres
+    networks:
+      - affiliate-network
+    restart: unless-stopped
+    volumes:
+      - ./logs:/app/logs
+
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    container_name: affiliate-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+      - ./ssl:/etc/ssl/certs
+    depends_on:
+      - affiliate-app
+    networks:
+      - affiliate-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+
+networks:
+  affiliate-network:
+    driver: bridge

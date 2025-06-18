@@ -126,10 +126,10 @@
                 </div>
             </div>
             <div class="has-submenu">
-                <a href="#" class="nav-link">Operations</a>
-                <div class="sub-menu">
+                <a href="#" class="nav-link">Operations</a>                <div class="sub-menu">
                     <a href="#" class="nav-link" data-section="drives">Data Drives</a>
                     <a href="#" class="nav-link" data-section="drive-configurations">Drive Configurations</a> <!-- New Link -->
+                    <a href="#" class="nav-link" data-section="tier-management">Tier Management</a>
                     <a href="#" class="nav-link" data-section="products">Products</a>
                 </div>
             </div>
@@ -629,20 +629,152 @@
                     <div class="form-group">
                         <textarea id="reply-message" class="form-control" rows="3"></textarea>
                     </div>
-                    <button id="send-reply-button" class="btn btn-primary mt-3">Send Reply</button>
+                    <button id="send-reply-button" class="btn btn-primary mt-3">Send Reply</button>                </div>
+            </div>
+        </section>
+
+        <!-- Tier Management Section -->
+        <section id="tier-management-section" class="section" style="display: none;">
+            <div class="container-fluid">
+                <div class="row">
+                    <div class="col-12">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h2><i class="fas fa-layer-group"></i> Tier Management</h2>
+                            <div>
+                                <button id="newTierBtn" class="btn btn-success me-2">
+                                    <i class="fas fa-plus"></i> New Tier
+                                </button>
+                                <button id="refreshTiersBtn" class="btn btn-info">
+                                    <i class="fas fa-sync"></i> Refresh
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Statistics Cards -->
+                        <div class="row mb-4" id="tierStatsContainer">
+                            <!-- Statistics will be loaded here -->
+                        </div>
+
+                        <!-- Tier Configuration Form -->
+                        <div class="card mb-4" id="tierFormCard" style="display: none;">
+                            <div class="card-header">
+                                <h5 class="mb-0" id="tierFormTitle">Create New Tier</h5>
+                            </div>
+                            <div class="card-body">
+                                <form id="tierConfigForm">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="form-group mb-3">
+                                                <label for="tierName">Tier Name *</label>
+                                                <input type="text" class="form-control" id="tierName" name="tier_name" required>
+                                            </div>
+                                            <div class="form-group mb-3">
+                                                <label for="quantityLimit">Quantity Limit *</label>
+                                                <input type="number" class="form-control" id="quantityLimit" name="quantity_limit" min="1" required>
+                                            </div>
+                                            <div class="form-group mb-3">
+                                                <label for="numSingleTasks">Number of Single Tasks *</label>
+                                                <input type="number" class="form-control" id="numSingleTasks" name="num_single_tasks" min="0" required>
+                                            </div>
+                                            <div class="form-group mb-3">
+                                                <label for="numComboTasks">Number of Combo Tasks</label>
+                                                <input type="number" class="form-control" id="numComboTasks" name="num_combo_tasks" min="0" value="0">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-group mb-3">
+                                                <label for="minPriceSingle">Min Price Single ($)</label>
+                                                <input type="number" class="form-control" id="minPriceSingle" name="min_price_single" min="0" step="0.01" value="0">
+                                            </div>
+                                            <div class="form-group mb-3">
+                                                <label for="maxPriceSingle">Max Price Single ($)</label>
+                                                <input type="number" class="form-control" id="maxPriceSingle" name="max_price_single" min="0" step="0.01" value="100">
+                                            </div>
+                                            <div class="form-group mb-3">
+                                                <label for="minPriceCombo">Min Price Combo ($)</label>
+                                                <input type="number" class="form-control" id="minPriceCombo" name="min_price_combo" min="0" step="0.01" value="0">
+                                            </div>
+                                            <div class="form-group mb-3">
+                                                <label for="maxPriceCombo">Max Price Combo ($)</label>
+                                                <input type="number" class="form-control" id="maxPriceCombo" name="max_price_combo" min="0" step="0.01" value="500">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="form-group mb-3">
+                                                <label for="commissionRate">Commission Rate (%)</label>
+                                                <input type="number" class="form-control" id="commissionRate" name="commission_rate" min="0" max="100" step="0.01" value="5">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-group mb-3">
+                                                <label for="isActive">Status</label>
+                                                <select class="form-control" id="isActive" name="is_active">
+                                                    <option value="true">Active</option>
+                                                    <option value="false">Inactive</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="form-group mb-3">
+                                        <label for="tierDescription">Description</label>
+                                        <textarea class="form-control" id="tierDescription" name="description" rows="3"></textarea>
+                                    </div>
+                                    <div class="form-actions">
+                                        <button type="button" id="saveTierBtn" class="btn btn-primary">
+                                            <i class="fas fa-save"></i> Save Tier
+                                        </button>
+                                        <button type="button" id="cancelEditBtn" class="btn btn-secondary ms-2">
+                                            <i class="fas fa-times"></i> Cancel
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+
+                        <!-- Tier Configurations Table -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0">Tier Configurations</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-striped" id="tierConfigTable">
+                                        <thead>
+                                            <tr>
+                                                <th>Tier Name</th>
+                                                <th>Quantity Limit</th>
+                                                <th>Single Tasks</th>
+                                                <th>Combo Tasks</th>
+                                                <th>Price Range (Single)</th>
+                                                <th>Price Range (Combo)</th>
+                                                <th>Commission</th>
+                                                <th>Status</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="tierConfigTableBody">
+                                            <!-- Tier configurations will be loaded here -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </section>
     </div>
 
     <!-- Background Overlay for Mobile -->
-    <div class="bg-overlay"></div>    <!-- Scripts -->    <script src="./assets/js/jquery.min.js"></script>
-    <script src="./assets/js/bootstrap.bundle.min.js"></script>    <script src="./js/main.js"></script>
+    <div class="bg-overlay"></div>    <!-- Scripts -->    <script src="./assets/js/jquery.min.js"></script>    <script src="./assets/js/bootstrap.bundle.min.js"></script>    <script src="./js/main.js"></script>
+    <script src="./js/dual-auth.js"></script>
     <script src="./js/auth.js"></script> <!-- Add centralized logout handling -->
-    <script src="./js/auth-check.js"></script> <!-- Centralized authentication -->
-    <script type="module" src="./js/admin.js"></script>
+    <script src="./js/auth-check.js"></script> <!-- Centralized authentication -->    <script type="module" src="./js/admin.js"></script>
     <script type="module" src="./js/admin-drives.js"></script> <!-- Ensure admin-drives.js is loaded as a module if not already -->
     <script type="module" src="./js/enhanced-combo-creation.js"></script>
+    <script src="./js/tier-management.js"></script>
 
     <!-- Modal for User Drive Progress -->
 <div class="modal fade" id="userDriveProgressModal" tabindex="-1" aria-labelledby="userDriveProgressModalLabel" aria-hidden="true">

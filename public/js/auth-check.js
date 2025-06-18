@@ -2,7 +2,7 @@
 // This file provides reusable authentication utilities
 
 /**
- * Central authentication check function
+ * Central authentication check function with dual auth support
  * @param {Object} options - Configuration options
  * @param {boolean} options.adminRequired - Whether admin role is required
  * @param {string} options.redirectPath - Custom redirect path (default: 'login.html')
@@ -16,7 +16,21 @@ function checkAuthentication(options = {}) {
         silent = false
     } = options;
 
-    // Get token from localStorage
+    // Use DualAuth if available, otherwise fallback to legacy system
+    if (typeof DualAuth !== 'undefined') {
+        // Determine panel type based on current page
+        const currentPage = window.location.pathname.split('/').pop();
+        const panelType = currentPage === 'admin.html' ? 'admin' : 'client';
+        
+        return DualAuth.checkAuthentication({
+            panelType,
+            adminRequired,
+            redirectPath,
+            silent
+        });
+    }
+
+    // Legacy authentication system (fallback)
     const token = localStorage.getItem('auth_token');
     
     if (!token) {
@@ -74,7 +88,8 @@ function checkAuthentication(options = {}) {
             token,
             user: userData,
             isAdmin: userData.role === 'admin'
-        };    } catch (error) {
+        };
+    } catch (error) {
         console.error('Error parsing token:', error);
         // Preserve drive session data before clearing localStorage
         const driveSessionData = localStorage.getItem('current_drive_session');
@@ -196,6 +211,64 @@ function enhancedFetchWithAuth(url, options = {}) {
     });
 }
 
+/**
+ * Make authenticated API request with appropriate token
+ * @param {string} url - API endpoint URL
+ * @param {Object} options - Fetch options
+ * @param {string} panelType - 'client' or 'admin' (auto-detected if not provided)
+ * @returns {Promise} Fetch promise
+ */
+async function authenticatedFetch(url, options = {}, panelType = null) {
+    // Auto-detect panel type if not provided
+    if (!panelType) {
+        const currentPage = window.location.pathname.split('/').pop();
+        panelType = currentPage === 'admin.html' ? 'admin' : 'client';
+    }
+    
+    // Use DualAuth if available
+    if (typeof DualAuth !== 'undefined') {
+        return DualAuth.authenticatedFetch(url, options, panelType);
+    }
+    
+    // Fallback to legacy token system
+    const token = localStorage.getItem('auth_token');
+    if (!token) {
+        throw new Error('No authentication token available');
+    }
+    
+    const headers = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+        ...options.headers
+    };
+    
+    return fetch(url, {
+        ...options,
+        headers
+    });
+}
+
+/**
+ * Get current authentication token for the appropriate panel
+ * @param {string} panelType - 'client' or 'admin' (auto-detected if not provided)
+ * @returns {string|null} Token or null if not found
+ */
+function getAuthToken(panelType = null) {
+    // Auto-detect panel type if not provided
+    if (!panelType) {
+        const currentPage = window.location.pathname.split('/').pop();
+        panelType = currentPage === 'admin.html' ? 'admin' : 'client';
+    }
+    
+    // Use DualAuth if available
+    if (typeof DualAuth !== 'undefined') {
+        return DualAuth.getToken(panelType);
+    }
+    
+    // Fallback to legacy system
+    return localStorage.getItem('auth_token');
+}
+
 // Make functions available globally
 window.checkAuthentication = checkAuthentication;
 window.requireAuth = requireAuth;
@@ -203,3 +276,5 @@ window.isAuthenticated = isAuthenticated;
 window.isAdmin = isAdmin;
 window.clearAuthAndRedirect = clearAuthAndRedirect;
 window.enhancedFetchWithAuth = enhancedFetchWithAuth;
+window.authenticatedFetch = authenticatedFetch;
+window.getAuthToken = getAuthToken;

@@ -14,7 +14,7 @@ const getUserProfile = async (req, res) => {
   try {
     // Fetch full user details including registration date and mobile
     const userResult = await pool.query(
-      'SELECT id, username, email, referral_code, tier, created_at FROM users WHERE id = $1',
+      'SELECT id, username, email, referral_code, tier, mobile_number, created_at FROM users WHERE id = $1',
       [userId]
     );
 
@@ -74,7 +74,7 @@ const updateUserProfile = async (req, res) => {
 
   try {
     const updateResult = await pool.query(
-      'UPDATE users SET mobile_number = $1 WHERE id = $2 RETURNING id, username, email, created_at, tier, referral_code',
+      'UPDATE users SET mobile_number = $1 WHERE id = $2 RETURNING id, username, email, mobile_number, created_at, tier, referral_code',
       [mobile_number, userId]
     );
 

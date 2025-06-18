@@ -1,9 +1,14 @@
 {
   "name": "server",
   "version": "1.0.0",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+  "main": "index.js",  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js",
+    "start:admin": "node adminServer.js",
+    "start:both": "concurrently \"npm run start\" \"npm run start:admin\"",
+    "dev": "concurrently \"nodemon server.js\" \"nodemon adminServer.js\"",
+    "dev:client": "nodemon server.js",
+    "dev:admin": "nodemon adminServer.js"
   },
   "keywords": [],
   "author": "",
@@ -18,5 +23,9 @@
     "jsonwebtoken": "^9.0.2",
     "pg": "^8.14.1",
     "uuid": "^11.1.0"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "nodemon": "^3.1.10"
   }
 }

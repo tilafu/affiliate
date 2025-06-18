@@ -44,8 +44,7 @@ router.post('/support/messages/reply', protect, admin, adminController.replyToSu
 router.post('/notifications', protect, admin, adminController.sendNotification);
 
 // Enhanced Notification System
-// Notification Categories
-router.get('/notification-categories', protect, admin, adminController.getNotificationCategories);
+// Notification Categories are handled by notificationRoutes.js
 
 // General Notifications
 router.get('/general-notifications', protect, admin, adminController.getGeneralNotifications);

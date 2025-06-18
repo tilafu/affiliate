@@ -41,17 +41,29 @@ async function handleLoginSubmit(event) {
         });
 
         const data = await response.json();
-        console.log('Login API response:', data);
-
-        if (response.ok && data.success) {
-            // Store token and user data
-            localStorage.setItem('auth_token', data.token);
-            localStorage.setItem('user_data', JSON.stringify(data.user)); // Store user details if needed by dashboard
+        console.log('Login API response:', data);        if (response.ok && data.success) {
+            // Use dual auth system to store token and user data
+            const isAdmin = data.user?.role === 'admin';
+            const panelType = isAdmin ? 'admin' : 'client';
+            
+            // Store auth data using DualAuth system
+            if (typeof DualAuth !== 'undefined') {
+                DualAuth.storeAuth(data.token, data.user, panelType);
+                
+                // Also store for both panels if user is admin
+                if (isAdmin) {
+                    DualAuth.storeAuth(data.token, data.user, 'client');
+                }
+            } else {
+                // Fallback to old system if DualAuth not available
+                localStorage.setItem('auth_token', data.token);
+                localStorage.setItem('user_data', JSON.stringify(data.user));
+            }
 
             showNotification('Login successful! Redirecting...', 'success');
             setTimeout(() => {
                 // Redirect based on the role received from the backend
-                const redirectPath = data.user?.role === 'admin' ? 'admin.html' : 'dashboard.html';
+                const redirectPath = isAdmin ? 'admin.html' : 'dashboard.html';
                 window.location.href = redirectPath; // Use root paths as they are served from public
             }, 1000);
         } else {
@@ -189,15 +201,29 @@ function performLogoutProcess() {
   console.log('Performing logout process...');
   
   try {
-    // Get token before clearing
-    const token = localStorage.getItem('auth_token');
-    
     // Preserve drive session data before clearing localStorage
     const driveSessionData = localStorage.getItem('current_drive_session');
     
-    // Clear authentication data
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('user_data');
+    // Determine current panel type based on current page
+    const currentPage = window.location.pathname.split('/').pop();
+    const isAdminPanel = currentPage === 'admin.html';
+    const panelType = isAdminPanel ? 'admin' : 'client';
+    
+    let token;
+    
+    // Clear authentication data using DualAuth if available
+    if (typeof DualAuth !== 'undefined') {
+      token = DualAuth.getToken(panelType);
+      
+      // For admin panel, only clear admin auth, keep client auth
+      // For client panel, only clear client auth, keep admin auth
+      DualAuth.clearAuth(panelType);
+    } else {
+      // Fallback to old system
+      token = localStorage.getItem('auth_token');
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('user_data');
+    }
     
     // Restore drive session data after clearing auth data
     if (driveSessionData) {
