@@ -2180,30 +2180,35 @@ const adminDriveController = {
     getUserDriveProgress,    // Drive Session Management
     getAllDrives: async (req, res) => {
         try {
-            // Fixed SQL query: using correct column names from drive_sessions table
+            // Query to get user-level drive data aggregated across all sessions
             const query = `
                 SELECT 
-                    ds.id as drive_session_id,
-                    ds.user_id,
-                    u.username as user_username,
-                    ds.drive_configuration_id,
-                    dc.name as drive_configuration_name,
-                    ds.status as drive_status,
-                    ds.current_task_set_id,
-                    dts.name as current_task_set_name,
-                    ds.tasks_completed,
-                    ds.tasks_required,
-                    ds.current_user_active_drive_item_id,
-                    ds.started_at,
-                    ds.completed_at,
-                    ds.created_at,
-                    (SELECT COUNT(*) FROM user_active_drive_items uadi WHERE uadi.drive_session_id = ds.id) as total_drive_items,
-                    (SELECT COUNT(*) FROM user_active_drive_items uadi WHERE uadi.drive_session_id = ds.id AND uadi.user_status = 'COMPLETED') as completed_drive_items
-                FROM drive_sessions ds
-                JOIN users u ON ds.user_id = u.id
-                JOIN drive_configurations dc ON ds.drive_configuration_id = dc.id
-                LEFT JOIN drive_task_sets dts ON ds.current_task_set_id = dts.id
-                ORDER BY ds.started_at DESC;
+                    u.id as user_id,
+                    u.username,
+                    u.assigned_drive_configuration_id,
+                    dc.name as assigned_drive_configuration_name,
+                    COALESCE(drive_stats.total_drives, 0) as total_drives,
+                    COALESCE(drive_stats.total_commission, 0) as total_commission,
+                    drive_stats.last_drive,
+                    CASE 
+                        WHEN drive_stats.active_sessions > 0 THEN 'ACTIVE'
+                        WHEN drive_stats.total_drives > 0 THEN 'COMPLETED'
+                        ELSE 'INACTIVE'
+                    END as status
+                FROM users u
+                LEFT JOIN drive_configurations dc ON u.assigned_drive_configuration_id = dc.id
+                LEFT JOIN (
+                    SELECT 
+                        user_id,
+                        COUNT(*) as total_drives,
+                        SUM(commission_earned) as total_commission,
+                        MAX(started_at) as last_drive,
+                        COUNT(CASE WHEN status = 'active' THEN 1 END) as active_sessions
+                    FROM drive_sessions 
+                    GROUP BY user_id
+                ) drive_stats ON u.id = drive_stats.user_id
+                WHERE u.role = 'user'
+                ORDER BY drive_stats.last_drive DESC NULLS LAST, u.username ASC;
             `;
             const result = await pool.query(query);
             
@@ -2213,7 +2218,7 @@ const adminDriveController = {
                 drives: result.rows
             });
         } catch (error) {
-            logger.error('Error fetching all drives (drive sessions):', error);
+            logger.error('Error fetching all drives (user data):', error);
             res.status(500).json({ 
                 success: false,
                 message: 'Failed to fetch drives', 

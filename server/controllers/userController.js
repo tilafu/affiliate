@@ -807,7 +807,36 @@ const getDriveProgress = async (req, res) => {
         // Calculate weekly progress
         const today = new Date().toISOString().split('T')[0];
         const weeklyProgress = progressResult.rows.filter(row => row.is_working_day).length;
-        const todayRecord = progressResult.rows.find(row => row.date === today);
+        const todayRecord = progressResult.rows.find(row => {
+            const recordDate = new Date(row.date).toISOString().split('T')[0];
+            return recordDate === today;
+        });
+
+        // Also check if user has any working days record
+        const workingDaysResult = await pool.query(`
+            SELECT total_working_days, weekly_progress 
+            FROM user_working_days 
+            WHERE user_id = $1
+        `, [userId]);
+
+        const workingDaysData = workingDaysResult.rows[0] || { total_working_days: 0, weekly_progress: 0 };
+
+        // If no data exists, create default entries
+        if (progressResult.rows.length === 0 && workingDaysResult.rows.length === 0) {
+            // Create default working days record
+            await pool.query(`
+                INSERT INTO user_working_days (user_id, total_working_days, weekly_progress)
+                VALUES ($1, 0, 0)
+                ON CONFLICT (user_id) DO NOTHING
+            `, [userId]);
+
+            // Create default drive progress for today
+            await pool.query(`
+                INSERT INTO user_drive_progress (user_id, date, drives_completed, is_working_day)
+                VALUES ($1, $2, 0, false)
+                ON CONFLICT (user_id, date) DO NOTHING
+            `, [userId, today]);
+        }
 
         res.json({
             success: true,
@@ -816,10 +845,10 @@ const getDriveProgress = async (req, res) => {
                 is_working_day: todayRecord ? todayRecord.is_working_day : false
             },
             weekly: {
-                progress: weeklyProgress,
+                progress: Math.max(weeklyProgress, workingDaysData.weekly_progress || 0),
                 total: 7
             },
-            total_working_days: weeklyProgress
+            total_working_days: workingDaysData.total_working_days || 0
         });
     } catch (error) {
         logger.error('Error fetching drive progress:', { userId, error: error.message, stack: error.stack });
@@ -875,6 +904,53 @@ const createCombo = async (req, res) => {
     }
 };
 
+/**
+ * @desc    Get high-value products for dashboard carousel (price > 5000)
+ * @route   GET /api/user/products/highvalue
+ * @access  Private
+ */
+const getHighValueProducts = async (req, res) => {
+  try {
+    const highValueQuery = `
+      SELECT 
+        id,
+        name,
+        price,
+        image_url,
+        description
+      FROM products 
+      WHERE price > 5000 
+      AND status = 'active'
+      AND is_active = true
+      ORDER BY price DESC
+      LIMIT 20
+    `;
+
+    const result = await pool.query(highValueQuery);
+    
+    // Calculate commission for each product (assume 10% for simplicity)
+    const productsWithCommission = result.rows.map(product => {
+      const price = parseFloat(product.price);
+      const commission = (price * 0.10).toFixed(2);
+      
+      return {
+        ...product,
+        price: price.toFixed(2),
+        commission: commission,
+        image_url: product.image_url || '/assets/uploads/products/newegg-1.jpg'
+      };
+    });
+
+    res.json({ 
+      success: true, 
+      products: productsWithCommission,
+      count: productsWithCommission.length 
+    });
+  } catch (error) {
+    logger.error('Error fetching high-value products:', { error: error.message, stack: error.stack });
+    res.status(500).json({ success: false, message: 'Server error fetching high-value products' });
+  }
+};
 
 module.exports = {
   getUserDeposits,
@@ -896,6 +972,7 @@ module.exports = {
   getUserTotalDeposits,
   getDriveProgress,
   getActiveProducts,
-  createCombo
+  createCombo,
+  getHighValueProducts
   // Other user-related functions
 };

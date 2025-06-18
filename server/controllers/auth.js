@@ -119,12 +119,18 @@ const register = async (req, res) => {
 
 const login = async (req, res) => {
   const { username, password } = req.body; // Can be username or email
+  
+  // Add logging for login attempt
+  console.log(`[LOGIN ATTEMPT] Username/Email: ${username}, IP: ${req.ip || req.connection.remoteAddress}, Time: ${new Date().toISOString()}`);
 
   if (!username || !password) {
+    console.log(`[LOGIN ERROR] Missing credentials - Username: ${!!username}, Password: ${!!password}`);
     return res.status(400).json({ success: false, message: 'Username/email and password are required' });
   }
 
   try {
+    console.log(`[LOGIN] Looking up user: ${username}`);
+    
     // Find user by username or email, include role
     const userResult = await pool.query(
       'SELECT id, username, email, password_hash, referral_code, tier, role FROM users WHERE username = $1 OR email = $1',
@@ -132,22 +138,28 @@ const login = async (req, res) => {
     );
 
     if (userResult.rows.length === 0) {
+      console.log(`[LOGIN FAILED] User not found: ${username}`);
       return res.status(401).json({ success: false, message: 'Invalid credentials' });
     }
 
     const user = userResult.rows[0];
+    console.log(`[LOGIN] User found - ID: ${user.id}, Username: ${user.username}, Role: ${user.role}`);
 
     // Compare password with stored hash
     const isMatch = await bcrypt.compare(password, user.password_hash);
     if (!isMatch) {
+      console.log(`[LOGIN FAILED] Invalid password for user: ${user.username} (ID: ${user.id})`);
       return res.status(401).json({ success: false, message: 'Invalid credentials' });
     }
+
+    console.log(`[LOGIN SUCCESS] Password verified for user: ${user.username} (ID: ${user.id})`);
 
     // Check if training account needs closing (optional, could be done elsewhere)
     // This logic might be better placed in a user service or middleware after login
     // For now, keeping it simple
 
     // Generate JWT token
+    console.log(`[LOGIN] Generating JWT token for user: ${user.username}`);
     const token = jwt.sign(
       { userId: user.id, username: user.username },
       process.env.JWT_SECRET,
@@ -155,13 +167,16 @@ const login = async (req, res) => {
     );
 
     // Fetch account balances (optional, could be separate endpoint)
+    console.log(`[LOGIN] Fetching account balances for user: ${user.username}`);
     const accountsResult = await pool.query('SELECT type, balance FROM accounts WHERE user_id = $1', [user.id]);
     const accounts = accountsResult.rows.reduce((acc, row) => {
       acc[row.type] = { balance: parseFloat(row.balance) };
       return acc;
     }, {});
+    
+    console.log(`[LOGIN] Found ${accountsResult.rows.length} accounts for user: ${user.username}`);
 
-    res.status(200).json({
+    const responseData = {
       success: true,
       token,
       user: {
@@ -174,10 +189,14 @@ const login = async (req, res) => {
         accounts: accounts,
       },
       message: 'Login successful!'
-    });
+    };
+    
+    console.log(`[LOGIN COMPLETE] Successfully logged in user: ${user.username} (ID: ${user.id}), Role: ${user.role}, Token length: ${token.length}`);
+
+    res.status(200).json(responseData);
 
   } catch (error) {
-    console.error('Login error:', error);
+    console.error(`[LOGIN ERROR] Server error for username: ${username}`, error);
     res.status(500).json({ success: false, message: 'Server error during login' });
   }
 };

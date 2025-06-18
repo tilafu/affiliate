@@ -22,7 +22,8 @@ const {
     requestWithdrawal, // Import new function
     getDriveProgress, // Import new function
     getActiveProducts, // Import new function
-    createCombo // Import new function
+    createCombo, // Import new function
+    getHighValueProducts // Import new function
 } = require('../controllers/userController');
 
 const router = express.Router();
@@ -159,6 +160,11 @@ router.get('/drive-progress', protect, getDriveProgress);
 // @desc    Get active products available for combo creation
 // @access  Private
 router.get('/products/active', protect, getActiveProducts);
+
+// @route   GET /api/user/products/highvalue
+// @desc    Get high-value products for dashboard carousel (price > 5000)
+// @access  Private
+router.get('/products/highvalue', protect, getHighValueProducts);
 
 // @route   POST /api/user/combo/create
 // @desc    Create a combo for current user
