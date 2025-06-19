@@ -560,18 +560,43 @@
             color: var(--text-secondary);
             font-size: 12px;
             margin: 0;
-        }
+        }        /* Product Carousel */
+#product-carousel-container { 
+    position: relative; 
+    width: 100%; 
+    margin: 32px auto 24px auto; 
+    max-width: 1200px; 
+    overflow: hidden; /* Hide overflow for seamless loop */
+}
 
-        /* Product Carousel */
-#product-carousel-container { position:relative; width:100%; margin:32px auto 24px auto; max-width:1200px; }
-.carousel-title { font-size:1.3rem; font-weight:600; margin-bottom:12px; }
+.carousel-title { 
+    font-size: 1.3rem; 
+    font-weight: 600; 
+    margin-bottom: 12px; 
+}
+
 #product-carousel {
-  display:flex;
-  align-items:center;
-  overflow-x:auto;
-  gap:24px;
-  padding:12px 0;
-  scroll-behavior:smooth;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    padding: 12px 0;
+    width: fit-content;
+    animation: infinite-scroll 40s linear infinite;
+}
+
+/* Pause animation on hover */
+#product-carousel:hover {
+    animation-play-state: paused;
+}
+
+/* Keyframe for infinite scroll */
+@keyframes infinite-scroll {
+    0% {
+        transform: translateX(0);
+    }
+    100% {
+        transform: translateX(calc(-100% / 2)); /* Move by half width since we duplicate items */
+    }
 }
 .product-card {
   min-width:220px;
@@ -672,7 +697,15 @@
   font-size:1.5rem;
   cursor:pointer;
   box-shadow:0 2px 8px #0002;
+  transition: all 0.3s ease;
 }
+
+#carousel-left:hover, #carousel-right:hover {
+  background: #f8f9fa;
+  transform: translateY(-50%) scale(1.1);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
 #carousel-left {
   left:10px;
   transform:translateY(-50%);
@@ -1322,9 +1355,8 @@
     console.log('No high-value products found');
     document.getElementById('product-carousel-container').style.display = 'none';
     return;
-  }
-    console.log(`Rendering ${highValue.length} products in carousel`);
-    // Render product cards
+  }  console.log(`Rendering ${highValue.length} products in carousel`);
+  // Render product cards with duplication for seamless loop
   const carousel = document.getElementById('product-carousel');
   if (!carousel) {
     console.error('Carousel container not found');
@@ -1337,15 +1369,16 @@
   carousel.innerHTML = '';
   
   console.log('Carousel cleared, starting to render products...');
-  highValue.forEach((p, index) => {
-    console.log(`Rendering product ${index + 1}: ${p.name} (ID: ${p.id})`);
-    const price = parseFloat(p.price || 0);
-    const commission = p.commission ? `$${parseFloat(p.commission).toFixed(2)}` : `$${(price * 0.10).toFixed(2)}`;
-    const name = (p.name||'').split(' ').slice(0,5).join(' ');
-    const imgSrc = p.image_url || '/assets/uploads/products/newegg-1.jpg';
+  
+  // Function to create a product card
+  function createProductCard(product, index, isClone = false) {
+    const price = parseFloat(product.price || 0);
+    const commission = product.commission ? `$${parseFloat(product.commission).toFixed(2)}` : `$${(price * 0.10).toFixed(2)}`;
+    const name = (product.name||'').split(' ').slice(0,5).join(' ');
+    const imgSrc = product.image_url || '/assets/uploads/products/newegg-1.jpg';
     const card = document.createElement('div');
-    card.className = 'product-card';
-    card.setAttribute('data-product-id', p.id);
+    card.className = `product-card ${isClone ? 'clone' : 'original'}`;
+    card.setAttribute('data-product-id', product.id);
     card.style.cursor = 'pointer';
     card.addEventListener('click', () => {
       window.location.href = 'task.html';
@@ -1357,39 +1390,91 @@
       <div class="product-price-btn">$${price.toLocaleString()}</div>
       <div class="product-commission-btn">Earn ${commission}</div>
     `;
+    return card;
+  }
+  
+  // Add original items first
+  highValue.forEach((product, index) => {
+    console.log(`Rendering product ${index + 1}: ${product.name} (ID: ${product.id})`);
+    const card = createProductCard(product, index, false);
     carousel.appendChild(card);
   });
+  
+  // Add clones of all items for seamless loop (this creates the infinite effect)
+  highValue.forEach((product, index) => {
+    console.log(`Rendering clone ${index + 1}: ${product.name} (ID: ${product.id})`);
+    const card = createProductCard(product, index, true);
+    carousel.appendChild(card);
+  });
+  
   console.log('Carousel rendered successfully');
   console.log('Final carousel children count:', carousel.children.length);
+  
+  // Calculate the animation duration based on number of products for consistent speed
+  const cardWidth = 244; // 220px + 24px gap
+  const totalWidth = highValue.length * cardWidth;
+  const animationDuration = Math.max(20, totalWidth / 30); // Adjust speed as needed
+  
+  // Apply the calculated animation duration
+  carousel.style.animationDuration = `${animationDuration}s`;
+  
+  console.log(`Animation duration set to: ${animationDuration}s for ${highValue.length} products`);
+    // Set initial position to start of original items (skip the cloned items at the beginning)
+  const cardWidth = 260; // approximate width of each card including margin
+  const initialOffset = cloneCount * cardWidth;
+  carousel.scrollLeft = initialOffset;
 
-  // Carousel scroll logic
+  // Carousel scroll logic with infinite loop
   const scrollAmount = 260;
   const leftButton = document.getElementById('carousel-left');
   const rightButton = document.getElementById('carousel-right');
   
+  // Calculate dimensions for infinite loop
+  const totalOriginalWidth = highValue.length * cardWidth;
+  const cloneWidth = cloneCount * cardWidth;
+    // Function to handle infinite loop transitions
+  function handleInfiniteLoop() {
+    const scrollLeft = carousel.scrollLeft;
+    const maxScrollLeft = carousel.scrollWidth - carousel.clientWidth;
+    
+    console.log('Checking infinite loop:', { scrollLeft, maxScrollLeft, cloneWidth, totalOriginalWidth });
+    
+    // If we've scrolled past the end (into the cloned items at the end)
+    if (scrollLeft >= maxScrollLeft - 20) { // Increased buffer for more reliable detection
+      console.log('Jumping to start of original items');
+      // Jump to the beginning of original items (skip clones at start)
+      carousel.scrollLeft = cloneWidth;
+    }
+    // If we've scrolled before the beginning (into the cloned items at the start)
+    else if (scrollLeft <= 20) { // Increased buffer
+      console.log('Jumping to end of original items');
+      // Jump to the end of original items (before clones at end)
+      carousel.scrollLeft = cloneWidth + totalOriginalWidth - scrollAmount;
+    }
+  }
+  
   if (leftButton && rightButton) {
     leftButton.onclick = () => {
       carousel.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
+      // Check for infinite loop after scroll animation
+      setTimeout(handleInfiniteLoop, 300);
     };
     rightButton.onclick = () => {
       carousel.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+      // Check for infinite loop after scroll animation
+      setTimeout(handleInfiniteLoop, 300);
     };
     console.log('Carousel navigation buttons initialized');
     
-    // Auto-rotation functionality
+    // Auto-rotation functionality with infinite loop
     let autoRotateInterval;
     const autoRotateDelay = 4000; // 4 seconds
     
     function startAutoRotate() {
       autoRotateInterval = setInterval(() => {
-        const maxScroll = carousel.scrollWidth - carousel.clientWidth;
-        if (carousel.scrollLeft >= maxScroll) {
-          // Reset to beginning when reaching the end
-          carousel.scrollTo({ left: 0, behavior: 'smooth' });
-        } else {
-          // Scroll to next set of products
-          carousel.scrollBy({ left: scrollAmount, behavior: 'smooth' });
-        }
+        carousel.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+        // Handle infinite loop after scroll
+        setTimeout(handleInfiniteLoop, 300);
       }, autoRotateDelay);
     }
     
@@ -1398,20 +1483,25 @@
         clearInterval(autoRotateInterval);
         autoRotateInterval = null;
       }
-    }
-    
+    }    
     // Start auto-rotation
     startAutoRotate();
+      // Add scroll event listener for continuous infinite loop handling
+    let scrollTimeout;
+    carousel.addEventListener('scroll', () => {
+      // Handle infinite loop on manual scroll too
+      clearTimeout(scrollTimeout);
+      scrollTimeout = setTimeout(handleInfiniteLoop, 100); // Allow scroll to settle
+      
+      // Pause and restart auto-rotation
+      stopAutoRotate();
+      clearTimeout(scrollTimeout);
+      scrollTimeout = setTimeout(startAutoRotate, 2000); // Resume after 2 seconds of inactivity
+    });
     
     // Pause auto-rotation on hover
     carousel.addEventListener('mouseenter', stopAutoRotate);
     carousel.addEventListener('mouseleave', startAutoRotate);
-    
-    // Pause auto-rotation when user manually scrolls
-    carousel.addEventListener('scroll', () => {
-      stopAutoRotate();
-      setTimeout(startAutoRotate, 2000); // Resume after 2 seconds of inactivity
-    });
     
     // Pause auto-rotation when navigation buttons are used
     leftButton.addEventListener('click', () => {

@@ -9,34 +9,115 @@ class TierManagement {
         this.editingId = null;
         
         this.init();
+    }    // Helper method for safe element selection
+    safeGetElement(id, logError = true) {
+        const element = document.getElementById(id);
+        if (!element && logError) {
+            console.warn(`Element with ID '${id}' not found`);
+        }
+        return element;
     }
 
-    async init() {
+    // Helper method for safe element value access
+    getElementValue(id, defaultValue = '') {
+        const element = this.safeGetElement(id);
+        return element ? element.value : defaultValue;
+    }
+
+    // Helper method for safe element property setting
+    setElementProperty(id, property, value) {
+        const element = this.safeGetElement(id);
+        if (element) {
+            element[property] = value;
+        }
+        return element;
+    }async init() {
+        // Check authentication before initializing
+        if (!this.checkAuthentication()) {
+            return;
+        }
+        
         this.setupEventListeners();
         await this.loadTierConfigurations();
         await this.loadTierStatistics();
     }
-
-    setupEventListeners() {
+    
+    checkAuthentication() {
+        // Check if user is authenticated and has admin role
+        let isAuthenticated = false;
+        let isAdmin = false;
+        
+        // Try SimpleAuth first
+        if (typeof SimpleAuth !== 'undefined') {
+            isAuthenticated = SimpleAuth.isAuthenticated('admin');
+            isAdmin = SimpleAuth.isAdmin();
+            console.log('TierManagement: SimpleAuth check - authenticated:', isAuthenticated, 'admin:', isAdmin);
+        }
+        
+        // Fallback to basic token check
+        if (!isAuthenticated) {
+            const token = localStorage.getItem('auth_token');
+            const userData = localStorage.getItem('user_data');
+            
+            if (token && userData) {
+                try {
+                    const user = JSON.parse(userData);
+                    isAuthenticated = true;
+                    isAdmin = user.role === 'admin';
+                    console.log('TierManagement: Basic auth check - authenticated:', isAuthenticated, 'admin:', isAdmin);
+                } catch (error) {
+                    console.error('TierManagement: Error parsing user data:', error);
+                }
+            }
+        }
+        
+        if (!isAuthenticated) {
+            console.log('TierManagement: User not authenticated, redirecting to login');
+            this.showError('Please log in to access the admin panel.');
+            window.location.href = 'login.html';
+            return false;
+        }
+        
+        if (!isAdmin) {
+            console.log('TierManagement: User not admin, access denied');
+            this.showError('Admin privileges required to access tier management.');
+            return false;
+        }
+        
+        console.log('TierManagement: Authentication successful');
+        return true;
+    }    setupEventListeners() {
         // Save tier configuration
-        document.getElementById('saveTierBtn').addEventListener('click', () => {
-            this.saveTierConfiguration();
-        });
+        const saveBtn = this.safeGetElement('saveTierBtn');
+        if (saveBtn) {
+            saveBtn.addEventListener('click', () => {
+                this.saveTierConfiguration();
+            });
+        }
 
         // Cancel editing
-        document.getElementById('cancelEditBtn').addEventListener('click', () => {
-            this.cancelEdit();
-        });
+        const cancelBtn = this.safeGetElement('cancelEditBtn');
+        if (cancelBtn) {
+            cancelBtn.addEventListener('click', () => {
+                this.cancelEdit();
+            });
+        }
 
         // New tier button
-        document.getElementById('newTierBtn').addEventListener('click', () => {
-            this.createNewTier();
-        });
+        const newBtn = this.safeGetElement('newTierBtn');
+        if (newBtn) {
+            newBtn.addEventListener('click', () => {
+                this.createNewTier();
+            });
+        }
 
         // Refresh data
-        document.getElementById('refreshTiersBtn').addEventListener('click', () => {
-            this.refreshData();
-        });
+        const refreshBtn = this.safeGetElement('refreshTiersBtn');
+        if (refreshBtn) {
+            refreshBtn.addEventListener('click', () => {
+                this.refreshData();
+            });
+        }
 
         // Form validation
         this.setupFormValidation();
@@ -209,44 +290,71 @@ class TierManagement {
         if (!tier) return;
 
         this.isEditing = true;
-        this.editingId = id;
+        this.editingId = id;        // Populate form with null checks
+        this.setElementProperty('tierName', 'value', tier.tier_name);
+        this.setElementProperty('quantityLimit', 'value', tier.quantity_limit);
+        this.setElementProperty('numSingleTasks', 'value', tier.num_single_tasks || 0);
+        this.setElementProperty('numComboTasks', 'value', tier.num_combo_tasks || 0);
+        this.setElementProperty('minPriceSingle', 'value', tier.min_price_single || 0);
+        this.setElementProperty('maxPriceSingle', 'value', tier.max_price_single || 0);
+        this.setElementProperty('minPriceCombo', 'value', tier.min_price_combo || 0);
+        this.setElementProperty('maxPriceCombo', 'value', tier.max_price_combo || 0);
+        this.setElementProperty('commissionRate', 'value', tier.commission_rate || 0);
+        this.setElementProperty('tierDescription', 'value', tier.description || '');
+        this.setElementProperty('isActive', 'checked', tier.is_active);// Update UI
+        const titleElement = document.getElementById('tierFormTitle');
+        const saveButton = document.getElementById('saveTierBtn');
+        const cancelButton = document.getElementById('cancelEditBtn');
+        const formElement = document.getElementById('tierConfigForm');
+        
+        if (titleElement) {
+            titleElement.textContent = `Edit Tier: ${tier.tier_name}`;
+        }
+        
+        if (saveButton) {
+            saveButton.textContent = 'Update Tier';
+        }
+        
+        if (cancelButton) {
+            cancelButton.style.display = 'inline-block';
+        }
 
-        // Populate form
-        document.getElementById('tierName').value = tier.tier_name;
-        document.getElementById('quantityLimit').value = tier.quantity_limit;
-        document.getElementById('numSingleTasks').value = tier.num_single_tasks || 0;
-        document.getElementById('numComboTasks').value = tier.num_combo_tasks || 0;
-        document.getElementById('minPriceSingle').value = tier.min_price_single || 0;
-        document.getElementById('maxPriceSingle').value = tier.max_price_single || 0;
-        document.getElementById('minPriceCombo').value = tier.min_price_combo || 0;
-        document.getElementById('maxPriceCombo').value = tier.max_price_combo || 0;
-        document.getElementById('commissionRate').value = tier.commission_rate || 0;
-        document.getElementById('tierDescription').value = tier.description || '';
-        document.getElementById('isActive').checked = tier.is_active;
-
-        // Update UI
-        document.getElementById('tierFormTitle').textContent = `Edit Tier: ${tier.tier_name}`;
-        document.getElementById('saveTierBtn').textContent = 'Update Tier';
-        document.getElementById('cancelEditBtn').style.display = 'inline-block';
-
-        // Scroll to form
-        document.getElementById('tierManagementForm').scrollIntoView({ behavior: 'smooth' });
-    }
-
-    createNewTier() {
+        // Scroll to form with null check
+        if (formElement) {
+            formElement.scrollIntoView({ behavior: 'smooth' });
+        } else {
+            console.warn('tierConfigForm element not found for scrollIntoView');
+        }
+    }    createNewTier() {
         this.isEditing = false;
         this.editingId = null;
 
-        // Clear form
-        document.getElementById('tierConfigForm').reset();
+        // Clear form with null check
+        const formElement = document.getElementById('tierConfigForm');
+        if (formElement) {
+            formElement.reset();
+        }
 
-        // Update UI
-        document.getElementById('tierFormTitle').textContent = 'Create New Tier';
-        document.getElementById('saveTierBtn').textContent = 'Create Tier';
-        document.getElementById('cancelEditBtn').style.display = 'none';
-
-        // Scroll to form
-        document.getElementById('tierManagementForm').scrollIntoView({ behavior: 'smooth' });
+        // Update UI with null checks
+        const titleElement = document.getElementById('tierFormTitle');
+        const saveButton = document.getElementById('saveTierBtn');
+        const cancelButton = document.getElementById('cancelEditBtn');
+        
+        if (titleElement) {
+            titleElement.textContent = 'Create New Tier';
+        }
+        
+        if (saveButton) {
+            saveButton.textContent = 'Create Tier';
+        }
+        
+        if (cancelButton) {
+            cancelButton.style.display = 'none';
+        }        // Scroll to form with null check
+        const managementFormElement = this.safeGetElement('tierManagementForm');
+        if (managementFormElement) {
+            managementFormElement.scrollIntoView({ behavior: 'smooth' });
+        }
     }
 
     cancelEdit() {
@@ -337,10 +445,35 @@ class TierManagement {
             this.loadTierConfigurations(),
             this.loadTierStatistics()
         ]);
-    }
-
-    async makeAuthenticatedRequest(endpoint, options = {}) {
-        const token = localStorage.getItem('admin_auth_token') || localStorage.getItem('auth_token');
+    }    async makeAuthenticatedRequest(endpoint, options = {}) {
+        // Try multiple token sources in order of preference
+        let token = null;
+        
+        // 1. Try SimpleAuth admin context first
+        if (typeof SimpleAuth !== 'undefined') {
+            token = SimpleAuth.getToken('admin');
+            console.log('TierManagement: Admin token from SimpleAuth:', token ? 'exists' : 'not found');
+        }
+        
+        // 2. Fallback to regular auth token
+        if (!token) {
+            token = localStorage.getItem('auth_token');
+            console.log('TierManagement: Token from localStorage:', token ? 'exists' : 'not found');
+        }
+        
+        // 3. Try admin-specific token as last resort
+        if (!token) {
+            token = localStorage.getItem('admin_auth_token');
+            console.log('TierManagement: Admin-specific token:', token ? 'exists' : 'not found');
+        }
+        
+        if (!token) {
+            console.error('TierManagement: No authentication token found');
+            this.showError('Authentication required. Please log in as an admin.');
+            // Redirect to login if no token found
+            window.location.href = 'login.html';
+            return { success: false, message: 'No authentication token' };
+        }
         
         const defaultOptions = {
             method: 'GET',
@@ -352,8 +485,41 @@ class TierManagement {
 
         const finalOptions = { ...defaultOptions, ...options };
 
-        const response = await fetch(`${this.apiBase}${endpoint}`, finalOptions);
-        return response.json();
+        try {
+            console.log(`TierManagement: Making request to ${this.apiBase}${endpoint}`);
+            const response = await fetch(`${this.apiBase}${endpoint}`, finalOptions);
+            
+            if (response.status === 401) {
+                console.error('TierManagement: 401 Unauthorized - Invalid or expired token');
+                this.showError('Authentication failed. Please log in again.');
+                // Clear invalid tokens
+                localStorage.removeItem('auth_token');
+                localStorage.removeItem('admin_auth_token');
+                if (typeof SimpleAuth !== 'undefined') {
+                    SimpleAuth.clearAuth('admin');
+                }
+                window.location.href = 'login.html';
+                return { success: false, message: 'Authentication failed' };
+            }
+            
+            if (response.status === 403) {
+                console.error('TierManagement: 403 Forbidden - Insufficient privileges');
+                this.showError('Admin privileges required to access tier management.');
+                return { success: false, message: 'Insufficient privileges' };
+            }
+            
+            if (!response.ok) {
+                console.error(`TierManagement: HTTP ${response.status} - ${response.statusText}`);
+                this.showError(`Server error: ${response.status} ${response.statusText}`);
+                return { success: false, message: `Server error: ${response.status}` };
+            }
+            
+            return await response.json();
+        } catch (error) {
+            console.error('TierManagement: Network error:', error);
+            this.showError('Network error. Please check your connection.');
+            return { success: false, message: 'Network error' };
+        }
     }
 
     showSuccess(message) {

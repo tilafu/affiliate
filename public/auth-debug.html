@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Authentication Debug</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .error { color: red; }
+        .success { color: green; }
+        .info { color: blue; }
+        pre { background: #f5f5f5; padding: 10px; border-radius: 3px; }
+        button { padding: 8px 15px; margin: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>Authentication Debug Panel</h1>
+    
+    <div class="section">
+        <h2>Current Authentication Status</h2>
+        <div id="auth-status"></div>
+    </div>
+    
+    <div class="section">
+        <h2>Token Information</h2>
+        <div id="token-info"></div>
+    </div>
+    
+    <div class="section">
+        <h2>LocalStorage Data</h2>
+        <div id="storage-info"></div>
+    </div>
+    
+    <div class="section">
+        <h2>Test API Calls</h2>
+        <button onclick="testAdminStats()">Test Admin Stats</button>
+        <button onclick="testTierConfigs()">Test Tier Configurations</button>
+        <button onclick="testUserInfo()">Test User Info</button>
+        <div id="api-results"></div>
+    </div>
+    
+    <div class="section">
+        <h2>Actions</h2>
+        <button onclick="clearAuth()">Clear All Auth Data</button>
+        <button onclick="location.href='login.html'">Go to Login</button>
+        <button onclick="location.href='admin.html'">Go to Admin Panel</button>
+    </div>
+
+    <script src="./js/simple-auth.js"></script>
+    
+    <script>
+        function updateAuthStatus() {
+            const statusDiv = document.getElementById('auth-status');
+            const tokenDiv = document.getElementById('token-info');
+            const storageDiv = document.getElementById('storage-info');
+            
+            // Check authentication status
+            let authStatus = '<h3>Authentication Status:</h3>';
+            
+            if (typeof SimpleAuth !== 'undefined') {
+                const isAdminAuth = SimpleAuth.isAuthenticated('admin');
+                const isClientAuth = SimpleAuth.isAuthenticated('client');
+                const isAdmin = SimpleAuth.isAdmin();
+                
+                authStatus += `<p><strong>SimpleAuth Admin:</strong> <span class="${isAdminAuth ? 'success' : 'error'}">${isAdminAuth}</span></p>`;
+                authStatus += `<p><strong>SimpleAuth Client:</strong> <span class="${isClientAuth ? 'success' : 'error'}">${isClientAuth}</span></p>`;
+                authStatus += `<p><strong>Is Admin User:</strong> <span class="${isAdmin ? 'success' : 'error'}">${isAdmin}</span></p>`;
+            } else {
+                authStatus += '<p class="error">SimpleAuth not available</p>';
+            }
+            
+            statusDiv.innerHTML = authStatus;
+            
+            // Token information
+            let tokenInfo = '<h3>Tokens:</h3>';
+            const tokens = {
+                'auth_token': localStorage.getItem('auth_token'),
+                'admin_auth_token': localStorage.getItem('admin_auth_token'),
+                'auth_token_admin': localStorage.getItem('auth_token_admin'),
+                'auth_token_client': localStorage.getItem('auth_token_client')
+            };
+            
+            for (const [key, token] of Object.entries(tokens)) {
+                if (token) {
+                    try {
+                        const payload = JSON.parse(atob(token.split('.')[1]));
+                        const exp = new Date(payload.exp * 1000);
+                        const isExpired = Date.now() > payload.exp * 1000;
+                        
+                        tokenInfo += `<p><strong>${key}:</strong> ${token.substring(0, 20)}... 
+                                    <br>User: ${payload.username} | Role: ${payload.role} | 
+                                    Expires: ${exp.toLocaleString()} 
+                                    <span class="${isExpired ? 'error' : 'success'}">(${isExpired ? 'EXPIRED' : 'VALID'})</span></p>`;
+                    } catch (e) {
+                        tokenInfo += `<p><strong>${key}:</strong> <span class="error">Invalid token format</span></p>`;
+                    }
+                } else {
+                    tokenInfo += `<p><strong>${key}:</strong> <span class="error">Not found</span></p>`;
+                }
+            }
+            
+            tokenDiv.innerHTML = tokenInfo;
+            
+            // Storage information
+            let storageInfo = '<h3>LocalStorage:</h3>';
+            const storageKeys = ['user_data', 'user_data_admin', 'user_data_client'];
+            
+            for (const key of storageKeys) {
+                const data = localStorage.getItem(key);
+                if (data) {
+                    try {
+                        const parsed = JSON.parse(data);
+                        storageInfo += `<p><strong>${key}:</strong></p><pre>${JSON.stringify(parsed, null, 2)}</pre>`;
+                    } catch (e) {
+                        storageInfo += `<p><strong>${key}:</strong> <span class="error">Invalid JSON</span></p>`;
+                    }
+                } else {
+                    storageInfo += `<p><strong>${key}:</strong> <span class="error">Not found</span></p>`;
+                }
+            }
+            
+            storageDiv.innerHTML = storageInfo;
+        }
+        
+        async function testAdminStats() {
+            const resultsDiv = document.getElementById('api-results');
+            resultsDiv.innerHTML = '<h3>Testing Admin Stats API...</h3>';
+            
+            const token = localStorage.getItem('auth_token');
+            if (!token) {
+                resultsDiv.innerHTML += '<p class="error">No auth token found</p>';
+                return;
+            }
+            
+            try {
+                const response = await fetch('http://localhost:3001/api/admin/stats', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                resultsDiv.innerHTML += `<p><strong>Status:</strong> ${response.status} ${response.statusText}</p>`;
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    resultsDiv.innerHTML += `<p class="success">Success!</p><pre>${JSON.stringify(data, null, 2)}</pre>`;
+                } else {
+                    const error = await response.text();
+                    resultsDiv.innerHTML += `<p class="error">Error: ${error}</p>`;
+                }
+            } catch (error) {
+                resultsDiv.innerHTML += `<p class="error">Network Error: ${error.message}</p>`;
+            }
+        }
+        
+        async function testTierConfigs() {
+            const resultsDiv = document.getElementById('api-results');
+            resultsDiv.innerHTML = '<h3>Testing Tier Configurations API...</h3>';
+            
+            const token = localStorage.getItem('auth_token');
+            if (!token) {
+                resultsDiv.innerHTML += '<p class="error">No auth token found</p>';
+                return;
+            }
+            
+            try {
+                const response = await fetch('http://localhost:3001/api/admin/tier-management/configurations', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                resultsDiv.innerHTML += `<p><strong>Status:</strong> ${response.status} ${response.statusText}</p>`;
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    resultsDiv.innerHTML += `<p class="success">Success!</p><pre>${JSON.stringify(data, null, 2)}</pre>`;
+                } else {
+                    const error = await response.text();
+                    resultsDiv.innerHTML += `<p class="error">Error: ${error}</p>`;
+                }
+            } catch (error) {
+                resultsDiv.innerHTML += `<p class="error">Network Error: ${error.message}</p>`;
+            }
+        }
+        
+        async function testUserInfo() {
+            const resultsDiv = document.getElementById('api-results');
+            resultsDiv.innerHTML = '<h3>Testing User Info API...</h3>';
+            
+            const token = localStorage.getItem('auth_token');
+            if (!token) {
+                resultsDiv.innerHTML += '<p class="error">No auth token found</p>';
+                return;
+            }
+            
+            try {
+                const response = await fetch('http://localhost:3001/api/auth/me', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                resultsDiv.innerHTML += `<p><strong>Status:</strong> ${response.status} ${response.statusText}</p>`;
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    resultsDiv.innerHTML += `<p class="success">Success!</p><pre>${JSON.stringify(data, null, 2)}</pre>`;
+                } else {
+                    const error = await response.text();
+                    resultsDiv.innerHTML += `<p class="error">Error: ${error}</p>`;
+                }
+            } catch (error) {
+                resultsDiv.innerHTML += `<p class="error">Network Error: ${error.message}</p>`;
+            }
+        }
+        
+        function clearAuth() {
+            localStorage.clear();
+            sessionStorage.clear();
+            if (typeof SimpleAuth !== 'undefined') {
+                SimpleAuth.clearAuth('admin');
+                SimpleAuth.clearAuth('client');
+            }
+            updateAuthStatus();
+        }
+        
+        // Update status on page load
+        document.addEventListener('DOMContentLoaded', updateAuthStatus);
+        
+        // Auto-refresh every 5 seconds
+        setInterval(updateAuthStatus, 5000);
+    </script>
+</body>
+</html>
