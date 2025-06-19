@@ -169,17 +169,75 @@
         .sidebar-overlay.active {
             opacity: 1;
             visibility: visible;
+        }        /* Sidebar base styles */
+        .main-sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 300px;
+            height: 100vh;
+            background: var(--card-background);
+            z-index: 1000;
+            box-shadow: var(--shadow);
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
+        }
+
+        .main-sidebar.active {
+            transform: translateX(0);
+        }
+
+        /* Sidebar overlay */
+        .bg-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .bg-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* Body class when sidebar is open */
+        body.sidebar-open {
+            overflow: hidden;
+        }
+
+        /* Close button styles */
+        .sidebar-header {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: var(--text-primary);
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .close-btn:hover {
+            background: var(--background);
         }
 
         /* Responsive sidebar styles */
         @media (max-width: 768px) {
             .main-sidebar {
-                transform: translateX(-100%);
-                transition: transform 0.3s ease;
-            }
-            
-            .main-sidebar.active {
-                transform: translateX(0);
+                width: 280px;
             }
         }
 
@@ -644,13 +702,11 @@
                     <span>Login</span>
                 </button>
             </div>
-        </div>    </header>
-
-    <!-- Sidebar -->
-    <div id="sidebar-container"></div>
+        </div>    </header>    <!-- Sidebar -->
+    <div id="sidebar-placeholder"></div>
     
     <!-- Sidebar Overlay -->
-    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    <div class="bg-overlay" id="sidebarOverlay"></div>
 
     <!-- Main Content -->
     <main class="main-content">
@@ -767,8 +823,8 @@
     <div id="footer-navigation"></div>
 
     <!-- Scripts -->    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>    <script src="./js/components.js"></script>
-    <script src="./js/i18n.js"></script>
-    <script src="./js/main.js"></script>
+    <script src="./js/i18n.js"></script>    <script src="./js/main.js"></script>
+    <script src="./js/auth.js"></script>
     <script src="./js/simple-auth.js"></script>
     <script src="./js/auth-check.js"></script>
     <script src="./js/dashboard.js"></script>
@@ -807,70 +863,71 @@
             
             // Initialize menu functionality
             initializeMenuControls();
-        });// Load sidebar component
-        async function loadSidebarComponent() {
-            try {
-                const response = await fetch('./components/sidebar.html');
-                if (response.ok) {
-                    const sidebarHTML = await response.text();
-                    document.getElementById('sidebar-container').innerHTML = sidebarHTML;
-                      // Wait a moment for the sidebar script to initialize, then refresh user data
-                    setTimeout(() => {
-                        if (typeof window.refreshSidebarUserData === 'function') {
-                            window.refreshSidebarUserData();
-                        }
-                    }, 300);
-                }
-            } catch (error) {
-                console.error('Error loading sidebar:', error);
-            }
-        }
-
-        // Initialize menu controls
+        });        // Initialize menu controls
         function initializeMenuControls() {
             const menuBtn = document.getElementById('menuBtn');
-            const sidebarOverlay = document.getElementById('sidebarOverlay');
             
-            // Menu button click
+            // Menu button click - open the sidebar
             menuBtn?.addEventListener('click', function() {
-                toggleSidebar();
-            });
-            
-            // Overlay click to close
-            sidebarOverlay?.addEventListener('click', function() {
-                closeSidebar();
-            });
-            
-            // Close button in sidebar (will be available after sidebar loads)
-            setTimeout(() => {
-                const closeBtn = document.getElementById('sidebar-close-button');
-                closeBtn?.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    closeSidebar();
-                });
-            }, 100);
-        }
+                console.log('Menu button clicked');
+                const sidebar = document.querySelector('.main-sidebar');
+                const overlay = document.querySelector('.bg-overlay');
+                
+                if (sidebar) {
+                    sidebar.classList.add('active');
+                    document.body.classList.add('sidebar-open');
+                }
+                if (overlay) {
+                    overlay.classList.add('active');
+                }
+                
+                // Also close sidebar when overlay is clicked
+                if (overlay) {
+                    overlay.addEventListener('click', function() {
+                        sidebar.classList.remove('active');
+                        overlay.classList.remove('active');
+                        document.body.classList.remove('sidebar-open');
+                    });
+                }
+            });        }
 
-        function toggleSidebar() {
-            const sidebar = document.querySelector('.main-sidebar');
-            const overlay = document.getElementById('sidebarOverlay');
-            
-            if (sidebar && overlay) {
-                sidebar.classList.toggle('active');
-                overlay.classList.toggle('active');
-                document.body.style.overflow = sidebar.classList.contains('active') ? 'hidden' : '';
+        // Listen for sidebar component to be loaded by components.js
+        document.addEventListener('componentLoaded', function(event) {
+            if (event.detail.path === '/components/sidebar.html') {
+                console.log('Sidebar component loaded, initializing close button...');
+                
+                // Initialize close button after sidebar is loaded
+                setTimeout(() => {
+                    const closeBtn = document.getElementById('sidebar-close-button');
+                    if (closeBtn) {
+                        closeBtn.addEventListener('click', function(e) {
+                            e.preventDefault();
+                            console.log('Close button clicked');
+                            // Close the sidebar
+                            const sidebar = document.querySelector('.main-sidebar');
+                            const overlay = document.querySelector('.bg-overlay');
+                            if (sidebar) {
+                                sidebar.classList.remove('active');
+                                document.body.classList.remove('sidebar-open');
+                            }
+                            if (overlay) {
+                                overlay.classList.remove('active');
+                            }
+                        });
+                        console.log('Close button handler attached');
+                    } else {
+                        console.log('Close button not found');
+                    }
+                }, 100);
+                
+                // Refresh sidebar user data
+                setTimeout(() => {
+                    if (typeof window.refreshSidebarUserData === 'function') {
+                        window.refreshSidebarUserData();
+                    }
+                }, 300);
             }
-        }
-
-        function closeSidebar() {
-            const sidebar = document.querySelector('.main-sidebar');
-            const overlay = document.getElementById('sidebarOverlay');
-            
-            if (sidebar && overlay) {
-                sidebar.classList.remove('active');
-                overlay.classList.remove('active');
-                document.body.style.overflow = '';
-            }        }
+        });
         
         async function loadUserDashboardData() {
             try {
