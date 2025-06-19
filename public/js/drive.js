@@ -350,10 +350,12 @@ document.addEventListener('DOMContentLoaded', () => {
                         logDebug('Fetching next order after purchase.', 'info');
                         fetchNextOrder();
                     }
-                }
-            }else if (data.code === 3) { // Insufficient balance/Frozen
+                }            }else if (data.code === 3) { // Insufficient balance/Frozen
                  logDebug(`Insufficient balance/Frozen: ${data.info}`, 'warn');
-                 displayFrozenState(data.info, data.frozen_amount_needed);
+                 const tasksCompleted = data.tasks_completed && data.tasks_required ? 
+                     `${data.tasks_completed} of ${data.tasks_required}` : '0 of 0';
+                 const totalCommission = data.total_session_commission || '0.00';
+                 displayFrozenState(data.info, data.frozen_amount_needed, tasksCompleted, totalCommission);
                  updateWalletBalance();
             } else {
                 logDebug(`Failed to save order: ${data.info || data.message || 'Unknown error'}`, 'error');
@@ -430,30 +432,316 @@ document.addEventListener('DOMContentLoaded', () => {
              startDriveButton.textContent = 'Start Drive';
              updateWalletBalance(); // Final balance update
          });    
-    }
-
-     // Function to display frozen state message
-    function displayFrozenState(message, amountNeeded) {
-         driveContentArea.innerHTML = `
-            <div class="card">
-                <div class="card-body">
-                    <h4>Drive Frozen</h4>
-                    <p>${message}</p>
-                    ${amountNeeded ? `<p>Amount needed to unfreeze: ${amountNeeded} USDT</p>` : ''}
-                    <p>Please deposit funds to continue or contact support.</p>
-                     <button id="contact-support-button" class="btn btn-secondary">Contact Support</button>
+    }     // Function to display frozen state popup modal
+    function displayFrozenState(message, amountNeeded, tasksCompleted = '0 of 0', totalCommission = '0.00') {
+        // Create modal HTML
+        const modalHTML = `
+            <div id="drive-frozen-modal" class="drive-frozen-modal-overlay">
+                <div class="drive-frozen-modal">
+                    <div class="drive-frozen-modal-content">
+                        <button class="drive-frozen-modal-close" id="drive-frozen-close" aria-label="Close">
+                            <i class="fas fa-times"></i>
+                        </button>
+                        <div class="frozen-icon">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </div>
+                        <h2 class="frozen-title">⚠️ Account Frozen</h2>
+                        <p class="frozen-message">${message}</p>
+                        ${amountNeeded ? `
+                            <div class="frozen-amount">
+                                Amount needed: <span class="amount-highlight">${amountNeeded} USDT</span>
+                            </div>
+                        ` : ''}
+                        <div class="frozen-stats">
+                            <div class="tasks-completed">Tasks completed: ${tasksCompleted}</div>
+                            <div class="earned-commission">
+                                <strong>${totalCommission} USDT</strong>
+                                <small>Your earned commission is safe and will be available when you resume</small>
+                            </div>
+                        </div>
+                        <div class="frozen-buttons">
+                            <button id="drive-deposit-funds-btn" class="btn deposit-funds-btn">
+                                <i class="fas fa-plus-circle"></i> Deposit Funds
+                            </button>
+                            <button id="drive-contact-support-btn" class="btn contact-support-btn">
+                                <i class="fas fa-headset"></i> Contact Support
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
         `;
-         
-         // Add event listener for contact support button
-         const contactSupportButton = document.getElementById('contact-support-button');
-         if (contactSupportButton) {
-             contactSupportButton.addEventListener('click', () => {
-                 // Redirect to support page
-                 window.location.href = './support.html';
-             });
-         }
+
+        // Add modal styles
+        const modalStyles = `
+            <style id="drive-frozen-modal-styles">
+                .drive-frozen-modal-overlay {
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(0, 0, 0, 0.5);
+                    backdrop-filter: blur(4px);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    z-index: 10000;
+                    animation: fadeIn 0.3s ease-out;
+                }
+
+                @keyframes fadeIn {
+                    from { opacity: 0; }
+                    to { opacity: 1; }
+                }
+
+                .drive-frozen-modal {
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    border-radius: 20px;
+                    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+                    max-width: 450px;
+                    width: 90%;
+                    animation: slideInUp 0.3s ease-out;
+                    position: relative;
+                    color: white;
+                }
+
+                @keyframes slideInUp {
+                    from { transform: translateY(50px) scale(0.95); opacity: 0; }
+                    to { transform: translateY(0) scale(1); opacity: 1; }
+                }
+
+                .drive-frozen-modal-content {
+                    padding: 35px 30px 30px;
+                    text-align: center;
+                    position: relative;
+                }
+
+                .drive-frozen-modal-close {
+                    position: absolute;
+                    top: 15px;
+                    right: 15px;
+                    background: rgba(255, 255, 255, 0.2);
+                    border: none;
+                    border-radius: 50%;
+                    width: 35px;
+                    height: 35px;
+                    color: white;
+                    font-size: 14px;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                }
+
+                .drive-frozen-modal-close:hover {
+                    background: rgba(255, 255, 255, 0.3);
+                    transform: scale(1.1);
+                }
+
+                .frozen-icon {
+                    margin-bottom: 20px;
+                }
+
+                .frozen-icon i {
+                    font-size: 48px;
+                    color: #FFD700;
+                    text-shadow: 0 2px 10px rgba(255, 215, 0, 0.3);
+                }
+
+                .frozen-title {
+                    font-size: 24px;
+                    font-weight: 700;
+                    margin-bottom: 10px;
+                    color: #FFD700;
+                    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+                }
+
+                .frozen-message {
+                    font-size: 16px;
+                    margin-bottom: 15px;
+                    opacity: 0.9;
+                    line-height: 1.4;
+                }
+
+                .frozen-amount {
+                    font-size: 18px;
+                    margin-bottom: 20px;
+                    padding: 12px;
+                    background: rgba(255, 255, 255, 0.1);
+                    border-radius: 10px;
+                    border: 1px solid rgba(255, 255, 255, 0.2);
+                }
+
+                .amount-highlight {
+                    color: #FFD700;
+                    font-weight: 800;
+                    font-size: 20px;
+                }
+
+                .frozen-stats {
+                    margin-bottom: 25px;
+                    padding: 15px;
+                    background: rgba(255, 255, 255, 0.1);
+                    border-radius: 10px;
+                    border: 1px solid rgba(255, 255, 255, 0.2);
+                }
+
+                .tasks-completed {
+                    margin-bottom: 10px;
+                    font-size: 14px;
+                    opacity: 0.8;
+                }
+
+                .earned-commission {
+                    margin: 0;
+                    font-size: 16px;
+                }
+
+                .earned-commission strong {
+                    color: #4ECDC4;
+                    font-size: 18px;
+                }
+
+                .earned-commission small {
+                    display: block;
+                    margin-top: 5px;
+                    opacity: 0.7;
+                    font-size: 12px;
+                    line-height: 1.3;
+                }
+
+                .frozen-buttons {
+                    display: flex;
+                    gap: 10px;
+                    flex-direction: column;
+                }
+
+                .frozen-buttons .btn {
+                    padding: 12px 20px;
+                    border-radius: 12px;
+                    border: none;
+                    font-weight: 600;
+                    font-size: 15px;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 8px;
+                }
+
+                .deposit-funds-btn {
+                    background: linear-gradient(135deg, #4ECDC4 0%, #44A08D 100%);
+                    color: white;
+                    box-shadow: 0 4px 15px rgba(78, 205, 196, 0.3);
+                }
+
+                .deposit-funds-btn:hover {
+                    transform: translateY(-2px);
+                    box-shadow: 0 6px 20px rgba(78, 205, 196, 0.4);
+                }
+
+                .contact-support-btn {
+                    background: rgba(255, 255, 255, 0.2);
+                    color: white;
+                    border: 1px solid rgba(255, 255, 255, 0.3);
+                }
+
+                .contact-support-btn:hover {
+                    background: rgba(255, 255, 255, 0.3);
+                    transform: translateY(-1px);
+                }
+
+                @media (max-width: 480px) {
+                    .drive-frozen-modal {
+                        max-width: 95%;
+                        margin: 20px;
+                    }
+                    
+                    .drive-frozen-modal-content {
+                        padding: 25px 20px 20px 20px;
+                    }
+                    
+                    .frozen-title {
+                        font-size: 22px;
+                    }
+                    
+                    .frozen-buttons {
+                        gap: 8px;
+                    }
+                }
+            </style>
+        `;
+
+        // Remove existing modal if present
+        const existingModal = document.getElementById('drive-frozen-modal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+
+        const existingStyles = document.getElementById('drive-frozen-modal-styles');
+        if (existingStyles) {
+            existingStyles.remove();
+        }
+
+        // Add styles to head
+        document.head.insertAdjacentHTML('beforeend', modalStyles);
+
+        // Add modal to body
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+
+        // Get modal elements
+        const modal = document.getElementById('drive-frozen-modal');
+        const closeBtn = document.getElementById('drive-frozen-close');
+        const depositBtn = document.getElementById('drive-deposit-funds-btn');
+        const supportBtn = document.getElementById('drive-contact-support-btn');
+
+        // Event listeners
+        closeBtn.addEventListener('click', () => {
+            modal.style.animation = 'fadeOut 0.3s ease-out forwards';
+            setTimeout(() => modal.remove(), 300);
+        });
+
+        // Close on overlay click
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.style.animation = 'fadeOut 0.3s ease-out forwards';
+                setTimeout(() => modal.remove(), 300);
+            }
+        });
+
+        // Deposit funds button
+        depositBtn.addEventListener('click', () => {
+            modal.remove();
+            window.location.href = './deposits.html';
+        });
+
+        // Contact support button
+        supportBtn.addEventListener('click', () => {
+            modal.remove();
+            window.location.href = './contact.html';
+        });
+
+        // Close on Escape key
+        const handleEscape = (e) => {
+            if (e.key === 'Escape') {
+                modal.style.animation = 'fadeOut 0.3s ease-out forwards';
+                setTimeout(() => modal.remove(), 300);
+                document.removeEventListener('keydown', handleEscape);
+            }
+        };
+        document.addEventListener('keydown', handleEscape);
+
+        // Add fadeOut animation to styles
+        const fadeOutStyle = `
+            @keyframes fadeOut {
+                from { opacity: 1; }
+                to { opacity: 0; }
+            }
+        `;
+        document.head.insertAdjacentHTML('beforeend', `<style>${fadeOutStyle}</style>`);
     }
 
      // Function to display a generic drive error
@@ -516,14 +804,16 @@ async function checkDriveStatus() { // Removed token parameter, use global token
                 if(noDriveMessageSection) noDriveMessageSection.style.display = 'none'; // Hide no-drive message
                 updateFrontendState(data); // Update state with all details
                 renderProductCard(data.current_product_details);
-                updateWalletBalance();
-            } else if (data.status === 'frozen') {
+                updateWalletBalance();            } else if (data.status === 'frozen') {
                  console.log('Frozen session found. Displaying frozen state.');
                  if(startDriveButton) startDriveButton.style.display = 'none';
                  if(driveContentArea) driveContentArea.style.display = 'block';
                  if(driveProgressSection) driveProgressSection.style.display = 'block'; // Show progress
                  if(noDriveMessageSection) noDriveMessageSection.style.display = 'none'; // Hide no-drive message
-                 displayFrozenState(data.info || 'Your drive is frozen.', data.frozen_amount_needed);
+                 const tasksCompleted = data.tasks_completed && data.tasks_required ? 
+                     `${data.tasks_completed} of ${data.tasks_required}` : '0 of 0';
+                 const totalCommission = data.total_commission || '0.00';
+                 displayFrozenState(data.info || 'Your drive is frozen.', data.frozen_amount_needed, tasksCompleted, totalCommission);
                  updateWalletBalance();
             } else if (data.status === 'complete' || data.status === 'pending_reset') { // pending_reset is also a form of completion
                  console.log('Drive complete or pending reset.');

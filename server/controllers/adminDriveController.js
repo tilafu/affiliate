@@ -1046,9 +1046,9 @@ const assignTierBasedDriveToUser = async (req, res) => {
         // Set price ranges based on tier (only need single task ranges for initial assignment)
         const priceRanges = {
             'Bronze': { min_price_single: 1.00, max_price_single: 30.00 },
-            'Silver': { min_price_single: 2.00, max_price_single: 50.00 },
-            'Gold': { min_price_single: 3.00, max_price_single: 75.00 },
-            'Platinum': { min_price_single: 5.00, max_price_single: 100.00 }
+            'Silver': { min_price_single: 25.00, max_price_single: 50.00 },
+            'Gold': { min_price_single: 50.00, max_price_single: 75.00 },
+            'Platinum': { min_price_single: 75.00, max_price_single: 100.00 }
         };
         const { min_price_single, max_price_single } = priceRanges[userTierName] || priceRanges['Bronze'];
 
@@ -2165,19 +2165,24 @@ const adminDriveController = {
     getDriveTaskSetById,
     updateDriveTaskSet,
     deleteDriveTaskSet,
-    
-    // Drive Task Set Product Management
+      // Drive Task Set Product Management
     addProductToTaskSet,
     getProductsForTaskSet,
-    getDriveTaskSetProductById,    updateProductInTaskSet,
+    getDriveTaskSetProductById,
+    updateProductInTaskSet,
     removeProductFromTaskSet,
+      // Combo Task Set Management
+    createComboTaskSet,
+    addComboTaskSetAfterTask,
     
     // User Drive Assignment
     assignDriveToUser,
     assignDriveConfigurationToUser,
     assignTierBasedDriveToUser,
     getActiveDriveItemsForUser,
-    getUserDriveProgress,    // Drive Session Management
+    getUserDriveProgress,
+    
+    // Drive Session Management
     getAllDrives: async (req, res) => {
         try {
             // Query to get user-level drive data aggregated across all sessions
