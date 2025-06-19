@@ -681,9 +681,7 @@ const getUserNotifications = async (req, res) => {
              WHERE n.user_id = $1
              ORDER BY n.priority DESC, n.created_at DESC`,
             [userId]
-        );
-
-        // Also get general notifications that are active and not expired
+        );        // Also get general notifications that are active and not expired
         const generalResult = await pool.query(
             `SELECT 
                 gn.id,
@@ -700,8 +698,8 @@ const getUserNotifications = async (req, res) => {
              FROM general_notifications gn
              JOIN notification_categories nc ON gn.category_id = nc.id
              WHERE gn.is_active = true 
-             AND (gn.expires_at IS NULL OR gn.expires_at > NOW())
-             ORDER BY gn.priority DESC, gn.display_order ASC, gn.created_at DESC`
+             AND (gn.end_date IS NULL OR gn.end_date > NOW())
+             ORDER BY gn.priority DESC, gn.created_at DESC`
         );
 
         // Combine and sort all notifications

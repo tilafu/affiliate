@@ -1,4 +1,11 @@
-document.addEventListener('DOMContentLoaded', async () => {  // Initialize i18n first before doing anything else
+document.addEventListener('DOMContentLoaded', async () => {
+  // Use centralized authentication check
+  const authData = checkAuthentication();
+  if (!authData) {
+    return; // checkAuthentication will handle redirect
+  }
+
+  // Initialize i18n first before doing anything else
   if (typeof initI18next === 'function') {
     try {
       await initI18next();
@@ -10,18 +17,8 @@ document.addEventListener('DOMContentLoaded', async () => {  // Initialize i18n 
       }
     } catch (error) {
       console.error('Failed to initialize i18n:', error);
-    }
-  }
+    }  }
   
-  const authData = requireAuth();
-  if (!authData) {
-    return; // requireAuth will handle redirect
-  }
-  // Populate sidebar with user data
-  if (typeof populateSidebarUserData === 'function') {
-    await populateSidebarUserData();
-  }
-
   // Tab switching logic
   const tabGeneral = document.getElementById('tab-general');
   const tabUser = document.getElementById('tab-user');
@@ -188,8 +185,7 @@ document.addEventListener('DOMContentLoaded', async () => {  // Initialize i18n 
     const loadingMessage = window.i18next ? window.i18next.t('notificationLoading', 'Loading user notifications...') : 'Loading user notifications...';
     userList.innerHTML = `<div>${loadingMessage}</div>`; // Loading indicator
 
-    fetch(`${window.API_BASE_URL || 'http://localhost:3000'}/api/user/notifications`, { headers: { Authorization: `Bearer ${authData.token}` } })
-      .then(res => res.json())
+    fetchWithAuth('/api/user/notifications')
       .then(data => {
         if (data.success) {
           renderUserNotifications(data.notifications, userList); // Use data.notifications
@@ -305,18 +301,11 @@ document.addEventListener('DOMContentLoaded', async () => {  // Initialize i18n 
           </div>
         </div>
       `;
-      notificationDetailModal.show();
-
-      if (!isRead) {
+      notificationDetailModal.show();      if (!isRead) {
           // Mark as read on the backend
-          fetch(`${window.API_BASE_URL || 'http://localhost:3000'}/api/user/notifications/${notificationId}/read`, {
-              method: 'PUT',
-              headers: {
-                  'Authorization': `Bearer ${authData.token}`,
-                  'Content-Type': 'application/json'
-              }
+          fetchWithAuth(`/api/user/notifications/${notificationId}/read`, {
+              method: 'PUT'
           })
-          .then(res => res.json())
           .then(data => {
               if (data.success) {
                   // Update UI to show as read
