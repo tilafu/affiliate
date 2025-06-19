@@ -186,8 +186,8 @@ function attachLogoutHandlers() {
         'You will be signed out of your account.',
         'Sign Out',
         {
-          confirmText: 'Sign Out',
-          cancelText: 'Cancel',
+          // confirmText: 'Sign Out',
+          // cancelText: 'Cancel',
           type: 'warning'
         }
       );

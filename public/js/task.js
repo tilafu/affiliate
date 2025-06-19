@@ -858,9 +858,8 @@ function fetchNextOrder(token) {
                 totalDriveCommission = parseFloat(data.total_session_commission);
                 updateDriveCommission();
             }
-            refreshWalletBalance();
-        } else {
-            console.error('Error fetching next order (getorder):', data.info || data.message);
+            refreshWalletBalance();        } else {
+            console.error('Error fetching next order (getorder):', data.info || data.message || 'Unknown error - no error message provided');
             if (data.code === 1) { // No active session / Drive not started
                 displayDriveError(data.info || 'Your drive session has not started or is complete. Please start a new drive.');
                 if (autoStartButton) autoStartButton.style.display = 'block';

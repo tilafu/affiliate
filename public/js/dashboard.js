@@ -136,12 +136,9 @@ async function initializeDashboardWithFallback(authData) {
     const balancesEl = document.getElementById('dashboard-balances');
 
     // Try to use cached data first
-    const cachedUserData = localStorage.getItem('user_data');
-
-    try {
+    const cachedUserData = localStorage.getItem('user_data');    try {
         // Use fetchWithAuth as fallback
-        const response = await fetchWithAuth('/api/user/profile');
-        const data = await response.json();
+        const data = await fetchWithAuth('/api/user/profile');
         
         if (data.success && data.user) {
             const user = data.user;
@@ -150,8 +147,7 @@ async function initializeDashboardWithFallback(authData) {
             
             // Fetch balances separately
             try {
-                const balancesResponse = await fetchWithAuth('/api/user/balances');
-                const balancesData = await balancesResponse.json();
+                const balancesData = await fetchWithAuth('/api/user/balances');
                 
                 if (balancesData.success && balancesEl) {
                     const mainBalance = parseFloat(balancesData.balances.main_balance || 0).toFixed(2);
@@ -556,3 +552,395 @@ function checkAndInitializeDashboard() {
 // Make functions globally available
 window.checkAndInitializeDashboard = checkAndInitializeDashboard;
 window.initializeDashboard = initializeDashboard;
+
+// Function to display frozen state popup modal
+function displayFrozenState(message, amountNeeded, tasksCompleted = '0 of 0', totalCommission = '0.00') {
+    console.log('=== displayFrozenState called from dashboard.js ===');
+    console.log('Message:', message);
+    console.log('Amount needed:', amountNeeded);
+    console.log('Tasks completed:', tasksCompleted);
+    console.log('Total commission:', totalCommission);
+    
+    // Remove existing modal if present
+    const existingModal = document.getElementById('drive-frozen-modal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+
+    // Calculate progress percentage
+    let percentage = 0;
+    if (tasksCompleted && tasksCompleted !== '0 of 0' && tasksCompleted !== 'undefined of undefined') {
+        const match = tasksCompleted.match(/(\d+)\s*of\s*(\d+)/);
+        if (match) {
+            const completed = parseInt(match[1]);
+            const total = parseInt(match[2]);
+            if (!isNaN(completed) && !isNaN(total) && total > 0) {
+                percentage = Math.min((completed / total) * 100, 100);
+            }
+        }
+    }
+
+    // Find the progress section to insert the modal before it
+    const progressSection = document.querySelector('.progress-section');
+    if (!progressSection) {
+        console.error('Progress section not found, falling back to body append');
+    }
+
+    // Create modal with better positioning
+    const modalHTML = `
+        <div id="drive-frozen-modal" style="
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            background: rgba(0, 0, 0, 0.85) !important;
+            backdrop-filter: blur(10px) !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            z-index: 999999 !important;
+            padding: 20px !important;
+            box-sizing: border-box !important;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+        ">
+            <div style="
+                background: linear-gradient(145deg, #2d3748 0%, #4a5568 50%, #667eea 100%) !important;
+                border-radius: 24px !important;
+                box-shadow: 
+                    0 40px 120px rgba(0, 0, 0, 0.6),
+                    0 0 0 1px rgba(255, 255, 255, 0.1) inset !important;
+                max-width: 500px !important;
+                width: 100% !important;
+                max-height: 95vh !important;
+                overflow-y: auto !important;
+                position: relative !important;
+                color: white !important;
+                transform: scale(0.9) !important;
+                animation: modalEntrance 0.5s ease-out forwards !important;
+            ">
+                <div style="
+                    padding: 45px 40px 40px !important;
+                    text-align: center !important;
+                    position: relative !important;
+                ">
+                    <!-- Close Button -->
+                    <button id="drive-frozen-close" style="
+                        position: absolute !important;
+                        top: 20px !important;
+                        right: 20px !important;
+                        background: rgba(255, 255, 255, 0.15) !important;
+                        border: none !important;
+                        border-radius: 50% !important;
+                        width: 44px !important;
+                        height: 44px !important;
+                        color: white !important;
+                        font-size: 20px !important;
+                        cursor: pointer !important;
+                        transition: all 0.3s ease !important;
+                        display: flex !important;
+                        align-items: center !important;
+                        justify-content: center !important;
+                        font-weight: bold !important;
+                        backdrop-filter: blur(10px) !important;
+                    " onmouseover="this.style.background='rgba(255,255,255,0.25)'; this.style.transform='scale(1.1) rotate(90deg)'" onmouseout="this.style.background='rgba(255,255,255,0.15)'; this.style.transform='scale(1) rotate(0deg)'">×</button>
+                    
+                    <!-- Icon with enhanced animation -->
+                    <div style="margin-bottom: 25px !important;">
+                        <div style="
+                            width: 120px !important;
+                            height: 120px !important;
+                            background: radial-gradient(circle, rgba(255, 215, 0, 0.2), transparent) !important;
+                            border-radius: 50% !important;
+                            display: flex !important;
+                            align-items: center !important;
+                            justify-content: center !important;
+                            margin: 0 auto !important;
+                            animation: iconPulse 3s infinite ease-in-out !important;
+                        ">
+                            <i class="fas fa-exclamation-triangle" style="
+                                font-size: 64px !important;
+                                color: #FFD700 !important;
+                                text-shadow: 0 0 30px rgba(255, 215, 0, 0.5) !important;
+                                animation: iconGlow 2s infinite alternate !important;
+                            "></i>
+                        </div>
+                    </div>
+                    
+                    <!-- Title with gradient -->
+                    <h2 style="
+                        font-size: 32px !important;
+                        font-weight: 800 !important;
+                        margin: 0 0 15px 0 !important;
+                        background: linear-gradient(135deg, #FFD700, #FFA500) !important;
+                        -webkit-background-clip: text !important;
+                        -webkit-text-fill-color: transparent !important;
+                        background-clip: text !important;
+                        text-shadow: none !important;
+                    ">🔒 Account Frozen</h2>
+                    
+                    <!-- Message -->
+                    <p style="
+                        font-size: 18px !important;
+                        margin: 0 0 25px 0 !important;
+                        opacity: 0.9 !important;
+                        line-height: 1.6 !important;
+                        color: #e2e8f0 !important;
+                    ">${message}</p>
+                    
+                    <!-- Amount Section with better styling -->
+                    ${amountNeeded ? `
+                    <div style="
+                        font-size: 20px !important;
+                        margin-bottom: 30px !important;
+                        padding: 20px !important;
+                        background: linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(220, 38, 38, 0.1)) !important;
+                        border-radius: 16px !important;
+                        border: 2px solid rgba(239, 68, 68, 0.3) !important;
+                        backdrop-filter: blur(20px) !important;
+                    ">
+                        <div style="font-size: 16px; color: #fecaca; margin-bottom: 8px;">Amount needed:</div>
+                        <div style="
+                            color: #FFD700 !important;
+                            font-weight: 900 !important;
+                            font-size: 28px !important;
+                            text-shadow: 0 0 20px rgba(255, 215, 0, 0.4) !important;
+                        ">${amountNeeded} USDT</div>
+                    </div>
+                    ` : ''}
+                    
+                    <!-- Enhanced Stats Section -->
+                    <div style="
+                        margin-bottom: 35px !important;
+                        padding: 25px !important;
+                        background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.04)) !important;
+                        border-radius: 20px !important;
+                        border: 1px solid rgba(255, 255, 255, 0.15) !important;
+                        backdrop-filter: blur(20px) !important;
+                    ">
+                        <!-- Progress Section -->
+                        <div style="margin-bottom: 25px !important;">
+                            <div style="
+                                font-size: 14px !important;
+                                opacity: 0.8 !important;
+                                margin-bottom: 12px !important;
+                                color: #cbd5e0 !important;
+                                text-transform: uppercase !important;
+                                letter-spacing: 1px !important;
+                                font-weight: 600 !important;
+                            ">Drive Progress</div>
+                            <div style="
+                                font-size: 20px !important;
+                                font-weight: 700 !important;
+                                margin-bottom: 15px !important;
+                                color: #FFD700 !important;
+                            ">${tasksCompleted} ${percentage > 0 ? `(${Math.round(percentage)}%)` : ''}</div>
+                            
+                            <!-- Enhanced Progress Bar -->
+                            <div style="
+                                width: 100% !important;
+                                height: 12px !important;
+                                background: rgba(255, 255, 255, 0.15) !important;
+                                border-radius: 8px !important;
+                                overflow: hidden !important;
+                                margin-bottom: 10px !important;
+                                box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+                                position: relative !important;
+                            ">
+                                <div id="drive-progress-bar" style="
+                                    height: 100% !important;
+                                    background: linear-gradient(90deg, #4ECDC4 0%, #44A08D 50%, #36D1DC 100%) !important;
+                                    border-radius: 8px !important;
+                                    transition: width 1.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+                                    width: ${percentage}% !important;
+                                    box-shadow: 0 0 15px rgba(78, 205, 196, 0.6) !important;
+                                    position: relative !important;
+                                ">
+                                    <div style="
+                                        position: absolute !important;
+                                        top: 0 !important;
+                                        left: 0 !important;
+                                        right: 0 !important;
+                                        bottom: 0 !important;
+                                        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent) !important;
+                                        animation: shimmer 2s infinite !important;
+                                    "></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Commission with enhanced styling -->
+                        <div style="margin: 0 !important; text-align: center !important;">
+                            <div style="
+                                color: #4ECDC4 !important;
+                                font-size: 24px !important;
+                                font-weight: 900 !important;
+                                text-shadow: 0 0 20px rgba(78, 205, 196, 0.4) !important;
+                                margin-bottom: 8px !important;
+                            ">${totalCommission} USDT</div>
+                            <div style="
+                                display: block !important;
+                                opacity: 0.8 !important;
+                                font-size: 14px !important;
+                                line-height: 1.5 !important;
+                                color: #cbd5e0 !important;
+                            ">Your earned commission is safe and will be available when you resume</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Enhanced Buttons -->
+                    <div style="
+                        display: flex !important;
+                        gap: 18px !important;
+                        flex-direction: column !important;
+                    ">
+                        <button id="drive-deposit-funds-btn" style="
+                            padding: 18px 28px !important;
+                            border-radius: 16px !important;
+                            border: none !important;
+                            font-weight: 700 !important;
+                            font-size: 17px !important;
+                            cursor: pointer !important;
+                            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+                            display: flex !important;
+                            align-items: center !important;
+                            justify-content: center !important;
+                            gap: 12px !important;
+                            text-transform: uppercase !important;
+                            letter-spacing: 1px !important;
+                            min-height: 58px !important;
+                            background: linear-gradient(135deg, #4ECDC4 0%, #44A08D 50%, #36D1DC 100%) !important;
+                            color: white !important;
+                            box-shadow: 0 8px 30px rgba(78, 205, 196, 0.4) !important;
+                            position: relative !important;
+                            overflow: hidden !important;
+                        " onmouseover="this.style.transform='translateY(-4px) scale(1.02)'; this.style.boxShadow='0 12px 40px rgba(78, 205, 196, 0.6)'" onmouseout="this.style.transform='translateY(0) scale(1)'; this.style.boxShadow='0 8px 30px rgba(78, 205, 196, 0.4)'">
+                            <i class="fas fa-plus-circle"></i> Deposit Funds
+                        </button>
+                        
+                        <button id="drive-contact-support-btn" style="
+                            padding: 18px 28px !important;
+                            border-radius: 16px !important;
+                            border: 2px solid rgba(255, 255, 255, 0.3) !important;
+                            font-weight: 700 !important;
+                            font-size: 17px !important;
+                            cursor: pointer !important;
+                            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+                            display: flex !important;
+                            align-items: center !important;
+                            justify-content: center !important;
+                            gap: 12px !important;
+                            text-transform: uppercase !important;
+                            letter-spacing: 1px !important;
+                            min-height: 58px !important;
+                            background: rgba(255, 255, 255, 0.08) !important;
+                            color: white !important;
+                            backdrop-filter: blur(20px) !important;
+                        " onmouseover="this.style.background='rgba(255, 255, 255, 0.15)'; this.style.transform='translateY(-3px)'; this.style.borderColor='rgba(255, 255, 255, 0.5)'" onmouseout="this.style.background='rgba(255, 255, 255, 0.08)'; this.style.transform='translateY(0)'; this.style.borderColor='rgba(255, 255, 255, 0.3)'">
+                            <i class="fas fa-headset"></i> Contact Support
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <style id="drive-frozen-modal-styles">
+            @keyframes modalEntrance {
+                0% { 
+                    opacity: 0;
+                    transform: scale(0.7) translateY(-50px);
+                }
+                50% {
+                    opacity: 0.8;
+                    transform: scale(1.05) translateY(0);
+                }
+                100% { 
+                    opacity: 1;
+                    transform: scale(1) translateY(0);
+                }
+            }
+            
+            @keyframes iconPulse {
+                0%, 100% { transform: scale(1); }
+                50% { transform: scale(1.1); }
+            }
+            
+            @keyframes iconGlow {
+                0% { text-shadow: 0 0 30px rgba(255, 215, 0, 0.5); }
+                100% { text-shadow: 0 0 50px rgba(255, 215, 0, 0.8), 0 0 70px rgba(255, 215, 0, 0.3); }
+            }
+            
+            @keyframes shimmer {
+                0% { transform: translateX(-100%); }
+                100% { transform: translateX(100%); }
+            }
+            
+            @keyframes fadeOut {
+                from { opacity: 1; transform: scale(1); }
+                to { opacity: 0; transform: scale(0.9); }
+            }
+        </style>
+    `;
+
+    // Insert modal before progress section or append to body as fallback
+    if (progressSection) {
+        progressSection.insertAdjacentHTML('beforebegin', modalHTML);
+        console.log('Modal inserted before progress section');
+    } else {
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+        console.log('Modal appended to body (fallback)');
+    }
+
+    // Get modal elements and add event listeners
+    const modal = document.getElementById('drive-frozen-modal');
+    const closeBtn = document.getElementById('drive-frozen-close');
+    const depositBtn = document.getElementById('drive-deposit-funds-btn');
+    const supportBtn = document.getElementById('drive-contact-support-btn');
+
+    // Close button event
+    closeBtn.addEventListener('click', () => {
+        modal.style.animation = 'fadeOut 0.3s ease-out forwards';
+        setTimeout(() => modal.remove(), 300);
+    });
+
+    // Close on overlay click (clicking outside modal)
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            modal.style.animation = 'fadeOut 0.3s ease-out forwards';
+            setTimeout(() => modal.remove(), 300);
+        }
+    });
+
+    // Deposit funds button
+    depositBtn.addEventListener('click', () => {
+        modal.remove();
+        window.location.href = './account.html';
+    });
+
+    // Contact support button
+    supportBtn.addEventListener('click', () => {
+        modal.remove();
+        window.location.href = './contact.html';
+    });
+
+    // Close on Escape key
+    const handleEscape = (e) => {
+        if (e.key === 'Escape') {
+            modal.style.animation = 'fadeOut 0.3s ease-out forwards';
+            setTimeout(() => modal.remove(), 300);
+            document.removeEventListener('keydown', handleEscape);
+        }
+    };
+    document.addEventListener('keydown', handleEscape);
+}
+
+// Test function to manually trigger the frozen modal (for debugging)
+window.testFrozenModal = function() {
+    console.log('Testing frozen modal from dashboard...');
+    displayFrozenState(
+        'Drive frozen. Please deposit funds and contact admin.',
+        '100.00',
+        '3 of 5',
+        '25.50'
+    );
+};

@@ -432,249 +432,44 @@ document.addEventListener('DOMContentLoaded', () => {
              startDriveButton.textContent = 'Start Drive';
              updateWalletBalance(); // Final balance update
          });    
-    }     // Function to display frozen state popup modal
+    }    // Function to display frozen state popup modal
     function displayFrozenState(message, amountNeeded, tasksCompleted = '0 of 0', totalCommission = '0.00') {
-        // Create modal HTML
-        const modalHTML = `
-            <div id="drive-frozen-modal" class="drive-frozen-modal-overlay">
-                <div class="drive-frozen-modal">
-                    <div class="drive-frozen-modal-content">
-                        <button class="drive-frozen-modal-close" id="drive-frozen-close" aria-label="Close">
-                            <i class="fas fa-times"></i>
-                        </button>
-                        <div class="frozen-icon">
-                            <i class="fas fa-exclamation-triangle"></i>
-                        </div>
-                        <h2 class="frozen-title">⚠️ Account Frozen</h2>
-                        <p class="frozen-message">${message}</p>
-                        ${amountNeeded ? `
-                            <div class="frozen-amount">
-                                Amount needed: <span class="amount-highlight">${amountNeeded} USDT</span>
-                            </div>
-                        ` : ''}
-                        <div class="frozen-stats">
-                            <div class="tasks-completed">Tasks completed: ${tasksCompleted}</div>
-                            <div class="earned-commission">
-                                <strong>${totalCommission} USDT</strong>
-                                <small>Your earned commission is safe and will be available when you resume</small>
-                            </div>
-                        </div>
-                        <div class="frozen-buttons">
-                            <button id="drive-deposit-funds-btn" class="btn deposit-funds-btn">
-                                <i class="fas fa-plus-circle"></i> Deposit Funds
-                            </button>
-                            <button id="drive-contact-support-btn" class="btn contact-support-btn">
-                                <i class="fas fa-headset"></i> Contact Support
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
+        console.log('=== displayFrozenState called ===');
+        console.log('Message:', message);
+        console.log('Amount needed:', amountNeeded);
+        console.log('Tasks completed:', tasksCompleted);
+        console.log('Total commission:', totalCommission);
+        
+        // Simple test modal to see if it shows up at all
+        const testModal = document.createElement('div');
+        testModal.id = 'test-modal';
+        testModal.style.cssText = `
+            position: fixed !important;
+            top: 50% !important;
+            left: 50% !important;
+            transform: translate(-50%, -50%) !important;
+            background: red !important;
+            color: white !important;
+            padding: 20px !important;
+            z-index: 999999 !important;
+            border: 5px solid yellow !important;
+            font-size: 20px !important;
+            font-weight: bold !important;
         `;
-
-        // Add modal styles
-        const modalStyles = `
-            <style id="drive-frozen-modal-styles">
-                .drive-frozen-modal-overlay {
-                    position: fixed;
-                    top: 0;
-                    left: 0;
-                    width: 100%;
-                    height: 100%;
-                    background: rgba(0, 0, 0, 0.5);
-                    backdrop-filter: blur(4px);
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    z-index: 10000;
-                    animation: fadeIn 0.3s ease-out;
-                }
-
-                @keyframes fadeIn {
-                    from { opacity: 0; }
-                    to { opacity: 1; }
-                }
-
-                .drive-frozen-modal {
-                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                    border-radius: 20px;
-                    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-                    max-width: 450px;
-                    width: 90%;
-                    animation: slideInUp 0.3s ease-out;
-                    position: relative;
-                    color: white;
-                }
-
-                @keyframes slideInUp {
-                    from { transform: translateY(50px) scale(0.95); opacity: 0; }
-                    to { transform: translateY(0) scale(1); opacity: 1; }
-                }
-
-                .drive-frozen-modal-content {
-                    padding: 35px 30px 30px;
-                    text-align: center;
-                    position: relative;
-                }
-
-                .drive-frozen-modal-close {
-                    position: absolute;
-                    top: 15px;
-                    right: 15px;
-                    background: rgba(255, 255, 255, 0.2);
-                    border: none;
-                    border-radius: 50%;
-                    width: 35px;
-                    height: 35px;
-                    color: white;
-                    font-size: 14px;
-                    cursor: pointer;
-                    transition: all 0.3s ease;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                }
-
-                .drive-frozen-modal-close:hover {
-                    background: rgba(255, 255, 255, 0.3);
-                    transform: scale(1.1);
-                }
-
-                .frozen-icon {
-                    margin-bottom: 20px;
-                }
-
-                .frozen-icon i {
-                    font-size: 48px;
-                    color: #FFD700;
-                    text-shadow: 0 2px 10px rgba(255, 215, 0, 0.3);
-                }
-
-                .frozen-title {
-                    font-size: 24px;
-                    font-weight: 700;
-                    margin-bottom: 10px;
-                    color: #FFD700;
-                    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-                }
-
-                .frozen-message {
-                    font-size: 16px;
-                    margin-bottom: 15px;
-                    opacity: 0.9;
-                    line-height: 1.4;
-                }
-
-                .frozen-amount {
-                    font-size: 18px;
-                    margin-bottom: 20px;
-                    padding: 12px;
-                    background: rgba(255, 255, 255, 0.1);
-                    border-radius: 10px;
-                    border: 1px solid rgba(255, 255, 255, 0.2);
-                }
-
-                .amount-highlight {
-                    color: #FFD700;
-                    font-weight: 800;
-                    font-size: 20px;
-                }
-
-                .frozen-stats {
-                    margin-bottom: 25px;
-                    padding: 15px;
-                    background: rgba(255, 255, 255, 0.1);
-                    border-radius: 10px;
-                    border: 1px solid rgba(255, 255, 255, 0.2);
-                }
-
-                .tasks-completed {
-                    margin-bottom: 10px;
-                    font-size: 14px;
-                    opacity: 0.8;
-                }
-
-                .earned-commission {
-                    margin: 0;
-                    font-size: 16px;
-                }
-
-                .earned-commission strong {
-                    color: #4ECDC4;
-                    font-size: 18px;
-                }
-
-                .earned-commission small {
-                    display: block;
-                    margin-top: 5px;
-                    opacity: 0.7;
-                    font-size: 12px;
-                    line-height: 1.3;
-                }
-
-                .frozen-buttons {
-                    display: flex;
-                    gap: 10px;
-                    flex-direction: column;
-                }
-
-                .frozen-buttons .btn {
-                    padding: 12px 20px;
-                    border-radius: 12px;
-                    border: none;
-                    font-weight: 600;
-                    font-size: 15px;
-                    cursor: pointer;
-                    transition: all 0.3s ease;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    gap: 8px;
-                }
-
-                .deposit-funds-btn {
-                    background: linear-gradient(135deg, #4ECDC4 0%, #44A08D 100%);
-                    color: white;
-                    box-shadow: 0 4px 15px rgba(78, 205, 196, 0.3);
-                }
-
-                .deposit-funds-btn:hover {
-                    transform: translateY(-2px);
-                    box-shadow: 0 6px 20px rgba(78, 205, 196, 0.4);
-                }
-
-                .contact-support-btn {
-                    background: rgba(255, 255, 255, 0.2);
-                    color: white;
-                    border: 1px solid rgba(255, 255, 255, 0.3);
-                }
-
-                .contact-support-btn:hover {
-                    background: rgba(255, 255, 255, 0.3);
-                    transform: translateY(-1px);
-                }
-
-                @media (max-width: 480px) {
-                    .drive-frozen-modal {
-                        max-width: 95%;
-                        margin: 20px;
-                    }
-                    
-                    .drive-frozen-modal-content {
-                        padding: 25px 20px 20px 20px;
-                    }
-                    
-                    .frozen-title {
-                        font-size: 22px;
-                    }
-                    
-                    .frozen-buttons {
-                        gap: 8px;
-                    }
-                }
-            </style>
-        `;
-
+        testModal.innerHTML = 'TEST MODAL - ACCOUNT FROZEN<br>Click to close';
+        testModal.addEventListener('click', () => testModal.remove());
+        
+        document.body.appendChild(testModal);
+        console.log('Test modal added to body');
+        
+        // Also try the full modal
+        setTimeout(() => {
+            testModal.remove();
+            showFullModal(message, amountNeeded, tasksCompleted, totalCommission);
+        }, 2000);
+    }
+    
+    function showFullModal(message, amountNeeded, tasksCompleted = '0 of 0', totalCommission = '0.00') {
         // Remove existing modal if present
         const existingModal = document.getElementById('drive-frozen-modal');
         if (existingModal) {
@@ -686,25 +481,289 @@ document.addEventListener('DOMContentLoaded', () => {
             existingStyles.remove();
         }
 
-        // Add styles to head
-        document.head.insertAdjacentHTML('beforeend', modalStyles);
+        // Calculate progress percentage
+        let percentage = 0;
+        if (tasksCompleted && tasksCompleted !== '0 of 0' && tasksCompleted !== 'undefined of undefined') {
+            const match = tasksCompleted.match(/(\d+)\s*of\s*(\d+)/);
+            if (match) {
+                const completed = parseInt(match[1]);
+                const total = parseInt(match[2]);
+                if (!isNaN(completed) && !isNaN(total) && total > 0) {
+                    percentage = Math.min((completed / total) * 100, 100);
+                }
+            }
+        }
 
-        // Add modal to body
+        // Create modal with inline styles to override any conflicting CSS
+        const modalHTML = `
+            <div id="drive-frozen-modal" style="
+                position: fixed !important;
+                top: 0 !important;
+                left: 0 !important;
+                width: 100vw !important;
+                height: 100vh !important;
+                background: rgba(0, 0, 0, 0.8) !important;
+                backdrop-filter: blur(8px) !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                z-index: 999999 !important;
+                padding: 20px !important;
+                box-sizing: border-box !important;
+                font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+                animation: fadeIn 0.3s ease !important;
+            ">
+                <div style="
+                    background: linear-gradient(145deg, #667eea 0%, #764ba2 100%) !important;
+                    border-radius: 20px !important;
+                    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5) !important;
+                    max-width: 450px !important;
+                    width: 100% !important;
+                    max-height: 90vh !important;
+                    overflow-y: auto !important;
+                    position: relative !important;
+                    color: white !important;
+                    border: 2px solid rgba(255, 255, 255, 0.1) !important;
+                    animation: slideUp 0.4s ease !important;
+                ">
+                    <div style="
+                        padding: 40px 35px 35px !important;
+                        text-align: center !important;
+                        position: relative !important;
+                    ">
+                        <!-- Close Button -->
+                        <button id="drive-frozen-close" style="
+                            position: absolute !important;
+                            top: 15px !important;
+                            right: 15px !important;
+                            background: rgba(255, 255, 255, 0.2) !important;
+                            border: none !important;
+                            border-radius: 50% !important;
+                            width: 40px !important;
+                            height: 40px !important;
+                            color: white !important;
+                            font-size: 18px !important;
+                            cursor: pointer !important;
+                            transition: all 0.3s ease !important;
+                            display: flex !important;
+                            align-items: center !important;
+                            justify-content: center !important;
+                            font-weight: bold !important;
+                        " onmouseover="this.style.background='rgba(255,255,255,0.3)'; this.style.transform='scale(1.1)'" onmouseout="this.style.background='rgba(255,255,255,0.2)'; this.style.transform='scale(1)'">×</button>
+                        
+                        <!-- Icon -->
+                        <div style="margin-bottom: 20px !important;">
+                            <i class="fas fa-exclamation-triangle" style="
+                                font-size: 56px !important;
+                                color: #FFD700 !important;
+                                text-shadow: 0 4px 15px rgba(255, 215, 0, 0.4) !important;
+                                animation: pulse 2s infinite !important;
+                            "></i>
+                        </div>
+                        
+                        <!-- Title -->
+                        <h2 style="
+                            font-size: 28px !important;
+                            font-weight: 700 !important;
+                            margin: 0 0 12px 0 !important;
+                            color: #FFD700 !important;
+                            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3) !important;
+                        ">⚠️ Account Frozen</h2>
+                        
+                        <!-- Message -->
+                        <p style="
+                            font-size: 16px !important;
+                            margin: 0 0 20px 0 !important;
+                            opacity: 0.9 !important;
+                            line-height: 1.5 !important;
+                            color: #e1e8f0 !important;
+                        ">${message}</p>
+                        
+                        <!-- Amount Section -->
+                        ${amountNeeded ? `
+                        <div style="
+                            font-size: 18px !important;
+                            margin-bottom: 25px !important;
+                            padding: 15px !important;
+                            background: rgba(255, 255, 255, 0.1) !important;
+                            border-radius: 12px !important;
+                            border: 1px solid rgba(255, 255, 255, 0.2) !important;
+                            backdrop-filter: blur(10px) !important;
+                        ">
+                            Amount needed: <span style="
+                                color: #FFD700 !important;
+                                font-weight: 800 !important;
+                                font-size: 22px !important;
+                                text-shadow: 0 2px 10px rgba(255, 215, 0, 0.3) !important;
+                            ">${amountNeeded} USDT</span>
+                        </div>
+                        ` : ''}
+                        
+                        <!-- Stats Section -->
+                        <div style="
+                            margin-bottom: 30px !important;
+                            padding: 20px !important;
+                            background: rgba(255, 255, 255, 0.08) !important;
+                            border-radius: 12px !important;
+                            border: 1px solid rgba(255, 255, 255, 0.15) !important;
+                            backdrop-filter: blur(10px) !important;
+                        ">
+                            <!-- Progress Section -->
+                            <div style="margin-bottom: 20px !important;">
+                                <div style="
+                                    font-size: 14px !important;
+                                    opacity: 0.8 !important;
+                                    margin-bottom: 8px !important;
+                                    color: #b8c6db !important;
+                                    text-transform: uppercase !important;
+                                    letter-spacing: 0.5px !important;
+                                ">Drive Progress</div>
+                                <div style="
+                                    font-size: 18px !important;
+                                    font-weight: 600 !important;
+                                    margin-bottom: 12px !important;
+                                    color: #FFD700 !important;
+                                ">${tasksCompleted} ${percentage > 0 ? `(${Math.round(percentage)}%)` : ''}</div>
+                                
+                                <!-- Progress Bar -->
+                                <div style="
+                                    width: 100% !important;
+                                    height: 10px !important;
+                                    background: rgba(255, 255, 255, 0.2) !important;
+                                    border-radius: 5px !important;
+                                    overflow: hidden !important;
+                                    margin-bottom: 8px !important;
+                                    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+                                ">
+                                    <div id="drive-progress-bar" style="
+                                        height: 100% !important;
+                                        background: linear-gradient(90deg, #4ECDC4 0%, #44A08D 100%) !important;
+                                        border-radius: 5px !important;
+                                        transition: width 0.8s ease-out !important;
+                                        width: ${percentage}% !important;
+                                        box-shadow: 0 2px 8px rgba(78, 205, 196, 0.4) !important;
+                                    "></div>
+                                </div>
+                            </div>
+                            
+                            <!-- Commission -->
+                            <div style="margin: 0 !important; text-align: center !important;">
+                                <div style="
+                                    color: #4ECDC4 !important;
+                                    font-size: 20px !important;
+                                    font-weight: 700 !important;
+                                    text-shadow: 0 2px 8px rgba(78, 205, 196, 0.3) !important;
+                                ">${totalCommission} USDT</div>
+                                <div style="
+                                    display: block !important;
+                                    margin-top: 8px !important;
+                                    opacity: 0.7 !important;
+                                    font-size: 13px !important;
+                                    line-height: 1.4 !important;
+                                    color: #b8c6db !important;
+                                ">Your earned commission is safe and will be available when you resume</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Buttons -->
+                        <div style="
+                            display: flex !important;
+                            gap: 15px !important;
+                            flex-direction: column !important;
+                        ">
+                            <button id="drive-deposit-funds-btn" style="
+                                padding: 16px 24px !important;
+                                border-radius: 12px !important;
+                                border: none !important;
+                                font-weight: 600 !important;
+                                font-size: 16px !important;
+                                cursor: pointer !important;
+                                transition: all 0.3s ease !important;
+                                display: flex !important;
+                                align-items: center !important;
+                                justify-content: center !important;
+                                gap: 10px !important;
+                                text-transform: uppercase !important;
+                                letter-spacing: 0.5px !important;
+                                min-height: 50px !important;
+                                background: linear-gradient(135deg, #4ECDC4 0%, #44A08D 100%) !important;
+                                color: white !important;
+                                box-shadow: 0 6px 20px rgba(78, 205, 196, 0.4) !important;
+                            " onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 8px 25px rgba(78, 205, 196, 0.5)'; this.style.background='linear-gradient(135deg, #5FDDD6 0%, #55B09E 100%)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 6px 20px rgba(78, 205, 196, 0.4)'; this.style.background='linear-gradient(135deg, #4ECDC4 0%, #44A08D 100%)'">
+                                <i class="fas fa-plus-circle"></i> Deposit Funds
+                            </button>
+                            
+                            <button id="drive-contact-support-btn" style="
+                                padding: 16px 24px !important;
+                                border-radius: 12px !important;
+                                border: 1px solid rgba(255, 255, 255, 0.3) !important;
+                                font-weight: 600 !important;
+                                font-size: 16px !important;
+                                cursor: pointer !important;
+                                transition: all 0.3s ease !important;
+                                display: flex !important;
+                                align-items: center !important;
+                                justify-content: center !important;
+                                gap: 10px !important;
+                                text-transform: uppercase !important;
+                                letter-spacing: 0.5px !important;
+                                min-height: 50px !important;
+                                background: rgba(255, 255, 255, 0.15) !important;
+                                color: white !important;
+                            " onmouseover="this.style.background='rgba(255, 255, 255, 0.25)'; this.style.transform='translateY(-2px)'; this.style.borderColor='rgba(255, 255, 255, 0.4)'" onmouseout="this.style.background='rgba(255, 255, 255, 0.15)'; this.style.transform='translateY(0)'; this.style.borderColor='rgba(255, 255, 255, 0.3)'">
+                                <i class="fas fa-headset"></i> Contact Support
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <style id="drive-frozen-modal-styles">
+                @keyframes fadeIn {
+                    from { opacity: 0; }
+                    to { opacity: 1; }
+                }
+                
+                @keyframes slideUp {
+                    from { 
+                        transform: translateY(-50px) scale(0.95); 
+                        opacity: 0; 
+                    }
+                    to { 
+                        transform: translateY(0) scale(1); 
+                        opacity: 1; 
+                    }
+                }
+                
+                @keyframes pulse {
+                    0%, 100% { transform: scale(1); }
+                    50% { transform: scale(1.05); }
+                }
+                
+                @keyframes fadeOut {
+                    from { opacity: 1; }
+                    to { opacity: 0; }
+                }
+            </style>
+        `;
+
+        // Add styles and modal to DOM
+        document.head.insertAdjacentHTML('beforeend', '<style id="drive-frozen-modal-styles">@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } } @keyframes slideUp { from { transform: translateY(-50px) scale(0.95); opacity: 0; } to { transform: translateY(0) scale(1); opacity: 1; } } @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } } @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }</style>');
         document.body.insertAdjacentHTML('beforeend', modalHTML);
 
-        // Get modal elements
+        // Get modal elements and add event listeners
         const modal = document.getElementById('drive-frozen-modal');
         const closeBtn = document.getElementById('drive-frozen-close');
         const depositBtn = document.getElementById('drive-deposit-funds-btn');
         const supportBtn = document.getElementById('drive-contact-support-btn');
 
-        // Event listeners
+        // Close button event
         closeBtn.addEventListener('click', () => {
             modal.style.animation = 'fadeOut 0.3s ease-out forwards';
             setTimeout(() => modal.remove(), 300);
         });
 
-        // Close on overlay click
+        // Close on overlay click (clicking outside modal)
         modal.addEventListener('click', (e) => {
             if (e.target === modal) {
                 modal.style.animation = 'fadeOut 0.3s ease-out forwards';
@@ -715,7 +774,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Deposit funds button
         depositBtn.addEventListener('click', () => {
             modal.remove();
-            window.location.href = './deposits.html';
+            window.location.href = './account.html';
         });
 
         // Contact support button
@@ -732,16 +791,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.removeEventListener('keydown', handleEscape);
             }
         };
-        document.addEventListener('keydown', handleEscape);
-
-        // Add fadeOut animation to styles
-        const fadeOutStyle = `
-            @keyframes fadeOut {
-                from { opacity: 1; }
-                to { opacity: 0; }
+        document.addEventListener('keydown', handleEscape);        // Create global close function for the close button
+        window.closeFrozenModal = () => {
+            const modal = document.getElementById('drive-frozen-modal');
+            if (modal) {
+                modal.style.animation = 'fadeOut 0.3s ease-out forwards';
+                setTimeout(() => modal.remove(), 300);
             }
-        `;
-        document.head.insertAdjacentHTML('beforeend', `<style>${fadeOutStyle}</style>`);
+        };
     }
 
      // Function to display a generic drive error
@@ -878,3 +935,14 @@ function requireAuth() {
     }
     return { token: token };
 }
+
+// Test function to manually trigger the frozen modal (for debugging)
+window.testFrozenModal = function() {
+    console.log('Testing frozen modal...');
+    displayFrozenState(
+        'Drive frozen. Please deposit funds and contact admin.',
+        '100.00',
+        '3 of 5',
+        '25.50'
+    );
+};

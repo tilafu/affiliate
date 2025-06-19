@@ -36,10 +36,10 @@ document.addEventListener('DOMContentLoaded', () => {
       console.error('Error loading deposit data:', error);
     }
   };
-
   // Function to load deposit totals
   const loadDepositTotals = async () => {
     try {
+      console.log('Attempting to fetch deposit totals from /api/user/deposits/total');
       const response = await fetchWithAuth('/api/user/deposits/total');
       console.log('Deposit totals response:', response);
 
@@ -50,7 +50,10 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('Updated total deposits:', totalDeposits);
       } else if (depositElement) {
         depositElement.innerHTML = '$0.00';
-        console.log('No deposit data available, showing $0.00');
+        console.log('No deposit data available or element not found, showing $0.00');
+        if (!response.success) {
+          console.error('API response was not successful:', response);
+        }
       }
     } catch (error) {
       console.error('Error loading deposit totals:', error);
@@ -59,16 +62,19 @@ document.addEventListener('DOMContentLoaded', () => {
         depositElement.innerHTML = '$0.00';
       }
     }
-  };
-  // Function to load deposit history (including admin adjustments)
+  };  // Function to load deposit history (including admin adjustments)
   const loadDepositHistory = async () => {
     try {
+      console.log('Attempting to fetch deposit history from /api/user/deposits');
       const response = await fetchWithAuth('/api/user/deposits');
       console.log('Deposit history response:', response);
 
-      const historyElement = document.querySelector('#deposits table tbody');
+      const historyElement = document.querySelector('#deposit-history table tbody');
+      console.log('History element found:', !!historyElement);
+      
       if (historyElement) {
         if (response.success && response.data && response.data.length > 0) {
+          console.log(`Found ${response.data.length} deposit records`);
           historyElement.innerHTML = response.data
             .map((entry) => {
               // Determine the type and styling for admin adjustments
@@ -99,9 +105,13 @@ document.addEventListener('DOMContentLoaded', () => {
                   ${entry.admin_note ? `<td><small class="text-muted">${entry.admin_note}</small></td>` : '<td>-</td>'}
                 </tr>
               `;
-            })
-            .join('');
+            })            .join('');
         } else {
+          console.log('No deposit data found or response not successful:', {
+            success: response.success,
+            dataLength: response.data ? response.data.length : 'null/undefined',
+            response: response
+          });
           historyElement.innerHTML = `
             <tr>
               <td colspan="6" class="empty-state">
@@ -111,10 +121,9 @@ document.addEventListener('DOMContentLoaded', () => {
             </tr>
           `;
         }
-      }
-    } catch (error) {
+      }    } catch (error) {
       console.error('Error loading deposit history:', error);
-      const historyElement = document.querySelector('#deposits table tbody');
+      const historyElement = document.querySelector('#deposit-history table tbody');
       if (historyElement) {
         historyElement.innerHTML = `
           <tr>

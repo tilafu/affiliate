@@ -762,13 +762,11 @@ const markNotificationAsRead = async (req, res) => {
  */
 const getUserTotalDeposits = async (req, res) => {
     try {
-        const userId = req.user.id;
-
-        // Query to get total from regular deposits plus admin deposits
+        const userId = req.user.id;        // Query to get total from regular deposits plus admin deposits
         const result = await pool.query(`
             SELECT 
                 COALESCE(
-                    (SELECT SUM(amount) FROM deposits WHERE user_id = $1 AND status = 'completed') + 
+                    (SELECT SUM(amount) FROM deposits WHERE user_id = $1 AND status = 'APPROVED') + 
                     (SELECT COALESCE(SUM(commission_amount), 0) FROM commission_logs WHERE user_id = $1 AND commission_type = 'admin_deposit'),
                     0
                 ) AS total_deposits
