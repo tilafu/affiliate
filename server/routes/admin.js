@@ -66,4 +66,7 @@ router.delete('/membership-tiers/:id', protect, admin, adminController.deleteMem
 router.get('/tier-quantity-configs', protect, admin, adminController.getTierQuantityConfigs);
 router.put('/tier-quantity-configs/:id', protect, admin, adminController.updateTierQuantityConfig);
 
+// Onboarding Responses
+router.get('/onboarding-responses', protect, admin, adminController.getOnboardingResponses);
+
 module.exports = router;

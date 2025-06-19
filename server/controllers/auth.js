@@ -93,19 +93,19 @@ const register = async (req, res) => {
       { expiresIn: process.env.JWT_EXPIRES_IN || '1h' }
     );
 
-    await client.query('COMMIT');
-
-    res.status(201).json({
+    await client.query('COMMIT');    res.status(201).json({
       success: true,
       token,
       user: {
         id: newUser.id,
         username: newUser.username,
+        email: newUser.email,
         referralCode: newUser.referral_code,
         tier: newUser.tier,
         // Include initial account info if needed
       },
-      message: 'Registration successful!'
+      message: 'Registration successful!',
+      redirectTo: 'onboarding' // Indicate the frontend should redirect to onboarding
     });
 
   } catch (error) {
@@ -239,6 +239,70 @@ const logout = async (req, res) => {
     res.status(500).json({ 
       success: false, 
       message: 'Server error during logout' 
+    });  }
+};
+
+/**
+ * @desc    Save onboarding responses
+ * @route   POST /api/auth/onboarding
+ * @access  Public
+ */
+const saveOnboardingResponses = async (req, res) => {
+  const { 
+    question_1, 
+    question_2, 
+    question_3, 
+    question_4, 
+    question_5,
+    user_id,
+    email 
+  } = req.body;
+
+  // Basic validation
+  if (!question_1 || !question_2 || !question_3 || !question_4 || !question_5) {
+    return res.status(400).json({ 
+      success: false, 
+      message: 'All questions must be answered' 
+    });
+  }
+
+  try {
+    const query = `
+      INSERT INTO onboarding_responses 
+      (user_id, email, question_1, question_2, question_3, question_4, question_5)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      RETURNING id
+    `;
+
+    const values = [
+      user_id || null,
+      email || null,
+      question_1,
+      question_2,
+      question_3,
+      question_4,
+      question_5
+    ];
+
+    const result = await pool.query(query, values);
+
+    console.log('Onboarding responses saved:', {
+      response_id: result.rows[0].id,
+      user_id: user_id,
+      email: email
+    });
+
+    res.status(201).json({ 
+      success: true, 
+      message: 'Onboarding responses saved successfully',
+      response_id: result.rows[0].id
+    });
+
+  } catch (error) {
+    console.error('Error saving onboarding responses:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server error saving onboarding responses' 
     });
   }
 };
@@ -248,4 +312,5 @@ module.exports = {
   login,
   forgotPassword,
   logout,
+  saveOnboardingResponses,
 };

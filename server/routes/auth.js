@@ -1,5 +1,5 @@
 const express = require('express');
-const { register, login, forgotPassword, logout } = require('../controllers/auth');
+const { register, login, forgotPassword, logout, saveOnboardingResponses } = require('../controllers/auth');
 const { protect } = require('../middlewares/auth');
 
 const router = express.Router();
@@ -18,6 +18,11 @@ router.post('/register', register);
 // @desc    Authenticate user & get token
 // @access  Public
 router.post('/login', login);
+
+// @route   POST /api/auth/onboarding
+// @desc    Save onboarding responses
+// @access  Public
+router.post('/onboarding', saveOnboardingResponses);
 
 // @route   POST /api/auth/logout
 // @desc    Logout user (invalidate token if needed)

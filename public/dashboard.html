@@ -578,13 +578,18 @@
   max-width:220px;
   background:#fff;
   border-radius:16px;
-  box-shadow:0 2px 8px #0001;
+  box-shadow:0 2px 8px rgba(0,0,0,0.1);
   display:flex;
   flex-direction:column;
   align-items:center;
   padding:18px 12px 16px 12px;
   position:relative;
-  transition:box-shadow .2s;
+  transition:all 0.3s ease;
+  cursor: pointer;
+}
+.product-card:hover {
+  transform: translateY(-4px);
+  box-shadow:0 8px 25px rgba(0,0,0,0.15);
 }
 .product-card img {
   width:120px;
@@ -592,37 +597,61 @@
   object-fit:contain;
   border-radius:10px;
   background:#f7f7f7;
-  margin-bottom:10px;
+  margin-bottom:12px;
 }
 .product-badge {
   position:absolute;
-  top:10px;
-  left:10px;
-  background:#eee;
-  color:#444;
-  font-size:0.8rem;
-  border-radius:6px;
-  padding:2px 8px;
-  font-weight:500;
+  top:12px;
+  left:12px;
+  background:linear-gradient(135deg, #97968c, #777676);
+  color:#fffefe;
+  font-size:0.75rem;
+  border-radius:8px;
+  padding:4px 10px;
+  font-weight:600;
+  text-transform:uppercase;
+  letter-spacing:0.5px;
+  box-shadow:0 2px 4px rgba(0,0,0,0.1);
 }
 .product-name {
-  font-size:1rem;
+  font-size:0.9rem;
   font-weight:600;
-  margin:8px 0 2px 0;
+  margin:8px 0 12px 0;
   text-align:center;
   min-height:40px;
+  line-height:1.3;
+  color:#333;
 }
-.product-price {
-  font-size:1.1rem;
-  color:#222;
-  font-weight:500;
-  margin-bottom:2px;
+.product-price-btn {
+  background:linear-gradient(135deg, var(--primary-blue), var(--secondary-blue));
+  color:white;
+  font-size:1rem;
+  font-weight:600;
+  padding:8px 16px;
+  border-radius:10px;
+  margin-bottom:8px;
+  box-shadow:0 2px 8px rgba(0,122,255,0.3);
+  border:none;
+  transition:all 0.3s ease;
 }
-.product-commission {
-  font-size:0.95rem;
-  color:#0a7a2a;
+.product-commission-btn {
+  background:linear-gradient(135deg, var(--success-green), #28a745);
+  color:white;
+  font-size:0.85rem;
   font-weight:500;
-  margin-bottom:2px;
+  padding:6px 14px;
+  border-radius:6px;
+  box-shadow:0 2px 6px rgba(48,209,88,0.3);
+  border:none;
+  transition:all 0.3s ease;
+}
+.product-card:hover .product-price-btn {
+  transform: scale(1.05);
+  box-shadow:0 4px 12px rgba(0,122,255,0.4);
+}
+.product-card:hover .product-commission-btn {
+  transform: scale(1.05);
+  box-shadow:0 4px 10px rgba(48,209,88,0.4);
 }
 .product-link {
   text-decoration:none;
@@ -748,6 +777,13 @@
                 </a>
             </div>
 
+                        <!-- Product Carousel (Top of Dashboard) -->
+            <div id="product-carousel-container">
+            <div class="carousel-title">Earn Commission</div>
+            <div id="product-carousel"></div>
+            <button id="carousel-left">&#8592;</button>
+            <button id="carousel-right">&#8594;</button>
+            </div>
             
             <!-- Transaction Section -->
             <div class="section-header d-flex justify-content-between align-items-center">
@@ -798,19 +834,10 @@
                 </div>
             </div>
 
-
-            <!-- Product Carousel (Top of Dashboard) -->
-<div id="product-carousel-container">
-  <div class="carousel-title">Featured High-Value Products</div>
-  <div id="product-carousel"></div>
-  <button id="carousel-left">&#8592;</button>
-  <button id="carousel-right">&#8594;</button>
-</div>
-
             <!-- CTA Section -->
             <div class="cta-section">
                 <h4>Start your next project</h4>
-                <p>Begin your journey with our comprehensive business solutions</p>
+                <p>Earn from our data drives and discover financial freedom</p>
                 <a href="./task.html" class="cta-btn">
                     <i class="fas fa-play me-2"></i>
                     Start Shopping
@@ -1223,6 +1250,13 @@
     </script>
 <script>
 (async function() {
+  // Check if carousel has already been loaded to prevent duplicate execution
+  if (window.carouselLoaded) {
+    console.warn('Carousel script already executed, skipping...');
+    return;
+  }
+  window.carouselLoaded = true;
+  
   console.log('Loading product carousel...');
   
   let products = [];
@@ -1236,11 +1270,45 @@
     
     const data = await response.json();
     console.log('Carousel API response:', data);
+    console.log('Number of products received:', data.products?.length || 0);
     
     if (!data.success || !Array.isArray(data.products)) {
       throw new Error('Invalid products response');
+    }    products = data.products;
+    
+    // Log product IDs to check for duplicates
+    const productIds = products.map(p => p.id);
+    console.log('Product IDs received:', productIds);
+    const uniqueIds = [...new Set(productIds)];
+    console.log('Unique product IDs:', uniqueIds);
+    if (productIds.length !== uniqueIds.length) {
+      console.warn('DUPLICATE PRODUCTS DETECTED IN API RESPONSE!');
+      console.log('Original count:', productIds.length, 'Unique count:', uniqueIds.length);
     }
-    products = data.products;
+    
+    // Remove duplicates by name AND price (since same product can have different IDs)
+    const uniqueProducts = [];
+    const seenProducts = new Set();
+    
+    for (const product of products) {
+      // Create a unique key based on name and price
+      const productKey = `${product.name?.toLowerCase().trim()}_${product.price}`;
+      
+      if (!seenProducts.has(productKey)) {
+        seenProducts.add(productKey);
+        uniqueProducts.push(product);
+      } else {
+        console.log(`Skipping duplicate product: ${product.name} (ID: ${product.id})`);
+      }
+    }
+    
+    if (products.length !== uniqueProducts.length) {
+      console.log(`Removed ${products.length - uniqueProducts.length} duplicate products`);
+      console.log('Original count:', products.length, 'After deduplication:', uniqueProducts.length);
+    }
+    
+    products = uniqueProducts;
+    
   } catch (e) {
     console.error('Failed to load products from /api/products/carousel', e);
     document.getElementById('product-carousel-container').style.display = 'none';
@@ -1255,8 +1323,7 @@
     document.getElementById('product-carousel-container').style.display = 'none';
     return;
   }
-  
-  console.log(`Rendering ${highValue.length} products in carousel`);
+    console.log(`Rendering ${highValue.length} products in carousel`);
     // Render product cards
   const carousel = document.getElementById('product-carousel');
   if (!carousel) {
@@ -1264,27 +1331,36 @@
     return;
   }
   
+  console.log('Current carousel HTML before clearing:', carousel.innerHTML.length > 0 ? 'Has content' : 'Empty');
+  
   // Clear existing products to prevent duplication
   carousel.innerHTML = '';
   
-  highValue.forEach(p => {
+  console.log('Carousel cleared, starting to render products...');
+  highValue.forEach((p, index) => {
+    console.log(`Rendering product ${index + 1}: ${p.name} (ID: ${p.id})`);
     const price = parseFloat(p.price || 0);
     const commission = p.commission ? `$${parseFloat(p.commission).toFixed(2)}` : `$${(price * 0.10).toFixed(2)}`;
     const name = (p.name||'').split(' ').slice(0,5).join(' ');
     const imgSrc = p.image_url || '/assets/uploads/products/newegg-1.jpg';
     const card = document.createElement('div');
     card.className = 'product-card';
+    card.setAttribute('data-product-id', p.id);
+    card.style.cursor = 'pointer';
+    card.addEventListener('click', () => {
+      window.location.href = 'task.html';
+    });
     card.innerHTML = `
-      <span class="product-badge">Best Seller</span>
+      <span class="product-badge">Platinum</span>
       <img src="${imgSrc}" alt="${name}">
       <div class="product-name">${name}</div>
-      <div class="product-price">$${price.toLocaleString()}</div>
-      <div class="product-commission">Commission: ${commission}</div>
+      <div class="product-price-btn">$${price.toLocaleString()}</div>
+      <div class="product-commission-btn">Earn ${commission}</div>
     `;
     carousel.appendChild(card);
   });
-
   console.log('Carousel rendered successfully');
+  console.log('Final carousel children count:', carousel.children.length);
 
   // Carousel scroll logic
   const scrollAmount = 260;
@@ -1299,6 +1375,56 @@
       carousel.scrollBy({ left: scrollAmount, behavior: 'smooth' });
     };
     console.log('Carousel navigation buttons initialized');
+    
+    // Auto-rotation functionality
+    let autoRotateInterval;
+    const autoRotateDelay = 4000; // 4 seconds
+    
+    function startAutoRotate() {
+      autoRotateInterval = setInterval(() => {
+        const maxScroll = carousel.scrollWidth - carousel.clientWidth;
+        if (carousel.scrollLeft >= maxScroll) {
+          // Reset to beginning when reaching the end
+          carousel.scrollTo({ left: 0, behavior: 'smooth' });
+        } else {
+          // Scroll to next set of products
+          carousel.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+        }
+      }, autoRotateDelay);
+    }
+    
+    function stopAutoRotate() {
+      if (autoRotateInterval) {
+        clearInterval(autoRotateInterval);
+        autoRotateInterval = null;
+      }
+    }
+    
+    // Start auto-rotation
+    startAutoRotate();
+    
+    // Pause auto-rotation on hover
+    carousel.addEventListener('mouseenter', stopAutoRotate);
+    carousel.addEventListener('mouseleave', startAutoRotate);
+    
+    // Pause auto-rotation when user manually scrolls
+    carousel.addEventListener('scroll', () => {
+      stopAutoRotate();
+      setTimeout(startAutoRotate, 2000); // Resume after 2 seconds of inactivity
+    });
+    
+    // Pause auto-rotation when navigation buttons are used
+    leftButton.addEventListener('click', () => {
+      stopAutoRotate();
+      setTimeout(startAutoRotate, 2000);
+    });
+    
+    rightButton.addEventListener('click', () => {
+      stopAutoRotate();
+      setTimeout(startAutoRotate, 2000);
+    });
+    
+    console.log('Carousel auto-rotation initialized');
   } else {
     console.error('Carousel navigation buttons not found');
   }

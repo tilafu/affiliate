@@ -1304,7 +1304,68 @@ const sendBulkNotifications = async (req, res) => {
     }
 };
 
-module.exports = {    // User Management
+/**
+ * @desc    Get onboarding responses
+ * @route   GET /api/admin/onboarding-responses
+ * @access  Private/Admin
+ */
+const getOnboardingResponses = async (req, res) => {
+    try {
+        const query = `
+            SELECT 
+                or.id,
+                or.user_id,
+                or.email,
+                or.question_1,
+                or.question_2,
+                or.question_3,
+                or.question_4,
+                or.question_5,
+                or.created_at,
+                u.username,
+                u.tier
+            FROM onboarding_responses or
+            LEFT JOIN users u ON or.user_id = u.id
+            ORDER BY or.created_at DESC
+        `;
+
+        const result = await pool.query(query);
+
+        // Format the responses for better readability
+        const formattedResponses = result.rows.map(row => ({
+            id: row.id,
+            user: {
+                id: row.user_id,
+                username: row.username,
+                email: row.email,
+                tier: row.tier
+            },
+            responses: {
+                earning_goal: row.question_1,
+                motivation: row.question_2,
+                barriers: row.question_3,
+                future_vision: row.question_4,
+                success_story: row.question_5
+            },
+            created_at: row.created_at
+        }));
+
+        res.json({ 
+            success: true, 
+            responses: formattedResponses,
+            total: formattedResponses.length
+        });
+
+    } catch (error) {
+        logger.error('Error fetching onboarding responses:', { error: error.message, stack: error.stack });
+        res.status(500).json({ 
+            success: false, 
+            message: 'Error fetching onboarding responses' 
+        });
+    }
+};
+
+module.exports = {// User Management
     getUsers,
     getFrozenUsers,
     updateUserTier,
@@ -1347,9 +1408,7 @@ module.exports = {    // User Management
     
     // Tier Quantity Configuration Management
     getTierQuantityConfigs,
-    updateTierQuantityConfig,
-
-    // Unfreeze User Account
+    updateTierQuantityConfig,    // Unfreeze User Account
     unfreezeUser,
 
     // Notification Management
@@ -1359,5 +1418,8 @@ module.exports = {    // User Management
     updateGeneralNotification,
     deleteGeneralNotification,
     sendCategorizedNotification,
-    sendBulkNotifications
+    sendBulkNotifications,
+
+    // Onboarding Management
+    getOnboardingResponses
 };

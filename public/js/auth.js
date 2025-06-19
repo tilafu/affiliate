@@ -137,20 +137,26 @@ async function handleRegisterSubmit(event) {
         });
 
         const data = await response.json();
-        console.log('Register API response:', data);
-
-        if (response.ok && data.success) {
-            // Optionally store token immediately, or redirect to login
-            // localStorage.setItem('auth_token', data.token);
-            // localStorage.setItem('user_data', JSON.stringify(data.user));
+        console.log('Register API response:', data);        if (response.ok && data.success) {
+            // Store user data temporarily for onboarding
+            localStorage.setItem('temp_user_data', JSON.stringify(data.user));
             
-            // Store username for login page prefill
+            // Store username for login page prefill (fallback)
             sessionStorage.setItem('registered_username', formData.username);
 
-            showNotification(data.message || 'Registration successful! Redirecting to login...', 'success');
-            setTimeout(() => {
-                window.location.href = 'login.html'; // Redirect to login after registration
-            }, 1500);
+            showNotification(data.message || 'Registration successful! Redirecting to onboarding...', 'success');
+            
+            // Check if we should redirect to onboarding
+            if (data.redirectTo === 'onboarding') {
+                setTimeout(() => {
+                    window.location.href = 'onboarding.html';
+                }, 1500);
+            } else {
+                // Fallback to login
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 1500);
+            }
         } else {
             const message = data.message || `Registration failed (Status: ${response.status})`;
             showNotification(message, 'error');
