@@ -896,8 +896,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 setTimeout(() => indicator.remove(), 300);
             }
         }, 3000);
-    }
-    
+    }    
     // Initialize connection status
     updateConnectionStatus();
 });
@@ -911,6 +910,242 @@ document.addEventListener('DOMContentLoaded', async function() {
         console.error('Error loading navigation components:', error);
     }
 });
+</script>
+
+<!-- Data Drive Purchase Success Popup -->
+<div id="purchase-success-popup" class="purchase-popup-overlay" style="display: none;">
+    <div class="purchase-popup">
+        <button class="purchase-popup-close" id="purchase-popup-close">
+            <i class="fas fa-times"></i>
+        </button>
+        <div class="purchase-popup-content">
+            <div class="purchase-success-icon">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <h3 class="purchase-popup-title">Success!</h3>
+            <p class="purchase-popup-message" id="purchase-popup-message">
+                Product successfully driven.
+            </p>
+            <div class="purchase-popup-buttons">
+                <button class="btn btn-primary purchase-continue-btn" id="purchase-continue-btn">
+                    <i class="fas fa-arrow-right"></i>
+                    Continue Drive
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Purchase Success Popup Styles */
+.purchase-popup-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(8px);
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.purchase-popup-overlay.show {
+    opacity: 1;
+}
+
+.purchase-popup {
+    background: white;
+    border-radius: 20px;
+    padding: 0;
+    max-width: 400px;
+    width: 90%;
+    position: relative;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+    transform: scale(0.8) translateY(30px);
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.purchase-popup-overlay.show .purchase-popup {
+    transform: scale(1) translateY(0);
+}
+
+.purchase-popup-close {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background: rgba(0, 0, 0, 0.1);
+    border: none;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #666;
+    transition: all 0.2s ease;
+    z-index: 1;
+}
+
+.purchase-popup-close:hover {
+    background: rgba(0, 0, 0, 0.2);
+    color: #333;
+}
+
+.purchase-popup-content {
+    padding: 40px 30px 30px;
+    text-align: center;
+}
+
+.purchase-success-icon {
+    margin-bottom: 20px;
+}
+
+.purchase-success-icon i {
+    font-size: 64px;
+    color: #30D158;
+    animation: successPulse 0.6s ease-out;
+}
+
+@keyframes successPulse {
+    0% { transform: scale(0); opacity: 0; }
+    50% { transform: scale(1.1); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+.purchase-popup-title {
+    font-size: 28px;
+    font-weight: 700;
+    color: #000000;
+    margin-bottom: 12px;
+    font-family: 'Inter', sans-serif;
+}
+
+.purchase-popup-message {
+    font-size: 16px;
+    color: #8E8E93;
+    margin-bottom: 30px;
+    line-height: 1.5;
+}
+
+.purchase-popup-buttons {
+    display: flex;
+    justify-content: center;
+}
+
+.purchase-continue-btn {
+    background: linear-gradient(135deg, #007AFF, #5AC8FA);
+    border: none;
+    padding: 12px 30px;
+    border-radius: 12px;
+    color: white;
+    font-weight: 600;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 4px 16px rgba(0, 122, 255, 0.3);
+}
+
+.purchase-continue-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 24px rgba(0, 122, 255, 0.4);
+}
+
+.purchase-continue-btn i {
+    font-size: 14px;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+    .purchase-popup {
+        margin: 20px;
+        width: calc(100% - 40px);
+    }
+    
+    .purchase-popup-content {
+        padding: 30px 20px 20px;
+    }
+    
+    .purchase-success-icon i {
+        font-size: 48px;
+    }
+    
+    .purchase-popup-title {
+        font-size: 24px;
+    }
+}
+</style>
+
+<script>
+// Purchase Success Popup Functions
+function showPurchaseSuccessPopup(productName, onContinue) {
+    const popup = document.getElementById('purchase-success-popup');
+    const messageEl = document.getElementById('purchase-popup-message');
+    const continueBtn = document.getElementById('purchase-continue-btn');
+    const closeBtn = document.getElementById('purchase-popup-close');
+    
+    // Set the message
+    messageEl.textContent = `${productName} successfully driven.`;
+    
+    // Show the popup
+    popup.style.display = 'flex';
+    setTimeout(() => {
+        popup.classList.add('show');
+    }, 10);
+    
+    // Handle continue button
+    const handleContinue = () => {
+        hidePurchaseSuccessPopup();
+        if (typeof onContinue === 'function') {
+            onContinue();
+        }
+    };
+    
+    // Handle close button
+    const handleClose = () => {
+        hidePurchaseSuccessPopup();
+    };
+    
+    // Remove existing event listeners
+    continueBtn.replaceWith(continueBtn.cloneNode(true));
+    closeBtn.replaceWith(closeBtn.cloneNode(true));
+    
+    // Add new event listeners
+    document.getElementById('purchase-continue-btn').addEventListener('click', handleContinue);
+    document.getElementById('purchase-popup-close').addEventListener('click', handleClose);
+    
+    // Close on overlay click
+    popup.addEventListener('click', (e) => {
+        if (e.target === popup) {
+            handleClose();
+        }
+    });
+    
+    // Close on escape key
+    const handleEscape = (e) => {
+        if (e.key === 'Escape') {
+            handleClose();
+            document.removeEventListener('keydown', handleEscape);
+        }
+    };
+    document.addEventListener('keydown', handleEscape);
+}
+
+function hidePurchaseSuccessPopup() {
+    const popup = document.getElementById('purchase-success-popup');
+    popup.classList.remove('show');
+    setTimeout(() => {
+        popup.style.display = 'none';
+    }, 300);
+}
 </script>
 
 <!-- Initialize Owl Carousel -->

@@ -274,35 +274,82 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
 
                     const refundData = await refundResponse.json();
-                    logDebug(`Refund response: ${JSON.stringify(refundData)}`, 'dev');
-
-                    if (refundResponse.ok && refundData.success) {
+                    logDebug(`Refund response: ${JSON.stringify(refundData)}`, 'dev');                    if (refundResponse.ok && refundData.success) {
                         logDebug(`Refund successful: ${productDataForPurchase.product_price} USDT refunded`, 'info');
-                        // Show success message
-                        if (typeof showNotification === 'function') {
-                            showNotification(`Purchase completed! ${productDataForPurchase.product_price} USDT refunded + ${productDataForPurchase.order_commission} USDT commission earned`, 'success');
+                        
+                        // Show purchase success popup instead of notification
+                        if (typeof showPurchaseSuccessPopup === 'function') {
+                            showPurchaseSuccessPopup(productDataForPurchase.product_name, () => {
+                                // Continue with the drive flow after user clicks "Continue Drive"
+                                if (data.next_action === 'drive_complete') {
+                                    logDebug('Drive complete after purchase.', 'info');
+                                    displayDriveComplete(data.message_to_user || 'Congratulations! Drive complete!');
+                                } else {
+                                    // Default action is to fetch the next order/product
+                                    logDebug('Fetching next order after purchase.', 'info');
+                                    fetchNextOrder();
+                                }
+                            });
+                            return; // Exit early since popup will handle the continue flow
+                        } else {
+                            // Fallback to regular notification if popup function is not available
+                            if (typeof showNotification === 'function') {
+                                showNotification(`Purchase completed! ${productDataForPurchase.product_price} USDT refunded + ${productDataForPurchase.order_commission} USDT commission earned`, 'success');
+                            }
                         }
                     } else {
                         logDebug(`Refund failed: ${refundData.message || 'Unknown error'}`, 'warn');
                         // Log error but don't stop the flow - user still got their commission
                         console.warn('Refund failed but purchase was successful:', refundData);
-                    }
-                } catch (refundError) {
+                        
+                        // Still show success popup even if refund failed
+                        if (typeof showPurchaseSuccessPopup === 'function') {
+                            showPurchaseSuccessPopup(productDataForPurchase.product_name, () => {
+                                // Continue with the drive flow
+                                if (data.next_action === 'drive_complete') {
+                                    logDebug('Drive complete after purchase.', 'info');
+                                    displayDriveComplete(data.message_to_user || 'Congratulations! Drive complete!');
+                                } else {
+                                    logDebug('Fetching next order after purchase.', 'info');
+                                    fetchNextOrder();
+                                }
+                            });
+                            return;
+                        }
+                    }                } catch (refundError) {
                     logDebug(`Error processing refund: ${refundError.message}`, 'error');
                     console.error('Error processing refund:', refundError);
                     // Continue with normal flow even if refund fails
+                    
+                    // Show success popup even if refund processing failed
+                    if (typeof showPurchaseSuccessPopup === 'function') {
+                        showPurchaseSuccessPopup(productDataForPurchase.product_name, () => {
+                            // Continue with the drive flow
+                            if (data.next_action === 'drive_complete') {
+                                logDebug('Drive complete after purchase.', 'info');
+                                displayDriveComplete(data.message_to_user || 'Congratulations! Drive complete!');
+                            } else {
+                                logDebug('Fetching next order after purchase.', 'info');
+                                fetchNextOrder();
+                            }
+                        });
+                        return;
+                    }
                 }
                 
                 // Update balance after refund attempt
                 updateWalletBalance();
                 
-                if (data.next_action === 'drive_complete') {
-                    logDebug('Drive complete after purchase.', 'info');
-                    displayDriveComplete(data.message_to_user || 'Congratulations! Drive complete!');
-                } else {
-                    // Default action is to fetch the next order/product
-                    logDebug('Fetching next order after purchase.', 'info');
-                    fetchNextOrder();
+                // Only execute default flow if popup wasn't shown
+                if (typeof showPurchaseSuccessPopup !== 'function') {
+                    if (data.next_action === 'drive_complete') {
+                        logDebug('Drive complete after purchase.', 'info');
+                        displayDriveComplete(data.message_to_user || 'Congratulations! Drive complete!');
+                    } else {
+                        // Default action is to fetch the next order/product
+                        logDebug('Fetching next order after purchase.', 'info');
+                        fetchNextOrder();
+                    }
                 }
             }else if (data.code === 3) { // Insufficient balance/Frozen
                  logDebug(`Insufficient balance/Frozen: ${data.info}`, 'warn');

@@ -1101,17 +1101,26 @@ async function handlePurchase(token, productData) {
                     
                     // Save updated session data
                     updateDriveCommission(); // This calls saveCurrentSessionData()
-                    updateProgressBar(tasksCompleted, totalTasksRequired);
-
-                    // Refresh wallet balance immediately after successful refund
+                    updateProgressBar(tasksCompleted, totalTasksRequired);                    // Refresh wallet balance immediately after successful refund
                     console.log('Refreshing wallet balance after successful refund...');
                     refreshWalletBalanceWithRetry(3, 500); // 3 retries with 500ms delay (no await to avoid syntax issues)
-                    
-                    // Show success notification including refund info
-                    if (typeof showNotification === 'function') {
-                        showNotification(`Purchase completed! ${productData.product_price} USDT refunded + ${refundData.commission_amount} USDT commission earned`, 'success');
-                    } else { 
-                        alert(`Order completed! ${productData.product_price} USDT refunded + ${refundData.commission_amount} USDT commission earned`); 
+                      // Show purchase success popup instead of notification
+                    if (typeof showPurchaseSuccessPopup === 'function') {
+                        showPurchaseSuccessPopup(productData.product_name || 'Product', () => {
+                            // Continue with next product or complete the drive
+                            fetchNextOrder(token);
+                        });
+                    } else {
+                        // Fallback to regular notification if popup function is not available
+                        if (typeof showNotification === 'function') {
+                            showNotification(`Purchase completed! ${productData.product_price} USDT refunded + ${refundData.commission_amount} USDT commission earned`, 'success');
+                        } else { 
+                            alert(`Order completed! ${productData.product_price} USDT refunded + ${refundData.commission_amount} USDT commission earned`); 
+                        }
+                        // Continue to next product after showing notification
+                        setTimeout(() => {
+                            fetchNextOrder(token);
+                        }, 2000);
                     }
                 } else {
                     console.warn('Refund failed but purchase was successful:', refundData);
@@ -1129,16 +1138,26 @@ async function handlePurchase(token, productData) {
                     // Save updated session data
                     updateDriveCommission(); // This calls saveCurrentSessionData()
                     updateProgressBar(tasksCompleted, totalTasksRequired);
-                    
-                    // Refresh wallet balance even if refund failed (commission should still be added)
+                      // Refresh wallet balance even if refund failed (commission should still be added)
                     console.log('Refreshing wallet balance after purchase (refund failed)...');
                     refreshWalletBalance();
-                    
-                    // Show standard success message if refund fails
-                    if (typeof showNotification === 'function') {
-                        showNotification(data.info || "Order Sent successfully!", 'success');
-                    } else { 
-                        alert(data.info || "Order Sent successfully!"); 
+                      // Show success popup even if refund fails
+                    if (typeof showPurchaseSuccessPopup === 'function') {
+                        showPurchaseSuccessPopup(productData.product_name || 'Product', () => {
+                            // Continue with next product
+                            fetchNextOrder(token);
+                        });
+                    } else {
+                        // Fallback to standard success message if refund fails
+                        if (typeof showNotification === 'function') {
+                            showNotification(data.info || "Order Sent successfully!", 'success');
+                        } else { 
+                            alert(data.info || "Order Sent successfully!"); 
+                        }
+                        // Continue to next product after showing notification
+                        setTimeout(() => {
+                            fetchNextOrder(token);
+                        }, 2000);
                     }
                 }
             } catch (refundError) {
@@ -1157,20 +1176,29 @@ async function handlePurchase(token, productData) {
                 // Save updated session data
                 updateDriveCommission(); // This calls saveCurrentSessionData()
                 updateProgressBar(tasksCompleted, totalTasksRequired);
-                
-                // Refresh wallet balance even if refund had an error (commission should still be added)
+                  // Refresh wallet balance even if refund had an error (commission should still be added)
                 console.log('Refreshing wallet balance after purchase (refund error)...');
                 refreshWalletBalance();
-                
-                // Show standard success message if refund fails
-                if (typeof showNotification === 'function') {
-                    showNotification(data.info || "Order Sent successfully!", 'success');
-                } else { 
-                    alert(data.info || "Order Sent successfully!"); 
+                  // Show success popup even if refund had an error
+                if (typeof showPurchaseSuccessPopup === 'function') {
+                    showPurchaseSuccessPopup(productData.product_name || 'Product', () => {
+                        // Continue with next product
+                        fetchNextOrder(token);
+                    });
+                } else {
+                    // Fallback to standard success message if refund fails
+                    if (typeof showNotification === 'function') {
+                        showNotification(data.info || "Order Sent successfully!", 'success');
+                    } else { 
+                        alert(data.info || "Order Sent successfully!"); 
+                    }
+                    // Continue to next product after showing notification
+                    setTimeout(() => {
+                        fetchNextOrder(token);
+                    }, 2000);
                 }
             }
-            
-            // Ensure session data is saved before page reload
+              // Ensure session data is saved before page reload
             console.log('Ensuring session data is saved before page reload...');
             saveCurrentSessionData(); // Explicit save
             
@@ -1186,17 +1214,23 @@ async function handlePurchase(token, productData) {
                 savedData: getCurrentSessionData()
             });
             
-            // Refresh the entire page after a brief delay to show the notification and allow balance update
-            console.log('Refreshing entire page after successful purchase...');
-            setTimeout(() => {
-                // Additional balance refresh right before reload
-                console.log('Final balance refresh right before reload...');
-                refreshWalletBalance();
-                
-                // Small additional delay to ensure balance update completes
-                setTimeout(() => {                    window.location.reload();
-                }, 500); // Extra 500ms to ensure balance update completes
-            }, 2000); // Increased delay to 2 seconds to show refund message and allow processing
+            // Only reload page if popup is not being used
+            if (typeof showPurchaseSuccessPopup !== 'function') {
+                // Refresh the entire page after a brief delay to show the notification and allow balance update
+                console.log('Refreshing entire page after successful purchase...');
+                setTimeout(() => {
+                    // Additional balance refresh right before reload
+                    console.log('Final balance refresh right before reload...');
+                    refreshWalletBalance();
+                    
+                    // Small additional delay to ensure balance update completes
+                    setTimeout(() => {                    
+                        window.location.reload();
+                    }, 500); // Extra 500ms to ensure balance update completes
+                }, 2000); // Increased delay to 2 seconds to show refund message and allow processing
+            } else {
+                console.log('Popup handling flow - skipping automatic page reload');
+            }
               // Note: Code below this point won't execute due to page refresh
             // but keeping it for fallback in case reload fails
             
