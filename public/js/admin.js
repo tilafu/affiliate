@@ -78,8 +78,15 @@ async function fetchWithAuth(endpoint, options = {}) {
     let token;
     if (typeof DualAuth !== 'undefined') {
         token = DualAuth.getToken('admin');
+        console.log('Admin token from DualAuth:', token ? 'exists' : 'not found');
     } else {
         token = localStorage.getItem('auth_token');
+        console.log('Token from localStorage:', token ? 'exists' : 'not found');
+    }
+    
+    if (!token) {
+        console.error('No authentication token found for admin panel');
+        throw new Error('Not authorized - no token found');
     }
     
     const defaultHeaders = {
@@ -104,9 +111,7 @@ async function fetchWithAuth(endpoint, options = {}) {
     // so remove our default if it was set, or any explicit one if it conflicts.
     if (options.body instanceof FormData) {
         delete mergedOptions.headers['Content-Type'];
-    }
-
-    const url = endpoint.startsWith('/api') ? endpoint : `/api${endpoint}`;
+    }    const url = endpoint.startsWith('/api') ? endpoint : `/api${endpoint}`;
     const response = await fetch(url, mergedOptions);
 
     let responseBodyText = '';
@@ -972,11 +977,11 @@ async function markAsResolved(messageId) {
 }
 
 function initializeHandlers() {
+    // Use event delegation for dynamically created elements
     document.addEventListener('click', async (event) => {
         const target = event.target;
 
-    // --- Drive Configuration & Task Set Modals ---
-        // Handler for "Create New Configuration" button in the Drive Configurations section
+        // --- Drive Configuration & Task Set Modals ---
         if (target.id === 'show-create-config-modal-btn') {
             event.preventDefault();
             if (DriveModuleAPI && typeof DriveModuleAPI.showCreateDriveConfigurationModal === 'function') {
@@ -986,29 +991,26 @@ function initializeHandlers() {
                 showNotification('Error: Cannot open the form to create a new drive configuration.', 'error');
             }
         }
-        // Handler for "Add New Task Set" button within the "Manage Task Sets Modal"
         else if (target.id === 'show-create-taskset-modal-btn') {
             event.preventDefault();
             const configIdInput = document.getElementById('current-config-id-for-taskset');
             const configNameElement = document.getElementById('tasksetConfigName');
             
             const configId = configIdInput ? configIdInput.value : null;
-            // Fallback for configName if the element isn't found or populated, though it should be.
             const configName = configNameElement ? configNameElement.textContent : 'Selected Configuration';
 
             if (configId) {
                 if (DriveModuleAPI && typeof DriveModuleAPI.showCreateTaskSetModal === 'function') {
                     DriveModuleAPI.showCreateTaskSetModal(configId, configName);
                 } else {
-                    console.error('DriveModuleAPI.showCreateTaskSetModal is not available. Ensure admin-drives.js is loaded and DriveModuleAPI is correctly imported/assigned.');
+                    console.error('DriveModuleAPI.showCreateTaskSetModal is not available.');
                     showNotification('Error: Cannot open the form to create a new task set.', 'error');
                 }
             } else {
-                console.error('Cannot create task set: Configuration ID is missing. Ensure "current-config-id-for-taskset" input is populated when the modal is shown.');
-                showNotification('Could not determine the current configuration to add a task set to. Please close and reopen the task set manager.', 'error');
+                console.error('Cannot create task set: Configuration ID is missing.');
+                showNotification('Could not determine the current configuration to add a task set to.', 'error');
             }
         }
-
         // User Management
         else if (target.matches('.manage-user-btn')) {
             const userId = target.dataset.userId;
@@ -1016,46 +1018,56 @@ function initializeHandlers() {
             const currentTier = target.dataset.tier;
             const assignedConfigId = target.dataset.assignedConfigId;
             const assignedConfigName = target.dataset.assignedConfigName;
-            const userBalance = target.dataset.userBalance; // Get balance from data attribute
+            const userBalance = target.dataset.userBalance;
             
             const userDetails = document.getElementById('user-details');
-            document.getElementById('manage-username').textContent = username;
-            document.getElementById('manage-user-id').textContent = userId; // This is a hidden input or span to store the ID
-            document.getElementById('user-tier-select').value = currentTier;
-            document.getElementById('manage-user-balance').textContent = userBalance !== undefined ? parseFloat(userBalance).toFixed(2) : 'N/A'; // Populate balance
+            const manageUsernameEl = document.getElementById('manage-username');
+            const manageUserIdEl = document.getElementById('manage-user-id');
+            const tierSelectEl = document.getElementById('user-tier-select');
+            const balanceEl = document.getElementById('manage-user-balance');
+            
+            if (manageUsernameEl) manageUsernameEl.textContent = username;
+            if (manageUserIdEl) manageUserIdEl.textContent = userId;
+            if (tierSelectEl) tierSelectEl.value = currentTier;
+            if (balanceEl) {
+                balanceEl.textContent = userBalance !== undefined ? parseFloat(userBalance).toFixed(2) : 'N/A';
+            }
             
             // Populate drive configuration dropdown
             await populateDriveConfigurationDropdown(assignedConfigId, assignedConfigName);
             
-            userDetails.style.display = 'block';
+            if (userDetails) userDetails.style.display = 'block';
         }
         // Assign Drive Configuration Button
         else if (target.id === 'assign-drive-config-button') {
             event.preventDefault();
-            const userId = document.getElementById('manage-user-id').textContent; // Assuming manage-user-id holds the current user ID
-            const selectedConfigId = document.getElementById('user-drive-config-select').value;
+            const manageUserIdEl = document.getElementById('manage-user-id');
+            const configSelectEl = document.getElementById('user-drive-config-select');
+            
+            const userId = manageUserIdEl ? manageUserIdEl.textContent : null;
+            const selectedConfigId = configSelectEl ? configSelectEl.value : null;
 
             if (!userId) {
                 showNotification('Cannot assign configuration: User ID not found.', 'error');
                 return;
             }
 
-            // The backend will handle unassignment if selectedConfigId is empty
             try {
                 const response = await fetchWithAuth(`/api/admin/users/${userId}/assign-drive-configuration`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ drive_configuration_id: selectedConfigId || null }) // Send null if "None" is selected
+                    body: JSON.stringify({ drive_configuration_id: selectedConfigId || null })
                 });
 
                 if (response.success) {
                     showNotification('Drive configuration assigned successfully!', 'success');
-                    await loadUsers(); // Refresh the user list to show updated assignment (if displayed there)
-                    document.getElementById('user-details').style.display = 'none'; // Hide the card
+                    await loadUsers();
+                    const userDetailsEl = document.getElementById('user-details');
+                    if (userDetailsEl) userDetailsEl.style.display = 'none';
                 } else {
                     throw new Error(response.message || 'Failed to assign drive configuration.');
                 }
-            } catch (error) {                console.error('Error assigning drive configuration:', error);
+            } catch (error) {
+                console.error('Error assigning drive configuration:', error);
                 showNotification(error.message || 'Error assigning drive configuration', 'error');
             }
         }
@@ -1067,55 +1079,124 @@ function initializeHandlers() {
                 await unfreezeUser(userId, username);
             }
         }
-    });
-
-    document.getElementById('send-reply-button')?.addEventListener('click', async () => {
-        const messageId = document.getElementById('send-reply-button').dataset.messageId;
-        const userId = document.getElementById('send-reply-button').dataset.userId;
-        const replyText = document.getElementById('reply-message').value;
-
-        try {
-            const response = await fetchWithAuth('/admin/support/messages/reply', {
-                method: 'POST',
-                body: JSON.stringify({
-                    message_id: messageId,
-                    user_id: userId,
-                    message: replyText
-                })
-            });
-
-            if (response.success) {
-                showNotification('Reply sent successfully', 'success');
-                document.getElementById('message-reply-form').style.display = 'none';
-                document.getElementById('reply-message').value = '';
-                loadSupportMessages();
+        // Edit Product Button
+        else if (target.matches('.edit-product-btn')) {
+            const productId = target.dataset.id;
+            if (!productId) {
+                showNotification('Product ID not found.', 'error');
+                return;
             }
-        } catch (error) {
-            console.error('Error sending reply:', error);
-            showNotification('Failed to send reply', 'error');
+            
+            try {
+                const response = await fetchWithAuth(`/admin/products/${productId}`);
+                if (response.success && response.product) {
+                    const product = response.product;
+                    const editIdEl = document.getElementById('edit-product-id');
+                    const editNameEl = document.getElementById('edit-product-name');
+                    const editPriceEl = document.getElementById('edit-product-price');
+                    
+                    if (editIdEl) editIdEl.value = product.id;
+                    if (editNameEl) editNameEl.value = product.name;
+                    if (editPriceEl) editPriceEl.value = product.price;
+
+                    const editModalElement = document.getElementById('edit-product-modal');
+                    if (editModalElement) {
+                        const editModal = new bootstrap.Modal(editModalElement);
+                        editModal.show();
+                    } else {
+                        console.error("Edit product modal not found.");
+                        showNotification('UI Error: Edit modal not found.', 'error');
+                    }
+                } else {
+                    showNotification(response.message || 'Failed to load product details.', 'error');
+                }
+            } catch (error) {
+                console.error('Error fetching product for edit:', error);
+                showNotification('Error fetching product details: ' + error.message, 'error');
+            }
+        }
+        // Delete Product Button
+        else if (target.matches('.delete-product-btn')) {
+            if (confirm('Are you sure you want to delete this product?')) {
+                const productId = target.dataset.id;
+                if (!productId) {
+                    showNotification('Product ID not found.', 'error');
+                    return;
+                }
+                
+                try {
+                    const response = await fetchWithAuth(`/admin/products/${productId}`, { method: 'DELETE' });
+                    if (response.success) {
+                        showNotification('Product deleted successfully', 'success');
+                        loadProducts();
+                    } else {
+                        showNotification(response.message || 'Failed to delete product', 'error');
+                    }
+                } catch (error) {
+                    console.error('Error deleting product:', error);
+                    showNotification('Failed to delete product: ' + error.message, 'error');
+                }
+            }
         }
     });
 
-    // Product handlers
+    // Reply button handler
+    const replyButton = document.getElementById('send-reply-button');
+    if (replyButton) {
+        replyButton.addEventListener('click', async () => {
+            const messageId = replyButton.dataset.messageId;
+            const userId = replyButton.dataset.userId;
+            const replyTextEl = document.getElementById('reply-message');
+            const replyText = replyTextEl ? replyTextEl.value : '';
 
-    // ADD Product Form Submission (Corrected)
+            if (!replyText.trim()) {
+                showNotification('Please enter a reply message.', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetchWithAuth('/admin/support/messages/reply', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        message_id: messageId,
+                        user_id: userId,
+                        message: replyText
+                    })
+                });
+
+                if (response.success) {
+                    showNotification('Reply sent successfully', 'success');
+                    const replyFormEl = document.getElementById('message-reply-form');
+                    if (replyFormEl) replyFormEl.style.display = 'none';
+                    if (replyTextEl) replyTextEl.value = '';
+                    loadSupportMessages();
+                } else {
+                    showNotification(response.message || 'Failed to send reply', 'error');
+                }
+            } catch (error) {
+                console.error('Error sending reply:', error);
+                showNotification('Failed to send reply', 'error');
+            }
+        });
+    }
+
+    // Product form handlers
     const addProductForm = document.getElementById('add-product-form');
     if (addProductForm) {
         addProductForm.addEventListener('submit', async (e) => {
-            e.preventDefault();            // Construct data only from relevant fields expected by the updated backend
+            e.preventDefault();
+            
+            const nameEl = document.getElementById('product-name');
+            const priceEl = document.getElementById('product-price');
+            
             const productData = {
-                name: document.getElementById('product-name').value,
-                price: parseFloat(document.getElementById('product-price').value),
-                // Add min_balance_required if it's in the add form
-                // min_balance_required: parseFloat(document.getElementById('product-min-balance').value) || 0, 
-                // Add image_url if it's in the add form
-                // image_url: document.getElementById('product-image-url').value || null 
+                name: nameEl ? nameEl.value : '',
+                price: priceEl ? parseFloat(priceEl.value) : 0
             };
 
-            // Validate data before sending (basic example)
-            if (!productData.name || isNaN(productData.price)) {
-                 showNotification('Please fill in Name and Price correctly.', 'error');
-                 return;
+            if (!productData.name || isNaN(productData.price) || productData.price <= 0) {
+                showNotification('Please fill in Name and a valid Price.', 'error');
+                return;
             }
 
             try {
@@ -1126,79 +1207,38 @@ function initializeHandlers() {
 
                 if (response.success) {
                     showNotification('Product added successfully', 'success');
-                    e.target.reset(); // Reset the add form
-                    loadProducts(); // Reload the product list
+                    e.target.reset();
+                    loadProducts();
                 } else {
-                     showNotification(response.message || 'Failed to add product', 'error');
+                    showNotification(response.message || 'Failed to add product', 'error');
                 }
             } catch (error) {
                 console.error('Error adding product:', error);
                 showNotification('Failed to add product: ' + error.message, 'error');
             }
         });
-    } else {
-         console.warn("Add product form ('add-product-form') not found.");
     }
 
-
-    // EDIT Product Button Click
-     document.addEventListener('click', async (e) => {
-        if (e.target.matches('.edit-product-btn')) {
-            const productId = e.target.dataset.id;
-            try {
-                // Fetch specific product details
-                 const response = await fetchWithAuth(`/admin/products/${productId}`); // Assuming endpoint exists
-                 if (response.success && response.product) {
-                     const product = response.product;                     // Populate the edit form modal
-                     document.getElementById('edit-product-id').value = product.id;
-                     document.getElementById('edit-product-name').value = product.name;
-                     document.getElementById('edit-product-price').value = product.price;
-                     // Populate other relevant fields if they exist in the modal form
-                     // document.getElementById('edit-min-balance').value = product.min_balance_required || 0;
-                     // document.getElementById('edit-image-url').value = product.image_url || '';
-
-                     // Show the modal
-                     const editModalElement = document.getElementById('edit-product-modal');
-                     if (editModalElement) {
-                         const editModal = new bootstrap.Modal(editModalElement);
-                         editModal.show();
-                     } else {
-                         console.error("Edit product modal ('edit-product-modal') not found.");
-                         showNotification('UI Error: Edit modal not found.', 'error');
-                     }
-                 } else {
-                     showNotification(response.message || 'Failed to load product details for editing.', 'error');
-                 }
-            } catch (error) {
-                 console.error('Error fetching product for edit:', error);
-                 showNotification('Error fetching product details: ' + error.message, 'error');
-            }
-        }
-    });
-
-    // EDIT Product Form Submission
     const editProductForm = document.getElementById('edit-product-form');
-     if (editProductForm) {
+    if (editProductForm) {
         editProductForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const formData = new FormData(e.target);
-            const productId = formData.get('product_id'); // Get ID from hidden input
+            const productId = formData.get('product_id');
 
             if (!productId) {
-                 showNotification('Error: Product ID missing from edit form.', 'error');
-                 return;
-            }            const productData = {
+                showNotification('Error: Product ID missing from edit form.', 'error');
+                return;
+            }
+
+            const productData = {
                 name: formData.get('name'),
-                price: parseFloat(formData.get('price')),
-                 // Add other fields if they are in the edit form
-                 // min_balance_required: parseFloat(formData.get('min_balance_required')) || 0,
-                 // image_url: formData.get('image_url') || null
+                price: parseFloat(formData.get('price'))
             };
 
-             // Validate data before sending (basic example)
-            if (!productData.name || isNaN(productData.price)) {
-                 showNotification('Please fill in Name and Price correctly.', 'error');
-                 return;
+            if (!productData.name || isNaN(productData.price) || productData.price <= 0) {
+                showNotification('Please fill in Name and a valid Price.', 'error');
+                return;
             }
 
             try {
@@ -1209,98 +1249,57 @@ function initializeHandlers() {
 
                 if (response.success) {
                     showNotification('Product updated successfully', 'success');
-                    // Hide the modal
                     const editModalElement = document.getElementById('edit-product-modal');
-                     if (editModalElement) {
-                         const editModal = bootstrap.Modal.getInstance(editModalElement);
-                         if (editModal) editModal.hide();
-                     }
-                    loadProducts(); // Reload the product list
+                    if (editModalElement) {
+                        const editModal = bootstrap.Modal.getInstance(editModalElement);
+                        if (editModal) editModal.hide();
+                    }
+                    loadProducts();
                 } else {
-                     showNotification(response.message || 'Failed to update product', 'error');
+                    showNotification(response.message || 'Failed to update product', 'error');
                 }
             } catch (error) {
                 console.error('Error updating product:', error);
                 showNotification('Failed to update product: ' + error.message, 'error');
             }
         });
-    } else {
-         console.warn("Edit product form ('edit-product-form') not found.");
     }
 
-
-    // Delete product handler (Corrected structure)
-    document.addEventListener('click', async (e) => {
-        if (e.target.matches('.delete-product-btn')) {
-            if (confirm('Are you sure you want to delete this product?')) {
-                const id = e.target.dataset.id;
-                try {
-                    // Correct fetch call for DELETE
-                    const response = await fetchWithAuth(`/admin/products/${id}`, { method: 'DELETE' });
-                    if (response.success) {
-                        showNotification('Product deleted successfully', 'success');
-                        loadProducts(); // Reload list after delete
-                    } else {
-                         showNotification(response.message || 'Failed to delete product', 'error');
-                    }
-                } catch (error) {
-                    console.error('Error deleting product:', error);
-                    showNotification('Failed to delete product: ' + error.message, 'error');
-                }
-            }
-        }
-    });
-    // Removed the duplicated event listener for delete
-
-    // User management handlers
-    document.addEventListener('click', async (e) => {
-        if (e.target.matches('.manage-user-btn')) {
-            const userId = e.target.dataset.userId;
-            const username = e.target.dataset.username;
-            const currentTier = e.target.dataset.tier;
+    // Update tier button handler
+    const updateTierButton = document.getElementById('update-tier-button');
+    if (updateTierButton) {
+        updateTierButton.addEventListener('click', async () => {
+            const manageUserIdEl = document.getElementById('manage-user-id');
+            const tierSelectEl = document.getElementById('user-tier-select');
             
-            const userDetails = document.getElementById('user-details');
-            document.getElementById('manage-username').textContent = username;
-            document.getElementById('manage-user-id').textContent = userId;
-            document.getElementById('user-tier-select').value = currentTier;
-            userDetails.style.display = 'block';
-        }
-    });
+            const userId = manageUserIdEl ? manageUserIdEl.textContent : null;
+            const newTier = tierSelectEl ? tierSelectEl.value : null;
 
-    document.getElementById('update-tier-button')?.addEventListener('click', async () => {
-        const userId = document.getElementById('manage-user-id').textContent;
-        const newTier = document.getElementById('user-tier-select').value;
-
-        try {
-            const response = await fetchWithAuth(`/admin/users/${userId}/tier`, {
-            method: 'PUT',
-            body: JSON.stringify({ tier: newTier })
-            });
-
-            if (response.success) { // Fixed missing parenthesis
-            showNotification('User tier updated successfully', 'success');
-            loadUsers();
+            if (!userId || !newTier) {
+                showNotification('User ID or tier selection missing.', 'error');
+                return;
             }
-        } catch (error) {
-            console.error('Error updating user tier:', error);
-            showNotification('Failed to update user tier', 'error');
-        }
-        });    // Visibility change handler for drives
-    document.addEventListener('visibilitychange', () => {
-        const drivesSection = document.getElementById('drives-section');
-        if (document.visibilityState === 'visible' && drivesSection?.style.display === 'block') {
-            if (DriveModuleAPI && typeof DriveModuleAPI.loadDrives === 'function') {
-                DriveModuleAPI.loadDrives();
-            } else {
-                console.error('DriveModuleAPI.loadDrives is not available.');
+
+            try {
+                const response = await fetchWithAuth(`/admin/users/${userId}/tier`, {
+                    method: 'PUT',
+                    body: JSON.stringify({ tier: newTier })
+                });
+
+                if (response.success) {
+                    showNotification('User tier updated successfully', 'success');
+                    loadUsers();
+                } else {
+                    showNotification(response.message || 'Failed to update user tier', 'error');
+                }
+            } catch (error) {
+                console.error('Error updating user tier:', error);
+                showNotification('Failed to update user tier', 'error');
             }
-        }
-    });
-    
-    // Cleanup on page unload
-    window.addEventListener('beforeunload', () => {
-        clearInterval(driveUpdateInterval);
-    });    // Event listener for the manual transaction button
+        });
+    }
+
+    // Manual transaction handler
     $(document).on('click', '#manual-transaction-button', async function() {
         const userId = $('#manage-user-id').text();
         const inputAmount = parseFloat($('#manual-transaction-amount').val());
@@ -1316,80 +1315,52 @@ function initializeHandlers() {
             return;
         }
 
-        // Determine transaction type based on amount sign
         const type = inputAmount > 0 ? 'deposit' : 'withdrawal';
-        const amount = Math.abs(inputAmount); // Use absolute value for the API
-
-        // Standardize to use 'auth_token' as it seems to be the key used elsewhere (e.g., in logout logic)
-        const token = localStorage.getItem('auth_token'); 
-        console.log("[Admin Balance Adjustment] Attempting to retrieve token using key 'auth_token':", token);
-
-        if (!token) {
-            console.error("[Admin Balance Adjustment] Auth token (from key 'auth_token') is missing. Redirecting to login.");
-            showAlert('Authentication error. Please log in again.', 'danger');
-            // It's possible that a global error handler or fetchWithAuth wrapper handles the actual redirect for 401/403.
-            // If this direct check fails, it's a clear indicator the token isn't found under 'auth_token'.
-            window.location.href = 'login.html'; 
-            return;
-        }
+        const amount = Math.abs(inputAmount);
 
         try {
-            const apiUrl = `/api/admin/users/${userId}/transactions`;
-            console.log(`[Admin Balance Adjustment] Request Details - User ID: ${userId}, Type: ${type}, Amount: ${amount}, Description: "${description}"`);
-            console.log(`[Admin Balance Adjustment] Original Input Amount: ${inputAmount} (${inputAmount > 0 ? 'Credit' : 'Debit'})`);
-            console.log(`[Admin Balance Adjustment] API URL: ${apiUrl}`);
-            console.log(`[Admin Balance Adjustment] Using token for Authorization header (from key 'auth_token'): Bearer ${token ? token.substring(0, 20) + '...' : 'null'}`); // Log a snippet
-
-            const response = await fetch(apiUrl, {
+            const response = await fetchWithAuth(`/api/admin/users/${userId}/transactions`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
                 body: JSON.stringify({ type, amount, description })
             });
 
-            console.log(`[Admin Balance Adjustment] Raw Server Response Status: ${response.status}`);
-            const responseBodyText = await response.text(); // Get body as text first
-            console.log(`[Admin Balance Adjustment] Raw Server Response Body:`, responseBodyText);
-
-            let result;
-            try {
-                result = JSON.parse(responseBodyText); // Try to parse
-            } catch (e) {
-                console.error("[Admin Balance Adjustment] Failed to parse response body as JSON. Body was:", responseBodyText, "Error:", e);
-                // If parsing fails, and status was not ok, this is likely an HTML error page (e.g. login page)
-                if (!response.ok) {
-                    showAlert(`Server returned an error (status ${response.status}). Check console for raw response.`, 'danger');
-                    if (response.status === 401 || response.status === 403) {
-                         console.warn("[Admin Balance Adjustment] Server returned 401/403, which usually triggers a redirect to login by auth logic.");
-                         // The redirect might be handled by a global fetch wrapper or error handler.
-                         // If not, and we are here, the page hasn't redirected yet.
-                    }
-                    return; // Stop further processing
-                }
-                // If parsing failed but response.ok was true (unlikely for this API), treat as error
-                result = { success: false, message: "Failed to parse server response. See raw body log." };
-            }            if (response.ok && result.success) {
+            if (response.success) {
                 const actionType = inputAmount > 0 ? 'added to' : 'deducted from';
-                showAlert(`Balance adjusted successfully! $${Math.abs(inputAmount).toFixed(2)} ${actionType} user ${userId}. ${result.message || ''}`, 'success');
+                showAlert(`Balance adjusted successfully! $${Math.abs(inputAmount).toFixed(2)} ${actionType} user ${userId}.`, 'success');
                 $('#manual-transaction-amount').val('');
                 $('#manual-transaction-description').val('');
-                loadUsers(); 
+                loadUsers();
             } else {
-                console.error(`[Admin Balance Adjustment] API call failed or returned success:false. Status: ${response.status}, Parsed Result:`, result);
-                showAlert(result.message || `Failed to adjust balance. Server status: ${response.status}`, 'danger');
-                if (response.status === 401 || response.status === 403) {
-                    // If we reach here and it's a 401/403, and no redirect has happened yet,
-                    // it means there isn't a global handler aggressively redirecting for this specific fetch.
-                    // However, the user experience is still a failed operation.
-                    console.warn("[Admin Balance Adjustment] Explicit redirect to login.html due to 401/403 might be needed here if not handled globally.");
-                    // window.location.href = 'login.html'; // Consider if this is the right place for a redirect
-                }
+                showAlert(response.message || 'Failed to adjust balance.', 'danger');
             }
         } catch (error) {
-            console.error('[Admin Balance Adjustment] Error during fetch operation or subsequent processing:', error);
-            showAlert('An error occurred while adjusting balance. Check console for details.', 'danger');
+            console.error('Error during balance adjustment:', error);
+            showAlert('An error occurred while adjusting balance.', 'danger');
+            
+            if (error.status === 401 || error.status === 403) {
+                localStorage.removeItem('auth_token');
+                localStorage.removeItem('user_data');
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 1500);
+            }
+        }
+    });
+
+    // Visibility change handler for drives
+    document.addEventListener('visibilitychange', () => {
+        const drivesSection = document.getElementById('drives-section');
+        if (document.visibilityState === 'visible' && drivesSection?.style.display === 'block') {
+            if (DriveModuleAPI && typeof DriveModuleAPI.loadDrives === 'function') {
+                DriveModuleAPI.loadDrives();
+            }
+        }
+    });
+    
+    // Cleanup on page unload
+    window.addEventListener('beforeunload', () => {
+        if (driveUpdateInterval) {
+            clearInterval(driveUpdateInterval);
         }
     });
 }

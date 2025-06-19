@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Port Router Debug</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .url-box { background: #f0f0f0; padding: 10px; border-radius: 5px; margin: 10px 0; }
+        .port-3000 { border-left: 4px solid #28a745; }
+        .port-3001 { border-left: 4px solid #dc3545; }
+    </style>
+</head>
+<body>
+    <h1>🚥 Port Router Debug</h1>
+    
+    <div class="url-box port-3000">
+        <h3>✅ Client Server (Port 3000)</h3>
+        <p><strong>For regular users and client dashboard:</strong></p>
+        <p>🌐 <a href="http://localhost:3000/dashboard.html" target="_blank">http://localhost:3000/dashboard.html</a></p>
+        <p>🔐 <a href="http://localhost:3000/login.html" target="_blank">http://localhost:3000/login.html</a></p>
+    </div>
+    
+    <div class="url-box port-3001">
+        <h3>⚠️ Admin Server (Port 3001)</h3>
+        <p><strong>For admin panel only:</strong></p>
+        <p>🌐 <a href="http://localhost:3001/admin.html" target="_blank">http://localhost:3001/admin.html</a></p>
+        <p>🔐 <a href="http://localhost:3001/login.html" target="_blank">http://localhost:3001/login.html</a></p>
+    </div>
+    
+    <div class="url-box">
+        <h3>🔍 Current Page Info</h3>
+        <p><strong>Current URL:</strong> <span id="current-url"></span></p>
+        <p><strong>Current Port:</strong> <span id="current-port"></span></p>
+        <p><strong>API Base URL:</strong> <span id="api-base"></span></p>
+        <p><strong>Should use:</strong> <span id="recommendation"></span></p>
+    </div>
+    
+    <script>
+        document.getElementById('current-url').textContent = window.location.href;
+        document.getElementById('current-port').textContent = window.location.port || '80';
+        document.getElementById('api-base').textContent = window.API_BASE_URL || 'Not set';
+        
+        const currentPort = window.location.port;
+        const recommendation = document.getElementById('recommendation');
+        
+        if (currentPort === '3001') {
+            recommendation.innerHTML = '⚠️ You are on ADMIN server. For client dashboard, use port 3000';
+            recommendation.style.color = '#dc3545';
+        } else if (currentPort === '3000') {
+            recommendation.innerHTML = '✅ Correct! You are on CLIENT server';
+            recommendation.style.color = '#28a745';
+        } else {
+            recommendation.innerHTML = '❓ Unknown port configuration';
+            recommendation.style.color = '#6c757d';
+        }
+    </script>
+</body>
+</html>

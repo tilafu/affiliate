@@ -14,6 +14,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./dashboard.css">
     
     <style>
         :root {
@@ -503,6 +504,99 @@
             margin: 0;
         }
 
+        /* Product Carousel */
+#product-carousel-container { position:relative; width:100%; margin:32px auto 24px auto; max-width:1200px; }
+.carousel-title { font-size:1.3rem; font-weight:600; margin-bottom:12px; }
+#product-carousel {
+  display:flex;
+  align-items:center;
+  overflow-x:auto;
+  gap:24px;
+  padding:12px 0;
+  scroll-behavior:smooth;
+}
+.product-card {
+  min-width:220px;
+  max-width:220px;
+  background:#fff;
+  border-radius:16px;
+  box-shadow:0 2px 8px #0001;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  padding:18px 12px 16px 12px;
+  position:relative;
+  transition:box-shadow .2s;
+}
+.product-card img {
+  width:120px;
+  height:120px;
+  object-fit:contain;
+  border-radius:10px;
+  background:#f7f7f7;
+  margin-bottom:10px;
+}
+.product-badge {
+  position:absolute;
+  top:10px;
+  left:10px;
+  background:#eee;
+  color:#444;
+  font-size:0.8rem;
+  border-radius:6px;
+  padding:2px 8px;
+  font-weight:500;
+}
+.product-name {
+  font-size:1rem;
+  font-weight:600;
+  margin:8px 0 2px 0;
+  text-align:center;
+  min-height:40px;
+}
+.product-price {
+  font-size:1.1rem;
+  color:#222;
+  font-weight:500;
+  margin-bottom:2px;
+}
+.product-commission {
+  font-size:0.95rem;
+  color:#0a7a2a;
+  font-weight:500;
+  margin-bottom:2px;
+}
+.product-link {
+  text-decoration:none;
+  color:inherit;
+}
+#carousel-left, #carousel-right {
+  position:absolute;
+  top:50%;
+  z-index:2;
+  background:#fff;
+  border-radius:50%;
+  border:1px solid #ccc;
+  width:36px;
+  height:36px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:1.5rem;
+  cursor:pointer;
+  box-shadow:0 2px 8px #0002;
+}
+#carousel-left {
+  left:10px;
+  transform:translateY(-50%);
+}
+#carousel-right {
+  right:10px;
+  transform:translateY(-50%);
+}
+#carousel-left:active, #carousel-right:active {
+  background:#f0f0f0;
+}
         /* Responsive Design */
         @media (max-width: 768px) {
             .transaction-grid {
@@ -561,17 +655,47 @@
     <!-- Main Content -->
     <main class="main-content">
         <div class="container">
-            <!-- Balance Card -->
-            <div class="balance-card">
-                <div class="balance-label">Current Balance</div>
-                <div class="balance-amount" id="currentBalance">$578</div>
-                <div class="balance-change positive">
-                    <i class="fas fa-arrow-up"></i>
-                    <span>+12.5% from last month</span>
-                </div>
-            </div>            <!-- Transaction Section -->
+
+            <!-- Quick Actions -->
+            <div class="section-header">
+                <h2 class="section-title">Quick Actions</h2>
+            </div>
+
+            <div class="quick-actions">
+                <a href="./orders.html" class="quick-action">
+                    <div class="quick-action-icon orders">
+                        <i class="fas fa-shopping-cart"></i>
+                    </div>
+                    <h6>Orders</h6>
+                    <p>Manage orders</p>
+                </a>
+                <a href="./certificates.html" class="quick-action">
+                    <div class="quick-action-icon certificates">
+                        <i class="fas fa-certificate"></i>
+                    </div>
+                    <h6>Certificates</h6>
+                    <p>View certificates</p>
+                </a>
+                <a href="./memberships.html" class="quick-action">
+                    <div class="quick-action-icon memberships">
+                        <i class="fas fa-crown"></i>
+                    </div>
+                    <h6>Memberships</h6>
+                    <p>Upgrade plan</p>
+                </a>
+                <a href="./events.html" class="quick-action">
+                    <div class="quick-action-icon events">
+                        <i class="fas fa-calendar-alt"></i>
+                    </div>
+                    <h6>Events</h6>
+                    <p>Latest events</p>
+                </a>
+            </div>
+
+            
+            <!-- Transaction Section -->
             <div class="section-header d-flex justify-content-between align-items-center">
-                <h2 class="section-title">Current Transaction</h2>
+                <h2 class="section-title">Financials</h2>
                 <span class="text-muted">Loading...</span>
             </div>
 
@@ -618,41 +742,14 @@
                 </div>
             </div>
 
-            <!-- Quick Actions -->
-            <div class="section-header">
-                <h2 class="section-title">Quick Actions</h2>
-            </div>
 
-            <div class="quick-actions">
-                <a href="./orders.html" class="quick-action">
-                    <div class="quick-action-icon orders">
-                        <i class="fas fa-shopping-cart"></i>
-                    </div>
-                    <h6>Orders</h6>
-                    <p>Manage orders</p>
-                </a>
-                <a href="./certificates.html" class="quick-action">
-                    <div class="quick-action-icon certificates">
-                        <i class="fas fa-certificate"></i>
-                    </div>
-                    <h6>Certificates</h6>
-                    <p>View certificates</p>
-                </a>
-                <a href="./memberships.html" class="quick-action">
-                    <div class="quick-action-icon memberships">
-                        <i class="fas fa-crown"></i>
-                    </div>
-                    <h6>Memberships</h6>
-                    <p>Upgrade plan</p>
-                </a>
-                <a href="./events.html" class="quick-action">
-                    <div class="quick-action-icon events">
-                        <i class="fas fa-calendar-alt"></i>
-                    </div>
-                    <h6>Events</h6>
-                    <p>Latest events</p>
-                </a>
-            </div>
+            <!-- Product Carousel (Top of Dashboard) -->
+<div id="product-carousel-container">
+  <div class="carousel-title">Featured High-Value Products</div>
+  <div id="product-carousel"></div>
+  <button id="carousel-left">&#8592;</button>
+  <button id="carousel-right">&#8594;</button>
+</div>
 
             <!-- CTA Section -->
             <div class="cta-section">
@@ -669,29 +766,44 @@
     <!-- Footer Navigation -->
     <div id="footer-navigation"></div>
 
-    <!-- Scripts -->    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="./js/components.js"></script>
+    <!-- Scripts -->    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>    <script src="./js/components.js"></script>
     <script src="./js/i18n.js"></script>
     <script src="./js/main.js"></script>
-    <script src="./js/dual-auth.js"></script>
+    <script src="./js/simple-auth.js"></script>
     <script src="./js/auth-check.js"></script>
     <script src="./js/dashboard.js"></script>
 
     <script>        document.addEventListener('DOMContentLoaded', function() {
             // Load standard navigation components
-            loadStandardNavigation();
-            
-            // Initialize dashboard data (but don't require auth yet)
-            if (typeof initializeDashboard === 'function') {
-                // Use silent auth check to avoid redirects
-                const authData = isAuthenticated();
-                if (authData) {
-                    initializeDashboard();
+            loadStandardNavigation();            // Initialize dashboard data (with better error handling)
+            if (typeof checkAndInitializeDashboard === 'function') {
+                try {
+                    checkAndInitializeDashboard();
+                } catch (error) {
+                    console.error('Error in checkAndInitializeDashboard:', error);
+                    // Continue with default dashboard if initialization fails
+                }
+            } else if (typeof initializeDashboard === 'function') {
+                // Fallback to old method with error handling
+                try {
+                    const authData = isAuthenticated();
+                    if (authData) {
+                        initializeDashboard();
+                    }
+                } catch (error) {
+                    console.error('Error in initializeDashboard:', error);
+                    // Continue with default dashboard if initialization fails
                 }
             }
             
-            // Load user data
-            loadUserDashboardData();
+            // Load user data (with error handling)
+            try {
+                loadUserDashboardData();
+            } catch (error) {
+                console.error('Error loading user dashboard data:', error);
+                // Show default dashboard if user data loading fails
+                showDefaultDashboard();
+            }
             
             // Initialize menu functionality
             initializeMenuControls();
@@ -758,33 +870,62 @@
                 sidebar.classList.remove('active');
                 overlay.classList.remove('active');
                 document.body.style.overflow = '';
-            }
-        }async function loadUserDashboardData() {
+            }        }
+        
+        async function loadUserDashboardData() {
             try {
-                const authData = isAuthenticated();
-                if (!authData) {
+                // Check if user is authenticated using SimpleAuth first
+                let isUserAuthenticated = false;
+                
+                if (typeof SimpleAuth !== 'undefined') {
+                    isUserAuthenticated = SimpleAuth.isAuthenticated();
+                } else if (typeof isAuthenticated === 'function') {
+                    const authData = isAuthenticated();
+                    isUserAuthenticated = authData && authData.token;
+                } else {
+                    // Fallback - check localStorage directly
+                    const token = localStorage.getItem('auth_token');
+                    isUserAuthenticated = !!token;
+                }
+                
+                if (!isUserAuthenticated) {
                     // Show default dashboard without redirecting immediately
-                    console.log('No auth token found, showing default dashboard');
+                    console.log('User not authenticated, showing default dashboard');
                     showDefaultDashboard();
                     return;
-                }
-
-                // Check if fetchWithAuth is available
-                if (typeof fetchWithAuth !== 'function') {
-                    console.error('fetchWithAuth function not available');
+                }                // Check if fetchWithAuth is available, if not use SimpleAuth
+                let fetchFunction = null;
+                if (typeof SimpleAuth !== 'undefined' && SimpleAuth.authenticatedFetch) {
+                    fetchFunction = SimpleAuth.authenticatedFetch.bind(SimpleAuth);
+                } else if (typeof fetchWithAuth === 'function') {
+                    fetchFunction = fetchWithAuth;
+                } else {
+                    console.error('No authenticated fetch function available');
                     showDefaultDashboard();
                     return;
+                }                // Fetch user profile data
+                const response = await fetchFunction('/api/user/profile');
+                
+                // Handle response based on the fetch function used
+                let profileData;
+                
+                // Check if response is a Response object that needs to be parsed
+                if (response && typeof response.json === 'function') {
+                    // This is a Response object (from SimpleAuth), parse it
+                    profileData = await response.json();
+                } else if (response && typeof response === 'object') {
+                    // This is already parsed data (from fetchWithAuth)
+                    profileData = response;
+                } else {
+                    throw new Error('Invalid response format');
                 }
-
-                // Fetch user profile data
-                const profileData = await fetchWithAuth('/api/user/profile');
+                
                 console.log('Dashboard profile API response:', profileData);
 
                 if (profileData.success && profileData.user) {
-                    const user = profileData.user;
-                      // Update user info
+                    const user = profileData.user;                    // Update user info
                     if (user.username) {
-                        const initials = user.username.split(' ').map(name => name[0]).join('').toUpperCase();
+                        const initials = generateUserInitials(user.username);
                         document.getElementById('userInitials').textContent = initials;
                         
                         // Also update sidebar initials if sidebar is loaded
@@ -803,11 +944,23 @@
                         } else {
                             badge.style.display = 'none';
                         }
-                    }
-
-                    // Fetch balance data separately for accuracy
+                    }                    // Fetch balance data separately for accuracy
                     try {
-                        const balanceData = await fetchWithAuth('/api/user/balances');
+                        const balanceResponse = await fetchFunction('/api/user/balances');                        
+                        // Handle response based on the fetch function used
+                        let balanceData;
+                        
+                        // Check if response is a Response object that needs to be parsed
+                        if (balanceResponse && typeof balanceResponse.json === 'function') {
+                            // This is a Response object, parse it
+                            balanceData = await balanceResponse.json();
+                        } else if (balanceResponse && typeof balanceResponse === 'object') {
+                            // This is already parsed data
+                            balanceData = balanceResponse;
+                        } else {
+                            throw new Error('Invalid balance response format');
+                        }
+                        
                         console.log('Dashboard balance API response:', balanceData);
                         
                         if (balanceData.success && balanceData.balances) {
@@ -817,7 +970,11 @@
                             const totalBalance = mainBalance + commissionBalance;
                             
                             // Update main balance display
-                            document.getElementById('currentBalance').textContent = `$${totalBalance.toFixed(2)}`;
+                            // Update main balance display
+                            const balanceEl = document.getElementById('depositBalance');
+                            if (balanceEl) {
+                                balanceEl.textContent = `$${totalBalance.toFixed(2)}`;
+                            }
                             
                             // Update other balance fields if they exist
                             const depositBalanceEl = document.getElementById('depositBalance');
@@ -829,14 +986,22 @@
                         } else {
                             // Fallback to single balance from profile if balances API fails
                             const fallbackBalance = parseFloat(user.balance || 0);
-                            document.getElementById('currentBalance').textContent = `$${fallbackBalance.toFixed(2)}`;
+                            // Fallback balance calculation
+                            const balanceEl = document.getElementById('depositBalance');
+                            if (balanceEl) {
+                                balanceEl.textContent = `$${fallbackBalance.toFixed(2)}`;
+                            }
                             console.log('Using fallback balance from profile:', fallbackBalance);
                         }
                     } catch (balanceError) {
                         console.error('Error fetching balance data:', balanceError);
                         // Use profile balance as fallback
                         const fallbackBalance = parseFloat(user.balance || 0);
-                        document.getElementById('currentBalance').textContent = `$${fallbackBalance.toFixed(2)}`;
+                        // Final fallback
+                        const balanceEl = document.getElementById('depositBalance');
+                        if (balanceEl) {
+                            balanceEl.textContent = `$${fallbackBalance.toFixed(2)}`;
+                        }
                     }
 
                     // Update localStorage cache
@@ -847,9 +1012,9 @@
                     if (loginBtn) {
                         loginBtn.style.display = 'none';
                     }
-                    
-                } else {
-                    console.error('Profile API call failed:', profileData.message);
+                      } else {
+                    console.error('Profile API call failed:', profileData.message || 'Unknown error');
+                    console.error('Full profile response:', profileData);
                     showDefaultDashboard();
                 }
                 
@@ -859,13 +1024,21 @@
                 showDefaultDashboard();
             }
         }        function showDefaultDashboard() {
-            // Update with default/demo data
-            document.getElementById('userInitials').textContent = 'WU';
-            document.getElementById('currentBalance').textContent = '$0.00';
+            // Update with default/demo data - add null checks
+            const userInitialsEl = document.getElementById('userInitials');
+            if (userInitialsEl) {
+                userInitialsEl.textContent = 'WU';
+            }
             
-            const depositBalanceEl = document.getElementById('depositBalance');
-            if (depositBalanceEl) {
-                depositBalanceEl.textContent = '$0.00';
+            // Use depositBalance since currentBalance doesn't exist
+            const balanceEl = document.getElementById('depositBalance');
+            if (balanceEl) {
+                balanceEl.textContent = '$0.00';
+            }
+            
+            const withdrawBalanceEl = document.getElementById('withdrawBalance');
+            if (withdrawBalanceEl) {
+                withdrawBalanceEl.textContent = '$0.00';
             }
             
             // Hide notification badge
@@ -897,7 +1070,11 @@
                     const totalBalance = mainBalance + commissionBalance;
                     
                     // Update balance displays
-                    document.getElementById('currentBalance').textContent = `$${totalBalance.toFixed(2)}`;
+                    // Update balance display
+                    const balanceEl = document.getElementById('depositBalance');
+                    if (balanceEl) {
+                        balanceEl.textContent = `$${totalBalance.toFixed(2)}`;
+                    }
                     
                     const depositBalanceEl = document.getElementById('depositBalance');
                     if (depositBalanceEl) {
@@ -915,7 +1092,7 @@
         // Make refresh function globally available
         window.refreshDashboardBalance = refreshBalanceData;        function updateDashboardUI(userData) {            // Update user avatar initials
             if (userData.username) {
-                const initials = userData.username.split(' ').map(name => name[0]).join('').toUpperCase();
+                const initials = generateUserInitials(userData.username);
                 document.getElementById('userInitials').textContent = initials;
                 
                 // Also update sidebar initials if sidebar is loaded
@@ -928,7 +1105,11 @@
             // Update balances (prefer separate balance API call)
             if (userData.balance !== undefined) {
                 const balance = parseFloat(userData.balance || 0);
-                document.getElementById('currentBalance').textContent = `$${balance.toFixed(2)}`;
+                // Update balance
+                const balanceEl = document.getElementById('depositBalance');
+                if (balanceEl) {
+                    balanceEl.textContent = `$${balance.toFixed(2)}`;
+                }
                 
                 const depositBalanceEl = document.getElementById('depositBalance');
                 if (depositBalanceEl) {
@@ -954,6 +1135,25 @@
             }
         }
 
+        // Helper function to generate user initials properly
+        function generateUserInitials(username) {
+            if (!username) return 'U';
+            
+            // Remove extra spaces and split by space
+            const nameParts = username.trim().split(/\s+/).filter(part => part.length > 0);
+            
+            if (nameParts.length === 0) return 'U';
+            
+            if (nameParts.length === 1) {
+                // Single word username - take first 2 characters
+                const name = nameParts[0];
+                return name.length >= 2 ? name.substring(0, 2).toUpperCase() : name.toUpperCase();
+            } else {
+                // Multiple words - take first letter of each word (max 2)
+                return nameParts.slice(0, 2).map(name => name[0]).join('').toUpperCase();
+            }
+        }
+
         // Add smooth scroll behavior for better UX
         document.querySelectorAll('a[href^="#"]').forEach(anchor => {
             anchor.addEventListener('click', function (e) {
@@ -964,5 +1164,88 @@
             });
         });
     </script>
+<script>
+(async function() {
+  console.log('Loading product carousel...');
+  
+  let products = [];
+  try {
+    // Use public endpoint that doesn't require authentication
+    const response = await fetch('/api/products/carousel');
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    console.log('Carousel API response:', data);
+    
+    if (!data.success || !Array.isArray(data.products)) {
+      throw new Error('Invalid products response');
+    }
+    products = data.products;
+  } catch (e) {
+    console.error('Failed to load products from /api/products/carousel', e);
+    document.getElementById('product-carousel-container').style.display = 'none';
+    return;
+  }
+
+  // Products are already filtered for price > 5000 by the backend
+  const highValue = products;
+
+  if (!highValue.length) {
+    console.log('No high-value products found');
+    document.getElementById('product-carousel-container').style.display = 'none';
+    return;
+  }
+  
+  console.log(`Rendering ${highValue.length} products in carousel`);
+    // Render product cards
+  const carousel = document.getElementById('product-carousel');
+  if (!carousel) {
+    console.error('Carousel container not found');
+    return;
+  }
+  
+  // Clear existing products to prevent duplication
+  carousel.innerHTML = '';
+  
+  highValue.forEach(p => {
+    const price = parseFloat(p.price || 0);
+    const commission = p.commission ? `$${parseFloat(p.commission).toFixed(2)}` : `$${(price * 0.10).toFixed(2)}`;
+    const name = (p.name||'').split(' ').slice(0,5).join(' ');
+    const imgSrc = p.image_url || '/assets/uploads/products/newegg-1.jpg';
+    const card = document.createElement('div');
+    card.className = 'product-card';
+    card.innerHTML = `
+      <span class="product-badge">Best Seller</span>
+      <img src="${imgSrc}" alt="${name}">
+      <div class="product-name">${name}</div>
+      <div class="product-price">$${price.toLocaleString()}</div>
+      <div class="product-commission">Commission: ${commission}</div>
+    `;
+    carousel.appendChild(card);
+  });
+
+  console.log('Carousel rendered successfully');
+
+  // Carousel scroll logic
+  const scrollAmount = 260;
+  const leftButton = document.getElementById('carousel-left');
+  const rightButton = document.getElementById('carousel-right');
+  
+  if (leftButton && rightButton) {
+    leftButton.onclick = () => {
+      carousel.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
+    };
+    rightButton.onclick = () => {
+      carousel.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+    };
+    console.log('Carousel navigation buttons initialized');
+  } else {
+    console.error('Carousel navigation buttons not found');
+  }
+})();
+</script>
 </body>
 </html>

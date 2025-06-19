@@ -16,38 +16,66 @@ function checkAuthentication(options = {}) {
         silent = false
     } = options;
 
-    // Use DualAuth if available, otherwise fallback to legacy system
-    if (typeof DualAuth !== 'undefined') {
-        // Determine panel type based on current page
-        const currentPage = window.location.pathname.split('/').pop();
-        const panelType = currentPage === 'admin.html' ? 'admin' : 'client';
+    // Use SimpleAuth if available
+    if (typeof SimpleAuth !== 'undefined') {
+        console.log('checkAuthentication: Using SimpleAuth system');
         
-        return DualAuth.checkAuthentication({
-            panelType,
-            adminRequired,
-            redirectPath,
-            silent
-        });
+        const authData = SimpleAuth.getAuthData();
+        
+        if (!authData) {
+            if (!silent && typeof showNotification === 'function') {
+                showNotification('Authentication token is missing. Please login to access full features.', 'warning');
+            }
+            console.warn('Auth Check: No authentication data - allowing continuation with limited access');
+            return {
+                token: null,
+                user: {},
+                isAdmin: false,
+                hasLimitedAccess: true,
+                missingRequirement: 'authentication_token'
+            };
+        }
+        
+        // Check admin requirement
+        if (adminRequired && !authData.isAdmin) {
+            if (!silent && typeof showNotification === 'function') {
+                showNotification('Admin privileges required for full features. Some functionality may be limited.', 'warning');
+            }
+            console.warn('Auth Check: Admin required but user is not admin - allowing continuation with limited access');
+            return {
+                ...authData,
+                hasLimitedAccess: true,
+                missingRequirement: 'admin_privileges'
+            };
+        }
+        
+        console.log('Auth Check: Authentication successful via SimpleAuth');
+        return authData;
     }
+
+    console.log('checkAuthentication: Using legacy authentication system');
 
     // Legacy authentication system (fallback)
     const token = localStorage.getItem('auth_token');
-    
-    if (!token) {
+    console.log(`Legacy token: ${token ? `found (${token.length} chars)` : 'not found'}`);
+      if (!token) {
         if (!silent && typeof showNotification === 'function') {
-            showNotification('Authentication required. Redirecting to login.', 'error');
+            showNotification('Authentication token is missing. Please login to access full features.', 'warning');
         }
-        setTimeout(() => {
-            window.location.href = redirectPath;
-        }, silent ? 0 : 1000);
-        return null;
+        console.warn('Auth Check: No token found - allowing continuation with limited access');
+        // Return limited access object instead of redirecting
+        return {
+            token: null,
+            user: {},
+            isAdmin: false,
+            missingRequirement: 'authentication_token'
+        };
     }
 
     // Parse token to check expiration and role
     try {
         const payload = JSON.parse(atob(token.split('.')[1]));
-        const currentTime = Date.now() / 1000;
-          // Check if token is expired
+        const currentTime = Date.now() / 1000;        // Check if token is expired
         if (payload.exp && payload.exp < currentTime) {
             // Preserve drive session data before clearing localStorage
             const driveSessionData = localStorage.getItem('current_drive_session');
@@ -61,26 +89,33 @@ function checkAuthentication(options = {}) {
             }
             
             if (!silent && typeof showNotification === 'function') {
-                showNotification('Session expired. Please login again.', 'error');
+                showNotification('Session has expired. Please login again for full access.', 'warning');
             }
-            setTimeout(() => {
-                window.location.href = redirectPath;
-            }, silent ? 0 : 1000);
-            return null;
+            console.warn('Auth Check: Token expired - allowing continuation with limited access');
+            // Return limited access object instead of redirecting
+            return {
+                token: null,
+                user: {},
+                isAdmin: false,
+                missingRequirement: 'valid_session'
+            };
         }
 
         // Get user data from localStorage for role checking
         const userData = JSON.parse(localStorage.getItem('user_data') || '{}');
-        
-        // Check admin requirement
+          // Check admin requirement
         if (adminRequired && userData.role !== 'admin') {
             if (!silent && typeof showNotification === 'function') {
-                showNotification('Admin access required.', 'error');
+                showNotification('Admin access required for full features. Some functionality may be limited.', 'warning');
             }
-            setTimeout(() => {
-                window.location.href = 'login.html';
-            }, silent ? 0 : 1000);
-            return null;
+            console.warn('Auth Check: Admin required but user is not admin - allowing continuation with limited access');
+            // Return limited access object instead of redirecting
+            return {
+                token,
+                user: userData,
+                isAdmin: false,
+                missingRequirement: 'admin_privileges'
+            };
         }
 
         // Return user data if authentication successful
@@ -96,19 +131,22 @@ function checkAuthentication(options = {}) {
         
         localStorage.removeItem('auth_token');
         localStorage.removeItem('user_data');
-        
-        // Restore drive session data after clearing auth data
+          // Restore drive session data after clearing auth data
         if (driveSessionData) {
             localStorage.setItem('current_drive_session', driveSessionData);
         }
         
         if (!silent && typeof showNotification === 'function') {
-            showNotification('Invalid authentication data. Please login again.', 'error');
+            showNotification('Authentication data is invalid. Please login for full access.', 'warning');
         }
-        setTimeout(() => {
-            window.location.href = redirectPath;
-        }, silent ? 0 : 1000);
-        return null;
+        console.warn('Auth Check: Invalid token data - allowing continuation with limited access');
+        // Return limited access object instead of redirecting
+        return {
+            token: null,
+            user: {},
+            isAdmin: false,
+            missingRequirement: 'valid_token_data'
+        };
     }
 }
 
@@ -148,8 +186,9 @@ function isAdmin() {
 /**
  * Clear authentication data and redirect to login
  * @param {string} message - Optional logout message
+ * @param {boolean} forceRedirect - Whether to force redirect (default: true)
  */
-function clearAuthAndRedirect(message = 'Logged out successfully.') {
+function clearAuthAndRedirect(message = 'Logged out successfully.', forceRedirect = true) {
     // Preserve drive session data before clearing localStorage
     const driveSessionData = localStorage.getItem('current_drive_session');
     
@@ -162,12 +201,15 @@ function clearAuthAndRedirect(message = 'Logged out successfully.') {
     }
     
     if (typeof showNotification === 'function') {
-        showNotification(message, 'success');
+        const messageType = forceRedirect ? 'success' : 'warning';
+        showNotification(message, messageType);
     }
     
-    setTimeout(() => {
-        window.location.href = 'login.html';
-    }, 1000);
+    if (forceRedirect) {
+        setTimeout(() => {
+            window.location.href = 'login.html';
+        }, 1000);
+    }
 }
 
 /**
@@ -178,7 +220,24 @@ function enhancedFetchWithAuth(url, options = {}) {
     // Check authentication before making request
     const authData = isAuthenticated();
     if (!authData) {
+        if (typeof showNotification === 'function') {
+            showNotification('Authentication check failed. Please login for API access.', 'warning');
+        }
         return Promise.reject(new Error('Not authenticated'));
+    }
+
+    // Check if there are missing requirements
+    if (authData.missingRequirement) {
+        if (typeof showNotification === 'function') {
+            const messages = {
+                'authentication_token': 'Authentication token missing. Please login to access this feature.',
+                'valid_session': 'Session expired. Please login to access this feature.',
+                'admin_privileges': 'Admin privileges required. Some features may be unavailable.',
+                'valid_token_data': 'Authentication data invalid. Please login to access this feature.'
+            };
+            showNotification(messages[authData.missingRequirement] || 'Authentication issue detected.', 'warning');
+        }
+        return Promise.reject(new Error(`Missing requirement: ${authData.missingRequirement}`));
     }
 
     // Use the existing fetchWithAuth function if available
@@ -196,11 +255,11 @@ function enhancedFetchWithAuth(url, options = {}) {
 
     return fetch(`${API_BASE_URL || ''}${url}`, {
         ...options,
-        headers,
-    }).then(response => {
+        headers,    }).then(response => {
         if (response.status === 401) {
-            clearAuthAndRedirect('Session expired. Please login again.');
-            throw new Error('Unauthorized');
+            console.warn('API Request: 401 Unauthorized - authentication expired');
+            clearAuthAndRedirect('Logged out. Log in again', true);
+            throw new Error('Authentication expired - redirecting to login');
         }
         
         if (!response.ok) {
@@ -219,32 +278,40 @@ function enhancedFetchWithAuth(url, options = {}) {
  * @returns {Promise} Fetch promise
  */
 async function authenticatedFetch(url, options = {}, panelType = null) {
-    // Auto-detect panel type if not provided
-    if (!panelType) {
-        const currentPage = window.location.pathname.split('/').pop();
-        panelType = currentPage === 'admin.html' ? 'admin' : 'client';
-    }
-    
-    // Use DualAuth if available
-    if (typeof DualAuth !== 'undefined') {
-        return DualAuth.authenticatedFetch(url, options, panelType);
+    // Use SimpleAuth if available
+    if (typeof SimpleAuth !== 'undefined') {
+        return SimpleAuth.authenticatedFetch(url, options);
     }
     
     // Fallback to legacy token system
-    const token = localStorage.getItem('auth_token');
-    if (!token) {
-        throw new Error('No authentication token available');
+    const authData = isAuthenticated();
+    if (!authData || !authData.token) {
+        const message = authData && authData.missingRequirement 
+            ? `Authentication issue: ${authData.missingRequirement}` 
+            : 'No authentication token available';
+        console.warn('authenticatedFetch:', message);
+        if (typeof showNotification === 'function') {
+            showNotification('Authentication required for this request. Please login.', 'warning');
+        }
+        throw new Error(message);
     }
     
     const headers = {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
+        'Authorization': `Bearer ${authData.token}`,
         ...options.headers
-    };
-    
+    };    
     return fetch(url, {
         ...options,
         headers
+    }).then(response => {
+        // Handle 401 responses - redirect to login
+        if (response.status === 401) {
+            console.warn('API request returned 401 - authentication expired or invalid');
+            clearAuthAndRedirect('Logged out. Log in again', true);
+            throw new Error('Authentication expired - redirecting to login');
+        }
+        return response;
     });
 }
 
@@ -254,19 +321,22 @@ async function authenticatedFetch(url, options = {}, panelType = null) {
  * @returns {string|null} Token or null if not found
  */
 function getAuthToken(panelType = null) {
-    // Auto-detect panel type if not provided
-    if (!panelType) {
-        const currentPage = window.location.pathname.split('/').pop();
-        panelType = currentPage === 'admin.html' ? 'admin' : 'client';
-    }
-    
-    // Use DualAuth if available
-    if (typeof DualAuth !== 'undefined') {
-        return DualAuth.getToken(panelType);
+    // Use SimpleAuth if available
+    if (typeof SimpleAuth !== 'undefined') {
+        return SimpleAuth.getToken();
     }
     
     // Fallback to legacy system
-    return localStorage.getItem('auth_token');
+    const authData = isAuthenticated();
+    if (authData && authData.token) {
+        return authData.token;
+    }
+    
+    // Show informative message if there are missing requirements
+    if (authData && authData.missingRequirement) {
+        console.warn(`getAuthToken: ${authData.missingRequirement}`);
+    }    
+    return null;
 }
 
 // Make functions available globally

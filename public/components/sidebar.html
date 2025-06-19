@@ -686,9 +686,10 @@
             }
             if (refcodeEl && user.referral_code) {
                refcodeEl.textContent = `REF: ${user.referral_code}`;
-            }
-            if (initialsEl) {
-               const initials = generateInitials(user.username);
+            }            if (initialsEl) {
+               const initials = typeof generateUserInitials === 'function' ? 
+                              generateUserInitials(user.username) : 
+                              generateInitials(user.username);
                initialsEl.textContent = initials;
                console.log('Updated sidebar initials from cache:', initials);
             }
@@ -723,10 +724,11 @@
                refcodeEl.textContent = `REF: ${user.referral_code}`;
                console.log('Updated sidebar referral code:', user.referral_code);
             }
-            
-            // Update initials
+              // Update initials
             if (initialsEl) {
-               const initials = generateInitials(user.username);
+               const initials = typeof generateUserInitials === 'function' ? 
+                              generateUserInitials(user.username) : 
+                              generateInitials(user.username);
                initialsEl.textContent = initials;
                console.log('Updated sidebar initials from API:', initials, 'for username:', user.username);
             }

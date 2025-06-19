@@ -42,31 +42,27 @@ async function handleLoginSubmit(event) {
 
         const data = await response.json();
         console.log('Login API response:', data);        if (response.ok && data.success) {
-            // Use dual auth system to store token and user data
+            // Use simple auth system to store token and user data
             const isAdmin = data.user?.role === 'admin';
-            const panelType = isAdmin ? 'admin' : 'client';
             
-            // Store auth data using DualAuth system
-            if (typeof DualAuth !== 'undefined') {
-                DualAuth.storeAuth(data.token, data.user, panelType);
-                
-                // Also store for both panels if user is admin
-                if (isAdmin) {
-                    DualAuth.storeAuth(data.token, data.user, 'client');
-                }
+            // Store auth data using SimpleAuth system
+            if (typeof SimpleAuth !== 'undefined') {
+                SimpleAuth.storeAuth(data.token, data.user);
+                console.log('Auth data stored via SimpleAuth');
             } else {
-                // Fallback to old system if DualAuth not available
+                // Fallback to localStorage
                 localStorage.setItem('auth_token', data.token);
                 localStorage.setItem('user_data', JSON.stringify(data.user));
+                console.log('Auth data stored via localStorage fallback');
             }
 
             showNotification('Login successful! Redirecting...', 'success');
             setTimeout(() => {
                 // Redirect based on the role received from the backend
                 const redirectPath = isAdmin ? 'admin.html' : 'dashboard.html';
-                window.location.href = redirectPath; // Use root paths as they are served from public
+                window.location.href = redirectPath;
             }, 1000);
-        } else {
+        }else {
             // Use server's error message or a default
             const message = data.message || `Login failed (Status: ${response.status})`;
             showNotification(message, 'error');

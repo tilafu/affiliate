@@ -9,28 +9,23 @@ function updatePageTranslations() {
     }
 }
 
-/**
- * Simple notification function that uses alert for now
- * Normally would use a nicer toast or popup
- */
-function showNotification(message, type = 'info') {
-    console.log(`[${type}] ${message}`);
-    
-    // Check if jQuery dialog is available first
-    if (typeof $(document).dialog === 'function') {
-        $(document).dialog({
-            infoText: message,
-            autoClose: 3000,
-            type: type === 'error' ? 'notice' : 'success'
-        });
-    } else {
-        // Fallback to alert for simplicity
-        alert(message);
-    }
-}
-
 // Function to initialize dashboard logic (fetching data, setting up listeners)
 async function initializeDashboard() {
+    // Check if SimpleAuth is available
+    if (typeof SimpleAuth === 'undefined') {
+        console.warn('SimpleAuth not available yet, using fallback authentication');
+        
+        // Use fallback authentication check
+        const authData = isAuthenticated();
+        if (!authData) {
+            console.log('No authentication data, using default dashboard');
+            return;
+        }
+        
+        // Use fetchWithAuth as fallback
+        return initializeDashboardWithFallback(authData);
+    }
+    
     // Use silent authentication check to avoid redirects
     const authData = isAuthenticated();
     if (!authData) {
@@ -38,41 +33,71 @@ async function initializeDashboard() {
         return; // Don't redirect, just use default data
     }
 
+    console.log('Dashboard authData:', authData);
+    console.log('Token from authData:', authData.token ? `${authData.token.substring(0, 10)}...` : 'no token');
+
     const usernameEl = document.getElementById('dashboard-username');
     const refcodeEl = document.getElementById('dashboard-refcode');
     const balancesEl = document.getElementById('dashboard-balances');
 
     // Try to use cached data first
-    const cachedUserData = localStorage.getItem('user_data');    try {        // Fetch fresh data
-        const response = await fetch(`${window.API_BASE_URL || API_BASE_URL}/api/user/profile`, {
-            headers: { 'Authorization': `Bearer ${authData.token}` }
-        });
+    const cachedUserData = localStorage.getItem('user_data');    try {        
+        console.log('Making API call to /api/user/profile');
+        
+        // Use SimpleAuth if available, otherwise use fetchWithAuth
+        const response = typeof SimpleAuth !== 'undefined' ? 
+                        await SimpleAuth.authenticatedFetch('/api/user/profile') :
+                        await fetchWithAuth('/api/user/profile');
+        
+        console.log('Profile API response status:', response.status);
+        
         const data = await response.json();
+        console.log('Profile API response data:', data);
 
         if (data.success && data.user) {
             const user = data.user;
             if (usernameEl) usernameEl.textContent = user.username;
-            if (refcodeEl) refcodeEl.textContent = `REFERRAL CODE: ${user.referral_code}`;
+            if (refcodeEl) refcodeEl.textContent = `REFERRAL CODE: ${user.referral_code}`;              console.log('Making API call to /api/user/balances');
+              
               // Fetch balances separately for real-time accuracy
-            const balancesResponse = await fetch(`${window.API_BASE_URL || API_BASE_URL}/api/user/balances`, {
-                headers: { 'Authorization': `Bearer ${authData.token}` }
-            });
+            const balancesResponse = typeof SimpleAuth !== 'undefined' ? 
+                                   await SimpleAuth.authenticatedFetch('/api/user/balances') :
+                                   await fetchWithAuth('/api/user/balances');
+            
+            console.log('Balances API response status:', balancesResponse.status);
+            
             const balancesData = await balancesResponse.json();
+            console.log('Balances API response data:', balancesData);
             
             if (balancesData.success && balancesEl) {
                 const mainBalance = parseFloat(balancesData.balances.main_balance || 0).toFixed(2);
                 const commissionBalance = parseFloat(balancesData.balances.commission_balance || 0).toFixed(2);
                 balancesEl.innerHTML = `Main: <strong>${mainBalance}</strong> USDT | Commission: <strong>${commissionBalance}</strong> USDT`;
-            }            // Update localStorage cache
+            }// Update localStorage cache
             localStorage.setItem('user_data', JSON.stringify(user));
             
             // Update membership tier display
             updateMembershipTier(user.tier || 'bronze');
-              // Fetch and update drive progress
-            await fetchDriveProgress(authData.token);
+              // Fetch additional data sequentially to avoid race conditions
+            try {
+                // Fetch and update drive progress
+                await fetchDriveProgress();
+            } catch (error) {
+                console.error('Error fetching drive progress:', error);
+                if (error.message.includes('authentication')) {
+                    showNotification('Drive progress requires authentication. Please login.', 'warning');
+                }
+            }
             
-            // Fetch and update transaction balances
-            await updateTransactionBalances(authData.token);
+            try {
+                // Fetch and update transaction balances
+                await updateTransactionBalances();
+            } catch (error) {
+                console.error('Error updating transaction balances:', error);
+                if (error.message.includes('authentication')) {
+                    showNotification('Transaction data requires authentication. Please login.', 'warning');
+                }
+            }
             
         } else {
             console.error('Profile API call failed:', data.message);
@@ -94,6 +119,66 @@ async function initializeDashboard() {
                 if (balancesEl) balancesEl.innerHTML = 'Balance: Using cached data';
                 
                 // Try to update tier from cached data
+                updateMembershipTier(user.tier || 'bronze');
+            } catch (e) {
+                console.error('Error parsing cached user data:', e);
+            }
+        }
+    }
+}
+
+// Fallback initialization function for when SimpleAuth is not available
+async function initializeDashboardWithFallback(authData) {
+    console.log('Using fallback dashboard initialization');
+    
+    const usernameEl = document.getElementById('dashboard-username');
+    const refcodeEl = document.getElementById('dashboard-refcode');
+    const balancesEl = document.getElementById('dashboard-balances');
+
+    // Try to use cached data first
+    const cachedUserData = localStorage.getItem('user_data');
+
+    try {
+        // Use fetchWithAuth as fallback
+        const response = await fetchWithAuth('/api/user/profile');
+        const data = await response.json();
+        
+        if (data.success && data.user) {
+            const user = data.user;
+            if (usernameEl) usernameEl.textContent = user.username;
+            if (refcodeEl) refcodeEl.textContent = `REFERRAL CODE: ${user.referral_code}`;
+            
+            // Fetch balances separately
+            try {
+                const balancesResponse = await fetchWithAuth('/api/user/balances');
+                const balancesData = await balancesResponse.json();
+                
+                if (balancesData.success && balancesEl) {
+                    const mainBalance = parseFloat(balancesData.balances.main_balance || 0).toFixed(2);
+                    const commissionBalance = parseFloat(balancesData.balances.commission_balance || 0).toFixed(2);
+                    balancesEl.innerHTML = `Main: <strong>${mainBalance}</strong> USDT | Commission: <strong>${commissionBalance}</strong> USDT`;
+                }
+            } catch (error) {
+                console.error('Error fetching balances:', error);
+            }
+            
+            // Update localStorage cache
+            localStorage.setItem('user_data', JSON.stringify(user));
+            
+            // Update membership tier display
+            updateMembershipTier(user.tier || 'bronze');
+        }
+    } catch (error) {
+        console.error('Error in fallback dashboard initialization:', error);
+        
+        // Use cached data as fallback
+        if (cachedUserData) {
+            try {
+                const user = JSON.parse(cachedUserData);
+                if (usernameEl) usernameEl.textContent = user.username;
+                if (refcodeEl) refcodeEl.textContent = `REFERRAL CODE: ${user.referral_code}`;
+                if (balancesEl) balancesEl.innerHTML = 'Balance: Using cached data';
+                
                 updateMembershipTier(user.tier || 'bronze');
             } catch (e) {
                 console.error('Error parsing cached user data:', e);
@@ -136,20 +221,19 @@ document.addEventListener('DOMContentLoaded', () => {
 /**
  * Fetch and update the drive progress on the dashboard
  */
-async function fetchDriveProgress(token) {
-    if (!token) return;
-    
-    try {        const response = await fetch(`${window.API_BASE_URL || API_BASE_URL}/api/drive/progress`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
+async function fetchDriveProgress() {    try {
+        console.log('Making API call to /api/user/drive-progress');
+        
+        const response = typeof SimpleAuth !== 'undefined' ? 
+                        await SimpleAuth.authenticatedFetch('/api/user/drive-progress') :
+                        await fetchWithAuth('/api/user/drive-progress');
         
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
         
         const data = await response.json();
-        
-        if (data.code === 0) {
+        console.log('Drive progress API response:', data);        if (data && data.success) {
             // Update the "Completed" counter
             const completedEl = document.querySelector('[data-i18n="completedWorkingDays"]');
             if (completedEl) {
@@ -163,8 +247,8 @@ async function fetchDriveProgress(token) {
             const progressBarEl = document.querySelector('.progress-bar.bg-info');
             
             if (progressTextEl && progressBarEl) {
-                const completed = data.weekly.progress || 0;
-                const total = data.weekly.total || 7;
+                const completed = data.weekly?.progress || 0;
+                const total = data.weekly?.total || 7;
                 
                 progressTextEl.setAttribute('data-i18n-options', `{"completed": ${completed}, "total": ${total}}`);
                 progressTextEl.textContent = `Progress (${completed}/${total})`;
@@ -176,7 +260,7 @@ async function fetchDriveProgress(token) {
                 progressBarEl.setAttribute('title', `${percentage}% of weekly goal completed`);
                 
                 // Add a visual effect for today's completion
-                if (data.today.is_working_day) {
+                if (data.today?.is_working_day) {
                     // Add a small badge or indicator that today's quota is complete
                     const workingDaysDescEl = document.querySelector('[data-i18n="workingDaysDescription"]');
                     if (workingDaysDescEl) {
@@ -187,9 +271,10 @@ async function fetchDriveProgress(token) {
             
             console.log('Drive progress updated successfully');
         } else {
-            console.error('Failed to fetch drive progress:', data.info);
+            console.error('Failed to fetch drive progress:', data ? (data.info || data.message || 'Unknown error') : 'No data returned');
         }    } catch (error) {
-        console.error('Error fetching drive progress:', error);
+        console.error('Failed to fetch drive progress:', error.message || 'Unknown error');
+        console.error('Drive progress error details:', error);
     }
 }
 
@@ -318,7 +403,7 @@ function updateMembershipTier(tier) {
         // Create and add a new badge
         const badge = document.createElement('span');
         badge.className = `tier-badge badge ms-2 bg-${tier.toLowerCase()}`;
-        badge.textContent = tier.charAt(0).toUpperCase() + tier.slice(1);
+        badge.textContent = tier.charAt
         badge.style.marginLeft = '5px';
         badge.style.fontSize = '10px';
         
@@ -354,20 +439,25 @@ function updateMembershipTier(tier) {
 /**
  * Function to update the Current Transaction section with real balance data
  */
-async function updateTransactionBalances(token) {
+async function updateTransactionBalances() {
     try {
+        console.log('Making API calls for transaction balances');
+        
         // Fetch current balance (main balance)
-        const balancesResponse = await fetch(`${window.API_BASE_URL || API_BASE_URL}/api/user/balances`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
+        const balancesResponse = typeof SimpleAuth !== 'undefined' ? 
+                               await SimpleAuth.authenticatedFetch('/api/user/balances') :
+                               await fetchWithAuth('/api/user/balances');
         
         // Fetch total withdrawals
-        const withdrawalsResponse = await fetch(`${window.API_BASE_URL || API_BASE_URL}/api/user/withdrawals`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
+        const withdrawalsResponse = typeof SimpleAuth !== 'undefined' ? 
+                                  await SimpleAuth.authenticatedFetch('/api/user/withdrawals') :
+                                  await fetchWithAuth('/api/user/withdrawals');
 
         const balancesData = await balancesResponse.json();
         const withdrawalsData = await withdrawalsResponse.json();
+        
+        console.log('Balances data:', balancesData);
+        console.log('Withdrawals data:', withdrawalsData);
 
         // Update Current Balance (main balance)
         const depositBalanceEl = document.getElementById('depositBalance');
@@ -423,3 +513,46 @@ document.addEventListener('DOMContentLoaded', () => {
     // Set up periodic refresh after a short delay
     setTimeout(setupTransactionBalanceRefresh, 2000);
 });
+
+// Helper function to generate user initials properly
+function generateUserInitials(username) {
+    if (!username) return 'U';
+    
+    // Remove extra spaces and split by space
+    const nameParts = username.trim().split(/\s+/).filter(part => part.length > 0);
+    
+    if (nameParts.length === 0) return 'U';
+    
+    if (nameParts.length === 1) {
+        // Single word username - take first 2 characters
+        const name = nameParts[0];
+        return name.length >= 2 ? name.substring(0, 2).toUpperCase() : name.toUpperCase();
+    } else {
+        // Multiple words - take first letter of each word (max 2)
+        return nameParts.slice(0, 2).map(name => name[0]).join('').toUpperCase();
+    }
+}
+
+// Make it globally available
+window.generateUserInitials = generateUserInitials;
+
+// Check if SimpleAuth is available and retry if needed
+function checkAndInitializeDashboard() {
+    if (typeof SimpleAuth !== 'undefined') {
+        console.log('SimpleAuth is now available, initializing dashboard');
+        initializeDashboard();
+    } else if (typeof fetchWithAuth === 'function') {
+        console.log('Using fallback authentication for dashboard');
+        const authData = isAuthenticated();
+        if (authData) {
+            initializeDashboardWithFallback(authData);
+        }
+    } else {
+        console.warn('No authentication system available, will retry in 500ms');
+        setTimeout(checkAndInitializeDashboard, 500);
+    }
+}
+
+// Make functions globally available
+window.checkAndInitializeDashboard = checkAndInitializeDashboard;
+window.initializeDashboard = initializeDashboard;

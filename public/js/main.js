@@ -355,9 +355,7 @@ async function fetchWithAuth(url, options = {}) {
         const response = await fetch(`${API_BASE_URL}${url}`, {
             ...options,
             headers,
-        });
-
-        // Handle 401 (Unauthorized) upfront
+        });        // Handle 401 (Unauthorized) upfront
         if (response.status === 401) {
             // Preserve drive session data before clearing localStorage
             const driveSessionData = localStorage.getItem('current_drive_session');
@@ -370,9 +368,17 @@ async function fetchWithAuth(url, options = {}) {
                 localStorage.setItem('current_drive_session', driveSessionData);
             }
             
-            window.location.href = 'login.html';
-            throw new Error('Unauthorized');
-        }        // Handle other errors
+            // Show notification before redirecting
+            if (typeof showNotification === 'function') {
+                showNotification('Logged out. Log in again', 'warning');
+            }
+            
+            // Redirect after showing notification
+            setTimeout(() => {
+                window.location.href = 'login.html';
+            }, 1500);
+            throw new Error('Authentication expired - redirecting to login');
+        }// Handle other errors
         if (!response.ok) {
             let errorData = {};
             try {

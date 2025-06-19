@@ -1040,10 +1040,21 @@ async function handlePurchase(token, productData) {
             const responseText = await response.text();
             console.error('Expected JSON but got:', contentType);
             console.error('Response body (first 500 chars):', responseText.substring(0, 500));
-            
-            // Check if it's an authentication issue
+              // Check if it's an authentication issue
             if (response.status === 401) {
-                throw new Error('Authentication failed. Please log in again.');
+                // Clear auth data and redirect with notification
+                localStorage.removeItem('auth_token');
+                localStorage.removeItem('user_data');
+                
+                if (typeof showNotification === 'function') {
+                    showNotification('Logged out. Log in again', 'warning');
+                }
+                
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 1500);
+                
+                throw new Error('Authentication expired - redirecting to login');
             } else if (response.status === 404) {
                 throw new Error('API endpoint not found. Check server configuration.');
             } else {
