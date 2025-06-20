@@ -164,11 +164,155 @@
         .type-deposit {
             background-color: #f3e5f5;
             color: #7b1fa2;
-        }
-
-        .text-muted {
+        }        .text-muted {
             color: #6c757d !important;
             font-size: 0.875rem;
+        }        /* Deposit Image Styling - 30% Width Full Height from Tab to Bottom */
+        .tab-content {
+            position: relative;
+        }
+        
+        .deposit-image-container-left {
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 30%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            border-radius: 16px 0 0 16px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            z-index: 1;
+        }
+
+        .deposit-hero-image-left {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: center;
+            border-radius: 16px 0 0 16px;
+            transition: all 0.3s ease;
+            display: block;
+        }
+
+        .deposit-hero-image-left:hover {
+            transform: scale(1.05);
+        }
+
+        /* Adjust tab pane and content to accommodate left image */
+        .tab-pane {
+            position: relative;
+            min-height: 500px;
+            padding-left: 30%;
+        }
+        
+        /* Remove individual column styling since we're using absolute positioning */
+        .deposit-image-column {
+            display: none; /* Hide the column div since image is now absolute */
+        }
+        
+        /* Make content column take full remaining width */
+        .deposit-content-column {
+            flex: 1;
+            max-width: 100%;
+            padding-left: 2rem;
+            padding-right: 1rem;
+        }
+
+        /* Legacy styles for backwards compatibility */
+        .deposit-image-container {
+            padding: 1rem;
+        }
+
+        .deposit-hero-image {
+            width: 100%;
+            max-width: 280px;
+            height: auto;
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .deposit-hero-image:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+        }        /* Mobile responsiveness for deposit form */
+        @media (max-width: 768px) {
+            .deposit-image-container-left {
+                position: relative;
+                width: 100%;
+                height: 200px;
+                margin-bottom: 1.5rem;
+                border-radius: 12px;
+                z-index: 1;
+            }
+
+            .deposit-hero-image-left {
+                border-radius: 12px;
+                object-fit: cover;
+                width: 100%;
+                height: 100%;
+            }
+
+            .tab-pane {
+                padding-left: 0;
+                min-height: auto;
+            }
+            
+            .deposit-image-column {
+                display: block;
+                flex: 0 0 100%;
+                max-width: 100%;
+                margin-bottom: 1.5rem;
+            }
+            
+            .deposit-content-column {
+                flex: 0 0 100%;
+                max-width: 100%;
+                padding-left: 0;
+                padding-right: 0;
+            }
+            
+            .deposit-hero-image {
+                max-width: 200px;
+                margin-top: 2rem;
+            }
+            
+            .deposit-image-container {
+                order: 2;
+                margin-top: 1.5rem;
+            }
+        }
+        
+        /* Medium screens adjustments */
+        @media (min-width: 769px) and (max-width: 1024px) {
+            .deposit-content-column {
+                padding-left: 1.5rem;
+                padding-right: 1rem;
+            }
+            
+            .tab-pane {
+                min-height: 450px;
+            }
+        }
+          /* Hide image on history tab - better approach */
+        .tab-content .deposit-image-container-left {
+            display: none;
+        }
+        
+        /* Show image only when deposit form tab is active */
+        #deposit-form.active ~ .deposit-image-container-left,
+        #deposit-form.show ~ .deposit-image-container-left {
+            display: flex;
+        }
+        
+        /* Alternative approach using data attribute */
+        .tab-content[data-active-tab="deposit-form"] .deposit-image-container-left {
+            display: flex;
         }
     </style>
 </head>
@@ -213,13 +357,23 @@
                         </button>
                     </li>
                 </ul>
-                
-                <!-- Tabs Content -->
+                  <!-- Tabs Content -->
                 <div class="tab-content" id="depositTabsContent">
+                    <!-- Absolute positioned image for Make Deposit tab -->
+                    <div class="deposit-image-container-left">
+                        <img src="./assets/uploads/images/Drive/deposit.jpg" alt="Make Deposit" class="deposit-hero-image-left">
+                    </div>
+                    
                     <!-- Deposit Form Tab -->
                     <div class="tab-pane fade show active" id="deposit-form" role="tabpanel">
-                        <div class="row mb-4">
-                            <div class="col-md-8 mx-auto">
+                        <div class="row">
+                            <!-- Image column hidden since we use absolute positioning -->
+                            <div class="deposit-image-column">
+                                <!-- This div is now hidden via CSS -->
+                            </div>
+                            
+                            <!-- Form content (takes full available width) -->
+                            <div class="deposit-content-column">
                                 <div class="deposit-card mb-4">
                                     <div class="deposit-item text-center">
                                         <h5 class="mb-3"><i class="fas fa-wallet me-2"></i>Total Deposited</h5>
@@ -229,14 +383,15 @@
                                     </div>
                                 </div>
                                 
-                                <div class="mb-4">
+                                <!-- Quick Amounts  -->
+                                <!-- <div class="mb-4">
                                     <h5 class="mb-3"><i class="fas fa-coins me-2"></i>Quick Amounts</h5>
                                     <div class="d-flex justify-content-between mb-3">
                                         <button class="btn btn-secondary bs-example" type="button" data-amount="100">100 USDT</button>
                                         <button class="btn btn-secondary bs-example" type="button" data-amount="200">200 USDT</button>
                                         <button class="btn btn-secondary bs-example" type="button" data-amount="500">500 USDT</button>
                                     </div>
-                                </div>
+                                </div> -->
                                 
                                 <div class="mb-4">
                                     <label for="deposit_amount" class="form-label">
@@ -256,13 +411,11 @@
                     
                     <!-- History Tab -->
                     <div class="tab-pane fade" id="deposit-history" role="tabpanel">
-                        <div class="table-responsive">
-                            <table class="table">                                <thead>
+                        <div class="table-responsive">                            <table class="table">                                <thead>
                                     <tr>
                                         <th scope="col">Date</th>
                                         <th scope="col">Time</th>
                                         <th scope="col">Amount</th>
-                                        <th scope="col">Type</th>
                                         <th scope="col">Status</th>
                                         <th scope="col">Note</th>
                                     </tr>
@@ -300,6 +453,43 @@
 document.addEventListener('DOMContentLoaded', function() {
     // Load standard navigation components
     loadStandardNavigation('deposits');
+    
+    // Handle tab switching for image visibility
+    const tabButtons = document.querySelectorAll('[data-bs-toggle="tab"]');
+    const imageContainer = document.querySelector('.deposit-image-container-left');
+    const tabContent = document.querySelector('#depositTabsContent');
+    
+    tabButtons.forEach(button => {
+        button.addEventListener('shown.bs.tab', function(e) {
+            const targetTab = e.target.getAttribute('data-bs-target');
+            
+            if (targetTab === '#deposit-form') {
+                // Show image on deposit form tab
+                if (imageContainer) {
+                    imageContainer.style.display = 'flex';
+                }
+                if (tabContent) {
+                    tabContent.setAttribute('data-active-tab', 'deposit-form');
+                }
+            } else {
+                // Hide image on other tabs (history tab)
+                if (imageContainer) {
+                    imageContainer.style.display = 'none';
+                }
+                if (tabContent) {
+                    tabContent.setAttribute('data-active-tab', 'deposit-history');
+                }
+            }
+        });
+    });
+    
+    // Ensure image is visible on page load (deposit form is active by default)
+    if (imageContainer) {
+        imageContainer.style.display = 'flex';
+    }
+    if (tabContent) {
+        tabContent.setAttribute('data-active-tab', 'deposit-form');
+    }
 });
 </script>
 </body>

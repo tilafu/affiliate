@@ -444,16 +444,53 @@ const getAllSupportMessages = async (req, res) => {
  * @access  Private/Admin
  */
 const sendNotification = async (req, res) => {
-  const { user_id, message } = req.body;
-  try {
-    await pool.query(
-      'INSERT INTO notifications (user_id, message, created_at) VALUES ($1, $2, NOW())',
-      [user_id, message]
-    );
-    res.json({ success: true });
-  } catch (error) {
-    res.status(500).json({ success: false, message: 'Error sending notification' });
-  }
+    const { user_id, category_id, title, message, image_url = null, priority = 1 } = req.body;
+    
+    // Validation
+    if (!user_id || !category_id || !message) {
+        return res.status(400).json({ 
+            success: false, 
+            message: 'User ID, category ID, and message are required' 
+        });
+    }
+
+    try {
+        let actualUserId = user_id;
+        
+        // If user_id is not a number, try to find user by username
+        if (isNaN(user_id)) {
+            const userByUsername = await pool.query('SELECT id FROM users WHERE username = $1', [user_id]);
+            if (userByUsername.rows.length === 0) {
+                return res.status(404).json({ 
+                    success: false, 
+                    message: 'User not found with username: ' + user_id 
+                });
+            }
+            actualUserId = userByUsername.rows[0].id;
+        } else {
+            // Check if user exists by ID
+            const userCheck = await pool.query('SELECT id FROM users WHERE id = $1', [actualUserId]);
+            if (userCheck.rows.length === 0) {
+                return res.status(404).json({ 
+                    success: false, 
+                    message: 'User not found with ID: ' + user_id 
+                });
+            }
+        }
+
+        // Insert notification
+        await pool.query(`
+            INSERT INTO notifications 
+            (user_id, category_id, title, message, image_url, priority, created_at)
+            VALUES ($1, $2, $3, $4, $5, $6, NOW())
+        `, [actualUserId, category_id, title, message, image_url, priority]);
+
+        logger.info(`Admin ${req.user.id} sent notification to user ${actualUserId}: ${title || message.substring(0, 50)}`);
+        res.json({ success: true, message: 'Notification sent successfully' });
+    } catch (error) {
+        logger.error('Error sending notification:', { error: error.message, stack: error.stack });
+        res.status(500).json({ success: false, message: 'Error sending notification' });
+    }
 };
 
 // Dashboard Statistics

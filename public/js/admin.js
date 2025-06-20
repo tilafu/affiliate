@@ -1766,13 +1766,18 @@ function showSendIndividualNotificationModal() {
 
 // Send individual notification
 async function sendIndividualNotification() {
-    const userIdOrUsername = document.getElementById('individualUserId').value;
+    const userIdOrUsername = document.getElementById('individualUserId').value.trim();
+    
+    // Convert priority to number
+    const priorityValue = document.getElementById('individualPriority').value;
+    const priorityMap = { 'normal': 1, 'medium': 2, 'high': 3 };
+    
     const formData = {
         user_id: userIdOrUsername, // Backend should handle both ID and username
         category_id: parseInt(document.getElementById('individualCategory').value),
         title: document.getElementById('individualTitle').value,
         message: document.getElementById('individualMessage').value,
-        priority: parseInt(document.getElementById('individualPriority').value),
+        priority: priorityMap[priorityValue] || 1,
         image_url: document.getElementById('individualImageUrl').value || null
     };
 
@@ -1783,20 +1788,25 @@ async function sendIndividualNotification() {
     }
 
     try {
-        const response = await fetchWithAuth('/admin/notifications', {
+        console.log('Sending individual notification:', formData);
+        
+        const response = await fetchWithAuth('/api/admin/notifications', {
             method: 'POST',
             body: JSON.stringify(formData)
         });
 
+        console.log('Individual notification response:', response);
+
         if (response.success) {
             showNotification('Individual notification sent successfully!', 'success');
             bootstrap.Modal.getInstance(document.getElementById('sendIndividualNotificationModal')).hide();
+            document.getElementById('sendIndividualNotificationForm').reset();
         } else {
             showNotification(response.message || 'Failed to send notification', 'error');
         }
     } catch (error) {
         console.error('Error sending individual notification:', error);
-        showNotification('Error sending notification', 'error');
+        showNotification('Error sending notification: ' + error.message, 'error');
     }
 }
 
@@ -1812,15 +1822,19 @@ function showSendBulkNotificationModal() {
 
 // Send bulk notification
 async function sendBulkNotification() {
-    const userIdsInput = document.getElementById('bulkUserIds').value;
+    const userIdsInput = document.getElementById('bulkUserIds').value.trim();
     const userIds = userIdsInput.split(',').map(id => id.trim()).filter(id => id);
+    
+    // Convert priority to number
+    const priorityValue = document.getElementById('bulkPriority').value;
+    const priorityMap = { 'normal': 1, 'medium': 2, 'high': 3 };
     
     const formData = {
         user_ids: userIds,
         category_id: parseInt(document.getElementById('bulkCategory').value),
         title: document.getElementById('bulkTitle').value,
         message: document.getElementById('bulkMessage').value,
-        priority: parseInt(document.getElementById('bulkPriority').value),
+        priority: priorityMap[priorityValue] || 1,
         image_url: document.getElementById('bulkImageUrl').value || null
     };
 
@@ -1831,20 +1845,25 @@ async function sendBulkNotification() {
     }
 
     try {
-        const response = await fetchWithAuth('/admin/notifications/bulk', {
+        console.log('Sending bulk notification:', formData);
+        
+        const response = await fetchWithAuth('/api/admin/notifications/bulk', {
             method: 'POST',
             body: JSON.stringify(formData)
         });
 
+        console.log('Bulk notification response:', response);
+
         if (response.success) {
             showNotification(`Bulk notification sent successfully to ${userIds.length} users!`, 'success');
             bootstrap.Modal.getInstance(document.getElementById('sendBulkNotificationModal')).hide();
+            document.getElementById('sendBulkNotificationForm').reset();
         } else {
             showNotification(response.message || 'Failed to send bulk notification', 'error');
         }
     } catch (error) {
         console.error('Error sending bulk notification:', error);
-        showNotification('Error sending bulk notification', 'error');
+        showNotification('Error sending bulk notification: ' + error.message, 'error');
     }
 }
 

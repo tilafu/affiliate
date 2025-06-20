@@ -1,21 +1,35 @@
-document.addEventListener('DOMContentLoaded', () => {
-    // Use centralized authentication check
-    const authData = requireAuth();
-    if (!authData) {
-        return; // requireAuth will handle redirect
-    }    // API Endpoints
+document.ad    // API Endpoints
     const profileUrl = `${window.API_BASE_URL}/api/user/profile`;
     const balancesUrl = `${window.API_BASE_URL}/api/user/balances`;
-
+    
     // DOM Elements
     const usernameElem = document.getElementById('account-username');
     const referralCodeElem = document.getElementById('account-referral-code');
+    const copyReferralBtn = document.getElementById('copy-referral-btn');
     const tierImageElem = document.getElementById('account-tier-image');
     const dailyProfitsElem = document.getElementById('account-daily-profits');
     const totalBalanceElem = document.getElementById('account-total-balance');
-    const frozenBalanceElem = document.getElementById('account-frozen-balance');
+    const frozenBalanceElem = document.getElementById('account-frozen-balance');ener('DOMContentLoaded', () => {
+    // Use centralized authentication check - but handle gracefully
+    const authData = isAuthenticated(); // Use silent check instead of requireAuth
+    
+    if (!authData || !authData.token) {
+        console.warn('User not authenticated on account page');
+        // Show error state instead of redirecting
+        setErrorState('Please log in to view account information');
+        return;
+    }
 
-    // Tier Image Mapping
+    // API Endpoints
+    const profileUrl = `${window.API_BASE_URL}/api/user/profile`;
+    const balancesUrl = `${window.API_BASE_URL}/api/user/balances`;// DOM Elements
+    const usernameElem = document.getElementById('account-username');
+    const referralCodeElem = document.getElementById('account-referral-code');
+    const copyReferralBtn = document.getElementById('copy-referral-btn');
+    const tierImageElem = document.getElementById('account-tier-image');
+    const dailyProfitsElem = document.getElementById('account-daily-profits');
+    const totalBalanceElem = document.getElementById('account-total-balance');
+    const frozenBalanceElem = document.getElementById('account-frozen-balance');    // Tier Image Mapping
     const tierImagePaths = {
         bronze: './assets/uploads/packages/bronze_665c04ea981d91717306602.PNG',
         silver: './assets/uploads/packages/silver_665c0568227141717306728.PNG',
@@ -23,12 +37,78 @@ document.addEventListener('DOMContentLoaded', () => {
         platinum: './assets/uploads/packages/platinum_665c064b7faf81717306955.PNG',
         default: './assets/uploads/v2.PNG'
     };
-
+    
     // Helper function to format balance display
     const formatBalance = (value) => {
         const amount = parseFloat(value || 0).toFixed(2);
         return `${amount}<small style="font-size:14px"> USDT</small>`;
-    };    // Helper function to update DOM with error state
+    };
+
+    // Global variable to store referral code
+    let currentReferralCode = '';
+
+    // Copy to clipboard functionality
+    const copyToClipboard = async (text) => {
+        try {
+            if (navigator.clipboard && window.isSecureContext) {
+                // Modern async clipboard API
+                await navigator.clipboard.writeText(text);
+                return true;
+            } else {
+                // Fallback for older browsers or non-secure contexts
+                const textArea = document.createElement('textarea');
+                textArea.value = text;
+                textArea.style.position = 'fixed';
+                textArea.style.opacity = '0';
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                const successful = document.execCommand('copy');
+                document.body.removeChild(textArea);
+                return successful;
+            }
+        } catch (error) {
+            console.error('Failed to copy text: ', error);
+            return false;
+        }
+    };
+
+    // Setup copy button functionality
+    const setupCopyFunctionality = () => {
+        if (copyReferralBtn) {
+            copyReferralBtn.addEventListener('click', async () => {
+                if (!currentReferralCode) {
+                    if (typeof showNotification === 'function') {
+                        showNotification('No referral code available to copy', 'warning');
+                    }
+                    return;
+                }
+
+                const success = await copyToClipboard(currentReferralCode);
+                
+                if (success) {
+                    // Visual feedback - change icon temporarily
+                    const icon = copyReferralBtn.querySelector('i');
+                    const originalClass = icon.className;
+                    icon.className = 'fas fa-check';
+                    copyReferralBtn.style.color = '#28a745';
+                    
+                    setTimeout(() => {
+                        icon.className = originalClass;
+                        copyReferralBtn.style.color = '';
+                    }, 2000);
+
+                    if (typeof showNotification === 'function') {
+                        showNotification('Referral code copied to clipboard!', 'success');
+                    }
+                } else {
+                    if (typeof showNotification === 'function') {
+                        showNotification('Failed to copy referral code', 'error');
+                    }
+                }
+            });
+        }
+    };// Helper function to update DOM with error state
     const setErrorState = (message = 'Error loading data') => {
         if (usernameElem) usernameElem.textContent = 'Error';
         if (referralCodeElem) referralCodeElem.textContent = 'Error';
@@ -43,29 +123,21 @@ document.addEventListener('DOMContentLoaded', () => {
     };    // Auto-update function to refresh account data
     const updateAccountData = async () => {
         try {
-            const [profileResponse, balancesResponse] = await Promise.all([
-                fetch(profileUrl, {
-                    headers: { 'Authorization': `Bearer ${authData.token}` }
-                }),
-                fetch(balancesUrl, {
-                    headers: { 'Authorization': `Bearer ${authData.token}` }
-                })
-            ]);
-
-            if (!profileResponse.ok || !balancesResponse.ok) {
-                throw new Error('Failed to fetch account data');
-            }
-
+            // Use fetchWithAuth for better error handling
             const [profileData, balancesData] = await Promise.all([
-                profileResponse.json(),
-                balancesResponse.json()
+                fetchWithAuth('/api/user/profile'),
+                fetchWithAuth('/api/user/balances')
             ]);
 
             // Update Profile Info
             if (profileData.success && profileData.user) {
                 const user = profileData.user;
                 if (usernameElem) usernameElem.textContent = user.username || 'N/A';
-                if (referralCodeElem) referralCodeElem.textContent = user.referral_code || 'N/A';
+                if (referralCodeElem) {
+                    const referralCode = user.referral_code || 'N/A';
+                    referralCodeElem.textContent = referralCode;
+                    currentReferralCode = referralCode; // Store for copying
+                }
 
                 // Update Tier Image
                 if (tierImageElem) {
@@ -73,6 +145,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     const imagePath = tierImagePaths[tier] || tierImagePaths.default;
                     tierImageElem.style.backgroundImage = `url(${imagePath})`;
                 }
+            } else {
+                console.error('Profile data fetch failed:', profileData.message);
+                setErrorState(`Profile error: ${profileData.message || 'Unknown error'}`);
+                return;
             }
 
             // Update Balances with animation
@@ -89,21 +165,25 @@ document.addEventListener('DOMContentLoaded', () => {
                             element.style.opacity = '1';
                         }, 150);
                     }
-                };
-
-                updateWithAnimation(dailyProfitsElem, balances.commission_balance);
+                };                updateWithAnimation(dailyProfitsElem, balances.commission_balance);
                 updateWithAnimation(totalBalanceElem, balances.main_balance);
                 updateWithAnimation(frozenBalanceElem, balances.frozen_balance);
+            } else {
+                console.error('Balances data fetch failed:', balancesData.message);
+                // Don't set error state for balances, just log it
             }
         } catch (error) {
             console.error('Error updating account data:', error);
-            // Don't show error notifications for background updates unless critical
+            setErrorState(`Error loading account data: ${error.message}`);
         }
-    };    // Initial load
+    };// Initial load
     updateAccountData().catch(error => {
         console.error('Initial account data load failed:', error);
         setErrorState(`Error loading account data: ${error.message}`);
-    });    // Initialize logout functionality
+    });
+
+    // Setup copy functionality
+    setupCopyFunctionality();// Initialize logout functionality
     if (typeof attachLogoutHandlers === 'function') {
         attachLogoutHandlers();
     } else {

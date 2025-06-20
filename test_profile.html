@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test-result { margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        .warning { background-color: #fff3cd; color: #856404; }
+    </style>
+</head>
+<body>
+    <h1>Profile Page Test</h1>
+    <div id="test-results"></div>
+
+    <script>
+        const results = document.getElementById('test-results');
+        
+        function addResult(message, type = 'success') {
+            const div = document.createElement('div');
+            div.className = `test-result ${type}`;
+            div.textContent = message;
+            results.appendChild(div);
+        }
+
+        // Test 1: Check if profile elements exist
+        addResult('Testing profile elements...', 'warning');
+        
+        // Simulate the elements that should exist
+        const testElements = [
+            'profile-username',
+            'profile-email', 
+            'phone',
+            'profile-save-btn'
+        ];
+        
+        testElements.forEach(id => {
+            const element = document.getElementById(id);
+            if (element) {
+                addResult(`✓ Element '${id}' found`, 'success');
+            } else {
+                addResult(`✗ Element '${id}' NOT found`, 'error');
+            }
+        });
+
+        // Test 2: Check if required functions exist
+        addResult('Testing required functions...', 'warning');
+        
+        const requiredFunctions = [
+            'checkAuthentication',
+            'fetchWithAuth',
+            'showNotification',
+            'loadStandardNavigation'
+        ];
+        
+        requiredFunctions.forEach(funcName => {
+            if (typeof window[funcName] === 'function') {
+                addResult(`✓ Function '${funcName}' available`, 'success');
+            } else {
+                addResult(`✗ Function '${funcName}' NOT available`, 'error');
+            }
+        });
+
+        addResult('Test completed. Check console for any additional errors.', 'warning');
+    </script>
+</body>
+</html>

@@ -212,8 +212,8 @@
                         <span class="account-value fw-semibold" id="account-username">Loading...</span>
                     </div>
                 </div>
-            </div>
-
+            </div>            
+            
             <!-- Referral Code Section -->
             <div class="account-item">
                 <div class="d-flex align-items-center justify-content-between">
@@ -226,8 +226,11 @@
                             <small class="text-muted">Share with friends</small>
                         </div>
                     </div>
-                    <div class="text-end">
+                    <div class="text-end d-flex align-items-center gap-2">
                         <span class="account-value fw-semibold" id="account-referral-code">Loading...</span>
+                        <button class="btn btn-sm btn-outline-primary" id="copy-referral-btn" title="Copy to clipboard" style="padding: 4px 8px; border-radius: 6px;">
+                            <i class="fas fa-copy"></i>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -387,6 +390,7 @@
 <script src="./js/i18n.js"></script>
 <script src="./js/main.js"></script>
 <script src="./js/auth-check.js"></script> <!-- Centralized authentication -->
+<script src="./js/account.js"></script> <!-- Account page specific logic -->
 
 <script>
 // Load standard navigation components

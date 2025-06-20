@@ -52,12 +52,10 @@ async function initializeDashboard() {
         console.log('Profile API response status:', response.status);
         
         const data = await response.json();
-        console.log('Profile API response data:', data);
-
-        if (data.success && data.user) {
+        console.log('Profile API response data:', data);        if (data.success && data.user) {
             const user = data.user;
             if (usernameEl) usernameEl.textContent = user.username;
-            if (refcodeEl) refcodeEl.textContent = `REFERRAL CODE: ${user.referral_code}`;              console.log('Making API call to /api/user/balances');
+            if (refcodeEl) refcodeEl.textContent = user.referral_code || 'N/A';              console.log('Making API call to /api/user/balances');
               
               // Fetch balances separately for real-time accuracy
             const balancesResponse = typeof SimpleAuth !== 'undefined' ? 
@@ -101,10 +99,9 @@ async function initializeDashboard() {
             
         } else {
             console.error('Profile API call failed:', data.message);
-            showNotification(data.message || 'Failed to load profile data.', 'error');
-            if (!cachedUserData) {
+            showNotification(data.message || 'Failed to load profile data.', 'error');            if (!cachedUserData) {
                 if (usernameEl) usernameEl.textContent = 'Error';
-                if (refcodeEl) refcodeEl.textContent = 'REFERRAL CODE: Error';
+                if (refcodeEl) refcodeEl.textContent = 'Error';
                 if (balancesEl) balancesEl.innerHTML = 'Balance: Error';
             }
         }
@@ -112,10 +109,9 @@ async function initializeDashboard() {
         console.error('Error initializing dashboard:', error);
         showNotification('Error loading dashboard data', 'error');        // Use cached data as fallback
         if (cachedUserData) {
-            try {
-                const user = JSON.parse(cachedUserData);
+            try {                const user = JSON.parse(cachedUserData);
                 if (usernameEl) usernameEl.textContent = user.username;
-                if (refcodeEl) refcodeEl.textContent = `REFERRAL CODE: ${user.referral_code}`;
+                if (refcodeEl) refcodeEl.textContent = user.referral_code || 'N/A';
                 if (balancesEl) balancesEl.innerHTML = 'Balance: Using cached data';
                 
                 // Try to update tier from cached data
@@ -139,11 +135,10 @@ async function initializeDashboardWithFallback(authData) {
     const cachedUserData = localStorage.getItem('user_data');    try {
         // Use fetchWithAuth as fallback
         const data = await fetchWithAuth('/api/user/profile');
-        
-        if (data.success && data.user) {
+          if (data.success && data.user) {
             const user = data.user;
             if (usernameEl) usernameEl.textContent = user.username;
-            if (refcodeEl) refcodeEl.textContent = `REFERRAL CODE: ${user.referral_code}`;
+            if (refcodeEl) refcodeEl.textContent = user.referral_code || 'N/A';
             
             // Fetch balances separately
             try {
@@ -166,13 +161,12 @@ async function initializeDashboardWithFallback(authData) {
         }
     } catch (error) {
         console.error('Error in fallback dashboard initialization:', error);
-        
-        // Use cached data as fallback
+          // Use cached data as fallback
         if (cachedUserData) {
             try {
                 const user = JSON.parse(cachedUserData);
                 if (usernameEl) usernameEl.textContent = user.username;
-                if (refcodeEl) refcodeEl.textContent = `REFERRAL CODE: ${user.referral_code}`;
+                if (refcodeEl) refcodeEl.textContent = user.referral_code || 'N/A';
                 if (balancesEl) balancesEl.innerHTML = 'Balance: Using cached data';
                 
                 updateMembershipTier(user.tier || 'bronze');

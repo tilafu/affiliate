@@ -13,16 +13,193 @@
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    
-    <!-- Legacy scripts for compatibility -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">    <!-- Legacy scripts for compatibility -->
     <script src="./assets/frontend/js/jquery.min.js"></script>
     <script charset="utf-8" src="./assets/frontend/shopva/dialog.min.js"></script>
     <script charset="utf-8" src="./assets/frontend/shopva/common.js"></script>
     <link rel="stylesheet" href="./assets/frontend/shopva/layer.css">
     <script src="./assets/frontend/shopva/layer.js"></script>
-    <!-- Custom CSS for shared styles -->
-    <link rel="stylesheet" href="css/task-account-styles.css">
+      <!-- Minimal CSS to show tier details -->
+    <style>
+        /* Hero Section */
+        .membership-hero-section {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 120px 0 80px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .membership-hero-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.2);
+        }
+        
+        .membership-hero-section .container {
+            position: relative;
+            z-index: 2;
+        }
+        
+        .membership-hero-section .highlight-yellow {
+            color: #ffc107;
+        }
+        
+        .back-btn {
+            color: white;
+            font-size: 1.2rem;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+        
+        .back-btn:hover {
+            color: #ffc107;
+            transform: translateX(-5px);
+        }
+        
+        /* Membership Cards */
+        .membership-card {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 25px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .membership-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
+        }
+        
+        .membership-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+        }
+        
+        .membership-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .membership-header img {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid #fff;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            margin-right: 20px;
+        }
+        
+        .membership-header h4 {
+            font-weight: 700;
+            color: #2d3748;
+            margin: 0;
+            font-size: 1.4rem;
+        }
+        
+        .membership-price {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin: 20px 0;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .membership-price small {
+            font-size: 1rem;
+            color: #718096;
+            font-weight: 500;
+        }
+        
+        .membership-details {
+            background: #f8fafc;
+            border-radius: 15px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        
+        .membership-details p {
+            margin: 0;
+            line-height: 1.8;
+            color: #4a5568;
+        }
+        
+        .membership-details strong {
+            color: #2d3748;
+            font-weight: 700;
+            font-size: 1.1rem;
+            display: block;
+            margin-bottom: 15px;
+        }
+        
+        /* Feature bullets */
+        .membership-details p {
+            font-size: 0.95rem;
+        }
+        
+        /* Tier-specific accent colors */
+        .bronze-tier::before {
+            background: linear-gradient(45deg, #cd7f32, #b8860b);
+        }
+        
+        .silver-tier::before {
+            background: linear-gradient(45deg, #c0c0c0, #a8a8a8);
+        }
+        
+        .gold-tier::before {
+            background: linear-gradient(45deg, #ffd700, #ffb347);
+        }
+        
+        .platinum-tier::before {
+            background: linear-gradient(45deg, #e5e4e2, #bcc6cc);
+        }
+        
+        /* Main content styling */
+        .main-content {
+            background: #f8fafc;
+            min-height: 100vh;
+            padding: 40px 0;
+        }
+        
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .membership-hero-section {
+                padding: 80px 0 40px;
+            }
+            
+            .membership-card {
+                padding: 20px;
+                margin-bottom: 20px;
+            }
+            
+            .membership-price {
+                font-size: 2rem;
+            }
+            
+            .membership-header img {
+                width: 50px;
+                height: 50px;
+                margin-right: 15px;
+            }
+        }
+    </style>
 </head>
 <body>
 
@@ -31,124 +208,108 @@
 <div id="sidebar-placeholder"></div>
 <!-- End Sidebar Placeholder -->
 
-<!-- Modern Header -->
-<header class="page-header">
+<!-- Modern Membership Hero Section -->
+<section class="membership-hero-section">
     <div class="container">
         <div class="d-flex align-items-center justify-content-between">
             <a href="javascript:history.back()" class="back-btn">
                 <i class="fas fa-arrow-left"></i>
             </a>
             <div class="text-center flex-grow-1">
-                <h1 data-i18n="membershipsPageTitle">Memberships</h1>
-                <p class="subtitle">Choose your membership tier</p>
+                <h2 class="mb-0 fw-bold">Earn More With Higher <span class="highlight-yellow">Membership</span> Tiers</h2>
+                <p class="mb-0 opacity-75">Unlock premium products and higher commission rates</p>
             </div>
-            <div style="width: 44px;"></div> <!-- Spacer for alignment -->
+            <div style="width: 45px;"></div> <!-- Spacer for alignment -->
         </div>
     </div>
-</header>
+</section>
 
 <main class="main-content">
-    <div class="container">
-        <div class="row">
-            <!-- Membership Card - Bronze -->
-            <div class="col-md-9 mb-3 mx-auto">
-                <div class="app-card enhanced-hover animate-fade-in-up">
-                    <div class="card-body p-4">
-                        <div class="d-flex align-items-center justify-content-between mb-3">
-                            <img width="40px" src="./assets/uploads/packages/bronze_665c04ea981d91717306602.PNG" alt="Bronze Membership">
-                            <h4 class="mb-0 gradient-text" data-i18n="basicMembershipTitle"> Bronze</h4>
-                        </div>
-                        <h3 class="mb-3">100.00<small style="font-size:14px"> USDT</small></h3>
-                        <div class="text-muted text-sm mt-2">
-                            <p data-i18n="basicMembershipDetails">
-                                **Bronze Tier Details:**<br />
-                                ● 0.5% commission per data<br />
-                                ● 1.5% commission for merge data<br />
-                                ● Limited to 40 data per set, 2 sets of data everyday<br />
-                                ● withdrawal limit: 5000 USDT<br />
-                                ● 1 withdrawal per set<br />
-                                ● 0% handling fee
-                            </p>
-                        </div>
-                    </div>
-                </div>
+    <div class="container">        <!-- Membership Card - Bronze -->
+        <div class="membership-card bronze-tier">
+            <div class="membership-header">
+                <img src="./assets/uploads/packages/bronze_665c04ea981d91717306602.PNG" alt="Bronze Membership">
+                <h4>Bronze Membership</h4>
             </div>
-
-            <!-- Membership Card - Silver -->
-            <div class="col-md-9 mb-3 mx-auto">
-                <div class="app-card enhanced-hover animate-fade-in-up">
-                    <div class="card-body p-4">
-                        <div class="d-flex align-items-center justify-content-between mb-3">
-                            <img width="40px" src="./assets/uploads/packages/silver_665c0568227141717306728.PNG" alt="Silver Membership">
-                            <h4 class="mb-0 gradient-text" data-i18n="plusMembershipTitle">Plus Membership - Silver</h4>
-                        </div>
-                        <h3 class="mb-3">1,000.00<small style="font-size:14px"> USDT</small></h3>
-                        <div class="text-muted text-sm mt-2">
-                            <p data-i18n="plusMembershipDetails">
-                                **Silver Tier Details:**<br />
-                                ● 1% commission per data<br />
-                                ● 3% commission for merge data<br />
-                                ● Limited to 40 data per set, 2 sets of data everyday<br />
-                                ● withdrawal limit: 20,000 USDT<br />
-                                ● 2 times of withdrawal <br />
-                                ● 0% handling fee
-                            </p>
-                        </div>
-                    </div>
-                </div>
+            <div class="membership-price">
+                100.00<small> USDT</small>
             </div>
-
-            <!-- Membership Card - Gold -->
-            <div class="col-md-9 mb-3 mx-auto">
-                <div class="app-card enhanced-hover animate-fade-in-up">
-                    <div class="card-body p-4">
-                        <div class="d-flex align-items-center justify-content-between mb-3">
-                            <img width="40px" src="./assets/uploads/packages/gold_665c05eea02a21717306862.PNG" alt="Gold Membership">
-                            <h4 class="mb-0 gradient-text" data-i18n="eliteMembershipTitle">Elite Membership - Gold</h4>
-                        </div>
-                        <h3 class="mb-3">3,000.00<small style="font-size:14px"> USDT</small></h3>
-                        <div class="text-muted text-sm mt-2">
-                            <p data-i18n="eliteMembershipDetails">
-                                **Gold Tier Details:**<br />
-                                ● 1.5% commission per data<br />
-                                ● 4.5% commission for merge data<br />
-                                ● Limited to 45 data per set, 2 sets of data everyday<br />
-                                ● withdrawal limit: 50,000 USDT<br />
-                                ● 2 times of withdrawal<br />
-                                ● 0% handling fee
-                            </p>
-                        </div>
-                    </div>
-                </div>
+            <div class="membership-details">
+                <p>
+                    <strong>Bronze Tier Benefits:</strong><br />
+                    ● 0.5% commission per data processing<br />
+                    ● 1.5% commission for merge data operations<br />
+                    ● Limited to 40 data per set, 2 sets daily<br />
+                    ● Withdrawal limit: 5,000 USDT<br />
+                    ● 1 withdrawal per set allowed<br />
+                    ● 0% handling fee on all transactions
+                </p>
             </div>
-
-            <!-- Membership Card - Platinum -->
-            <div class="col-md-9 mb-3 mx-auto">
-                <div class="app-card enhanced-hover animate-fade-in-up">
-                    <div class="card-body p-4">
-                        <div class="d-flex align-items-center justify-content-between mb-3">
-                            <img width="40px" src="./assets/uploads/packages/platinum_665c064b7faf81717306955.PNG" alt="Platinum Membership">
-                            <h4 class="mb-0 gradient-text" data-i18n="supremeMembershipTitle">Supreme Membership - Platinum</h4>
-                        </div>
-                        <h3 class="mb-3">5,000.00<small style="font-size:14px"> USDT</small></h3>
-                        <div class="text-muted text-sm mt-2">
-                            <p data-i18n="supremeMembershipDetails">
-                                **Platinum Tier Details:**<br />
-                                ● 2% commission per data<br />
-                                ● 6% commission for merge data<br />
-                                ● Limited to 45 data per set, 2 sets of data everyday<br />
-                                ● withdrawal limit: unlimited<br />
-                                ● 3 times of withdrawal<br />
-                                ● 0% handling fee
-                            </p>
-                        </div>                    </div>
-                </div>
+        </div>        <!-- Membership Card - Silver -->
+        <div class="membership-card silver-tier">
+            <div class="membership-header">
+                <img src="./assets/uploads/packages/silver_665c0568227141717306728.PNG" alt="Silver Membership">
+                <h4>Silver Membership</h4>
+            </div>
+            <div class="membership-price">
+                1,000.00<small> USDT</small>
+            </div>
+            <div class="membership-details">
+                <p>
+                    <strong>Silver Tier Benefits:</strong><br />
+                    ● 1% commission per data processing<br />
+                    ● 3% commission for merge data operations<br />
+                    ● Limited to 40 data per set, 2 sets daily<br />
+                    ● Withdrawal limit: 20,000 USDT<br />
+                    ● 2 withdrawals allowed per period<br />
+                    ● 0% handling fee on all transactions
+                </p>
+            </div>
+        </div>        <!-- Membership Card - Gold -->
+        <div class="membership-card gold-tier">
+            <div class="membership-header">
+                <img src="./assets/uploads/packages/gold_665c05eea02a21717306862.PNG" alt="Gold Membership">
+                <h4>Gold Membership</h4>
+            </div>
+            <div class="membership-price">
+                3,000.00<small> USDT</small>
+            </div>
+            <div class="membership-details">
+                <p>
+                    <strong>Gold Tier Benefits:</strong><br />
+                    ● 1.5% commission per data processing<br />
+                    ● 4.5% commission for merge data operations<br />
+                    ● Limited to 45 data per set, 2 sets daily<br />
+                    ● Withdrawal limit: 50,000 USDT<br />
+                    ● 2 withdrawals allowed per period<br />
+                    ● 0% handling fee on all transactions
+                </p>
+            </div>
+        </div>        <!-- Membership Card - Platinum -->
+        <div class="membership-card platinum-tier">
+            <div class="membership-header">
+                <img src="./assets/uploads/packages/platinum_665c064b7faf81717306955.PNG" alt="Platinum Membership">
+                <h4>Platinum Membership</h4>
+            </div>
+            <div class="membership-price">
+                5,000.00<small> USDT</small>
+            </div>
+            <div class="membership-details">
+                <p>
+                    <strong>Platinum Tier Benefits:</strong><br />
+                    ● 2% commission per data processing<br />
+                    ● 6% commission for merge data operations<br />
+                    ● Limited to 45 data per set, 2 sets daily<br />
+                    ● Withdrawal limit: unlimited<br />
+                    ● 3 withdrawals allowed per period<br />
+                    ● 0% handling fee on all transactions
+                </p>
             </div>
         </div>
     </div>
 </main>
 
-<!-- Standard Footer Navigation -->
+<!-- Footer Navigation -->
 <div id="footer-navigation"></div>
 
 <script>let baseurl = '.';</script> <!-- Use relative base URL -->

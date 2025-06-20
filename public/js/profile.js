@@ -53,36 +53,46 @@ async function initializeProfilePage() {
     console.log('Initializing profile page logic...');
     
     // Use centralized authentication check
-    const authData = requireAuth();
+    const authData = checkAuthentication();
     if (!authData) {
-        return; // requireAuth will handle redirect
+        return; // checkAuthentication will handle redirect
     }
 
     // Make sure i18n content is translated
-    updateProfileTranslations();
-
-    // Get elements AFTER sidebar is loaded
+    updateProfileTranslations();    // Get elements AFTER sidebar is loaded
     const usernameEl = document.getElementById('profile-username');
-    const mobileInputEl = document.getElementById('profile-mobile-input');
-    const regDateEl = document.getElementById('profile-registration-date');
+    const emailEl = document.getElementById('profile-email');
+    const mobileInputEl = document.getElementById('phone');
+    const regDateEl = document.getElementById('profile-registration-date'); // Optional
     const saveBtn = document.getElementById('profile-save-btn');
 
-    if (!usernameEl || !mobileInputEl || !regDateEl || !saveBtn) {
-        console.error('One or more profile elements not found after component load.');
+    if (!usernameEl || !emailEl || !mobileInputEl || !saveBtn) {
+        console.error('One or more essential profile elements not found after component load.');
+        console.log('Missing elements:', {
+            username: !usernameEl,
+            email: !emailEl,
+            mobile: !mobileInputEl,
+            saveBtn: !saveBtn
+        });
         return; // Stop if essential elements are missing
+    }
+
+    if (!regDateEl) {
+        console.warn('Registration date element not found, will skip displaying registration date.');
     }
 
     // --- Fetch and display profile data ---
     try {
         console.log('Fetching user profile data for profile page...');
         const data = await fetchWithAuth('/api/user/profile'); // Uses function from main.js
-        console.log('Profile API response:', data);
-
-        if (data.success && data.user) {
+        console.log('Profile API response:', data);        if (data.success && data.user) {
             const user = data.user;
             usernameEl.textContent = user.username || 'N/A';
+            emailEl.textContent = user.email || 'N/A';
             mobileInputEl.value = user.mobile_number || ''; // Populate input field
-            regDateEl.textContent = formatDate(user.created_at); // Format and display date
+            if (regDateEl) {
+                regDateEl.textContent = formatDate(user.created_at); // Format and display date
+            }
 
             // Update cached data if necessary (though dashboard.js might handle this too)
             localStorage.setItem('user_data', JSON.stringify(user));
@@ -91,16 +101,21 @@ async function initializeProfilePage() {
             console.error('Profile API call failed:', data.message);
             showNotification(data.message || 'Failed to load profile data.', 'error');
             usernameEl.textContent = 'Error';
+            emailEl.textContent = 'Error';
             mobileInputEl.value = 'Error';
-            regDateEl.textContent = 'Error';
+            if (regDateEl) {
+                regDateEl.textContent = 'Error';
+            }
         }
-    } catch (error) {
-        console.error('Error fetching profile data:', error);
+    } catch (error) {        console.error('Error fetching profile data:', error);
         if (error.message !== 'Unauthorized') { // Avoid duplicate errors on 401
              showNotification('Could not load profile data.', 'error');
              usernameEl.textContent = 'Error';
+             emailEl.textContent = 'Error';
              mobileInputEl.value = 'Error';
-             regDateEl.textContent = 'Error';
+             if (regDateEl) {
+                 regDateEl.textContent = 'Error';
+             }
         }
     }
 

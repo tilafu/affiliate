@@ -7,343 +7,573 @@
     <title>Certificates</title>
     <meta name="csrf-token" content="t9EtiRskFKx5XpnOFvbrimp5ZgsKIg3UU1Ea1iDM">
     <link rel="shortcut icon" href="./assets/uploads/generals/favicon-665b8c8a863b91717275786.png">
-    <link rel="stylesheet" href="./assets/frontend/shopva/public.css">
-    <script src="./assets/frontend/js/jquery.min.js"></script>
-    <script charset="utf-8" src="./assets/frontend/shopva/dialog.min.js"></script>
-    <script charset="utf-8" src="./assets/frontend/shopva/common.js"></script>
-    <link rel="stylesheet" href="./assets/frontend/shopva/layer.css">
-    <script src="./assets/frontend/shopva/layer.js"></script>
-    <link rel="stylesheet" href="./assets/frontend/shopva/tye.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="./assets/frontend/css/bootstrap.min.css" type="text/css" media="all"/>
-    <link rel="stylesheet" type="text/css" href="./assets/frontend/css/fontawesome-all.min.css">
-    <link rel="stylesheet" href="./assets/frontend/css/animate.min.css" type="text/css" media="all"/>
-    <link rel="stylesheet" href="./assets/frontend/css/owl.carousel.min.css" type="text/css" media="all"/>
-    <link rel="stylesheet" href="./assets/frontend/css/style.css" type="text/css" media="all"/>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
     <style>
         :root {
-            --primary-color: #6c5ce7;
-            --secondary-color: #a29bfe;
-            --success-color: #00b894;
-            --danger-color: #d63031;
-            --background-color: #f8f9fa;
-            --text-color: #2d3436;
-            --card-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            --transition: all 0.3s ease;
+            --primary-blue: #007AFF;
+            --secondary-blue: #5AC8FA;
+            --success-green: #30D158;
+            --warning-orange: #FF9500;
+            --danger-red: #FF3B30;
+            --purple: #5856D6;
+            --pink: #FF2D92;
+            --background: #F2F2F7;
+            --card-background: #FFFFFF;
+            --text-primary: #000000;
+            --text-secondary: #8E8E93;
+            --border-color: #E5E5EA;
+            --shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+            --shadow-hover: 0 8px 32px rgba(0, 0, 0, 0.15);
+            --gradient-certificates: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
 
         body {
-            font-family: 'Inter', sans-serif;
-            background-color: var(--background-color);
-            color: var(--text-color);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--background);
+            color: var(--text-primary);
+            line-height: 1.6;
         }
 
-        .hero-section {
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-            padding: 2rem 0;
-            margin-bottom: 2rem;
+        /* Modern Header */
+        .certificates-hero-section {
+            background: var(--gradient-certificates);
             color: white;
+            padding: 120px 0 80px;
             position: relative;
             overflow: hidden;
         }
-
-        .hero-section::before {
+        
+        .certificates-hero-section::before {
             content: '';
             position: absolute;
             top: 0;
             left: 0;
             right: 0;
             bottom: 0;
-            background: url('./assets/uploads/pattern.png') repeat;
-            opacity: 0.1;
+            background: rgba(0, 0, 0, 0.2);
         }
-
-        .hero-content {
+        
+        .certificates-hero-section .container {
             position: relative;
-            z-index: 1;
+            z-index: 2;
         }
 
-        .back-button {
+        .back-btn {
             color: white;
             text-decoration: none;
             display: inline-flex;
             align-items: center;
             gap: 0.5rem;
-            transition: var(--transition);
+            font-weight: 500;
+            transition: all 0.3s ease;
+            padding: 8px 0;
         }
 
-        .back-button:hover {
+        .back-btn:hover {
+            color: #ffc107;
             transform: translateX(-5px);
-            color: white;
         }
 
+        .hero-title {
+            font-size: 3rem;
+            font-weight: 800;
+            margin-bottom: 1rem;
+            background: linear-gradient(45deg, #fff, #ffc107);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero-subtitle {
+            font-size: 1.25rem;
+            opacity: 0.9;
+            font-weight: 400;
+        }
+
+        /* Main Content */
+        .main-content {
+            padding: 40px 0;
+            margin-top: -40px;
+            position: relative;
+            z-index: 10;
+        }
+
+        /* Certificate Cards */
         .certificate-card {
-            background: white;
-            border-radius: 15px;
+            background: var(--card-background);
+            border-radius: 20px;
             overflow: hidden;
-            box-shadow: var(--card-shadow);
-            transition: var(--transition);
+            box-shadow: var(--shadow);
+            transition: all 0.3s ease;
             margin-bottom: 2rem;
             position: relative;
+            border: 1px solid var(--border-color);
         }
 
         .certificate-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+            transform: translateY(-8px);
+            box-shadow: var(--shadow-hover);
         }
 
         .certificate-image {
             width: 100%;
-            height: 250px;
+            height: 280px;
             object-fit: cover;
-            transition: var(--transition);
+            transition: all 0.3s ease;
+            position: relative;
         }
 
         .certificate-card:hover .certificate-image {
-            transform: scale(1.05);
+            transform: scale(1.03);
+        }
+
+        .certificate-overlay {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            z-index: 5;
         }
 
         .certificate-content {
-            padding: 1.5rem;
+            padding: 24px;
+        }
+
+        .certificate-date {
+            color: var(--primary-blue);
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
         .certificate-title {
             font-size: 1.5rem;
-            font-weight: 600;
-            margin-bottom: 1rem;
-            color: var(--text-color);
-        }
-
-        .certificate-date {
-            color: var(--primary-color);
-            font-weight: 500;
-            margin-bottom: 0.5rem;
+            font-weight: 700;
+            margin-bottom: 12px;
+            color: var(--text-primary);
+            line-height: 1.3;
         }
 
         .certificate-description {
-            color: #666;
+            color: var(--text-secondary);
             line-height: 1.6;
-            margin-bottom: 1rem;
+            margin-bottom: 20px;
+            font-size: 1rem;
         }
 
         .certificate-status {
             display: inline-flex;
             align-items: center;
-            padding: 0.5rem 1rem;
-            border-radius: 20px;
+            padding: 8px 16px;
+            border-radius: 50px;
             font-size: 0.9rem;
-            font-weight: 500;
-            margin-top: 1rem;
+            font-weight: 600;
+            gap: 8px;
         }
 
         .status-verified {
-            background-color: #e3fcef;
-            color: #00b894;
+            background: rgba(48, 209, 88, 0.1);
+            color: var(--success-green);
+            border: 2px solid rgba(48, 209, 88, 0.2);
         }
 
         .status-pending {
-            background-color: #fff3cd;
-            color: #f59e0b;
+            background: rgba(255, 149, 0, 0.1);
+            color: var(--warning-orange);
+            border: 2px solid rgba(255, 149, 0, 0.2);
         }
 
-        .header-main {
-            background: transparent;
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            z-index: 100;
+        .status-expired {
+            background: rgba(255, 59, 48, 0.1);
+            color: var(--danger-red);
+            border: 2px solid rgba(255, 59, 48, 0.2);
         }
 
-        .brookwood-txt h3 {
-            color: white;
+        /* Certificate Actions */
+        .certificate-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .btn-certificate {
+            padding: 10px 20px;
+            border-radius: 12px;
             font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
         }
 
+        .btn-certificate.btn-primary {
+            background: var(--primary-blue);
+            color: white;
+        }
+
+        .btn-certificate.btn-primary:hover {
+            background: #0056d6;
+            transform: translateY(-2px);
+        }
+
+        .btn-certificate.btn-outline {
+            background: transparent;
+            color: var(--primary-blue);
+            border: 2px solid var(--primary-blue);
+        }
+
+        .btn-certificate.btn-outline:hover {
+            background: var(--primary-blue);
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        /* Stats Section */
+        .certificates-stats {
+            background: var(--card-background);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 40px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border-color);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 30px;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin-bottom: 8px;
+        }
+
+        .stat-number.verified {
+            color: var(--success-green);
+        }
+
+        .stat-number.pending {
+            color: var(--warning-orange);
+        }
+
+        .stat-number.total {
+            color: var(--primary-blue);
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+
+        /* Responsive Design */
         @media (max-width: 768px) {
-            .certificate-image {
-                height: 200px;
+            .hero-title {
+                font-size: 2rem;
             }
+            
+            .hero-subtitle {
+                font-size: 1rem;
+            }
+            
+            .certificate-image {
+                height: 220px;
+            }
+            
+            .certificate-content {
+                padding: 20px;
+            }
+            
+            .certificate-title {
+                font-size: 1.25rem;
+            }
+            
+            .certificate-actions {
+                flex-direction: column;
+            }
+            
+            .btn-certificate {
+                justify-content: center;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 20px;
+            }
+            
+            .stat-number {
+                font-size: 2rem;
+            }
+        }
+
+        /* Main content spacing */
+        .main-content {
+            padding-bottom: 6rem;
         }
     </style>
 </head>
 <body>
 
 <div class="bg-overlay navbar-btn"></div>
-<div class="main-sidebar">
-   <div class="sidebar-close-toggler navbar-btn">
-      <a href="#">
-         <svg version="1.1" width="16" height="16" fill="currentColor" xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" viewBox="0 0 492 492"  xml:space="preserve">
-            <path d="M300.188,246L484.14,62.04c5.06-5.064,7.852-11.82,7.86-19.024c0-7.208-2.792-13.972-7.86-19.028L468.02,7.872
-         c-5.068-5.076-11.824-7.856-19.036-7.856c-7.2,0-13.956,2.78-19.024,7.856L246.008,191.82L62.048,7.872
-         c-5.06-5.076-11.82-7.856-19.028-7.856c-7.2,0-13.96,2.78-19.02,7.856L7.872,23.988c-10.496,10.496-10.496,27.568,0,38.052
-         L191.828,246L7.872,429.952c-5.064,5.072-7.852,11.828-7.852,19.032c0,7.204,2.788,13.96,7.852,19.028l16.124,16.116
-         c5.06,5.072,11.824,7.856,19.02,7.856c7.208,0,13.968-2.784,19.028-7.856l183.96-183.952l183.952,183.952
-         c5.068,5.072,11.824,7.856,19.024,7.856h0.008c7.204,0,13.96-2.784,19.028-7.856l16.12-16.116
-         c5.06-5.064,7.852-11.824,7.852-19.028c0-7.204-2.792-13.96-7.852-19.028L300.188,246z"/>
-            </svg>
-        </a>
-   </div>
-   <div class="my-544">
-      <div class="row align-items-center">
-         <div class="col-auto">
-            <div class="profile-img-item">
-               <img src="./assets/uploads/user.jpg" class="rounded-circle" alt="profile">
-            </div>
-         </div>         <div class="col ps-1">
-            <div class="profile-details">
-               <h4 class="mb-2" id="dashboard-username"></h4>
-               <p class="mb-0 text-grsay" id="dashboard-refcode"></p>
-            </div>
-         </div>
-      </div>
-   </div>
-   <hr>
-    
-   <div class="menu-sidebar">
-      <ul>
-         <li class="bottom-border">
-                <a href="./account.html"> 
-                   <img src="./assets/uploads/img/4.png" style="margin-right: 5px;" width="20px">
-                PROFILE </a>
-            </li>
-         <li class="bottom-border">
-            <a href="./deposits.html">
-               <img src="./assets/uploads/img/4.png" style="margin-right: 5px;" width="20px">
-               DEPOSIT
-            </a>
-         </li>
-         <li class="bottom-border">
-            <a href="./withdraws.html">
-               <img src="./assets/uploads/img/3.png"  style="margin-right: 5px;" width="20px">
-               WITHDRAWAL
-            </a>
-         </li>
-         <li class="bottom-border">
-            <a href="./certificates.html">
-               <img src="./assets/uploads/img/2.png"  style="margin-right: 5px;" width="20px">
-               CERTIFICATES
-            </a>
-         </li>
-         <li class="bottom-border">
-            <a href="./events.html">
-               <img src="./assets/uploads/img/6.png"  style="margin-right: 5px;" width="20px">
-               LATEST EVENTS
-            </a>
-         </li>
-         <li class="bottom-border">
-            <a href="./memberships.html">
-               <img src="./assets/uploads/img/6.png"  style="margin-right: 5px;" width="20px">
-               MEMBERSHIPS
-            </a>
-         </li>
-         <li class="bottom-border">
-            <a href="./terms.html">
-               <img src="./assets/uploads/img/5.png"  style="margin-right: 5px;" width="20px">
-               TERMS & CONDITIONS
-            </a>
-         </li>
-         <li class="bottom-border">
-            <a href="./faqs.html">
-               <img src="./assets/uploads/img/7.png"  style="margin-right: 5px;" width="20px">
-               FAQs
-            </a>
-         </li>
-         <li class="bottom-border">
-            <a href="./company.html">
-               <img src="./assets/uploads/img/8.png"  style="margin-right: 5px;" width="20px">
-               ABOUT US
-            </a>
-         </li>         <li class="bottom-border">
-                <a href="#" class="logout">
-                  <img src="./assets/uploads/img/8.png"  style="margin-right: 5px;" width="20px">
-                    <span data-i18n="sidebarLogoutLink">LOGOUT</span>
-                </a>
-            </li>
+<!-- Sidebar Placeholder -->
+<div id="sidebar-placeholder"></div>
+<!-- End Sidebar Placeholder -->
 
-      </ul>
-   </div>
-    <!-- <div class="copyright-item">
-        <p class="fs-14">Copyright © All Right Reserved</p>
-    </div> -->
-</div><header class="header-main">
+<!-- Modern Certificates Hero Section -->
+<section class="certificates-hero-section">
     <div class="container">
-        <div class="content-header d-flex align-items-center justify-content-between">
-            <a href="javascript:history.back()" class="back-button">
-                <i class="fas fa-angle-left"></i>
+        <div class="d-flex align-items-center justify-content-between mb-4">
+            <a href="javascript:history.back()" class="back-btn">
+                <i class="fas fa-arrow-left"></i>
                 <span>Back</span>
             </a>
-            <div class="brookwood-txt d-flex align-items-center">
-                <h3 class="main1">Certificates</h3>
-            </div>
-            <div class="item-options"></div>
+            <div style="width: 60px;"></div> <!-- Spacer for alignment -->
+        </div>
+        <div class="text-center">
+            <h1 class="hero-title">Your Certificates</h1>
+            <p class="hero-subtitle">Track your achievements and professional development</p>
         </div>
     </div>
-</header><main class="main-content">
-    <div class="hero-section">
-        <div class="container">
-            <div class="hero-content text-center">
-                <h1 class="display-4 fw-bold mb-3">Your Certificates</h1>
-                <p class="lead mb-0">View and manage your achievement certificates</p>
-            </div>
-        </div>
-    </div>
+</section>
 
+<main class="main-content">
     <div class="container">
+        <!-- Certificates Statistics -->
+        <div class="certificates-stats">
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-number total">6</div>
+                    <div class="stat-label">Total Certificates</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number verified">4</div>
+                    <div class="stat-label">Verified</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number pending">2</div>
+                    <div class="stat-label">Pending</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Certificates Grid -->
         <div class="row">
             <div class="col-12 col-md-6 col-lg-4 mb-4">
                 <div class="certificate-card">
-                    <img src="./assets/uploads/c4.jpg" alt="Certificate 1" class="certificate-image">
+                    <div class="position-relative">
+                        <img src="./assets/uploads/c4.jpg" alt="Advanced Marketing Certification" class="certificate-image">
+                        <div class="certificate-overlay">
+                            <div class="certificate-status status-verified">
+                                <i class="fas fa-check-circle"></i>
+                                Verified
+                            </div>
+                        </div>
+                    </div>
                     <div class="certificate-content">
                         <div class="certificate-date">
-                            <i class="far fa-calendar-alt me-2"></i>
-                            Issued: March 15, 2024
+                            <i class="far fa-calendar-alt"></i>
+                            March 15, 2024
                         </div>
                         <h3 class="certificate-title">Advanced Marketing Certification</h3>
                         <p class="certificate-description">
-                            Successfully completed the advanced marketing course with distinction.
+                            Successfully completed the advanced marketing course with distinction. This comprehensive program covered digital marketing strategies, analytics, and campaign optimization.
                         </p>
-                        <div class="certificate-status status-verified">
-                            <i class="fas fa-check-circle me-2"></i>
-                            Verified
+                        <div class="certificate-actions">
+                            <a href="#" class="btn-certificate btn-primary">
+                                <i class="fas fa-download"></i>
+                                Download
+                            </a>
+                            <a href="#" class="btn-certificate btn-outline">
+                                <i class="fas fa-eye"></i>
+                                View
+                            </a>
                         </div>
                     </div>
                 </div>
             </div>
+            
             <div class="col-12 col-md-6 col-lg-4 mb-4">
                 <div class="certificate-card">
-                    <img src="./assets/uploads/c2.jpg" alt="Certificate 2" class="certificate-image">
+                    <div class="position-relative">
+                        <img src="./assets/uploads/c2.jpg" alt="Digital Marketing Specialist" class="certificate-image">
+                        <div class="certificate-overlay">
+                            <div class="certificate-status status-verified">
+                                <i class="fas fa-check-circle"></i>
+                                Verified
+                            </div>
+                        </div>
+                    </div>
                     <div class="certificate-content">
                         <div class="certificate-date">
-                            <i class="far fa-calendar-alt me-2"></i>
-                            Issued: April 20, 2024
+                            <i class="far fa-calendar-alt"></i>
+                            April 20, 2024
                         </div>
                         <h3 class="certificate-title">Digital Marketing Specialist</h3>
                         <p class="certificate-description">
-                            Achieved specialist status in digital marketing strategies and implementation.
+                            Achieved specialist status in digital marketing strategies and implementation. Expertise in social media marketing, SEO, and content marketing.
                         </p>
-                        <div class="certificate-status status-verified">
-                            <i class="fas fa-check-circle me-2"></i>
-                            Verified
+                        <div class="certificate-actions">
+                            <a href="#" class="btn-certificate btn-primary">
+                                <i class="fas fa-download"></i>
+                                Download
+                            </a>
+                            <a href="#" class="btn-certificate btn-outline">
+                                <i class="fas fa-eye"></i>
+                                View
+                            </a>
                         </div>
                     </div>
                 </div>
             </div>
+            
             <div class="col-12 col-md-6 col-lg-4 mb-4">
                 <div class="certificate-card">
-                    <img src="./assets/uploads/c5.jpg" alt="Certificate 3" class="certificate-image">
+                    <div class="position-relative">
+                        <img src="./assets/uploads/c5.jpg" alt="Social Media Marketing" class="certificate-image">
+                        <div class="certificate-overlay">
+                            <div class="certificate-status status-pending">
+                                <i class="fas fa-clock"></i>
+                                Pending
+                            </div>
+                        </div>
+                    </div>
                     <div class="certificate-content">
                         <div class="certificate-date">
-                            <i class="far fa-calendar-alt me-2"></i>
-                            Issued: May 10, 2024
+                            <i class="far fa-calendar-alt"></i>
+                            May 10, 2024
                         </div>
                         <h3 class="certificate-title">Social Media Marketing</h3>
                         <p class="certificate-description">
-                            Completed comprehensive training in social media marketing and analytics.
+                            Completed comprehensive training in social media marketing and analytics. Covers platform-specific strategies and engagement optimization.
                         </p>
-                        <div class="certificate-status status-pending">
-                            <i class="fas fa-clock me-2"></i>
-                            Pending Verification
+                        <div class="certificate-actions">
+                            <a href="#" class="btn-certificate btn-outline">
+                                <i class="fas fa-clock"></i>
+                                Awaiting Verification
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 col-md-6 col-lg-4 mb-4">
+                <div class="certificate-card">
+                    <div class="position-relative">
+                        <img src="./assets/uploads/c4.jpg" alt="E-commerce Management" class="certificate-image">
+                        <div class="certificate-overlay">
+                            <div class="certificate-status status-verified">
+                                <i class="fas fa-check-circle"></i>
+                                Verified
+                            </div>
+                        </div>
+                    </div>
+                    <div class="certificate-content">
+                        <div class="certificate-date">
+                            <i class="far fa-calendar-alt"></i>
+                            June 5, 2024
+                        </div>
+                        <h3 class="certificate-title">E-commerce Management</h3>
+                        <p class="certificate-description">
+                            Professional certification in e-commerce management, covering online store optimization, customer acquisition, and retention strategies.
+                        </p>
+                        <div class="certificate-actions">
+                            <a href="#" class="btn-certificate btn-primary">
+                                <i class="fas fa-download"></i>
+                                Download
+                            </a>
+                            <a href="#" class="btn-certificate btn-outline">
+                                <i class="fas fa-eye"></i>
+                                View
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 col-md-6 col-lg-4 mb-4">
+                <div class="certificate-card">
+                    <div class="position-relative">
+                        <img src="./assets/uploads/c2.jpg" alt="Data Analytics" class="certificate-image">
+                        <div class="certificate-overlay">
+                            <div class="certificate-status status-verified">
+                                <i class="fas fa-check-circle"></i>
+                                Verified
+                            </div>
+                        </div>
+                    </div>
+                    <div class="certificate-content">
+                        <div class="certificate-date">
+                            <i class="far fa-calendar-alt"></i>
+                            July 15, 2024
+                        </div>
+                        <h3 class="certificate-title">Data Analytics Professional</h3>
+                        <p class="certificate-description">
+                            Advanced certification in data analytics and business intelligence. Proficient in data visualization, statistical analysis, and reporting.
+                        </p>
+                        <div class="certificate-actions">
+                            <a href="#" class="btn-certificate btn-primary">
+                                <i class="fas fa-download"></i>
+                                Download
+                            </a>
+                            <a href="#" class="btn-certificate btn-outline">
+                                <i class="fas fa-eye"></i>
+                                View
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 col-md-6 col-lg-4 mb-4">
+                <div class="certificate-card">
+                    <div class="position-relative">
+                        <img src="./assets/uploads/c5.jpg" alt="Project Management" class="certificate-image">
+                        <div class="certificate-overlay">
+                            <div class="certificate-status status-pending">
+                                <i class="fas fa-clock"></i>
+                                Pending
+                            </div>
+                        </div>
+                    </div>
+                    <div class="certificate-content">
+                        <div class="certificate-date">
+                            <i class="far fa-calendar-alt"></i>
+                            August 22, 2024
+                        </div>
+                        <h3 class="certificate-title">Project Management Professional</h3>
+                        <p class="certificate-description">
+                            Comprehensive project management certification covering agile methodologies, risk management, and team leadership fundamentals.
+                        </p>
+                        <div class="certificate-actions">
+                            <a href="#" class="btn-certificate btn-outline">
+                                <i class="fas fa-clock"></i>
+                                Awaiting Verification
+                            </a>
                         </div>
                     </div>
                 </div>
@@ -352,26 +582,82 @@
     </div>
 </main>
 
-<!-- Standard Footer Navigation -->
+<!-- Footer Navigation -->
 <div id="footer-navigation"></div>
 
-<script> let baseurl = '.'; </script>
+<script>let baseurl = '.';</script> <!-- Use relative base URL -->
 
-<script src="./assets/frontend/js/bootstrap.bundle.min.js"></script>
+<!-- Bootstrap 5 JS Bundle -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
 <script src="./js/components.js"></script>
+<!-- Important: i18n.js must be loaded before other scripts -->
 <script src="./js/i18n.js"></script>
 <script src="./js/main.js"></script>
-<script src="./js/auth-check.js"></script>
-<script src="./assets/frontend/js/owl.carousel.min.js"></script>
-<script src="./assets/frontend/js/script.js"></script>
-<script src="./js/auth.js"></script>
+<script src="./js/auth-check.js"></script> <!-- Centralized authentication -->
+
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    loadStandardNavigation('certificates');
-    if (typeof attachLogoutHandlers === 'function') {
-        attachLogoutHandlers();
+// Load standard navigation components
+document.addEventListener('DOMContentLoaded', async function() {
+    try {
+        await loadStandardNavigation();
+        console.log('Standard navigation components loaded for certificates page');
+        
+        // Initialize certificate interactions
+        initializeCertificateActions();
+        
+    } catch (error) {
+        console.error('Error loading navigation components:', error);
     }
 });
+
+// Certificate actions functionality
+function initializeCertificateActions() {
+    // Add click handlers for download buttons
+    document.querySelectorAll('.btn-certificate').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            const action = this.textContent.trim().toLowerCase();
+            const certificateCard = this.closest('.certificate-card');
+            const certificateTitle = certificateCard.querySelector('.certificate-title').textContent;
+            
+            if (action.includes('download')) {
+                // Simulate download action
+                if (typeof showNotification === 'function') {
+                    showNotification(`Downloading ${certificateTitle}...`, 'success');
+                }
+                console.log('Downloading certificate:', certificateTitle);
+            } else if (action.includes('view')) {
+                // Simulate view action
+                if (typeof showNotification === 'function') {
+                    showNotification(`Opening ${certificateTitle}...`, 'info');
+                }
+                console.log('Viewing certificate:', certificateTitle);
+            } else if (action.includes('awaiting')) {
+                // Show verification status
+                if (typeof showNotification === 'function') {
+                    showNotification(`${certificateTitle} is currently being verified`, 'warning');
+                }
+            }
+        });
+    });
+    
+    // Add hover effects for certificate cards
+    document.querySelectorAll('.certificate-card').forEach(card => {
+        card.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-8px)';
+        });
+        
+        card.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(0)';
+        });
+    });
+}
+
+// Initialize logout functionality
+if (typeof attachLogoutHandlers === 'function') {
+    attachLogoutHandlers();
+}
 </script>
 </body>
 </html>

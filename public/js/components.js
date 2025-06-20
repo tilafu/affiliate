@@ -108,8 +108,24 @@ async function initializeSidebarScripts() {
                 performLogout();
             }
         });
-    }// Initialize sidebar user data population
-    await populateSidebarUserData();    // Apply i18n translations to the newly loaded sidebar
+    }    // Initialize sidebar user data population
+    await populateSidebarUserData();
+
+    // Set up a periodic refresh for sidebar data (every 30 seconds)
+    const sidebarRefreshInterval = setInterval(async () => {
+        try {
+            await populateSidebarUserData();
+        } catch (error) {
+            console.error('Error during periodic sidebar refresh:', error);
+        }
+    }, 30000);
+
+    // Clean up interval when page is hidden
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+            clearInterval(sidebarRefreshInterval);
+        }
+    });// Apply i18n translations to the newly loaded sidebar
     if (typeof updateContent === 'function') {
         console.log('Applying i18n translations to sidebar...');
         updateContent();
@@ -151,36 +167,110 @@ async function initializeSidebarScripts() {
 async function populateSidebarUserData() {
     console.log('Populating sidebar user data...');
     
-    // Check if user is authenticated
-    const authData = typeof requireAuth === 'function' ? requireAuth() : null;
+    // First check if sidebar elements exist
+    const usernameEl = document.getElementById('dashboard-username');
+    const refcodeEl = document.getElementById('dashboard-refcode');
+    const userInitialsEl = document.getElementById('sidebar-user-initials');
+    
+    if (!usernameEl && !refcodeEl && !userInitialsEl) {
+        console.log('Sidebar elements not found, skipping data population');
+        return;
+    }
+    
+    // Check if user is authenticated using multiple methods
+    let authData = null;
+    
+    // Try isAuthenticated first (silent check)
+    if (typeof isAuthenticated === 'function') {
+        authData = isAuthenticated();
+        console.log('Auth check via isAuthenticated:', authData);
+    }
+    
+    // If that fails, try to get token directly
+    if (!authData || !authData.token) {
+        const token = localStorage.getItem('auth_token');
+        if (token) {
+            authData = { token: token };
+            console.log('Auth check via localStorage token found');
+        }
+    }
+    
     if (!authData || !authData.token) {
         console.warn('User not authenticated, skipping sidebar data population');
+        // Set loading state
+        if (usernameEl) usernameEl.textContent = 'Not logged in';
+        if (userInitialsEl) userInitialsEl.textContent = 'GL'; // Guest Login
+        if (refcodeEl) {
+            const refcodeSpan = refcodeEl.querySelector('.ref-text');
+            if (refcodeSpan) {
+                refcodeSpan.textContent = 'REF: ------';
+            }
+        }
         return;
     }
 
-    const usernameEl = document.getElementById('dashboard-username');
-    const refcodeEl = document.getElementById('dashboard-refcode');    try {
-        // Fetch user profile data
-        const response = await fetch(`${window.API_BASE_URL || API_BASE_URL}/api/user/profile`, {
-            headers: { 'Authorization': `Bearer ${authData.token}` }
-        });
-        const data = await response.json();
+    try {
+        console.log('Fetching user profile for sidebar...');
+        
+        // Fetch user profile data using authenticated fetch
+        const data = await fetchWithAuth('/api/user/profile');
+        console.log('Sidebar profile API response:', data);
 
         if (data.success && data.user) {
             const user = data.user;
-            if (usernameEl) usernameEl.textContent = user.username || 'N/A';
-            if (refcodeEl) refcodeEl.textContent = `REFERRAL CODE: ${user.referral_code || 'N/A'}`;
             
-            console.log('Sidebar user data populated successfully');
-        } else {
+            // Update username
+            if (usernameEl) {
+                usernameEl.textContent = user.username || 'N/A';
+                console.log('Updated sidebar username:', user.username);
+            }
+            
+            // Update user initials
+            if (userInitialsEl && user.username) {
+                const initials = generateUserInitials(user.username);
+                userInitialsEl.textContent = initials;
+                console.log('Updated sidebar initials:', initials);
+            }
+
+            if (refcodeEl && user.referral_code) {
+                // Update the referral code span content
+                const refcodeSpan = refcodeEl.querySelector('.ref-text');
+                if (refcodeSpan) {
+                    refcodeSpan.textContent = `REF: ${user.referral_code}`;
+                    console.log('Updated sidebar referral code:', user.referral_code);
+                } else {
+                    // Fallback if span structure not found
+                    refcodeEl.textContent = `REFERRAL CODE: ${user.referral_code}`;
+                }
+                
+                // Initialize copy functionality after data is loaded
+                initializeReferralCodeCopy(user.referral_code);
+            }
+            
+            console.log('Sidebar user data populated successfully');} else {
             console.error('Failed to fetch user profile for sidebar:', data.message);
             if (usernameEl) usernameEl.textContent = 'Error';
-            if (refcodeEl) refcodeEl.textContent = 'REFERRAL CODE: Error';
-        }
-    } catch (error) {
+            if (userInitialsEl) userInitialsEl.textContent = 'ER';
+            if (refcodeEl) {
+                const refcodeSpan = refcodeEl.querySelector('.ref-text');
+                if (refcodeSpan) {
+                    refcodeSpan.textContent = 'REF: Error';
+                } else {
+                    refcodeEl.textContent = 'REFERRAL CODE: Error';
+                }
+            }
+        }    } catch (error) {
         console.error('Error populating sidebar user data:', error);
         if (usernameEl) usernameEl.textContent = 'Error';
-        if (refcodeEl) refcodeEl.textContent = 'REFERRAL CODE: Error';
+        if (userInitialsEl) userInitialsEl.textContent = 'ER';
+        if (refcodeEl) {
+            const refcodeSpan = refcodeEl.querySelector('.ref-text');
+            if (refcodeSpan) {
+                refcodeSpan.textContent = 'REF: Error';
+            } else {
+                refcodeEl.textContent = 'REFERRAL CODE: Error';
+            }
+        }
     }
 }
 
@@ -206,6 +296,55 @@ function loadInitialComponents() {
     // if (document.getElementById('header-placeholder')) {
     //     loadComponent('/components/header.html', 'header-placeholder');
     // }
+}
+
+// Function to initialize referral code copy functionality in sidebar
+function initializeReferralCodeCopy(referralCode) {
+    const refcodeEl = document.getElementById('dashboard-refcode');
+    
+    if (refcodeEl && referralCode) {
+        // Remove any existing click listeners to avoid duplicates
+        const newRefcodeEl = refcodeEl.cloneNode(true);
+        refcodeEl.parentNode.replaceChild(newRefcodeEl, refcodeEl);
+        
+        // Add click listener to the entire referral code element
+        newRefcodeEl.addEventListener('click', async function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            console.log('Sidebar referral code clicked, copying:', referralCode);
+            
+            if (typeof copyToClipboard === 'function') {
+                const success = await copyToClipboard(referralCode, 'Referral code copied to clipboard!');
+                
+                if (success) {
+                    // Visual feedback - temporarily change the icon
+                    const copyIcon = newRefcodeEl.querySelector('.ref-copy-icon');
+                    if (copyIcon) {
+                        const originalClass = copyIcon.className;
+                        copyIcon.className = 'fas fa-check ref-copy-icon';
+                        copyIcon.style.color = '#28a745';
+                        
+                        setTimeout(() => {
+                            copyIcon.className = originalClass;
+                            copyIcon.style.color = '';
+                        }, 2000);
+                    }
+                }
+            } else {
+                console.error('copyToClipboard function not available');
+                if (typeof showNotification === 'function') {
+                    showNotification('Copy functionality not available', 'error');
+                }
+            }
+        });
+        
+        // Also add hover effect
+        newRefcodeEl.style.cursor = 'pointer';
+        newRefcodeEl.title = 'Click to copy referral code';
+        
+        console.log('Referral code copy functionality initialized for sidebar');
+    }
 }
 
 /**
@@ -268,17 +407,28 @@ async function loadStandardNavigation() {
         // Add header and footer navigation
         promises.push(loadHeaderNavigation());
         promises.push(loadFooterNavigation());
-        
-        await Promise.all(promises);
+          await Promise.all(promises);
         console.log('All standard navigation components loaded successfully');
         
         // Refresh sidebar user data after loading (only if sidebar was loaded)
         if (sidebarTarget) {
-            setTimeout(() => {
-                if (typeof window.refreshSidebarUserData === 'function') {
-                    window.refreshSidebarUserData();
-                }
+            // Multiple attempts to ensure sidebar data loads
+            setTimeout(async () => {
+                console.log('First attempt to populate sidebar data...');
+                await populateSidebarUserData();
             }, 300);
+            
+            setTimeout(async () => {
+                console.log('Second attempt to populate sidebar data...');
+                await populateSidebarUserData();
+            }, 1000);
+            
+            // Set up refresh function for external use
+            if (typeof window.refreshSidebarUserData === 'function') {
+                setTimeout(() => {
+                    window.refreshSidebarUserData();
+                }, 1500);
+            }
         }
     } catch (error) {
         console.error('Error loading standard navigation components:', error);
@@ -392,3 +542,109 @@ async function performLogout() {
         }
     }
 }
+
+/**
+ * Initialize referral code copy functionality
+ */
+function initializeReferralCodeCopy(referralCode) {
+    const refcodeEl = document.getElementById('dashboard-refcode');
+    
+    if (refcodeEl && referralCode) {
+        // Remove any existing click listeners to avoid duplicates
+        const newRefcodeEl = refcodeEl.cloneNode(true);
+        refcodeEl.parentNode.replaceChild(newRefcodeEl, refcodeEl);
+        
+        // Add click listener to the entire referral code element
+        newRefcodeEl.addEventListener('click', async function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            console.log('Sidebar referral code clicked, copying:', referralCode);
+            
+            if (typeof copyToClipboard === 'function') {
+                const success = await copyToClipboard(referralCode, 'Referral code copied to clipboard!');
+                
+                if (success) {
+                    // Visual feedback - temporarily change the icon
+                    const copyIcon = newRefcodeEl.querySelector('.ref-copy-icon');
+                    if (copyIcon) {
+                        const originalClass = copyIcon.className;
+                        copyIcon.className = 'fas fa-check ref-copy-icon';
+                        copyIcon.style.color = '#28a745';
+                        
+                        setTimeout(() => {
+                            copyIcon.className = originalClass;
+                            copyIcon.style.color = '';
+                        }, 2000);
+                    }
+                }
+            } else {
+                console.error('copyToClipboard function not available');
+                if (typeof showNotification === 'function') {
+                    showNotification('Copy functionality not available', 'error');
+                }
+            }
+        });
+        
+        // Also add hover effect
+        newRefcodeEl.style.cursor = 'pointer';
+        newRefcodeEl.title = 'Click to copy referral code';
+        
+        console.log('Referral code copy functionality initialized for sidebar');
+    }
+}
+
+// Function to generate user initials (fallback if not available globally)
+function generateUserInitials(username) {
+    if (!username) return 'U';
+    
+    // Check if the global function exists
+    if (typeof window.generateUserInitials === 'function') {
+        return window.generateUserInitials(username);
+    }    
+    // Fallback implementation
+    const parts = username.split(' ');
+    if (parts.length >= 2) {
+        return (parts[0][0] + parts[1][0]).toUpperCase();
+    } else {
+        return username.substring(0, 2).toUpperCase();
+    }
+}
+
+// Function to refresh sidebar user data (can be called externally)
+window.refreshSidebarUserData = async function() {
+    console.log('Refreshing sidebar user data...');
+    await populateSidebarUserData();
+};
+
+// Debug function to manually trigger sidebar refresh
+window.debugSidebarRefresh = async function() {
+    console.log('=== DEBUG: Manual sidebar refresh triggered ===');
+    
+    // Check if sidebar is loaded
+    const sidebarEl = document.querySelector('.main-sidebar');
+    if (!sidebarEl) {
+        console.log('Sidebar not loaded yet');
+        return;
+    }
+    
+    // Check authentication
+    const token = localStorage.getItem('auth_token');
+    console.log('Auth token exists:', !!token);
+    
+    // Check if elements exist
+    const usernameEl = document.getElementById('dashboard-username');
+    const refcodeEl = document.getElementById('dashboard-refcode');
+    const userInitialsEl = document.getElementById('sidebar-user-initials');
+    
+    console.log('Sidebar elements found:', {
+        username: !!usernameEl,
+        refcode: !!refcodeEl,
+        initials: !!userInitialsEl
+    });
+    
+    // Trigger refresh
+    await populateSidebarUserData();
+    
+    console.log('=== DEBUG: Manual sidebar refresh completed ===');
+};

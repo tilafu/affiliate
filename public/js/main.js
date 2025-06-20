@@ -339,6 +339,159 @@ function getToken() {
     return localStorage.getItem('auth_token');
 }
 
+// Global flag to prevent multiple 401 dialogs
+let is401HandlerActive = false;
+
+// Function to handle 401 authentication errors with a proper dialog
+async function handle401Error() {
+    // Prevent multiple simultaneous 401 handlers
+    if (is401HandlerActive) {
+        return;
+    }
+    is401HandlerActive = true;
+
+    try {
+        // Show signing out dialog
+        await showSigningOutDialog();
+        
+        // Preserve drive session data before clearing localStorage
+        const driveSessionData = localStorage.getItem('current_drive_session');
+        
+        // Clear authentication data
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('user_data');
+        
+        // Restore drive session data after clearing auth data
+        if (driveSessionData) {
+            localStorage.setItem('current_drive_session', driveSessionData);
+        }
+        
+        // Short delay before redirect
+        setTimeout(() => {
+            window.location.href = 'login.html';
+        }, 1000);
+        
+    } catch (error) {
+        console.error('Error in 401 handler:', error);
+        // Force redirect even if there's an error
+        window.location.href = 'login.html';
+    }
+}
+
+// Function to show signing out dialog
+function showSigningOutDialog() {
+    return new Promise((resolve) => {
+        // Create modal overlay
+        const overlay = document.createElement('div');
+        overlay.id = 'signing-out-overlay';
+        overlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 20000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(4px);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        `;
+
+        // Create dialog
+        const dialog = document.createElement('div');
+        dialog.style.cssText = `
+            background: white;
+            border-radius: 16px;
+            padding: 32px;
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            transform: scale(0.9);
+            transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        `;
+
+        // Create spinning icon
+        const iconContainer = document.createElement('div');
+        iconContainer.style.cssText = `
+            width: 60px;
+            height: 60px;
+            margin: 0 auto 20px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: spin 1s linear infinite;
+        `;
+
+        const icon = document.createElement('i');
+        icon.className = 'fas fa-sign-out-alt';
+        icon.style.cssText = `
+            color: white;
+            font-size: 24px;
+        `;
+
+        // Create title
+        const title = document.createElement('h3');
+        title.textContent = 'Signing Out';
+        title.style.cssText = `
+            margin: 0 0 12px 0;
+            color: #2D3748;
+            font-size: 20px;
+            font-weight: 600;
+        `;
+
+        // Create message
+        const message = document.createElement('p');
+        message.textContent = 'Your session has expired. Please wait while we sign you out...';
+        message.style.cssText = `
+            margin: 0;
+            color: #4A5568;
+            font-size: 14px;
+            line-height: 1.5;
+        `;
+
+        // Add spinning animation
+        if (!document.querySelector('#signing-out-styles')) {
+            const style = document.createElement('style');
+            style.id = 'signing-out-styles';
+            style.textContent = `
+                @keyframes spin {
+                    from { transform: rotate(0deg); }
+                    to { transform: rotate(360deg); }
+                }
+            `;
+            document.head.appendChild(style);
+        }
+
+        // Assemble dialog
+        iconContainer.appendChild(icon);
+        dialog.appendChild(iconContainer);
+        dialog.appendChild(title);
+        dialog.appendChild(message);
+        overlay.appendChild(dialog);
+        
+        // Add to document
+        document.body.appendChild(overlay);
+
+        // Trigger animations
+        requestAnimationFrame(() => {
+            overlay.style.opacity = '1';
+            dialog.style.transform = 'scale(1)';
+        });
+
+        // Resolve after animation and a short display time
+        setTimeout(() => {
+            resolve();
+        }, 2000);
+    });
+}
+
 // Function to make authenticated API requests
 async function fetchWithAuth(url, options = {}) {
     const token = getToken();
@@ -357,26 +510,14 @@ async function fetchWithAuth(url, options = {}) {
             headers,
         });        // Handle 401 (Unauthorized) upfront
         if (response.status === 401) {
-            // Preserve drive session data before clearing localStorage
-            const driveSessionData = localStorage.getItem('current_drive_session');
+            console.error('401 Unauthorized error detected:', {
+                url: url,
+                status: response.status,
+                statusText: response.statusText
+            });
             
-            localStorage.removeItem('auth_token');
-            localStorage.removeItem('user_data');
-            
-            // Restore drive session data after clearing auth data
-            if (driveSessionData) {
-                localStorage.setItem('current_drive_session', driveSessionData);
-            }
-            
-            // Show notification before redirecting
-            if (typeof showNotification === 'function') {
-                showNotification('Logged out. Log in again', 'warning');
-            }
-            
-            // Redirect after showing notification
-            setTimeout(() => {
-                window.location.href = 'login.html';
-            }, 1500);
+            // Show signing out dialog and handle logout
+            await handle401Error();
             throw new Error('Authentication expired - redirecting to login');
         }// Handle other errors
         if (!response.ok) {
@@ -394,14 +535,116 @@ async function fetchWithAuth(url, options = {}) {
             throw new Error(errorMsg);
         }
 
-        return await response.json();
-    } catch (error) {
+        return await response.json();    } catch (error) {
         console.error('API request error:', error);
         
-        // Don't show notification for password change errors - let the calling function handle it
-        if (error.message !== 'Unauthorized' && !url.includes('/password/')) {
+        // Don't show notifications for 401 errors (handled separately) or password change errors
+        if (!error.message.includes('Authentication expired') && 
+            error.message !== 'Unauthorized' && 
+            !url.includes('/password/')) {
             showNotification('Network error or server issue. Please try again.', 'error');
         }
         throw error;
     }
 }
+
+// Global error handler for fetch requests
+window.addEventListener('unhandledrejection', function(event) {
+    // Check if this is a 401 authentication error
+    if (event.reason && event.reason.message && event.reason.message.includes('401')) {
+        console.warn('Unhandled 401 error detected:', event.reason);
+        // Only handle if our main handler hasn't been triggered
+        if (!is401HandlerActive) {
+            event.preventDefault(); // Prevent the default unhandled rejection behavior
+            handle401Error();
+        }
+    }
+});
+
+// Also handle fetch errors that might not be promises
+window.addEventListener('error', function(event) {
+    if (event.error && event.error.message && event.error.message.includes('401')) {
+        console.warn('Unhandled 401 error detected in error event:', event.error);
+        if (!is401HandlerActive) {
+            handle401Error();
+        }
+    }
+});
+
+// Global copy to clipboard function
+window.copyToClipboard = async function(text, successMessage = 'Copied to clipboard!') {
+    try {
+        if (navigator.clipboard && window.isSecureContext) {
+            // Modern async clipboard API
+            await navigator.clipboard.writeText(text);
+            showNotification(successMessage, 'success');
+            return true;
+        } else {
+            // Fallback for older browsers or non-secure contexts
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            textArea.style.position = 'fixed';
+            textArea.style.opacity = '0';
+            textArea.style.pointerEvents = 'none';
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            const successful = document.execCommand('copy');
+            document.body.removeChild(textArea);
+            
+            if (successful) {
+                showNotification(successMessage, 'success');
+                return true;
+            } else {
+                showNotification('Failed to copy to clipboard', 'error');
+                return false;
+            }
+        }
+    } catch (error) {
+        console.error('Failed to copy text: ', error);
+        showNotification('Failed to copy to clipboard', 'error');
+        return false;
+    }
+};
+
+// Debug function to check authentication status
+window.debugAuthStatus = function() {
+    console.log('=== Authentication Debug Info ===');
+    
+    // Check localStorage
+    const token = localStorage.getItem('auth_token');
+    const userData = localStorage.getItem('user_data');
+    
+    console.log('Token in localStorage:', token ? `${token.substring(0, 20)}...` : 'NOT FOUND');
+    console.log('User data in localStorage:', userData ? JSON.parse(userData) : 'NOT FOUND');
+    
+    // Check authentication functions
+    if (typeof isAuthenticated === 'function') {
+        const authResult = isAuthenticated();
+        console.log('isAuthenticated() result:', authResult);
+    }
+    
+    if (typeof requireAuth === 'function') {
+        const requireResult = requireAuth();
+        console.log('requireAuth() result:', requireResult);
+    }
+    
+    // Test API call
+    if (token) {
+        fetch(`${window.API_BASE_URL}/api/user/profile`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        })
+        .then(response => {
+            console.log('Direct API test - Response status:', response.status);
+            return response.json();
+        })
+        .then(data => {
+            console.log('Direct API test - Response data:', data);
+        })
+        .catch(error => {
+            console.log('Direct API test - Error:', error);
+        });
+    }
+    
+    console.log('=== End Authentication Debug ===');
+};

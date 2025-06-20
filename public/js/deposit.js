@@ -94,13 +94,11 @@ document.addEventListener('DOMContentLoaded', () => {
               } else if (entry.type === 'deposit') {
                 typeDisplay = 'Deposit';
               }
-              
-              return `
+                return `
                 <tr>
                   <td>${new Date(entry.date || entry.created_at).toLocaleDateString()}</td>
                   <td>${new Date(entry.date || entry.created_at).toLocaleTimeString()}</td>
                   <td>${amountPrefix}$${Math.abs(parseFloat(entry.amount)).toFixed(2)}</td>
-                  <td><span class="status-badge ${statusClass}">${typeDisplay}</span></td>
                   <td><span class="status-badge status-${(entry.status || 'completed').toLowerCase()}">${entry.status || 'Completed'}</span></td>
                   ${entry.admin_note ? `<td><small class="text-muted">${entry.admin_note}</small></td>` : '<td>-</td>'}
                 </tr>
@@ -111,10 +109,9 @@ document.addEventListener('DOMContentLoaded', () => {
             success: response.success,
             dataLength: response.data ? response.data.length : 'null/undefined',
             response: response
-          });
-          historyElement.innerHTML = `
+          });          historyElement.innerHTML = `
             <tr>
-              <td colspan="6" class="empty-state">
+              <td colspan="5" class="empty-state">
                 <i class="fas fa-history"></i>
                 <p>No deposit history found</p>
               </td>
@@ -124,10 +121,9 @@ document.addEventListener('DOMContentLoaded', () => {
       }    } catch (error) {
       console.error('Error loading deposit history:', error);
       const historyElement = document.querySelector('#deposit-history table tbody');
-      if (historyElement) {
-        historyElement.innerHTML = `
+      if (historyElement) {        historyElement.innerHTML = `
           <tr>
-            <td colspan="6" class="empty-state">
+            <td colspan="5" class="empty-state">
               <i class="fas fa-exclamation-triangle"></i>
               <p>Error loading deposit history</p>
             </td>
