@@ -100,11 +100,10 @@
             height: 100px;
             margin-top: 20px;
         }
-        
-        .chart-bar {
+          .chart-bar {
             background: linear-gradient(to top, #6f42c1, #8b5cf6);
             border-radius: 4px 4px 0 0;
-            animation: growBar 2s ease-out;
+            animation: growBar 2s ease-out forwards;
         }
         
         @keyframes growBar {
@@ -342,44 +341,8 @@
         }
     </style>
 </head>
-<body>
-
-    <!-- Navigation Bar -->
-    <nav class="navbar navbar-expand-lg navbar-light bg-light fixed-top">
-        <div class="container">
-            <a class="navbar-brand" href="home.html">
-                <img src="assets/logo.png" alt="CDOT Database Logo"> <!-- Replace with your logo -->
-                CDOT Database
-            </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <button type="button" class="btn-close-fullscreen d-lg-none" aria-label="Close" onclick="toggleFullscreenMenu()">&times;</button>
-                <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
-                    <li class="nav-item">
-                        <a class="nav-link" href="home.html">Home</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="about.html">About</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="pea.html">PEA Guide</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="features.html">Features</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link active" aria-current="page" href="pricing.html">Pricing</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="contact.html">Contact</a>
-                    </li>
-                </ul>
-                <a href="login.html" class="btn btn-primary ms-lg-3">Launch WorkDesk <i class="fas fa-arrow-right"></i></a>
-            </div>
-        </div>
-    </nav>
+<body>    <!-- Header Component -->
+    <div id="header-placeholder"></div>
 
     <!-- Innovative Features Section -->
     <section class="innovative-features-hero">
@@ -400,20 +363,20 @@
                                 <small class="text-muted">Streamline your product picks with intelligent automation that filters products.</small>
                             </li>
                             <li><strong>Competitive Analysis</strong><br>
-                                <small class="text-muted">Stay ahead with comprehensive market insights and competitor tracking.</small>
+                                <small class="text-muted">Look for products with the best rates for PEAs</small>
                             </li>
                             <li><strong>CRM Implementation</strong><br>
-                                <small class="text-muted">Manage customer relationships with our integrated CRM system.</small>
+                                <small class="text-muted">Manage interactions with our support through our CRM system.</small>
                             </li>
                             <li><strong>Sales Training</strong><br>
-                                <small class="text-muted">Access expert training modules to enhance your sales skills.</small>
+                                <small class="text-muted">Access expert training modules to enhance your productivity.</small>
                             </li>
                             <li><strong>Real-time Collaboration</strong><br>
-                                <small class="text-muted">Work seamlessly with your team using our collaboration tools.</small>
+                                <small class="text-muted">Work seamlessly with our team using our collaboration tools.</small>
                             </li>
-                            <li><strong>Customizable Dashboards</strong><br>
+                            <!-- <li><strong>Customizable Dashboards</strong><br>
                                 <small class="text-muted">Create personalized dashboards to monitor key performance metrics.</small>
-                            </li>
+                            </li> -->
                         </ul>
                     </div>
                 </div>
@@ -442,22 +405,17 @@
                                 <div class="chart-bar" style="--bar-height: 70px; width: 20px;"></div>
                                 <div class="chart-bar" style="--bar-height: 95px; width: 20px;"></div>
                             </div>
-                            
-                            <div class="mt-3 d-flex justify-content-between text-muted small">
-                                <span>Jan</span>
-                                <span>Feb</span>
-                                <span>Mar</span>
-                                <span>Apr</span>
-                                <span>May</span>
-                                <span>Jun</span>
+                              <div class="mt-3 text-center text-muted small">
+                                <span>Last 7 months</span>
                             </div>
                         </div>
-                        
-                        <!-- Professional woman image placeholder -->
-                        <div class="position-absolute" style="right: -20px; top: 20px; z-index: -1;">
-                            <div class="bg-light rounded-circle d-flex align-items-center justify-content-center" 
-                                 style="width: 200px; height: 200px; opacity: 0.3;">
-                                <i class="fas fa-user fa-5x text-muted"></i>
+                          <!-- Analytics image visible on desktop only -->
+                        <div class="position-absolute d-none d-lg-block" style="right: -20px; top: 20px; z-index: 1;">
+                            <div class="analytics-image">
+                                <img src="./assets/uploads/cdot/wmremove-transformed (1).jpeg" 
+                                     alt="Analytics Dashboard" 
+                                     class="img-fluid rounded shadow"
+                                     style="width: 180px; height: 180px; object-fit: cover;">
                             </div>
                         </div>
                     </div>
@@ -698,57 +656,11 @@
                 </a>
             </div>
         </div>
-    </section>
-
-    <!-- Footer Section -->
-    <footer class="footer-section bg-dark text-white py-5">
-        <div class="container">
-            <div class="row">
-                <div class="col-lg-3 col-md-6 mb-4 mb-lg-0 text-center text-md-start">
-                    <a class="navbar-brand" href="home.html">
-                        <img src="assets/logo.png" alt="CDOT Database Logo" style="height: 40px;">
-                    </a>
-                    <p class="small mt-2">CDOT Database empowers businesses with comprehensive product and affiliate data.</p>
-                </div>
-                <div class="col-lg-3 col-md-6 mb-4 mb-lg-0">
-                    <h5 class="text-uppercase mb-3">Quick Links</h5>
-                    <ul class="list-unstyled">
-                        <li><a href="home.html" class="text-white text-decoration-none">Home</a></li>
-                        <li><a href="about.html" class="text-white text-decoration-none">About</a></li>
-                        <li><a href="pea.html" class="text-white text-decoration-none">PEA Guide</a></li>
-                        <li><a href="features.html" class="text-white text-decoration-none">Features</a></li>
-                        <li><a href="pricing.html" class="text-white text-decoration-none">Pricing</a></li>
-                        <li><a href="contact.html" class="text-white text-decoration-none">Contact</a></li>
-                    </ul>
-                </div>
-                <div class="col-lg-3 col-md-6 mb-4 mb-md-0">
-                    <h5 class="text-uppercase mb-3">Get In Touch</h5>
-                    <ul class="list-unstyled d-flex justify-content-center justify-content-md-start">
-                        <li class="me-3"><a href="#" class="text-white"><i class="fab fa-facebook-f fa-lg"></i></a></li>
-                        <li class="me-3"><a href="#" class="text-white"><i class="fab fa-twitter fa-lg"></i></a></li>
-                        <li class="me-3"><a href="#" class="text-white"><i class="fab fa-instagram fa-lg"></i></a></li>
-                        <li><a href="#" class="text-white"><i class="fab fa-linkedin-in fa-lg"></i></a></li>
-                    </ul>
-                </div>
-                <div class="col-lg-3 col-md-6">
-                    <h5 class="text-uppercase mb-3">Legal</h5>
-                     <ul class="list-unstyled">
-                        <li><a href="#privacy" class="text-white text-decoration-none">Privacy Policy</a></li>
-                        <li><a href="#terms" class="text-white text-decoration-none">Terms of Service</a></li>
-                    </ul>
-                </div>
-            </div>
-            <hr class="my-4" style="border-color: rgba(255,255,255,0.2);">
-            <div class="row">
-                <div class="col-12 text-center">
-                    <p class="small mb-0">&copy; 2025 CDOT Database. All rights reserved.</p>
-                </div>
-            </div>
-        </div>
-    </footer>
-
-    <!-- Bootstrap JavaScript -->
+    </section>    <!-- Footer Component -->
+    <div id="footer-placeholder"></div>    <!-- Bootstrap JavaScript -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Components JS -->
+    <script src="js/components.js"></script>
     <script>
         // FAQ Toggle Functionality
         document.querySelectorAll('.faq-question').forEach(question => {
@@ -780,37 +692,15 @@
                     });
                 }
             });
-        });
-
-        // Add scroll effect to navbar
+        });        // Add scroll effect to navbar
         window.addEventListener('scroll', () => {
             const navbar = document.querySelector('.navbar');
-            if (window.scrollY > 100) {
+            if (navbar && window.scrollY > 100) {
                 navbar.classList.add('navbar-scrolled');
-            } else {
+            } else if (navbar) {
                 navbar.classList.remove('navbar-scrolled');
             }
         });
-
-        // Fullscreen menu toggle function
-        function toggleFullscreenMenu() {
-            const navbarCollapse = document.getElementById('navbarNav');
-            navbarCollapse.classList.remove('show', 'fullscreen');
-        }
-
-        // Navbar functionality
-        const navbarToggler = document.querySelector('.navbar-toggler');
-        const navbarCollapse = document.getElementById('navbarNav');
-
-        if (navbarToggler) {
-            navbarToggler.addEventListener('click', function() {
-                if (!navbarCollapse.classList.contains('show')) {
-                    navbarCollapse.classList.add('fullscreen');
-                } else {
-                    navbarCollapse.classList.remove('fullscreen');
-                }
-            });
-        }
 
         // Intersection Observer for animations
         const observerOptions = {

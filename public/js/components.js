@@ -291,59 +291,43 @@ function loadInitialComponents() {
     } else {
         console.warn('Components.js: No sidebar placeholder found in DOM');
     }
+      // Add similar checks for other components like header or footer if needed
+    const headerPlaceholder = document.getElementById('header-placeholder');
+    if (headerPlaceholder) {
+        console.log('Components.js: Found header placeholder, loading header...');
+        loadComponent('/components/header.html', 'header-placeholder')
+            .then(() => {
+                console.log('Components.js: Header loaded successfully');
+            })
+            .catch(err => {
+                console.error("Components.js: Header loading failed:", err);
+            });
+    }
     
-    // Add similar checks for other components like header or footer if needed
-    // if (document.getElementById('header-placeholder')) {
-    //     loadComponent('/components/header.html', 'header-placeholder');
-    // }
+    const footerPlaceholder = document.getElementById('footer-placeholder');
+    if (footerPlaceholder) {
+        console.log('Components.js: Found footer placeholder, loading footer...');
+        loadComponent('/components/footer.html', 'footer-placeholder')
+            .then(() => {
+                console.log('Components.js: Footer loaded successfully');
+            })
+            .catch(err => {
+                console.error("Components.js: Footer loading failed:", err);
+            });
+    }
 }
 
-// Function to initialize referral code copy functionality in sidebar
-function initializeReferralCodeCopy(referralCode) {
-    const refcodeEl = document.getElementById('dashboard-refcode');
+/**
+ * Loads the footer component
+ */
+async function loadFooter() {
+    const footerTarget = document.getElementById('footer-placeholder');
     
-    if (refcodeEl && referralCode) {
-        // Remove any existing click listeners to avoid duplicates
-        const newRefcodeEl = refcodeEl.cloneNode(true);
-        refcodeEl.parentNode.replaceChild(newRefcodeEl, refcodeEl);
-        
-        // Add click listener to the entire referral code element
-        newRefcodeEl.addEventListener('click', async function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            
-            console.log('Sidebar referral code clicked, copying:', referralCode);
-            
-            if (typeof copyToClipboard === 'function') {
-                const success = await copyToClipboard(referralCode, 'Referral code copied to clipboard!');
-                
-                if (success) {
-                    // Visual feedback - temporarily change the icon
-                    const copyIcon = newRefcodeEl.querySelector('.ref-copy-icon');
-                    if (copyIcon) {
-                        const originalClass = copyIcon.className;
-                        copyIcon.className = 'fas fa-check ref-copy-icon';
-                        copyIcon.style.color = '#28a745';
-                        
-                        setTimeout(() => {
-                            copyIcon.className = originalClass;
-                            copyIcon.style.color = '';
-                        }, 2000);
-                    }
-                }
-            } else {
-                console.error('copyToClipboard function not available');
-                if (typeof showNotification === 'function') {
-                    showNotification('Copy functionality not available', 'error');
-                }
-            }
-        });
-        
-        // Also add hover effect
-        newRefcodeEl.style.cursor = 'pointer';
-        newRefcodeEl.title = 'Click to copy referral code';
-        
-        console.log('Referral code copy functionality initialized for sidebar');
+    if (footerTarget) {
+        return loadComponent('/components/footer.html', 'footer-placeholder');
+    } else {
+        console.log('No footer placeholder found, skipping...');
+        return Promise.resolve();
     }
 }
 
@@ -403,10 +387,12 @@ async function loadStandardNavigation() {
         } else {
             console.log('No sidebar target found, skipping sidebar component...');
         }
-        
-        // Add header and footer navigation
+          // Add header and footer navigation
         promises.push(loadHeaderNavigation());
         promises.push(loadFooterNavigation());
+        
+        // Add footer component
+        promises.push(loadFooter());
           await Promise.all(promises);
         console.log('All standard navigation components loaded successfully');
         
