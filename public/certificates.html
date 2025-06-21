@@ -45,11 +45,14 @@
             background: var(--background);
             color: var(--text-primary);
             line-height: 1.6;
-        }
-
-        /* Modern Header */
+        }        /* Modern Header */
         .certificates-hero-section {
-            background: var(--gradient-certificates);
+            background: 
+                linear-gradient(135deg, rgba(102, 126, 234, 0.85), rgba(118, 75, 162, 0.85)),
+                url('./assets/uploads/images/Drive/certificates.jpg');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
             color: white;
             padding: 120px 0 80px;
             position: relative;
@@ -63,7 +66,8 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0, 0, 0, 0.2);
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
+            z-index: 1;
         }
         
         .certificates-hero-section .container {
@@ -355,8 +359,8 @@
             <div style="width: 60px;"></div> <!-- Spacer for alignment -->
         </div>
         <div class="text-center">
-            <h1 class="hero-title">Your Certificates</h1>
-            <p class="hero-subtitle">Track your achievements and professional development</p>
+            <h1 class="hero-title"> Certificates</h1>
+            <p class="hero-subtitle">We are a certified professional services platform</p>
         </div>
     </div>
 </section>

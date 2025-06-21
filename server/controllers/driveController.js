@@ -1089,13 +1089,13 @@ const getDriveOrders = async (req, res) => {
                     break;
                 case 'completed':
                     query += ` AND uadi.user_status = 'COMPLETED'`;
-                    break;
-                case 'frozen':
+                    break;                case 'frozen':
                     // If session is frozen, the 'CURRENT' item is the one that's effectively frozen.
                     if (sessionStatus === 'frozen') {
                         query += ` AND uadi.user_status = 'CURRENT'`; // Or PENDING if it was frozen before starting
                     } else {
-                        client.release(); return res.json({ code: 0, orders: [] }); // No items are "frozen" if session isn't
+                        client.release(); 
+                        return res.json({ code: 0, orders: [] }); // No items are "frozen" if session isn't
                     }
                     break;
                 case 'all':

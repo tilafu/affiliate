@@ -7,95 +7,136 @@
     <title>Latest Events</title>
     <meta name="csrf-token" content="t9EtiRskFKx5XpnOFvbrimp5ZgsKIg3UU1Ea1iDM">
     <link rel="shortcut icon" href="./assets/uploads/generals/favicon-665b8c8a863b91717275786.png">
-    <link rel="stylesheet" href="./assets/frontend/shopva/public.css">
-    <script src="./assets/frontend/js/jquery.min.js"></script>
-    <script charset="utf-8" src="./assets/frontend/shopva/dialog.min.js"></script>
-    <script charset="utf-8" src="./assets/frontend/shopva/common.js"></script>
-    <link rel="stylesheet" href="./assets/frontend/shopva/layer.css">
-    <script src="./assets/frontend/shopva/layer.js"></script>
-    <link rel="stylesheet" href="./assets/frontend/shopva/tye.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="./assets/frontend/css/bootstrap.min.css" type="text/css" media="all"/>
-    <link rel="stylesheet" type="text/css" href="./assets/frontend/css/fontawesome-all.min.css">
-    <link rel="stylesheet" href="./assets/frontend/css/animate.min.css" type="text/css" media="all"/>
-    <link rel="stylesheet" href="./assets/frontend/css/owl.carousel.min.css" type="text/css" media="all"/>
-    <link rel="stylesheet" href="./assets/frontend/css/style.css" type="text/css" media="all"/>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
     <style>
         :root {
-            --primary-color: #6c5ce7;
-            --secondary-color: #a29bfe;
-            --success-color: #00b894;
-            --danger-color: #d63031;
-            --background-color: #f8f9fa;
-            --text-color: #2d3436;
-            --card-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            --transition: all 0.3s ease;
+            --primary-blue: #007AFF;
+            --secondary-blue: #5AC8FA;
+            --success-green: #30D158;
+            --warning-orange: #FF9500;
+            --danger-red: #FF3B30;
+            --purple: #5856D6;
+            --pink: #FF2D92;
+            --background: #F2F2F7;
+            --card-background: #FFFFFF;
+            --text-primary: #000000;
+            --text-secondary: #8E8E93;
+            --border-color: #E5E5EA;
+            --shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+            --shadow-hover: 0 8px 32px rgba(0, 0, 0, 0.15);
+            --gradient-events: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
 
         body {
-            font-family: 'Inter', sans-serif;
-            background-color: var(--background-color);
-            color: var(--text-color);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--background);
+            color: var(--text-primary);
+            line-height: 1.6;
         }
 
-        .hero-section {
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-            padding: 2rem 0;
-            margin-bottom: 2rem;
+        /* Modern Hero Section */
+        .events-hero-section {
+            background: 
+                linear-gradient(135deg, rgba(102, 126, 234, 0.85), rgba(118, 75, 162, 0.85)),
+                url('./assets/uploads/images/Drive/events.jpg');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
             color: white;
+            padding: 120px 0 80px;
             position: relative;
             overflow: hidden;
         }
-
-        .hero-section::before {
+        
+        .events-hero-section::before {
             content: '';
             position: absolute;
             top: 0;
             left: 0;
             right: 0;
             bottom: 0;
-            background: url('./assets/uploads/pattern.png') repeat;
-            opacity: 0.1;
-        }
-
-        .hero-content {
-            position: relative;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
             z-index: 1;
         }
+        
+        .events-hero-section .container {
+            position: relative;
+            z-index: 2;
+        }
 
-        .back-button {
+        .back-btn {
             color: white;
             text-decoration: none;
             display: inline-flex;
             align-items: center;
             gap: 0.5rem;
-            transition: var(--transition);
-        }
-
-        .back-button:hover {
-            transform: translateX(-5px);
-            color: white;
-        }
-
-        .event-card {
-            background: white;
-            border-radius: 15px;
-            overflow: hidden;
-            box-shadow: var(--card-shadow);
-            transition: var(--transition);
+            font-weight: 500;
+            transition: all 0.3s ease;
+            padding: 8px 0;
             margin-bottom: 2rem;
         }
 
+        .back-btn:hover {
+            color: #ffc107;
+            transform: translateX(-5px);
+        }
+
+        .hero-title {
+            font-size: 3rem;
+            font-weight: 800;
+            margin-bottom: 1rem;
+            background: linear-gradient(45deg, #fff, #ffc107);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero-subtitle {
+            font-size: 1.25rem;
+            opacity: 0.9;
+            font-weight: 400;
+        }
+
+        /* Main Content */
+        .main-content {
+            padding: 2rem 0;
+        }
+
+        /* Modern Event Cards */
+        .event-card {
+            background: var(--card-background);
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border-color);
+            transition: all 0.3s ease;
+            margin-bottom: 2rem;
+            position: relative;
+        }
+
         .event-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+            transform: translateY(-8px);
+            box-shadow: var(--shadow-hover);
         }
 
         .event-image {
             width: 100%;
             height: 250px;
             object-fit: cover;
-            transition: var(--transition);
+            transition: all 0.3s ease;
         }
 
         .event-card:hover .event-image {
@@ -103,213 +144,242 @@
         }
 
         .event-content {
-            padding: 1.5rem;
+            padding: 2rem;
+        }
+
+        .event-date {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: linear-gradient(45deg, var(--primary-blue), var(--secondary-blue));
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
         }
 
         .event-title {
             font-size: 1.5rem;
-            font-weight: 600;
+            font-weight: 700;
             margin-bottom: 1rem;
-            color: var(--text-color);
-        }
-
-        .event-date {
-            color: var(--primary-color);
-            font-weight: 500;
-            margin-bottom: 0.5rem;
+            color: var(--text-primary);
         }
 
         .event-description {
-            color: #666;
+            color: var(--text-secondary);
             line-height: 1.6;
+            font-size: 1rem;
         }
 
-        .header-main {
-            background: transparent;
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            z-index: 100;
+        /* Stats Section */
+        .stats-section {
+            background: var(--card-background);
+            padding: 4rem 0;
+            margin: 4rem 0;
+            border-radius: 30px;
+            box-shadow: var(--shadow);
         }
 
-        .brookwood-txt h3 {
-            color: white;
+        .stat-item {
+            text-align: center;
+            padding: 2rem 1rem;
+        }
+
+        .stat-number {
+            font-size: 3rem;
+            font-weight: 800;
+            background: linear-gradient(45deg, var(--primary-blue), var(--purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            font-size: 1.1rem;
             font-weight: 600;
+            color: var(--text-secondary);
         }
 
+        /* Responsive Design */
         @media (max-width: 768px) {
+            .hero-title {
+                font-size: 2.5rem;
+            }
+            
+            .hero-subtitle {
+                font-size: 1.1rem;
+            }
+            
+            .events-hero-section {
+                padding: 80px 0 60px;
+            }
+            
             .event-image {
                 height: 200px;
             }
+            
+            .event-content {
+                padding: 1.5rem;
+            }
+            
+            .stat-number {
+                font-size: 2.5rem;
+            }
+        }
+
+        /* Loading Animation */
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.6; }
+            100% { opacity: 1; }
+        }
+
+        .loading {
+            animation: pulse 1.5s ease-in-out infinite;
         }
     </style>
 </head>
 <body>
 
 <div class="bg-overlay navbar-btn"></div>
-<div class="main-sidebar">
-   <div class="sidebar-close-toggler navbar-btn">
-      <a href="#">
-         <svg version="1.1" width="16" height="16" fill="currentColor" xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" viewBox="0 0 492 492"  xml:space="preserve">
-            <path d="M300.188,246L484.14,62.04c5.06-5.064,7.852-11.82,7.86-19.024c0-7.208-2.792-13.972-7.86-19.028L468.02,7.872
-         c-5.068-5.076-11.824-7.856-19.036-7.856c-7.2,0-13.956,2.78-19.024,7.856L246.008,191.82L62.048,7.872
-         c-5.06-5.076-11.82-7.856-19.028-7.856c-7.2,0-13.96,2.78-19.02,7.856L7.872,23.988c-10.496,10.496-10.496,27.568,0,38.052
-         L191.828,246L7.872,429.952c-5.064,5.072-7.852,11.828-7.852,19.032c0,7.204,2.788,13.96,7.852,19.028l16.124,16.116
-         c5.06,5.072,11.824,7.856,19.02,7.856c7.208,0,13.968-2.784,19.028-7.856l183.96-183.952l183.952,183.952
-         c5.068,5.072,11.824,7.856,19.024,7.856h0.008c7.204,0,13.96-2.784,19.028-7.856l16.12-16.116
-         c5.06-5.064,7.852-11.824,7.852-19.028c0-7.204-2.792-13.96-7.852-19.028L300.188,246z"/>
-            </svg>
-        </a>
-   </div>
-   <div class="my-544">
-      <div class="row align-items-center">
-         <div class="col-auto">
-            <div class="profile-img-item">
-               <img src="./assets/uploads/user.jpg" class="rounded-circle" alt="profile">
-            </div>
-         </div>         <div class="col ps-1">
-            <div class="profile-details">
-               <h4 class="mb-2" id="dashboard-username"></h4>
-               <p class="mb-0 text-grsay" id="dashboard-refcode"></p>
-            </div>
-         </div>
-      </div>
-   </div>
-   <hr>
-    
-   <div class="menu-sidebar">
-      <ul>
-         <li class="bottom-border">
-                <a href="./account.html"> 
-                   <img src="./assets/uploads/img/4.png" style="margin-right: 5px;" width="20px">
-                PROFILE </a>
-            </li>
-         <li class="bottom-border">
-            <a href="./deposits.html">
-               <img src="./assets/uploads/img/4.png" style="margin-right: 5px;" width="20px">
-               DEPOSIT
-            </a>
-         </li>
-         <li class="bottom-border">
-            <a href="./withdraws.html">
-               <img src="./assets/uploads/img/3.png"  style="margin-right: 5px;" width="20px">
-               WITHDRAWAL
-            </a>
-         </li>
-         <li class="bottom-border">
-            <a href="./certificates.html">
-               <img src="./assets/uploads/img/2.png"  style="margin-right: 5px;" width="20px">
-               CERTIFICATES
-            </a>
-         </li>
-         <li class="bottom-border">
-            <a href="./events.html">
-               <img src="./assets/uploads/img/6.png"  style="margin-right: 5px;" width="20px">
-               LATEST EVENTS
-            </a>
-         </li>
-         <li class="bottom-border">
-            <a href="./memberships.html">
-               <img src="./assets/uploads/img/6.png"  style="margin-right: 5px;" width="20px">
-               MEMBERSHIPS
-            </a>
-         </li>
-         <li class="bottom-border">
-            <a href="./terms.html">
-               <img src="./assets/uploads/img/5.png"  style="margin-right: 5px;" width="20px">
-               TERMS & CONDITIONS
-            </a>
-         </li>
-         <li class="bottom-border">
-            <a href="./faqs.html">
-               <img src="./assets/uploads/img/7.png"  style="margin-right: 5px;" width="20px">
-               FAQs
-            </a>
-         </li>
-         <li class="bottom-border">
-            <a href="./company.html">
-               <img src="./assets/uploads/img/8.png"  style="margin-right: 5px;" width="20px">
-               ABOUT US
-            </a>
-         </li>         <li class="bottom-border">
-                <a href="#" class="logout">
-                  <img src="./assets/uploads/img/8.png"  style="margin-right: 5px;" width="20px">
-                    <span data-i18n="sidebarLogoutLink">LOGOUT</span>
-                </a>
-            </li>
+<!-- Sidebar Placeholder -->
+<div id="sidebar-placeholder"></div>
+<!-- End Sidebar Placeholder -->
 
-      </ul>
-   </div>
-    <!-- <div class="copyright-item">
-        <p class="fs-14">Copyright © All Right Reserved</p>
-    </div> -->
-</div><header class="header-main">
+<!-- Modern Hero Section -->
+<section class="events-hero-section">
     <div class="container">
-        <div class="content-header d-flex align-items-center justify-content-between">
-            <a href="javascript:history.back()" class="back-button">
-                <i class="fas fa-angle-left"></i>
-                <span>Back</span>
-            </a>
-            <div class="brookwood-txt d-flex align-items-center">
-                <h3 class="main1">Latest Events</h3>
-            </div>
-            <div class="item-options"></div>
+        <a href="javascript:history.back()" class="back-btn">
+            <i class="fas fa-arrow-left"></i>
+            <span>Back</span>
+        </a>
+        <div class="text-center">
+            <h1 class="hero-title">Latest Events</h1>
+            <p class="hero-subtitle">Stay updated with our latest events and exciting opportunities</p>
         </div>
     </div>
-</header><main class="main-content">
-    <div class="hero-section">
-        <div class="container">
-            <div class="hero-content text-center">
-                <h1 class="display-4 fw-bold mb-3">Latest Events</h1>
-                <p class="lead mb-0">Stay updated with our latest events and activities</p>
-            </div>
-        </div>
-    </div>
+</section>
 
+<!-- Stats Section -->
+<div class="container">
+    <div class="stats-section">
+        <div class="row">
+            <div class="col-md-4">
+                <div class="stat-item">
+                    <div class="stat-number">50+</div>
+                    <div class="stat-label">Events Hosted</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stat-item">
+                    <div class="stat-number">1000+</div>
+                    <div class="stat-label">Participants</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stat-item">
+                    <div class="stat-number">95%</div>
+                    <div class="stat-label">Satisfaction Rate</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<main class="main-content">
     <div class="container">
         <div class="row">
             <div class="col-12 col-md-6 col-lg-4 mb-4">
                 <div class="event-card">
-                    <img src="./assets/uploads/e3.jpg" alt="Event 1" class="event-image">
+                    <img src="./assets/uploads/e3.jpg" alt="Annual Conference" class="event-image">
                     <div class="event-content">
                         <div class="event-date">
-                            <i class="far fa-calendar-alt me-2"></i>
+                            <i class="far fa-calendar-alt"></i>
                             March 15, 2024
                         </div>
                         <h3 class="event-title">Annual Conference</h3>
                         <p class="event-description">
-                            Join us for our annual conference where we'll discuss the latest trends and innovations in the industry.
+                            Join us for our annual conference where industry leaders discuss the latest trends, innovations, and opportunities in the affiliate marketing space.
                         </p>
                     </div>
                 </div>
             </div>
             <div class="col-12 col-md-6 col-lg-4 mb-4">
                 <div class="event-card">
-                    <img src="./assets/uploads/e1.jpg" alt="Event 2" class="event-image">
+                    <img src="./assets/uploads/e1.jpg" alt="Workshop Series" class="event-image">
                     <div class="event-content">
                         <div class="event-date">
-                            <i class="far fa-calendar-alt me-2"></i>
+                            <i class="far fa-calendar-alt"></i>
                             April 20, 2024
                         </div>
-                        <h3 class="event-title">Workshop Series</h3>
+                        <h3 class="event-title">Skills Enhancement Workshop</h3>
                         <p class="event-description">
-                            Enhance your skills with our comprehensive workshop series led by industry experts.
+                            Enhance your professional skills with our comprehensive workshop series led by industry experts and successful affiliate marketers.
                         </p>
                     </div>
                 </div>
             </div>
             <div class="col-12 col-md-6 col-lg-4 mb-4">
                 <div class="event-card">
-                    <img src="./assets/uploads/e2.jpg" alt="Event 3" class="event-image">
+                    <img src="./assets/uploads/e2.jpg" alt="Networking Event" class="event-image">
                     <div class="event-content">
                         <div class="event-date">
-                            <i class="far fa-calendar-alt me-2"></i>
+                            <i class="far fa-calendar-alt"></i>
                             May 10, 2024
                         </div>
-                        <h3 class="event-title">Networking Event</h3>
+                        <h3 class="event-title">Exclusive Networking Event</h3>
                         <p class="event-description">
-                            Connect with professionals and expand your network at our exclusive networking event.
+                            Connect with top-performing affiliates, expand your professional network, and discover new partnership opportunities in our exclusive networking event.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Additional Event Cards -->
+            <div class="col-12 col-md-6 col-lg-4 mb-4">
+                <div class="event-card">
+                    <img src="./assets/uploads/images/Drive/training.jpg" alt="Training Program" class="event-image">
+                    <div class="event-content">
+                        <div class="event-date">
+                            <i class="far fa-calendar-alt"></i>
+                            June 5, 2024
+                        </div>
+                        <h3 class="event-title">Advanced Training Program</h3>
+                        <p class="event-description">
+                            Take your affiliate marketing skills to the next level with our advanced training program designed for high-performing associates.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-md-6 col-lg-4 mb-4">
+                <div class="event-card">
+                    <img src="./assets/uploads/images/Drive/webinar.jpg" alt="Webinar Series" class="event-image">
+                    <div class="event-content">
+                        <div class="event-date">
+                            <i class="far fa-calendar-alt"></i>
+                            June 15, 2024
+                        </div>
+                        <h3 class="event-title">Monthly Webinar Series</h3>
+                        <p class="event-description">
+                            Join our monthly webinar series featuring guest speakers, success stories, and the latest industry insights from top performers.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-md-6 col-lg-4 mb-4">
+                <div class="event-card">
+                    <img src="./assets/uploads/images/Drive/awards.jpg" alt="Awards Ceremony" class="event-image">
+                    <div class="event-content">
+                        <div class="event-date">
+                            <i class="far fa-calendar-alt"></i>
+                            July 1, 2024
+                        </div>
+                        <h3 class="event-title">Excellence Awards Ceremony</h3>
+                        <p class="event-description">
+                            Celebrate outstanding achievements and recognize top performers in our annual Excellence Awards ceremony with exclusive rewards.
                         </p>
                     </div>
                 </div>
@@ -321,9 +391,11 @@
 <!-- Standard Footer Navigation -->
 <div id="footer-navigation"></div>
 
-<script> let baseurl = '.'; </script>
+<script>let baseurl = '.';</script>
 
-<script src="./assets/frontend/js/bootstrap.bundle.min.js"></script>
+<!-- Bootstrap 5 JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+<!-- Custom JS -->
 <script src="./js/components.js"></script>
 <script src="./js/i18n.js"></script>
 <script src="./js/main.js"></script>
@@ -334,19 +406,16 @@ document.addEventListener('DOMContentLoaded', async function() {
     try {
         await loadStandardNavigation();
         console.log('Standard navigation components loaded for events page');
+        
+        // Load user profile for sidebar
+        await loadUserProfile();
+        
+        // Attach logout handlers
+        if (typeof attachLogoutHandlers === 'function') {
+            attachLogoutHandlers();
+        }
     } catch (error) {
         console.error('Error loading navigation components:', error);
-    }
-});
-</script>
-<script src="./js/components.js"></script>
-<script src="./js/auth-check.js"></script>
-<script src="./js/auth.js"></script>
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    loadStandardNavigation('events');
-    if (typeof attachLogoutHandlers === 'function') {
-        attachLogoutHandlers();
     }
 });
 </script>

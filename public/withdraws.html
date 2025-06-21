@@ -46,7 +46,38 @@
             line-height: 1.6;
             min-height: 100vh;        }
 
-        /* Back button */
+        /* Back button */        /* Hero Section Styles */
+        .withdraw-hero {
+            background: 
+                linear-gradient(135deg, rgba(102, 126, 234, 0.9), rgba(118, 75, 162, 0.9)),
+                url('./assets/uploads/images/Drive/withdrawal-bg.jpg');
+            background-size: cover;
+            background-position: center;
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+            border-radius: 0 0 25px 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .withdraw-hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
+            z-index: 1;
+        }
+        
+        .withdraw-hero .container {
+            position: relative;
+            z-index: 2;
+        }
+
         .back-btn {
             background: rgba(255, 255, 255, 0.2);
             border: 1px solid rgba(255, 255, 255, 0.3);
@@ -59,7 +90,15 @@
             color: white;
             text-decoration: none;
             transition: all 0.3s ease;
-            backdrop-filter: blur(10px);        }
+            backdrop-filter: blur(10px);
+        }
+        
+        .back-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: rgba(255, 255, 255, 0.5);
+            color: white;
+            transform: translateY(-2px);
+        }
           .withdraw-card, .balance-card {
             background: var(--card-background);
             border-radius: 20px;
@@ -96,8 +135,7 @@
             position: relative;
             z-index: 2;
         }
-        
-        /* Different gradient for available balance card */
+          /* Different gradient for available balance card */
         .balance-card.available-balance {
             background: 
                 linear-gradient(135deg, rgba(88, 86, 214, 0.9), rgba(90, 200, 250, 0.9)),
@@ -108,6 +146,19 @@
         
         .balance-card.available-balance::before {
             background: linear-gradient(135deg, rgba(88, 86, 214, 0.1), rgba(90, 200, 250, 0.1));
+        }
+
+        /* Total withdrawals card with similar styling */
+        .balance-card.total-withdrawals {
+            background: 
+                linear-gradient(135deg, rgba(255, 45, 146, 0.9), rgba(255, 149, 0, 0.9)),
+                url('./assets/uploads/images/Drive/workplace-5517743_1280.jpg');
+            background-size: cover;
+            background-position: center;
+        }
+        
+        .balance-card.total-withdrawals::before {
+            background: linear-gradient(135deg, rgba(255, 45, 146, 0.1), rgba(255, 149, 0, 0.1));
         }
 
         .withdraw-card:hover {
@@ -413,11 +464,26 @@
 <div id="sidebar-placeholder"></div>
 <!-- End Sidebar Placeholder -->
 
+<!-- Hero Section -->
+<div class="withdraw-hero">
+    <div class="container">
+        <div class="d-flex align-items-center justify-content-between">
+            <a href="javascript:history.back()" class="back-btn">
+                <i class="fas fa-arrow-left"></i>
+            </a>
+            <div class="text-center flex-grow-1">
+                <h2 class="mb-0 fw-bold">Withdrawals</h2>
+                <p class="mb-0 opacity-75">Manage your withdrawals and view history</p>
+            </div>
+            <div style="width: 45px;"></div> <!-- Spacer for alignment -->
+        </div>
+    </div>
+</div>
+
 <main class="main-content">
     <div class="container">        <!-- Balance Overview -->
-        <div class="row mb-4">
-            <div class="col-md-6 mb-3">                
-                <div class="balance-card text-center">
+        <div class="row mb-4">            <div class="col-md-6 mb-3">                
+                <div class="balance-card total-withdrawals text-center">
                     <div class="balance-item">
                         <i class="fas fa-wallet mb-3" style="font-size: 2rem; opacity: 0.9;"></i>
                         <div class="balance-amount loading" id="user-withdrawn-amount">Loading...</div>

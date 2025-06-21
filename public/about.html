@@ -80,10 +80,38 @@
         .team-section .btn-outline-primary {
             border-color: #007bff; /* Standard Bootstrap primary */
             color: #007bff;
-        }
-        .team-section .btn-outline-primary:hover {
+        }        .team-section .btn-outline-primary:hover {
             background-color: #007bff;
             color: white;
+        }        /* Members Catalog Overlay */
+        .members-catalog, .results-card {
+            position: relative;
+            overflow: hidden;
+        }        .members-catalog .overlay-stat, .results-card .overlay-stat {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.5);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(233, 30, 99, 0.2);
+        }
+
+        .members-catalog .overlay-stat h3, .results-card .overlay-stat h3 {
+            color: #E91E63;
+            font-weight: bold;
+            font-size: 2rem;
+            margin: 0;
+        }
+
+        .members-catalog .overlay-stat p, .results-card .overlay-stat p {
+            color: #6c757d;
+            font-size: 0.85rem;
+            margin: 0;
+            font-weight: 500;
         }
     </style>
 </head>
@@ -121,37 +149,42 @@
         <div class="container">
             <div class="row align-items-center mb-5">
                 <div class="col-lg-6">
-                    <h1 class="display-4">We're <span class="highlight-pink">Leading Ad</span><br><span class="highlight-pink">Agency</span> in this Country</h1>
+                    <h1 class="display-4">We're Leaders in<span class="highlight-pink"> Online Campaigns</span><br><span class="highlight-pink">and Promotions</span></h1>
                 </div>
                 <div class="col-lg-6 text-lg-end mt-3 mt-lg-0">
                     <a href="register.html" class="btn btn-outline-dark">Get Started <i class="fas fa-arrow-right"></i></a>
                 </div>
-            </div>
-            <div class="row mb-5">
-                <div class="col-md-6 mb-3 mb-md-0">
-                    <img src="https://via.placeholder.com/600x400?text=Office+Meeting" alt="Office Meeting" class="img-fluid shadow">
-                </div>
-                <div class="col-md-6">
-                    <img src="https://via.placeholder.com/600x400?text=Team+Celebration" alt="Team Celebration" class="img-fluid shadow">
-                </div>
-            </div>
-            <div class="row">
-                <div class="col-md-4">
-                    <div class="stat-card">
-                        <h3>84+</h3>
+            </div>            <div class="row mb-5">
+                <div class="col-md-6 mb-3 mb-md-0 members-catalog">
+                    <img src="./assets/uploads/images/Drive/happy-team.jpeg" alt="Office Meeting" class="img-fluid shadow">
+                    <div class="overlay-stat">
+                        <h3>3,000+</h3>
                         <p>Expert Members</p>
                     </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="stat-card">
-                        <h3>30+</h3>
-                        <p>Marketing Courses</p>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="stat-card">
+                </div>                <div class="col-md-6 members-catalog">
+                    <img src="./assets/uploads/images/Drive/happy-woman.jpeg" alt="Team Celebration" class="img-fluid shadow">
+                    <div class="overlay-stat">
                         <h3>145+</h3>
                         <p>Global Companies</p>
+                    </div>
+                </div>            </div>              <!-- Third Ramona Image Row -->
+            <div class="row mb-4">
+                <div class="col-md-6 mx-auto members-catalog">
+                    <img src="./assets/uploads/images/Drive/products.jpg" alt="Products Catalog" class="img-fluid shadow">
+                    <div class="overlay-stat">
+                        <h3>10,000+</h3>
+                        <p>Products Catalog</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Fourth Ramona Image Row -->
+            <div class="row mb-4">
+                <div class="col-md-6 mx-auto results-card">
+                    <img src="./assets/uploads/cdot/members.jpeg" alt="Results Overview" class="img-fluid shadow">
+                    <div class="overlay-stat">
+                        <h3>99%</h3>
+                        <p>Success Rate</p>
                     </div>
                 </div>
             </div>
@@ -202,9 +235,9 @@
                         <!-- Team Member Card 1 -->
                         <div class="col-md-4 mb-4">
                             <div class="card team-member-card h-100 text-center shadow-sm">
-                                <img src="https://via.placeholder.com/200x200?text=David+T" class="card-img-top team-member-img mx-auto mt-3" alt="David Tim">
+                                <img src=".\assets\uploads\cdot\team\debbie.webp" class="card-img-top team-member-img mx-auto mt-3" alt="Debbie Byrne">
                                 <div class="card-body">
-                                    <h5 class="card-title fw-bold">David Tim</h5>
+                                    <h5 class="card-title fw-bold">Debbie Byrne</h5>
                                     <p class="card-text highlight-pink small">Creative Director</p>
                                     <div class="social-icons mt-2">
                                         <a href="#" class="text-secondary me-2"><i class="fab fa-facebook-f"></i></a>
@@ -217,9 +250,9 @@
                         <!-- Team Member Card 2 -->
                         <div class="col-md-4 mb-4">
                             <div class="card team-member-card h-100 text-center shadow-sm">
-                                <img src="https://via.placeholder.com/200x200?text=Shaun+M" class="card-img-top team-member-img mx-auto mt-3" alt="Shaun Michael">
+                                <img src=".\assets\uploads\cdot\team\shaun.jpg" class="card-img-top team-member-img mx-auto mt-3" alt="Michael Kennedy">
                                 <div class="card-body">
-                                    <h5 class="card-title fw-bold">Shaun Michael</h5>
+                                    <h5 class="card-title fw-bold">Michael Kennedy</h5>
                                     <p class="card-text highlight-pink small">Creative Director</p>
                                     <div class="social-icons mt-2">
                                         <a href="#" class="text-secondary me-2"><i class="fab fa-facebook-f"></i></a>
@@ -232,9 +265,9 @@
                         <!-- Team Member Card 3 -->
                         <div class="col-md-4 mb-4">
                             <div class="card team-member-card h-100 text-center shadow-sm">
-                                <img src="https://via.placeholder.com/200x200?text=Mark+W" class="card-img-top team-member-img mx-auto mt-3" alt="Mark William">
+                                <img src=".\assets\uploads\cdot\team\mark.jpg" class="card-img-top team-member-img mx-auto mt-3" alt="Mark Williams">
                                 <div class="card-body">
-                                    <h5 class="card-title fw-bold">Mark William</h5>
+                                    <h5 class="card-title fw-bold">Mark Williams</h5>
                                     <p class="card-text highlight-pink small">Creative Director</p>
                                     <div class="social-icons mt-2">
                                         <a href="#" class="text-secondary me-2"><i class="fab fa-facebook-f"></i></a>
@@ -293,10 +326,9 @@
                              
                         </h2>
                     </a>
-                    <!-- Optional: Add a short paragraph here if desired -->
-                </div>
-                <div class="col-lg-6 text-center">
-                    <img src="https://via.placeholder.com/450x450?text=Man+with+Tablet+CDOT" alt="Start Your Digital Income Journey" class="img-fluid rounded shadow-sm">
+                    <!-- Add a short paragraph here if desired -->
+                </div>                <div class="col-lg-6 text-center">
+                    <img src="./assets/uploads/images/Drive/start-you-drive.jpg" alt="Start Your Digital Income Journey" class="img-fluid rounded shadow-sm">
                 </div>
             </div>
         </div>
