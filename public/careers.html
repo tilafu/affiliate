@@ -563,13 +563,20 @@
             if (statsSection) {
                 observer.observe(statsSection);
             }
-        });
-
-        // Add apply button functionality
-        document.querySelectorAll('.btn-apply').forEach(button => {
+        });        // Add apply button functionality
+        document.querySelectorAll('.btn-apply').forEach((button, index) => {
             button.addEventListener('click', function() {
-                // In a real application, this would open an application form or redirect to an application page
-                alert('Application form would open here. For now, please contact us through the Contact page.');
+                const jobPages = [
+                    'job-fullstack-developer.html',
+                    'job-product-manager.html',
+                    'job-digital-marketing.html',
+                    'job-data-analyst.html',
+                    'job-customer-success.html'
+                ];
+                
+                if (jobPages[index]) {
+                    window.location.href = jobPages[index];
+                }
             });
         });
     </script>

@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product Manager - PEA Platform - CDOT Database</title>
+    <link rel="icon" type="image/png" href="assets/uploads/cdot/logo.png">
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Custom CSS for public pages -->
+    <link rel="stylesheet" href="css/public-pages.css">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        .job-hero {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            padding: 120px 0 80px;
+            position: relative;
+        }
+
+        .job-badge {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            padding: 8px 20px;
+            border-radius: 25px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            display: inline-block;
+            margin-bottom: 20px;
+        }
+
+        .job-title {
+            font-size: 3rem;
+            font-weight: 800;
+            margin-bottom: 20px;
+        }
+
+        .job-meta {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            margin-bottom: 30px;
+        }
+
+        .apply-btn {
+            background: white;
+            color: #28a745;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 50px;
+            font-weight: 700;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+        }
+
+        .apply-btn:hover {
+            background: rgba(255,255,255,0.9);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            color: #28a745;
+        }
+
+        .job-content {
+            padding: 80px 0;
+        }
+
+        .section-title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 30px;
+            color: #333;
+        }
+
+        .requirement-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .requirement-list li {
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+            position: relative;
+            padding-left: 30px;
+        }
+
+        .requirement-list li:before {
+            content: '✓';
+            position: absolute;
+            left: 0;
+            color: #28a745;
+            font-weight: bold;
+        }
+
+        .tech-tag {
+            background: #28a745;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            margin: 5px;
+            display: inline-block;
+        }
+
+        .application-form {
+            background: #f8f9fa;
+            padding: 50px 0;
+        }
+
+        .form-card {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .btn-submit {
+            background: linear-gradient(45deg, #28a745, #20c997);
+            border: none;
+            color: white;
+            padding: 15px 40px;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .btn-submit:hover {
+            background: linear-gradient(45deg, #218838, #1fa188);
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header Component -->
+    <div id="header-placeholder"></div>    <!-- Job Hero Section -->
+    <section class="job-hero">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-8">
+                    <div class="mb-3">
+                        <a href="careers.html" class="text-white text-decoration-none">
+                            <i class="fas fa-arrow-left me-2"></i>Back to All Jobs
+                        </a>
+                    </div>
+                    <div class="job-badge">
+                        <i class="fas fa-chart-line me-2"></i>Product
+                    </div>
+                    <h1 class="job-title">Product Manager - PEA Platform</h1>
+                    <div class="job-meta">
+                        <i class="fas fa-map-marker-alt me-2"></i>Remote / New York &nbsp;&nbsp;
+                        <i class="fas fa-clock me-2"></i>Full-time &nbsp;&nbsp;
+                        <i class="fas fa-dollar-sign me-2"></i>$110k - $160k
+                    </div>
+                    <a href="#apply" class="btn apply-btn">
+                        Apply Now <i class="fas fa-arrow-right ms-2"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Job Content Section -->
+    <section class="job-content">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-8">
+                    <!-- Job Overview -->
+                    <div class="mb-5">
+                        <h2 class="section-title">Job Overview</h2>
+                        <p class="lead">
+                            We're seeking a dynamic Product Manager to lead product strategy and development for our PEA (Product Engagement Associate) platform. You'll work with cross-functional teams to deliver innovative features that empower our global network of 50,000+ PEAs and drive business growth.
+                        </p>
+                        <p>
+                            As the Product Manager for our PEA Platform, you'll be responsible for defining the product roadmap, gathering user feedback, analyzing market trends, and working closely with engineering and design teams to deliver exceptional user experiences. You'll play a crucial role in scaling our platform to serve millions of users worldwide.
+                        </p>
+                    </div>
+
+                    <!-- Key Responsibilities -->
+                    <div class="mb-5">
+                        <h2 class="section-title">Key Responsibilities</h2>
+                        <ul class="requirement-list">
+                            <li>Define and execute product strategy for the PEA platform</li>
+                            <li>Develop comprehensive product roadmaps aligned with business objectives</li>
+                            <li>Conduct user research and gather feedback from our global PEA community</li>
+                            <li>Analyze product metrics and user behavior to drive data-driven decisions</li>
+                            <li>Collaborate with engineering teams to prioritize features and manage product backlog</li>
+                            <li>Work with design teams to create intuitive user experiences</li>
+                            <li>Coordinate product launches and go-to-market strategies</li>
+                            <li>Monitor competitive landscape and identify market opportunities</li>
+                            <li>Communicate product vision and updates to stakeholders across the organization</li>
+                        </ul>
+                    </div>
+
+                    <!-- Required Qualifications -->
+                    <div class="mb-5">
+                        <h2 class="section-title">Required Qualifications</h2>
+                        <ul class="requirement-list">
+                            <li>Bachelor's degree in Business, Engineering, Computer Science, or related field</li>
+                            <li>4+ years of product management experience, preferably in tech or e-commerce</li>
+                            <li>Strong analytical skills with experience in data analysis and metrics</li>
+                            <li>Experience with Agile development methodologies</li>
+                            <li>Proven track record of launching successful products</li>
+                            <li>Excellent communication and presentation skills</li>
+                            <li>Strong project management and organizational abilities</li>
+                            <li>Experience with user research and usability testing</li>
+                            <li>Ability to work effectively with cross-functional teams</li>
+                        </ul>
+                    </div>
+
+                    <!-- Preferred Qualifications -->
+                    <div class="mb-5">
+                        <h2 class="section-title">Preferred Qualifications</h2>
+                        <ul class="requirement-list">
+                            <li>MBA or advanced degree in relevant field</li>
+                            <li>Experience in e-commerce, marketplace, or affiliate marketing platforms</li>
+                            <li>Knowledge of user experience (UX) design principles</li>
+                            <li>Experience with A/B testing and experimentation frameworks</li>
+                            <li>Familiarity with product analytics tools (Mixpanel, Amplitude, etc.)</li>
+                            <li>Understanding of global markets and localization challenges</li>
+                            <li>Experience managing products with large user bases (100k+ users)</li>
+                        </ul>
+                    </div>
+
+                    <!-- Tools & Technologies -->
+                    <div class="mb-5">
+                        <h2 class="section-title">Tools & Technologies We Use</h2>
+                        <div class="mb-3">
+                            <span class="tech-tag">Jira</span>
+                            <span class="tech-tag">Confluence</span>
+                            <span class="tech-tag">Figma</span>
+                            <span class="tech-tag">Mixpanel</span>
+                            <span class="tech-tag">Google Analytics</span>
+                            <span class="tech-tag">Slack</span>
+                            <span class="tech-tag">Notion</span>
+                            <span class="tech-tag">Miro</span>
+                            <span class="tech-tag">SQL</span>
+                            <span class="tech-tag">Tableau</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-4">
+                    <!-- Quick Facts -->
+                    <div class="card border-0 shadow-sm mb-4">
+                        <div class="card-body">
+                            <h5 class="card-title">Quick Facts</h5>
+                            <hr>
+                            <div class="mb-3">
+                                <strong>Department:</strong><br>
+                                Product
+                            </div>
+                            <div class="mb-3">
+                                <strong>Reports to:</strong><br>
+                                VP of Product
+                            </div>
+                            <div class="mb-3">
+                                <strong>Team Size:</strong><br>
+                                8 Product Team Members
+                            </div>
+                            <div class="mb-3">
+                                <strong>Start Date:</strong><br>
+                                Within 30 days
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Benefits -->
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body">
+                            <h5 class="card-title">Benefits & Perks</h5>
+                            <hr>
+                            <ul class="list-unstyled">
+                                <li><i class="fas fa-check text-success me-2"></i>Competitive salary + equity</li>
+                                <li><i class="fas fa-check text-success me-2"></i>Health, dental & vision insurance</li>
+                                <li><i class="fas fa-check text-success me-2"></i>Remote-first culture</li>
+                                <li><i class="fas fa-check text-success me-2"></i>Professional development budget</li>
+                                <li><i class="fas fa-check text-success me-2"></i>Flexible working hours</li>
+                                <li><i class="fas fa-check text-success me-2"></i>Product management certification support</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Application Form Section -->
+    <section id="apply" class="application-form">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-lg-8">
+                    <div class="form-card">
+                        <div class="text-center mb-4">
+                            <h2 class="section-title">Apply for this Position</h2>
+                            <p class="text-muted">Send your application directly to our HR team</p>
+                        </div>
+                        
+                        <form id="applicationForm">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="firstName" class="form-label">First Name *</label>
+                                    <input type="text" class="form-control" id="firstName" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="lastName" class="form-label">Last Name *</label>
+                                    <input type="text" class="form-control" id="lastName" required>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="email" class="form-label">Email Address *</label>
+                                <input type="email" class="form-control" id="email" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="phone" class="form-label">Phone Number</label>
+                                <input type="tel" class="form-control" id="phone">
+                            </div>
+                            <div class="mb-3">
+                                <label for="linkedin" class="form-label">LinkedIn Profile</label>
+                                <input type="url" class="form-control" id="linkedin" placeholder="https://linkedin.com/in/yourprofile">
+                            </div>
+                            <div class="mb-3">
+                                <label for="portfolio" class="form-label">Portfolio/Personal Website</label>
+                                <input type="url" class="form-control" id="portfolio" placeholder="https://yourportfolio.com">
+                            </div>
+                            <div class="mb-3">
+                                <label for="experience" class="form-label">Years of Product Management Experience *</label>
+                                <select class="form-control" id="experience" required>
+                                    <option value="">Select experience level</option>
+                                    <option value="2-4">2-4 years</option>
+                                    <option value="4-6">4-6 years</option>
+                                    <option value="6-8">6-8 years</option>
+                                    <option value="8+">8+ years</option>
+                                </select>
+                            </div>
+                            <div class="mb-4">
+                                <label for="coverLetter" class="form-label">Cover Letter *</label>
+                                <textarea class="form-control" id="coverLetter" rows="6" placeholder="Tell us about your product management experience and why you're excited about this role..." required></textarea>
+                            </div>
+                            
+                            <div class="text-center">
+                                <button type="submit" class="btn btn-submit">
+                                    Submit Application <i class="fas fa-paper-plane ms-2"></i>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer Component -->
+    <div id="footer-placeholder"></div>
+
+    <!-- Bootstrap JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Component loader script -->
+    <script src="js/components.js"></script>
+    
+    <script>
+        document.getElementById('applicationForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const firstName = document.getElementById('firstName').value;
+            const lastName = document.getElementById('lastName').value;
+            const email = document.getElementById('email').value;
+            const phone = document.getElementById('phone').value;
+            const linkedin = document.getElementById('linkedin').value;
+            const portfolio = document.getElementById('portfolio').value;
+            const experience = document.getElementById('experience').value;
+            const coverLetter = document.getElementById('coverLetter').value;
+            
+            // Create email content
+            const subject = `Job Application: Product Manager - PEA Platform - ${firstName} ${lastName}`;
+            const body = `Dear CDOT HR Team,
+
+I am applying for the Product Manager - PEA Platform position at CDOT Database.
+
+Applicant Information:
+Name: ${firstName} ${lastName}
+Email: ${email}
+Phone: ${phone}
+LinkedIn: ${linkedin}
+Portfolio: ${portfolio}
+Years of PM Experience: ${experience}
+
+Cover Letter:
+${coverLetter}
+
+Best regards,
+${firstName} ${lastName}`;
+
+            // Create mailto link
+            const mailtoLink = `mailto:hr@cdotdatabase.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+            window.location.href = mailtoLink;
+        });
+    </script>
+</body>
+</html>

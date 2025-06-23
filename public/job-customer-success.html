@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Success Manager - CDOT Database</title>
+    <link rel="icon" type="image/png" href="assets/uploads/cdot/logo.png">
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Custom CSS for public pages -->
+    <link rel="stylesheet" href="css/public-pages.css">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        .job-hero {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 100px 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .job-hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000"><defs><linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:rgba(255,255,255,0.1);stop-opacity:1" /><stop offset="100%" style="stop-color:rgba(255,255,255,0.05);stop-opacity:1" /></linearGradient></defs><polygon fill="url(%23grad1)" points="0,0 1000,300 1000,1000 0,700"/></svg>') no-repeat center center;
+            background-size: cover;
+            opacity: 0.1;
+        }
+
+        .job-badge {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 8px 20px;
+            border-radius: 25px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            display: inline-block;
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .job-title {
+            font-size: 3rem;
+            font-weight: 900;
+            margin-bottom: 20px;
+            line-height: 1.1;
+        }
+
+        .job-subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            margin-bottom: 30px;
+            font-weight: 400;
+        }
+
+        .job-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px 20px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+
+        .meta-item i {
+            margin-right: 10px;
+            font-size: 1.1rem;
+        }
+
+        .section-title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 30px;
+            position: relative;
+        }
+
+        .section-title::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 0;
+            width: 60px;
+            height: 4px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            border-radius: 2px;
+        }
+
+        .job-content {
+            background: white;
+            margin-top: -80px;
+            position: relative;
+            z-index: 10;
+        }
+
+        .content-card {
+            background: white;
+            border-radius: 20px;
+            padding: 50px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+            margin-bottom: 40px;
+        }
+
+        .highlight-box {
+            background: linear-gradient(135deg, #f8f9ff 0%, #e8f2ff 100%);
+            border: 1px solid #e1e8ff;
+            border-radius: 15px;
+            padding: 30px;
+            margin: 30px 0;
+        }
+
+        .requirement-item {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+
+        .requirement-item i {
+            color: #667eea;
+            margin-right: 15px;
+            margin-top: 2px;
+            font-size: 1.1rem;
+        }
+
+        .benefit-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .benefit-card {
+            background: white;
+            border: 1px solid #e9ecef;
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .benefit-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            border-color: #667eea;
+        }
+
+        .benefit-icon {
+            font-size: 2.5rem;
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .tech-tag {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin: 5px;
+            display: inline-block;
+        }
+
+        .application-form {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 20px;
+            padding: 50px;
+            margin-top: 60px;
+        }
+
+        .form-control {
+            border: none;
+            border-radius: 10px;
+            padding: 15px;
+            font-size: 1rem;
+            margin-bottom: 20px;
+            background: white;
+            border: 1px solid #e9ecef;
+        }
+
+        .form-control:focus {
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+            border-color: #667eea;
+        }
+
+        .btn-submit {
+            background: white;
+            color: #667eea;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 25px;
+            font-weight: 700;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+        }
+
+        .btn-submit:hover {
+            background: #f8f9fa;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .quick-facts {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            border-radius: 20px;
+            margin: 40px 0;
+        }
+
+        .fact-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+        }
+
+        .fact-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .fact-icon {
+            font-size: 1.5rem;
+            margin-right: 15px;
+            color: #fff;
+        }
+
+        @media (max-width: 768px) {
+            .job-hero {
+                padding: 60px 0;
+            }
+            
+            .job-title {
+                font-size: 2.2rem;
+            }
+            
+            .content-card {
+                padding: 30px 20px;
+                margin: 20px;
+            }
+            
+            .application-form {
+                padding: 30px 20px;
+                margin: 20px;
+            }
+            
+            .job-meta {
+                flex-direction: column;
+                gap: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header Component -->
+    <div id="header-placeholder"></div>    <!-- Job Hero Section -->
+    <section class="job-hero">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-lg-10">
+                    <div class="mb-4">
+                        <a href="careers.html" class="text-white text-decoration-none">
+                            <i class="fas fa-arrow-left me-2"></i>Back to All Jobs
+                        </a>
+                    </div>
+                    <div class="text-center">
+                        <span class="job-badge">Customer Success • Remote</span>
+                        <h1 class="job-title">Customer Success Manager</h1>
+                        <p class="job-subtitle">Help our PEA community thrive and achieve their business goals</p>
+                        
+                        <div class="job-meta justify-content-center">
+                            <div class="meta-item">
+                                <i class="fas fa-map-marker-alt"></i>
+                                <span>Remote / Austin, TX</span>
+                            </div>
+                            <div class="meta-item">
+                                <i class="fas fa-clock"></i>
+                                <span>Full-time</span>
+                            </div>
+                            <div class="meta-item">
+                                <i class="fas fa-users"></i>
+                                <span>Customer Success Team</span>
+                            </div>
+                            <div class="meta-item">
+                                <i class="fas fa-calendar-alt"></i>
+                                <span>Immediate Start</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Job Content -->
+    <section class="job-content">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-lg-10">
+                    <!-- Job Overview -->
+                    <div class="content-card">
+                        <h2 class="section-title">Job Overview</h2>
+                        <p class="lead">
+                            We're seeking a passionate Customer Success Manager to join our growing team and help drive the success of our PEA (Product Experience Analytics) community. In this role, you'll be the primary advocate for our users, ensuring they achieve maximum value from our platform while building lasting relationships that drive retention and growth.
+                        </p>
+                        
+                        <div class="highlight-box">
+                            <h4><i class="fas fa-lightbulb me-2"></i>Why This Role Matters</h4>
+                            <p class="mb-0">
+                                As a Customer Success Manager at CDOT Database, you'll directly impact thousands of businesses worldwide by helping them leverage our platform to make data-driven decisions, optimize their product experiences, and drive growth. You'll be at the forefront of customer advocacy, working with cross-functional teams to ensure our users not only succeed but thrive.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Key Responsibilities -->
+                    <div class="content-card">
+                        <h2 class="section-title">Key Responsibilities</h2>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="requirement-item">
+                                    <i class="fas fa-user-friends"></i>
+                                    <div>
+                                        <strong>Customer Relationship Management</strong><br>
+                                        Build and maintain strong relationships with key customers, serving as their primary point of contact and trusted advisor.
+                                    </div>
+                                </div>
+                                <div class="requirement-item">
+                                    <i class="fas fa-chart-line"></i>
+                                    <div>
+                                        <strong>Success Planning & Execution</strong><br>
+                                        Develop and execute customer success plans to drive adoption, retention, and expansion of our PEA platform.
+                                    </div>
+                                </div>
+                                <div class="requirement-item">
+                                    <i class="fas fa-graduation-cap"></i>
+                                    <div>
+                                        <strong>Training & Onboarding</strong><br>
+                                        Lead customer onboarding processes and provide ongoing training to ensure users maximize platform value.
+                                    </div>
+                                </div>
+                                <div class="requirement-item">
+                                    <i class="fas fa-headset"></i>
+                                    <div>
+                                        <strong>Support & Troubleshooting</strong><br>
+                                        Provide expert-level support, resolving complex customer issues and coordinating with technical teams when needed.
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="requirement-item">
+                                    <i class="fas fa-analytics"></i>
+                                    <div>
+                                        <strong>Data Analysis & Insights</strong><br>
+                                        Analyze customer usage data to identify trends, risks, and opportunities for improvement and growth.
+                                    </div>
+                                </div>
+                                <div class="requirement-item">
+                                    <i class="fas fa-rocket"></i>
+                                    <div>
+                                        <strong>Expansion & Upselling</strong><br>
+                                        Identify opportunities for account expansion and work with sales teams to drive revenue growth.
+                                    </div>
+                                </div>
+                                <div class="requirement-item">
+                                    <i class="fas fa-feedback"></i>
+                                    <div>
+                                        <strong>Feedback & Advocacy</strong><br>
+                                        Gather customer feedback and advocate for product improvements to enhance user experience.
+                                    </div>
+                                </div>
+                                <div class="requirement-item">
+                                    <i class="fas fa-presentation"></i>
+                                    <div>
+                                        <strong>Presentations & Demos</strong><br>
+                                        Conduct product demonstrations, webinars, and training sessions for customers and prospects.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Required Qualifications -->
+                    <div class="content-card">
+                        <h2 class="section-title">Required Qualifications</h2>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="requirement-item">
+                                    <i class="fas fa-check-circle"></i>
+                                    <div>
+                                        <strong>Experience:</strong> 3+ years in customer success, account management, or related role in SaaS
+                                    </div>
+                                </div>
+                                <div class="requirement-item">
+                                    <i class="fas fa-check-circle"></i>
+                                    <div>
+                                        <strong>Education:</strong> Bachelor's degree in Business, Marketing, Communications, or related field
+                                    </div>
+                                </div>
+                                <div class="requirement-item">
+                                    <i class="fas fa-check-circle"></i>
+                                    <div>
+                                        <strong>Communication:</strong> Excellent written and verbal communication skills
+                                    </div>
+                                </div>
+                                <div class="requirement-item">
+                                    <i class="fas fa-check-circle"></i>
+                                    <div>
+                                        <strong>Problem Solving:</strong> Strong analytical and problem-solving abilities
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="requirement-item">
+                                    <i class="fas fa-check-circle"></i>
+                                    <div>
+                                        <strong>Relationship Building:</strong> Proven ability to build and maintain strong customer relationships
+                                    </div>
+                                </div>
+                                <div class="requirement-item">
+                                    <i class="fas fa-check-circle"></i>
+                                    <div>
+                                        <strong>Technical Aptitude:</strong> Comfortable with SaaS platforms, analytics tools, and CRM systems
+                                    </div>
+                                </div>
+                                <div class="requirement-item">
+                                    <i class="fas fa-check-circle"></i>
+                                    <div>
+                                        <strong>Project Management:</strong> Experience managing multiple accounts and projects simultaneously
+                                    </div>
+                                </div>
+                                <div class="requirement-item">
+                                    <i class="fas fa-check-circle"></i>
+                                    <div>
+                                        <strong>Results-Driven:</strong> Track record of meeting or exceeding customer success KPIs
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Preferred Qualifications -->
+                    <div class="content-card">
+                        <h2 class="section-title">Preferred Qualifications</h2>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="requirement-item">
+                                    <i class="fas fa-star"></i>
+                                    <div>
+                                        <strong>Industry Experience:</strong> Background in e-commerce, affiliate marketing, or analytics platforms
+                                    </div>
+                                </div>
+                                <div class="requirement-item">
+                                    <i class="fas fa-star"></i>
+                                    <div>
+                                        <strong>Certifications:</strong> Customer Success Manager (CSM) or similar professional certifications
+                                    </div>
+                                </div>
+                                <div class="requirement-item">
+                                    <i class="fas fa-star"></i>
+                                    <div>
+                                        <strong>Data Analysis:</strong> Experience with data visualization tools and customer analytics
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="requirement-item">
+                                    <i class="fas fa-star"></i>
+                                    <div>
+                                        <strong>Technical Skills:</strong> Familiarity with APIs, integrations, and technical product features
+                                    </div>
+                                </div>
+                                <div class="requirement-item">
+                                    <i class="fas fa-star"></i>
+                                    <div>
+                                        <strong>Languages:</strong> Multilingual capabilities for global customer base
+                                    </div>
+                                </div>
+                                <div class="requirement-item">
+                                    <i class="fas fa-star"></i>
+                                    <div>
+                                        <strong>Leadership:</strong> Experience mentoring junior team members or leading initiatives
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tools & Technologies -->
+                    <div class="content-card">
+                        <h2 class="section-title">Tools & Technologies You'll Use</h2>
+                        <p class="mb-4">
+                            We provide all the tools you need to succeed in your role. You'll work with industry-leading platforms and technologies:
+                        </p>
+                        
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <h5><i class="fas fa-users me-2"></i>CRM & Customer Success</h5>
+                                <span class="tech-tag">Salesforce</span>
+                                <span class="tech-tag">HubSpot</span>
+                                <span class="tech-tag">Gainsight</span>
+                                <span class="tech-tag">Intercom</span>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <h5><i class="fas fa-chart-bar me-2"></i>Analytics & Reporting</h5>
+                                <span class="tech-tag">Tableau</span>
+                                <span class="tech-tag">Google Analytics</span>
+                                <span class="tech-tag">Mixpanel</span>
+                                <span class="tech-tag">Looker</span>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <h5><i class="fas fa-comments me-2"></i>Communication & Collaboration</h5>
+                                <span class="tech-tag">Slack</span>
+                                <span class="tech-tag">Zoom</span>
+                                <span class="tech-tag">Notion</span>
+                                <span class="tech-tag">Loom</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Facts -->
+                    <div class="quick-facts">
+                        <h2 class="section-title text-white">Quick Facts</h2>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="fact-item">
+                                    <i class="fas fa-globe-americas fact-icon"></i>
+                                    <div>
+                                        <strong>Global Impact</strong><br>
+                                        Work with customers from 50+ countries
+                                    </div>
+                                </div>
+                                <div class="fact-item">
+                                    <i class="fas fa-trending-up fact-icon"></i>
+                                    <div>
+                                        <strong>Growth Opportunity</strong><br>
+                                        Fast-growing company with expansion plans
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="fact-item">
+                                    <i class="fas fa-users fact-icon"></i>
+                                    <div>
+                                        <strong>Team Size</strong><br>
+                                        Join a dedicated 8-person customer success team
+                                    </div>
+                                </div>
+                                <div class="fact-item">
+                                    <i class="fas fa-laptop fact-icon"></i>
+                                    <div>
+                                        <strong>Remote First</strong><br>
+                                        Fully remote with flexible working hours
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Benefits -->
+                    <div class="content-card">
+                        <h2 class="section-title">Benefits & Perks</h2>
+                        <p class="mb-4">
+                            We believe in taking care of our team members so they can do their best work and maintain a healthy work-life balance.
+                        </p>
+                        
+                        <div class="benefit-grid">
+                            <div class="benefit-card">
+                                <div class="benefit-icon">
+                                    <i class="fas fa-dollar-sign"></i>
+                                </div>
+                                <h5>Competitive Salary</h5>
+                                <p>$75,000 - $95,000 based on experience, plus performance bonuses</p>
+                            </div>
+                            <div class="benefit-card">
+                                <div class="benefit-icon">
+                                    <i class="fas fa-chart-line"></i>
+                                </div>
+                                <h5>Equity Package</h5>
+                                <p>Stock options to share in company success</p>
+                            </div>
+                            <div class="benefit-card">
+                                <div class="benefit-icon">
+                                    <i class="fas fa-heartbeat"></i>
+                                </div>
+                                <h5>Health Benefits</h5>
+                                <p>100% covered health, dental, and vision insurance</p>
+                            </div>
+                            <div class="benefit-card">
+                                <div class="benefit-icon">
+                                    <i class="fas fa-calendar-alt"></i>
+                                </div>
+                                <h5>Flexible PTO</h5>
+                                <p>Unlimited paid time off policy</p>
+                            </div>
+                            <div class="benefit-card">
+                                <div class="benefit-icon">
+                                    <i class="fas fa-graduation-cap"></i>
+                                </div>
+                                <h5>Learning Budget</h5>
+                                <p>$2,000 annual professional development allowance</p>
+                            </div>
+                            <div class="benefit-card">
+                                <div class="benefit-icon">
+                                    <i class="fas fa-home"></i>
+                                </div>
+                                <h5>Remote Setup</h5>
+                                <p>$1,500 home office setup stipend</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Application Form -->
+                    <div class="application-form">
+                        <div class="text-center mb-4">
+                            <h2>Ready to Join Our Team?</h2>
+                            <p class="lead">We'd love to hear from you! Submit your application below.</p>
+                        </div>
+                        
+                        <form id="applicationForm">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <input type="text" class="form-control" id="firstName" placeholder="First Name" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <input type="text" class="form-control" id="lastName" placeholder="Last Name" required>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <input type="email" class="form-control" id="email" placeholder="Email Address" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <input type="tel" class="form-control" id="phone" placeholder="Phone Number" required>
+                                </div>
+                            </div>
+                            <input type="text" class="form-control" id="location" placeholder="Current Location" required>
+                            <input type="url" class="form-control" id="linkedin" placeholder="LinkedIn Profile URL">
+                            <input type="url" class="form-control" id="portfolio" placeholder="Portfolio/Website URL (Optional)">
+                            <textarea class="form-control" id="coverLetter" rows="6" placeholder="Tell us why you're interested in this role and what makes you a great fit for our team..." required></textarea>
+                            
+                            <div class="text-center">
+                                <button type="submit" class="btn btn-submit">
+                                    <i class="fas fa-paper-plane me-2"></i>Submit Application
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer Component -->
+    <div id="footer-placeholder"></div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Header/Footer Components -->
+    <script src="js/components.js"></script>
+    
+    <script>
+        // Application form submission
+        document.getElementById('applicationForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const firstName = document.getElementById('firstName').value;
+            const lastName = document.getElementById('lastName').value;
+            const email = document.getElementById('email').value;
+            const phone = document.getElementById('phone').value;
+            const location = document.getElementById('location').value;
+            const linkedin = document.getElementById('linkedin').value;
+            const portfolio = document.getElementById('portfolio').value;
+            const coverLetter = document.getElementById('coverLetter').value;
+            
+            const subject = `Customer Success Manager Application - ${firstName} ${lastName}`;
+            const body = `Dear CDOT Database Hiring Team,
+
+I am writing to apply for the Customer Success Manager position at CDOT Database.
+
+APPLICANT INFORMATION:
+Name: ${firstName} ${lastName}
+Email: ${email}
+Phone: ${phone}
+Location: ${location}
+LinkedIn: ${linkedin}
+Portfolio/Website: ${portfolio || 'Not provided'}
+
+COVER LETTER:
+${coverLetter}
+
+I am excited about the opportunity to contribute to your customer success team and help drive growth for your PEA platform users.
+
+Thank you for considering my application. I look forward to hearing from you.
+
+Best regards,
+${firstName} ${lastName}`;
+
+            const mailtoLink = `mailto:hr@cdotdatabase.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+            window.location.href = mailtoLink;
+        });
+    </script>
+</body>
+</html>
