@@ -11,24 +11,22 @@
     
     <!-- jQuery UI CSS -->
     <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
-    
-    <!-- Custom CSS -->
+      <!-- Custom CSS -->
     <link rel="stylesheet" href="./assets/css/style.css">
     <link rel="stylesheet" href="./css/debug.css">
+    <link rel="stylesheet" href="./css/admin.css">
     
-    <!-- jQuery and jQuery UI Scripts -->
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- jQuery and jQuery UI Scripts -->    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
     
     <style>
+        /* Custom admin layout overrides */
         .main-sidebar {
             height: 100vh;
             position: fixed;
             left: 0;
             top: 0;
             width: 250px;
-            background: #2c3e50;
-            color: white;
             padding-top: 20px;
             transition: 0.3s;
             z-index: 1000;
@@ -37,32 +35,12 @@
             margin-left: 250px;
             padding: 20px;
         }
-        .nav-link {
-            color: #ecf0f1;
-            padding: 10px 20px;
-        }
-        .nav-link:hover {
-            background: #34495e;
-            color: white;
-        }
-        .nav-link.active {
-            background: #3498db;
-            color: white;
-        }
         .sub-menu {
             display: none;
-            padding-left: 20px;
         }
         .sub-menu.show {
             display: block;
         }
-        .status-badge {
-            padding: 5px 10px;
-            border-radius: 15px;
-            font-size: 12px;
-        }        .status-approved { background: #2ecc71; color: white; }
-        .status-rejected { background: #e74c3c; color: white; }
-        .status-pending { background: #f1c40f; color: white; }
         
         /* Fix for disabled buttons */
         button:disabled, .btn:disabled {
@@ -96,58 +74,52 @@
         }
     </style>
 </head>
-<body>
-    <!-- Mobile Navigation Button -->
-    <div class="d-block d-md-none p-3">
-        <button class="navbar-btn btn btn-primary">
-            <i class="fas fa-bars"></i> Menu
-        </button>
-    </div>
-
-    <!-- Sidebar -->
-    <div class="main-sidebar">
-        <div class="px-3 mb-4">
+<body class="admin-body">    <!-- Mobile Navigation Button -->
+    <button class="admin-mobile-nav-btn d-block d-xl-none" type="button" aria-label="Open admin menu">
+        <i class="fas fa-bars"></i>
+    </button><!-- Sidebar -->
+    <div class="main-sidebar admin-sidebar">        <div class="px-3 mb-4 d-flex justify-content-between align-items-center">
             <h4>Admin Panel</h4>
-        </div>
-        <nav class="nav flex-column">            <div class="has-submenu">
-                <a href="#" class="nav-link">General</a>
-                <div class="sub-menu">
-                    <a href="#" class="nav-link" data-section="dashboard">Dashboard</a>
-                    <a href="#" class="nav-link" data-section="users">User Management</a>
-                    <a href="#" class="nav-link" data-section="frozen-users">Frozen Users</a>
-                    <a href="#" class="nav-link" data-section="notifications">Notifications</a>
+            <button class="admin-sidebar-close-btn d-block d-xl-none" type="button" aria-label="Close admin menu">
+                <i class="fas fa-times"></i>
+            </button>
+        </div><nav class="nav flex-column">            <div class="has-submenu admin-has-submenu">
+                <a href="#" class="nav-link admin-nav-link"><i class="fas fa-cogs"></i>General</a>
+                <div class="sub-menu admin-sub-menu">
+                    <a href="#" class="nav-link admin-nav-link" data-section="dashboard"><i class="fas fa-tachometer-alt"></i>Dashboard</a>
+                    <a href="#" class="nav-link admin-nav-link" data-section="users"><i class="fas fa-users"></i>User Management</a>
+                    <a href="#" class="nav-link admin-nav-link" data-section="frozen-users"><i class="fas fa-user-lock"></i>Frozen Users</a>
+                    <a href="#" class="nav-link admin-nav-link" data-section="notifications"><i class="fas fa-bell"></i>Notifications</a>
                 </div>
             </div>
-            <div class="has-submenu">
-                <a href="#" class="nav-link">Finance</a>
-                <div class="sub-menu">
-                    <a href="#" class="nav-link" data-section="deposits">Deposits</a>
-                    <a href="#" class="nav-link" data-section="withdrawals">Withdrawals</a>
+            <div class="has-submenu admin-has-submenu">
+                <a href="#" class="nav-link admin-nav-link"><i class="fas fa-chart-line"></i>Finance</a>
+                <div class="sub-menu admin-sub-menu">
+                    <a href="#" class="nav-link admin-nav-link" data-section="deposits"><i class="fas fa-plus-circle"></i>Deposits</a>
+                    <a href="#" class="nav-link admin-nav-link" data-section="withdrawals"><i class="fas fa-minus-circle"></i>Withdrawals</a>
                 </div>
             </div>
-            <div class="has-submenu">
-                <a href="#" class="nav-link">Operations</a>                <div class="sub-menu">
-                    <a href="#" class="nav-link" data-section="drives">Data Drives</a>
-                    <a href="#" class="nav-link" data-section="drive-configurations">Drive Configurations</a> <!-- New Link -->
-                    <a href="#" class="nav-link" data-section="tier-management">Tier Management</a>
-                    <a href="#" class="nav-link" data-section="products">Products</a>
+            <div class="has-submenu admin-has-submenu">
+                <a href="#" class="nav-link admin-nav-link"><i class="fas fa-tasks"></i>Operations</a>                <div class="sub-menu admin-sub-menu">
+                    <a href="#" class="nav-link admin-nav-link" data-section="drives"><i class="fas fa-hdd"></i>Data Drives</a>
+                    <a href="#" class="nav-link admin-nav-link" data-section="drive-configurations"><i class="fas fa-cog"></i>Drive Configurations</a> <!-- New Link -->
+                    <a href="#" class="nav-link admin-nav-link" data-section="tier-management"><i class="fas fa-layer-group"></i>Tier Management</a>
+                    <a href="#" class="nav-link admin-nav-link" data-section="products"><i class="fas fa-box"></i>Products</a>
                 </div>
             </div>
-            <a href="#" class="nav-link" data-section="support">Support Messages</a>
-            <a href="#" class="nav-link logout mt-4" id="logout-button">Logout</a>
+            <a href="#" class="nav-link admin-nav-link" data-section="support"><i class="fas fa-headset"></i>Support Messages</a>
+            <a href="#" class="nav-link admin-nav-link logout mt-4" id="logout-button"><i class="fas fa-sign-out-alt"></i>Logout</a>
         </nav>
-    </div>
-
-    <!-- Main Content -->
-    <div class="main-content">
+    </div>    <!-- Main Content -->
+    <div class="main-content admin-main-content">
         <div id="alerts-container
         "></div> <!-- Added alerts container -->
         <!-- Dashboard Section -->
-        <section id="dashboard-section" class="section">
+        <section id="dashboard-section" class="section admin-section">
             <h2>Dashboard</h2>
             <div class="row mt-4">
                 <div class="col-md-3 mb-4">
-                    <div class="card">
+                    <div class="card admin-dashboard-card">
                         <div class="card-body">
                             <h5 class="card-title">Total Users</h5>
                             <h3 class="card-text" id="total-users">Loading...</h3>
@@ -155,7 +127,7 @@
                     </div>
                 </div>
                 <div class="col-md-3 mb-4">
-                    <div class="card">
+                    <div class="card admin-dashboard-card">
                         <div class="card-body">
                             <h5 class="card-title">Total Deposits</h5>
                             <h3 class="card-text" id="total-deposits">Loading...</h3>
@@ -163,7 +135,7 @@
                     </div>
                 </div>
                 <div class="col-md-3 mb-4">
-                    <div class="card">
+                    <div class="card admin-dashboard-card">
                         <div class="card-body">
                             <h5 class="card-title">Total Withdrawals</h5>
                             <h3 class="card-text" id="total-withdrawals">Loading...</h3>
@@ -171,7 +143,7 @@
                     </div>
                 </div>
                 <div class="col-md-3 mb-4">
-                    <div class="card">
+                    <div class="card admin-dashboard-card">
                         <div class="card-body">
                             <h5 class="card-title">Active Drives</h5>
                             <h3 class="card-text" id="active-drives">Loading...</h3>
@@ -181,22 +153,24 @@
             </div>
         </section>
 
-        <!-- Users Section -->
-        <section id="users-section" class="section" style="display: none;">
+        <!-- Users Section -->        <section id="users-section" class="section admin-section" style="display: none;">
             <h2>User Management</h2>
-            <div class="table-responsive mt-4">
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>Username</th>
-                            <th>Email</th>
-                            <th>Current Tier</th>
-                            <th>Balance</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="users-list"></tbody>
-                </table>
+            <div class="admin-table-container mt-4">
+                <div class="table-responsive">
+                    <table class="table admin-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Username</th>
+                                <th>Email</th>
+                                <th>Current Tier</th>
+                                <th>Balance</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="users-list"></tbody>
+                    </table>
+                </div>
             </div>
 
             <!-- User Details Modal -->
@@ -216,17 +190,16 @@
                     </h2>
                 </div>
                 <div id="collapseOne" class="collapse" aria-labelledby="headingOne" data-bs-parent="#manageUserAccordion">
-                    <div class="card-body">
-                        <div class="form-group">
+                    <div class="card-body">                        <div class="form-group">
                             <label for="user-tier-select">Change Tier:</label>
-                            <select id="user-tier-select" class="form-control">
+                            <select id="user-tier-select" class="form-control admin-form-select">
                                 <option value="bronze">Bronze</option>
                                 <option value="silver">Silver</option>
                                 <option value="gold">Gold</option>
                                 <option value="platinum">Platinum</option>
                             </select>
                         </div>
-                        <button id="update-tier-button" class="btn btn-primary mt-3">Update Tier</button>
+                        <button id="update-tier-button" class="btn admin-btn-primary mt-3">Update Tier</button>
                     </div>
                 </div>
             </div>
@@ -241,16 +214,15 @@
                     </h2>
                 </div>
                 <div id="collapseTwo" class="collapse" aria-labelledby="headingTwo" data-bs-parent="#manageUserAccordion">
-                    <div class="card-body">
-                        <div class="form-group">
+                    <div class="card-body">                        <div class="form-group">
                             <label for="user-drive-config-select">Assign Drive Configuration:</label>
-                            <select id="user-drive-config-select" class="form-control">
+                            <select id="user-drive-config-select" class="form-control admin-form-select">
                                 <!-- Options will be populated by JavaScript -->
                                 <option value="">None</option> 
                             </select>
                             <small id="current-assigned-config" class="form-text text-muted"></small> <!-- To show current assignment -->
                         </div>
-                        <button id="assign-drive-config-button" class="btn btn-success mt-3">Assign Configuration</button>
+                        <button id="assign-drive-config-button" class="btn admin-btn-success mt-3">Assign Configuration</button>
                     </div>
                 </div>
             </div>
@@ -266,71 +238,66 @@
                 </div>
                 <div id="collapseThree" class="collapse" aria-labelledby="headingThree" data-bs-parent="#manageUserAccordion">                    <div class="card-body">
                         <h6 class="mt-1">Manual Balance Adjustment:</h6>
-                        <!-- Transaction Type field hidden - admin adjustments are handled automatically -->
-                        <div class="form-group mt-2" style="display: none;">
+                        <!-- Transaction Type field hidden - admin adjustments are handled automatically -->                        <div class="form-group mt-2" style="display: none;">
                             <label for="manual-transaction-type">Transaction Type:</label>
-                            <select id="manual-transaction-type" class="form-control">
+                            <select id="manual-transaction-type" class="form-control admin-form-select">
                                 <option value="deposit">Deposit</option>
                                 <option value="withdrawal">Withdrawal</option>
                             </select>
                         </div>
                         <div class="form-group mt-2">
                             <label for="manual-transaction-amount">Amount:</label>
-                            <input type="number" id="manual-transaction-amount" class="form-control" placeholder="Enter amount (positive to add, negative to deduct)" step="0.01">
+                            <input type="number" id="manual-transaction-amount" class="form-control admin-form-control" placeholder="Enter amount (positive to add, negative to deduct)" step="0.01">
                         </div>
                         <div class="form-group mt-2">
                             <label for="manual-transaction-description">Reason:</label>
-                            <input type="text" id="manual-transaction-description" class="form-control" placeholder="E.g., Bonus payment, Balance correction, Penalty">
+                            <input type="text" id="manual-transaction-description" class="form-control admin-form-control" placeholder="E.g., Bonus payment, Balance correction, Penalty">
                         </div>
-                        <button id="manual-transaction-button" class="btn btn-warning mt-3">Adjust Balance</button>
+                        <button id="manual-transaction-button" class="btn admin-btn-warning mt-3">Adjust Balance</button>
                     </div>
                 </div>
             </div>
         </div>    </div>
-</section>
-
-        <!-- Frozen Users Section -->
-        <section id="frozen-users-section" class="section" style="display: none;">
+</section>        <!-- Frozen Users Section -->
+        <section id="frozen-users-section" class="section admin-section" style="display: none;">
             <h2>Frozen Users Management</h2>
             <p class="text-muted mb-4">Users whose accounts have been frozen due to insufficient balance during drive operations.</p>
             
             <div class="mb-3">
-                <button class="btn btn-primary" onclick="loadFrozenUsers()">
+                <button class="btn admin-btn-primary" onclick="loadFrozenUsers()">
                     <i class="fas fa-sync-alt"></i> Refresh List
                 </button>
             </div>
-            
-            <div class="table-responsive mt-4">
-                <table class="table table-striped">
-                    <thead class="table-dark">
-                        <tr>
-                            <th>User ID</th>
-                            <th>Username</th>
-                            <th>Email</th>
-                            <th>Current Balance</th>
-                            <th>Frozen Sessions</th>
-                            <th>Last Frozen</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="frozen-users-list">
-                        <tr>
-                            <td colspan="7" class="text-center">Loading frozen users...</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>        </section>
-
-        <!-- Notifications Section -->
-        <section id="notifications-section" class="section" style="display: none;">
+              <div class="admin-table-container mt-4">
+                <div class="table-responsive">
+                    <table class="table admin-table">
+                        <thead>
+                            <tr>
+                                <th>User ID</th>
+                                <th>Username</th>
+                                <th>Email</th>
+                                <th>Current Balance</th>
+                                <th>Frozen Sessions</th>
+                                <th>Last Frozen</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="frozen-users-list">
+                            <tr>
+                                <td colspan="7" class="text-center">Loading frozen users...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div></section>        <!-- Notifications Section -->
+        <section id="notifications-section" class="section admin-section" style="display: none;">
             <h2>Notifications Management</h2>
-            
-            <!-- Notification Categories Management -->
-            <div class="card mb-4">
+              <!-- Notification Categories Management -->
+            <div class="card admin-dashboard-card mb-4">
                 <div class="card-header">
                     <h5 class="mb-0">
                         <i class="fas fa-tags"></i> Notification Categories
-                        <button class="btn btn-sm btn-primary float-end" onclick="showCreateCategoryModal()">
+                        <button class="btn btn-sm admin-btn-primary float-end" onclick="showCreateCategoryModal()">
                             <i class="fas fa-plus"></i> Add Category
                         </button>
                     </h5>
@@ -451,39 +418,39 @@
                     <tbody id="withdrawals-list"></tbody>
                 </table>
             </div>
-        </section>
-
-        <!-- Data Drives Section -->
-        <section id="drives-section" class="section" style="display: none;">
+        </section>        <!-- Data Drives Section -->
+        <section id="drives-section" class="section admin-section" style="display: none;">
             <h2>Data Drives Management</h2>
-            <div class="table-responsive mt-4">
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>User ID</th>
-                            <th>Username</th>
-                            <th>Assigned Drive Config</th>
-                            <th>Total Drives</th>
-                            <th>Commission</th>
-                            <th>Last Drive</th>
-                            <th>Status</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="drives-list"></tbody>
-                </table>
+            
+            <!-- Drives Table with buttons below rows -->
+            <div class="admin-table-container mt-4">
+                <div class="table-responsive">
+                    <table class="table admin-table admin-drives-table">
+                        <thead class="admin-drives-header">
+                            <tr>
+                                <th>User ID</th>
+                                <th>Username</th>
+                                <th>Assigned Drive Config</th>
+                                <th>Total Drives</th>
+                                <th>Commission</th>
+                                <th>Last Drive</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="drives-list"></tbody>
+                    </table>
+                </div>
             </div>
         </section>
 
         <!-- Drive Configurations Section (New) -->
-        <section id="drive-configurations-section" class="section" style="display: none;">
+        <section id="drive-configurations-section" class="section admin-section" style="display: none;">
             <h2>Drive Configurations Management</h2>
             
-            <button class="btn btn-primary mb-3" id="show-create-config-modal-btn">Create New Configuration</button>
+            <button class="btn admin-btn-primary mb-3" id="show-create-config-modal-btn">Create New Configuration</button>
 
-            <div class="table-responsive mt-4">
-                <table class="table">
-                    <thead>
+            <div class="admin-table-container mt-4">                <table class="table admin-table">
+                    <thead class="admin-operations-header">
                         <tr>
                             <th>ID</th>
                             <th>Name</th>
@@ -524,12 +491,10 @@
                     </div>
                 </div>
             </div>
-        </div>
-
-        <!-- Products Section -->
-        <section id="products-section" class="section" style="display: none;">
+        </div>        <!-- Products Section -->
+        <section id="products-section" class="section admin-section" style="display: none;">
             <h2>Products Management</h2>
-            <div class="card mb-4">
+            <div class="card admin-dashboard-card mb-4">
                 <div class="card-body">
                     <h5 class="card-title">Add New Product</h5>
                     <form id="add-product-form">
@@ -537,25 +502,24 @@
                             <div class="col-md-3">
                                 <div class="form-group">
                                     <label for="product-name">Name</label>
-                                    <input type="text" id="product-name" class="form-control" required>
+                                    <input type="text" id="product-name" class="form-control admin-form-control" required>
                                 </div>
                             </div>
-                            <div class="col-md-3">
-                                <div class="form-group">
+                            <div class="col-md-3">                                <div class="form-group">
                                     <label for="product-price">Price</label>
-                                    <input type="number" id="product-price" class="form-control" step="0.01" required>
+                                    <input type="number" id="product-price" class="form-control admin-form-control" step="0.01" required>
                                 </div>                            </div>
                             
                             <!-- /* Removed Commission Rate and Minimum Tier inputs */ -->
 
                         </div>
-                        <button type="submit" class="btn btn-primary mt-3">Add Product</button>
+                        <button type="submit" class="btn admin-btn-primary mt-3">Add Product</button>
                     </form>
                 </div>
             </div>
-            <div class="table-responsive">
-                <table class="table">
-                    <thead>                        <tr>
+            <div class="admin-table-container">
+                <table class="table admin-table">
+                    <thead class="admin-products-header">                        <tr>
                             <th>ID</th> 
                             <th>Name</th>
                             <th>Price</th>
@@ -602,13 +566,11 @@
             </div>
             <!-- End Edit Product Modal -->
 
-        </section>
-
-        <!-- Support Section -->
-        <section id="support-section" class="section" style="display: none;">
+        </section>        <!-- Support Section -->
+        <section id="support-section" class="section admin-section" style="display: none;">
             <h2>Support Messages</h2>
-            <div class="table-responsive mt-4">
-                <table class="table">
+            <div class="admin-table-container mt-4">
+                <table class="table admin-table">
                     <thead>
                         <tr>
                             <th>User</th>
@@ -623,7 +585,7 @@
                 </table>
             </div>
             <!-- Reply Form -->
-            <div id="message-reply-form" class="card mt-3" style="display: none;">
+            <div id="message-reply-form" class="card admin-dashboard-card mt-3" style="display: none;">
                 <div class="card-body">
                     <h5>Reply to Message</h5>
                     <div class="form-group">
@@ -631,20 +593,18 @@
                     </div>
                     <button id="send-reply-button" class="btn btn-primary mt-3">Send Reply</button>                </div>
             </div>
-        </section>
-
-        <!-- Tier Management Section -->
-        <section id="tier-management-section" class="section" style="display: none;">
+        </section>        <!-- Tier Management Section -->
+        <section id="tier-management-section" class="section admin-section" style="display: none;">
             <div class="container-fluid">
                 <div class="row">
                     <div class="col-12">
                         <div class="d-flex justify-content-between align-items-center mb-4">
                             <h2><i class="fas fa-layer-group"></i> Tier Management</h2>
                             <div>
-                                <button id="newTierBtn" class="btn btn-success me-2">
+                                <button id="newTierBtn" class="btn admin-btn-success me-2">
                                     <i class="fas fa-plus"></i> New Tier
                                 </button>
-                                <button id="refreshTiersBtn" class="btn btn-info">
+                                <button id="refreshTiersBtn" class="btn admin-btn-primary">
                                     <i class="fas fa-sync"></i> Refresh
                                 </button>
                             </div>
@@ -884,46 +844,6 @@
 
 <!-- Enhanced Combo Creation Modal -->
 <div class="modal fade" id="enhancedComboCreationModal" tabindex="-1" aria-labelledby="enhancedComboCreationModalLabel" aria-hidden="true">
-<<<<<<< HEAD
-  <div class="modal-dialog modal-xl">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="enhancedComboCreationModalLabel">Create Custom Combo for User</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        <!-- User Progress Section -->
-        <div class="row mb-4">
-          <div class="col-12">
-            <div class="card bg-light">
-              <div class="card-header">
-                <h6 class="card-title mb-0">
-                  <i class="fas fa-user"></i> User Progress Overview
-                  <button type="button" class="btn btn-sm btn-outline-primary float-end" id="refresh-progress-btn">
-                    <i class="fas fa-sync-alt"></i> Refresh
-                  </button>
-                </h6>
-              </div>
-              <div class="card-body">
-                <div id="user-progress-loading" class="text-center">
-                  <div class="spinner-border spinner-border-sm text-primary"></div>
-                  <span class="ms-2">Loading user progress...</span>
-                </div>
-                <div id="user-progress-content" style="display: none;">
-                  <div class="row">
-                    <div class="col-md-6">
-                      <p><strong>User:</strong> <span id="combo-user-info"></span></p>
-                      <p><strong>Drive Configuration:</strong> <span id="combo-drive-config"></span></p>
-                    </div>
-                    <div class="col-md-6">
-                      <p><strong>Current Task:</strong> <span id="combo-current-task"></span></p>
-                      <p><strong>Progress:</strong> <span id="combo-progress-summary"></span></p>
-                    </div>
-                  </div>
-                  <div class="progress mb-2">
-                    <div id="combo-progress-bar" class="progress-bar bg-info" role="progressbar" style="width: 0%"></div>
-                  </div>
-=======
   <div class="modal-dialog modal-xl modal-dialog-scrollable">
     <div class="modal-content">
       <div class="modal-header bg-primary text-white">
@@ -962,7 +882,6 @@
                   <button class="btn btn-sm btn-outline-secondary" id="refresh-progress-btn">
                     <i class="fas fa-sync-alt me-1"></i>Refresh
                   </button>
->>>>>>> post
                 </div>
               </div>
             </div>
@@ -976,21 +895,6 @@
             <div class="col-md-6">
               <div class="card">
                 <div class="card-header">
-<<<<<<< HEAD
-                  <h6 class="card-title mb-0"><i class="fas fa-box"></i> Combo Details</h6>
-                </div>
-                <div class="card-body">
-                  <div class="mb-3">
-                    <label for="combo-name" class="form-label">Combo Name *</label>
-                    <input type="text" class="form-control" id="combo-name" required placeholder="e.g., Special Mid-Drive Offer">
-                  </div>
-                  <div class="mb-3">
-                    <label for="combo-description" class="form-label">Description</label>
-                    <textarea class="form-control" id="combo-description" rows="3" placeholder="Brief description of this combo offer"></textarea>
-                  </div>
-                  <div class="mb-3">
-                    <label for="insertion-point" class="form-label">Insert Position *</label>
-=======
                   <h6 class="mb-0"><i class="fas fa-edit me-2"></i>Combo Details</h6>
                 </div>
                 <div class="card-body">
@@ -1004,7 +908,6 @@
                   </div>
                   <div class="mb-3">
                     <label for="insertion-point" class="form-label">Insertion Point <span class="text-danger">*</span></label>
->>>>>>> post
                     <select class="form-select" id="insertion-point" required>
                       <option value="">Select insertion point...</option>
                       <option value="beginning">At the beginning</option>
@@ -1014,13 +917,8 @@
                     </select>
                   </div>
                   <div class="mb-3" id="custom-position-group" style="display: none;">
-<<<<<<< HEAD
-                    <label for="custom-position" class="form-label">Custom Position (Order)</label>
-                    <input type="number" class="form-control" id="custom-position" min="1" placeholder="Enter position number">
-=======
                     <label for="custom-position" class="form-label">Custom Position</label>
                     <input type="number" class="form-control" id="custom-position" min="1" placeholder="Position number">
->>>>>>> post
                   </div>
                 </div>
               </div>
@@ -1029,33 +927,6 @@
             <!-- Right Column: Product Selection -->
             <div class="col-md-6">
               <div class="card">
-<<<<<<< HEAD
-                <div class="card-header">
-                  <h6 class="card-title mb-0">
-                    <i class="fas fa-shopping-cart"></i> Product Selection
-                    <span class="badge bg-primary ms-2" id="selected-products-count">0 selected</span>
-                  </h6>
-                </div>
-                <div class="card-body">
-                  <!-- Product Search and Filter -->
-                  <div class="mb-3">
-                    <div class="input-group">
-                      <input type="text" class="form-control" id="product-search" placeholder="Search products...">
-                      <button class="btn btn-outline-secondary" type="button" id="clear-search-btn">
-                        <i class="fas fa-times"></i>
-                      </button>
-                    </div>
-                  </div>
-                  <div class="row mb-3">
-                    <div class="col-6">
-                      <input type="number" class="form-control form-control-sm" id="price-filter-min" placeholder="Min price" step="0.01">
-                    </div>
-                    <div class="col-6">
-                      <input type="number" class="form-control form-control-sm" id="price-filter-max" placeholder="Max price" step="0.01">
-                    </div>
-                  </div>
-                  
-=======
                 <div class="card-header d-flex justify-content-between align-items-center">
                   <h6 class="mb-0"><i class="fas fa-box me-2"></i>Product Selection</h6>
                   <span class="badge bg-secondary" id="selected-products-count">0 selected</span>
@@ -1085,23 +956,11 @@
                     </label>
                   </div>
 
->>>>>>> post
                   <!-- Products List -->
                   <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
                     <table class="table table-sm table-hover">
                       <thead class="table-light sticky-top">
                         <tr>
-<<<<<<< HEAD
-                          <th width="50">
-                            <input type="checkbox" id="select-all-products" class="form-check-input">
-                          </th>
-                          <th>Product</th>
-                          <th>Price</th>
-                        </tr>
-                      </thead>
-                      <tbody id="enhanced-products-list">
-                        <!-- Products will be loaded here -->
-=======
                           <th width="50">Select</th>
                           <th>Product</th>
                           <th width="80">Price</th>
@@ -1116,7 +975,6 @@
                             Loading products...
                           </td>
                         </tr>
->>>>>>> post
                       </tbody>
                     </table>
                   </div>
@@ -1125,36 +983,6 @@
             </div>
           </div>
 
-<<<<<<< HEAD
-          <!-- Task Sequence Preview -->
-          <div class="row mt-4">
-            <div class="col-12">
-              <div class="card">
-                <div class="card-header">
-                  <h6 class="card-title mb-0"><i class="fas fa-list-ol"></i> Drive Sequence Preview</h6>
-                </div>
-                <div class="card-body">
-                  <div id="sequence-preview-loading" class="text-center">
-                    <span class="text-muted">Select insertion point to preview sequence...</span>
-                  </div>
-                  <div id="sequence-preview-content" style="display: none;">
-                    <div class="table-responsive">
-                      <table class="table table-sm table-striped">
-                        <thead>
-                          <tr>
-                            <th>Order</th>
-                            <th>Task Set</th>
-                            <th>Type</th>
-                            <th>Status</th>
-                          </tr>
-                        </thead>
-                        <tbody id="sequence-preview-list">
-                          <!-- Sequence preview will be shown here -->
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-=======
           <!-- Sequence Preview -->
           <div class="card mt-4">
             <div class="card-header">
@@ -1178,7 +1006,6 @@
                     <tbody id="sequence-preview-list">
                     </tbody>
                   </table>
->>>>>>> post
                 </div>
               </div>
             </div>
@@ -1188,11 +1015,7 @@
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
         <button type="button" class="btn btn-primary" id="create-combo-btn" disabled>
-<<<<<<< HEAD
-          <i class="fas fa-plus"></i> Create Combo
-=======
           <i class="fas fa-magic me-2"></i>Create Combo
->>>>>>> post
         </button>
       </div>
     </div>  </div>
@@ -1496,9 +1319,602 @@
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                 <button type="button" class="btn btn-primary" onclick="updateGeneralNotification()">Update Notification</button>
             </div>
-        </div>
-    </div>
+        </div>    </div>
 </div>
+
+    <!-- Enhanced Admin UI Script -->    <script>        
+        // Primary initialization using jQuery
+        $(document).ready(function() {
+            // Initialize enhanced admin UI
+            initializeAdminUI();
+            // Initialize responsive features
+            initializeResponsiveFeatures();
+        });
+          // Fallback initialization using vanilla JavaScript
+        document.addEventListener('DOMContentLoaded', function() {
+            // Backup initialization in case jQuery fails
+            if (typeof $ === 'undefined') {
+                console.warn('jQuery not available, using vanilla JS initialization');
+                setTimeout(function() {
+                    if (typeof initializeTooltips === 'function') {
+                        initializeTooltips();
+                    }
+                    if (typeof initializeResponsiveFeatures === 'function') {
+                        initializeResponsiveFeatures();
+                    }
+                }, 200);
+            }
+        });
+          // Final fallback using window load event
+        window.addEventListener('load', function() {
+            // Last resort initialization
+            setTimeout(function() {
+                if (!window.adminInitialized) {
+                    console.log('Running final fallback initialization');
+                    if (typeof initializeTooltips === 'function') {
+                        initializeTooltips();
+                    }
+                    window.adminInitialized = true;
+                }
+            }, 300);
+        });
+        
+        function initializeAdminUI() {
+            // Handle submenu toggles with enhanced animations
+            $('.admin-has-submenu > .admin-nav-link').on('click', function(e) {
+                e.preventDefault();
+                
+                const $parentItem = $(this).parent();
+                const $submenu = $parentItem.find('.admin-sub-menu');
+                
+                // Close other submenus
+                $('.admin-has-submenu').not($parentItem).removeClass('open');
+                $('.admin-sub-menu').not($submenu).slideUp(300);
+                
+                // Toggle current submenu
+                $parentItem.toggleClass('open');
+                $submenu.slideToggle(300);
+            });
+            
+            // Enhanced section navigation
+            $('.admin-nav-link[data-section]').on('click', function(e) {
+                e.preventDefault();
+                
+                const section = $(this).data('section');
+                
+                // Remove active state from all nav links
+                $('.admin-nav-link').removeClass('active');
+                
+                // Add active state to clicked link
+                $(this).addClass('active');
+                  // Hide all sections with fade effect
+                $('.admin-section').fadeOut(200, function() {
+                    // Show target section
+                    $(`#${section}-section`).fadeIn(300);
+                    
+                    // Load section-specific data
+                    if (section === 'drives') {
+                        loadSampleDrivesData();
+                    }
+                });
+                
+                // Update page title
+                updatePageTitle(section);
+            });
+            
+            // Replace standard status classes with admin classes
+            replaceStatusClasses();            
+            // Add loading states to buttons
+            enhanceButtonInteractions();            // Initialize tooltips for better UX (with error handling and delay)
+            setTimeout(function() {
+                initializeTooltips();
+            }, 100);
+            
+            // Mark as initialized
+            window.adminInitialized = true;
+        }        function initializeTooltips() {
+            try {
+                // Wait a bit more for all scripts to load
+                if (document.readyState !== 'complete') {
+                    setTimeout(initializeTooltips, 100);
+                    return;
+                }
+                
+                // Check if Bootstrap tooltips are available
+                if (typeof bootstrap !== 'undefined' && bootstrap.Tooltip) {
+                    // Initialize Bootstrap 5 tooltips
+                    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+                    tooltipTriggerList.map(function (tooltipTriggerEl) {
+                        return new bootstrap.Tooltip(tooltipTriggerEl);
+                    });
+                    console.log('Bootstrap tooltips initialized successfully');
+                } else if (typeof $ !== 'undefined' && $ && $.fn && typeof $.fn.tooltip === 'function') {
+                    // Fallback to jQuery tooltips if available (with better checks)
+                    $('[data-bs-toggle="tooltip"], [title]').tooltip({
+                        container: 'body',
+                        placement: 'top',
+                        trigger: 'hover'
+                    });
+                    console.log('jQuery tooltips initialized successfully');
+                } else {
+                    // Create custom tooltip functionality
+                    console.log('Using custom tooltip implementation');
+                    initializeCustomTooltips();
+                }
+            } catch (error) {
+                console.warn('Tooltip initialization failed, using custom tooltips:', error);
+                // Fallback to custom tooltips
+                initializeCustomTooltips();
+            }
+        }
+          function initializeCustomTooltips() {
+            try {
+                // Custom lightweight tooltip implementation
+                const elements = document.querySelectorAll('[data-bs-toggle="tooltip"], [title]');
+                console.log(`Initializing custom tooltips for ${elements.length} elements`);
+                
+                elements.forEach(element => {
+                    const tooltipText = element.getAttribute('data-bs-title') || 
+                                      element.getAttribute('title') || 
+                                      element.getAttribute('data-original-title');
+                    
+                    if (!tooltipText) return;
+                    
+                    // Remove default title to prevent browser tooltip
+                    element.removeAttribute('title');
+                    element.setAttribute('data-tooltip-text', tooltipText);
+                    
+                    let tooltipElement = null;
+                    
+                    element.addEventListener('mouseenter', function(e) {
+                        try {
+                            // Create tooltip element
+                            tooltipElement = document.createElement('div');
+                            tooltipElement.className = 'admin-custom-tooltip';
+                            tooltipElement.textContent = tooltipText;
+                            document.body.appendChild(tooltipElement);
+                            
+                            // Position tooltip
+                            const rect = element.getBoundingClientRect();
+                            const tooltipRect = tooltipElement.getBoundingClientRect();
+                            
+                            tooltipElement.style.left = rect.left + (rect.width / 2) - (tooltipRect.width / 2) + 'px';
+                            tooltipElement.style.top = rect.top - tooltipRect.height - 8 + 'px';
+                            
+                            // Show tooltip with animation
+                            setTimeout(() => {
+                                if (tooltipElement) {
+                                    tooltipElement.classList.add('show');
+                                }
+                            }, 10);
+                        } catch (error) {
+                            console.warn('Error showing custom tooltip:', error);
+                        }
+                    });
+                    
+                    element.addEventListener('mouseleave', function() {
+                        if (tooltipElement) {
+                            try {
+                                tooltipElement.classList.remove('show');
+                                setTimeout(() => {
+                                    if (tooltipElement && tooltipElement.parentNode) {
+                                        tooltipElement.parentNode.removeChild(tooltipElement);
+                                    }
+                                    tooltipElement = null;
+                                }, 200);
+                            } catch (error) {
+                                console.warn('Error hiding custom tooltip:', error);
+                            }
+                        }
+                    });
+                });
+            } catch (error) {
+                console.error('Failed to initialize custom tooltips:', error);
+            }
+        }
+        
+        function updatePageTitle(section) {
+            const titles = {
+                'dashboard': 'Dashboard',
+                'users': 'User Management',
+                'frozen-users': 'Frozen Users Management',
+                'notifications': 'Notifications Management',
+                'deposits': 'Deposits Management',
+                'withdrawals': 'Withdrawals Management',
+                'drives': 'Data Drives Management',
+                'drive-configurations': 'Drive Configurations',
+                'tier-management': 'Tier Management',
+                'products': 'Products Management',
+                'support': 'Support Messages'
+            };
+            
+            if (titles[section]) {
+                document.title = `${titles[section]} - Admin Panel`;
+            }
+        }
+        
+        function replaceStatusClasses() {
+            // Replace old status classes with new admin classes
+            setTimeout(function() {
+                $('.status-approved').removeClass('status-approved').addClass('admin-status-approved');
+                $('.status-rejected').removeClass('status-rejected').addClass('admin-status-rejected');
+                $('.status-pending').removeClass('status-pending').addClass('admin-status-pending');
+            }, 500);
+        }
+        
+        function enhanceButtonInteractions() {
+            // Add loading states to buttons when clicked
+            $('button[type="submit"], .btn:not(.btn-close)').on('click', function() {
+                const $btn = $(this);
+                if (!$btn.hasClass('loading') && !$btn.prop('disabled')) {
+                    const originalText = $btn.html();
+                    $btn.addClass('loading').html('<span class="admin-loading"></span> Processing...');
+                    
+                    setTimeout(function() {
+                        $btn.removeClass('loading').html(originalText);
+                    }, 2000);
+                }
+            });
+        }
+          // Override any existing status badge creation functions
+        window.createStatusBadge = function(status) {
+            const statusClass = `admin-status-${status.toLowerCase()}`;
+            return `<span class="${statusClass}">${status}</span>`;
+        };
+        
+        // Enhanced table row creation with hover effects
+        window.createEnhancedTableRow = function(data) {
+            return $('<tr>').addClass('admin-table-row').hover(
+                function() { $(this).addClass('admin-shadow-hover'); },
+                function() { $(this).removeClass('admin-shadow-hover'); }
+            );
+        };
+        
+        // Enhanced user table row creation with proper structure
+        window.createUserTableRow = function(user) {
+            const statusBadge = createStatusBadge(user.status || 'active');
+            const balanceFormatted = parseFloat(user.balance || 0).toFixed(2);
+            
+            return `
+                <tr class="admin-table-row">
+                    <td class="table-id">${user.id}</td>
+                    <td class="table-username">${user.username}</td>
+                    <td class="table-email">${user.email}</td>
+                    <td class="table-tier">${user.tier}</td>
+                    <td class="table-balance">$${balanceFormatted}</td>
+                    <td class="admin-table-actions">
+                        <button class="btn admin-btn-primary btn-sm" onclick="manageUser(${user.id})">
+                            <i class="fas fa-cog"></i> Manage
+                        </button>
+                    </td>
+                </tr>
+            `;
+        };          // Enhanced drives table row creation with buttons below
+        window.createDrivesTableRow = function(drive) {
+            const statusBadge = createStatusBadge(drive.status || 'active');
+            const commission = parseFloat(drive.commission || 0).toFixed(2);
+            
+            return `
+                <tr class="admin-table-row admin-drive-main-row">
+                    <td class="table-id">${drive.user_id}</td>
+                    <td class="table-username">${drive.username}</td>
+                    <td class="table-config">${drive.config_name || 'N/A'}</td>
+                    <td class="table-count">${drive.total_drives || 0}</td>
+                    <td class="table-balance">$${commission}</td>
+                    <td class="table-date">${drive.last_drive || 'Never'}</td>
+                    <td>${statusBadge}</td>
+                </tr>                <tr class="admin-drive-actions-row">
+                    <td colspan="7" class="admin-drive-actions-cell">
+                        <div class="admin-drive-actions-container">
+                            <button class="btn admin-btn-primary btn-sm" onclick="viewDriveDetails(${drive.user_id})" 
+                                    data-bs-toggle="tooltip" data-bs-title="View detailed drive information">
+                                <i class="fas fa-eye"></i> View Details
+                            </button>
+                            <button class="btn admin-btn-success btn-sm" onclick="manageDriveConfig(${drive.user_id})" 
+                                    data-bs-toggle="tooltip" data-bs-title="Manage drive configuration">
+                                <i class="fas fa-cogs"></i> Assign Config
+                            </button>
+                            <button class="btn admin-btn-warning btn-sm" onclick="viewDriveProgress(${drive.user_id})" 
+                                    data-bs-toggle="tooltip" data-bs-title="View drive progress">
+                                <i class="fas fa-chart-line"></i> View Progress
+                            </button>
+                            <button class="btn admin-btn-info btn-sm" onclick="resetDrive(${drive.user_id})" 
+                                    data-bs-toggle="tooltip" data-bs-title="Reset user's drive">
+                                <i class="fas fa-redo"></i> Reset Drive
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        };        
+        // Function to populate drives table
+        window.populateDrivesGrid = function(drives) {
+            const drivesList = document.getElementById('drives-list');
+            
+            if (!drives || drives.length === 0) {
+                drivesList.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="admin-table-empty">
+                            <i class="fas fa-hdd"></i>
+                            No drive data available
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            // Populate table layout with buttons below rows
+            drivesList.innerHTML = drives.map(drive => createDrivesTableRow(drive)).join('');
+        };
+        
+        // Sample drives data loading function
+        function loadSampleDrivesData() {
+            const sampleDrives = [
+                {
+                    user_id: 1001,
+                    username: 'johndoe',
+                    config_name: 'Standard Config',
+                    total_drives: 15,
+                    commission: 450.75,
+                    last_drive: '2024-01-15',
+                    status: 'active'
+                },
+                {
+                    user_id: 1002,
+                    username: 'janedoe',
+                    config_name: 'Premium Config',
+                    total_drives: 28,
+                    commission: 890.25,
+                    last_drive: '2024-01-14',
+                    status: 'active'
+                },
+                {
+                    user_id: 1003,
+                    username: 'mikejohnson',
+                    config_name: 'Basic Config',
+                    total_drives: 8,
+                    commission: 210.50,
+                    last_drive: '2024-01-12',
+                    status: 'inactive'
+                },
+                {
+                    user_id: 1004,
+                    username: 'sarahsmith',
+                    config_name: 'Advanced Config',
+                    total_drives: 42,
+                    commission: 1260.00,
+                    last_drive: '2024-01-16',
+                    status: 'active'
+                },
+                {
+                    user_id: 1005,
+                    username: 'davidbrown',
+                    config_name: 'No Configuration Assigned',
+                    total_drives: 0,
+                    commission: 0.00,
+                    last_drive: 'Never',
+                    status: 'pending'
+                }
+            ];
+            
+            populateDrivesGrid(sampleDrives);
+        }
+        
+        // Enhanced mobile navigation
+        function initializeMobileNav() {
+            const mobileNavBtn = document.querySelector('.admin-mobile-nav-btn');
+            const sidebarCloseBtn = document.querySelector('.admin-sidebar-close-btn');
+            const sidebar = document.querySelector('.main-sidebar');
+            const overlay = document.querySelector('.bg-overlay');
+            
+            // Mobile nav button to open sidebar
+            if (mobileNavBtn) {
+                mobileNavBtn.addEventListener('click', function() {
+                    sidebar.classList.toggle('active');
+                    overlay.classList.toggle('active');
+                });
+            }
+            
+            // Sidebar close button
+            if (sidebarCloseBtn) {
+                sidebarCloseBtn.addEventListener('click', function() {
+                    sidebar.classList.remove('active');
+                    overlay.classList.remove('active');
+                });
+            }
+            
+            // Overlay click to close
+            if (overlay) {
+                overlay.addEventListener('click', function() {
+                    sidebar.classList.remove('active');
+                    overlay.classList.remove('active');
+                });
+            }
+            
+            // Close sidebar when a nav link is clicked on mobile
+            document.querySelectorAll('.admin-nav-link[data-section]').forEach(link => {
+                link.addEventListener('click', function() {
+                    if (window.innerWidth < 1200) {
+                        sidebar.classList.remove('active');
+                        overlay.classList.remove('active');
+                    }
+                });
+            });
+        }
+        
+        // Responsive table handling
+        function handleResponsiveTables() {
+            const tables = document.querySelectorAll('.admin-table-container');
+            
+            tables.forEach(container => {
+                const table = container.querySelector('.admin-table');
+                if (table && window.innerWidth < 768) {
+                    // Add horizontal scroll indicator
+                    if (!container.querySelector('.scroll-indicator')) {
+                        const indicator = document.createElement('div');
+                        indicator.className = 'scroll-indicator';
+                        indicator.innerHTML = '<i class="fas fa-arrows-alt-h"></i> Scroll horizontally to view more';
+                        indicator.style.cssText = `
+                            background: rgba(102, 126, 234, 0.1);
+                            color: var(--admin-primary-color);
+                            padding: 8px 12px;
+                            font-size: 0.8rem;
+                            text-align: center;
+                            border-bottom: 1px solid rgba(102, 126, 234, 0.2);
+                        `;
+                        container.insertBefore(indicator, table);
+                    }
+                }
+            });
+        }
+        
+        // Initialize responsive features
+        function initializeResponsiveFeatures() {
+            initializeMobileNav();
+            handleResponsiveTables();
+            
+            // Handle window resize
+            window.addEventListener('resize', function() {
+                handleResponsiveTables();
+                
+                // Auto-close sidebar on desktop
+                if (window.innerWidth >= 1200) {
+                    document.querySelector('.main-sidebar').classList.remove('active');
+                    document.querySelector('.bg-overlay').classList.remove('active');
+                }
+            });
+        }
+        
+        // Enhanced products table row creation
+        window.createProductsTableRow = function(product) {
+            const priceFormatted = parseFloat(product.price || 0).toFixed(2);
+            
+            return `
+                <tr class="admin-table-row">
+                    <td class="table-id">${product.id}</td>
+                    <td class="table-name">${product.name}</td>
+                    <td class="table-balance">$${priceFormatted}</td>
+                    <td class="admin-table-actions">
+                        <button class="btn admin-btn-warning btn-sm" onclick="editProduct(${product.id})">
+                            <i class="fas fa-edit"></i> Edit
+                        </button>
+                        <button class="btn admin-btn-danger btn-sm" onclick="deleteProduct(${product.id})">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                    </td>
+                </tr>
+            `;
+        };
+        
+        // Enhanced drive configurations table row creation
+        window.createDriveConfigTableRow = function(config) {
+            const statusBadge = config.is_active ? 
+                '<span class="admin-status-approved">Active</span>' : 
+                '<span class="admin-status-rejected">Inactive</span>';
+            
+            return `
+                <tr class="admin-table-row">
+                    <td class="table-id">${config.id}</td>
+                    <td class="table-name">${config.name}</td>
+                    <td class="table-description">${config.description || 'N/A'}</td>
+                    <td class="table-count">${config.tasks_required || 0}</td>
+                    <td>${statusBadge}</td>
+                    <td class="table-date">${config.created_at || 'N/A'}</td>
+                    <td class="admin-table-actions">
+                        <button class="btn admin-btn-primary btn-sm" onclick="editDriveConfig(${config.id})">
+                            <i class="fas fa-edit"></i> Edit
+                        </button>
+                        <button class="btn admin-btn-danger btn-sm" onclick="deleteDriveConfig(${config.id})">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                    </td>
+                </tr>
+            `;
+        };
+        
+        // Table initialization and enhancement functions
+        function initializeAdminTables() {
+            // Add loading states to empty tables
+            $('.admin-table tbody:empty').html(`
+                <tr>
+                    <td colspan="100%" class="admin-table-loading">
+                        <span class="admin-loading"></span>
+                        Loading data...
+                    </td>
+                </tr>
+            `);
+            
+            // Add hover effects to existing table rows
+            $('.admin-table tbody tr').hover(
+                function() { $(this).addClass('admin-shadow-hover'); },
+                function() { $(this).removeClass('admin-shadow-hover'); }
+            );
+            
+            // Initialize table sorting (optional)
+            initializeTableSorting();
+        }
+        
+        function initializeTableSorting() {
+            $('.admin-table thead th').not(':last-child').css('cursor', 'pointer').on('click', function() {
+                const $table = $(this).closest('table');
+                const $tbody = $table.find('tbody');
+                const columnIndex = $(this).index();
+                const isAscending = $(this).hasClass('sort-asc');
+                
+                // Remove sort classes from all headers
+                $table.find('thead th').removeClass('sort-asc sort-desc');
+                
+                // Add appropriate sort class
+                $(this).addClass(isAscending ? 'sort-desc' : 'sort-asc');
+                
+                // Sort rows
+                const rows = $tbody.find('tr').toArray();
+                rows.sort((a, b) => {
+                    const aText = $(a).find('td').eq(columnIndex).text().trim();
+                    const bText = $(b).find('td').eq(columnIndex).text().trim();
+                    
+                    // Handle numbers
+                    if (!isNaN(aText) && !isNaN(bText)) {
+                        return isAscending ? bText - aText : aText - bText;
+                    }
+                    
+                    // Handle text
+                    return isAscending ? 
+                        bText.localeCompare(aText) : 
+                        aText.localeCompare(bText);
+                });
+                
+                $tbody.empty().append(rows);
+            });
+        }
+        
+        // Enhanced table data display functions
+        function displayNoDataMessage(tableId, message = 'No data available') {
+            $(`#${tableId}`).html(`
+                <tr>
+                    <td colspan="100%" class="admin-table-empty">
+                        <i class="fas fa-inbox"></i>
+                        ${message}
+                    </td>
+                </tr>
+            `);
+        }
+        
+        function displayTableError(tableId, error = 'Error loading data') {
+            $(`#${tableId}`).html(`
+                <tr>
+                    <td colspan="100%" class="admin-table-empty" style="color: #dc3545;">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        ${error}
+                    </td>
+                </tr>
+            `);
+        }
+          // Initialize tables when ready
+        $(document).ready(function() {
+            setTimeout(initializeAdminTables, 1000);
+        });
+    </script>
 
 </body>
 </html>
