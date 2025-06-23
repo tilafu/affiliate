@@ -2,19 +2,102 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CDOT Database - Welcome</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">    <title>CDOT Database - Welcome</title>
+    <!-- Favicon -->
+    <link rel="shortcut icon" href="assets/uploads/cdot/logo.png" type="image/png">
+    <link rel="icon" href="assets/uploads/cdot/logo.png" type="image/png">
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Custom CSS for public pages -->
     <link rel="stylesheet" href="css/public-pages.css">
     <!-- Optional: Font Awesome for icons if you use them -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">    <style>
         /* Minor style adjustments for the example */
         .navbar-brand img {
             height: 30px; /* Adjust as needed */
             margin-right: 10px;
+        }
+        
+        /* Store Owner Section Styles */
+        .store-owner-section {
+            background-color: #f8f9fa;
+        }
+        
+        .store-owner-content h2 {
+            color: #2d3748;
+            font-weight: 700;
+        }
+        
+        .contact-form-card {
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        }
+        
+        .avatar-group {
+            display: flex;
+        }
+        
+        .avatar-group img {
+            border: 2px solid white;
+            margin-left: -8px;
+        }
+        
+        .avatar-group img:first-child {
+            margin-left: 0;
+        }
+        
+        .stars i {
+            font-size: 1.1rem;
+        }
+        
+        .form-control, .form-select {
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 12px 16px;
+            font-size: 14px;
+        }
+        
+        .form-control:focus, .form-select:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .form-label {
+            font-weight: 500;
+            font-size: 14px;
+            margin-bottom: 6px;
+        }
+        
+        .btn-dark {
+            background-color: #2d3748;
+            border-color: #2d3748;
+            border-radius: 8px;
+            padding: 12px 24px;
+        }
+        
+        .btn-dark:hover {
+            background-color: #1a202c;
+            border-color: #1a202c;
+        }
+        
+        .reviews-section .text-muted {
+            font-size: 14px;
+        }
+        
+        @media (max-width: 768px) {
+            .store-owner-section .row {
+                text-align: center;
+            }
+            
+            .avatar-group {
+                justify-content: center;
+                margin-bottom: 1rem;
+            }
+            
+            .contact-form-card {
+                margin-top: 2rem;
+            }
         }
     </style>
 </head>
@@ -71,7 +154,7 @@
     </section>
 
     <!-- About CDOT Section -->
-    <section class="about-cdot-section py-5 bg-light">
+    <section class="about-CDOT-section py-5 bg-light">
         <div class="container">
             <div class="row mb-5">
                 <div class="col-lg-8 mx-auto text-center">
@@ -115,7 +198,7 @@
                     </ul>
                 </div>
                 <div class="col-lg-6">
-                    <img src="assets/uploads/cdot/product_launch.jpeg" class="img-fluid rounded" alt="Power New Product Launches">
+                    <img src="assets/uploads/CDOT/product_launch.jpeg" class="img-fluid rounded" alt="Power New Product Launches">
                     <!-- TODO: Replace with your actual image path e.g., assets/images/your-image.jpg -->
                 </div>
             </div>
@@ -128,7 +211,7 @@
             <div class="row align-items-center">
                 <div class="col-lg-6 mb-4 mb-lg-0">
                     <div class="position-relative">
-                        <img src="assets/uploads/cdot/secure-position.jpeg" class="img-fluid rounded shadow-lg" alt="Earnings Graph">
+                        <img src="assets/uploads/CDOT/secure-position.jpeg" class="img-fluid rounded shadow-lg" alt="Earnings Graph">
                         <!-- Note: The earnings overlay text ($5103.01, This Week Earning, +56%) needs to be positioned using CSS.
                              This HTML provides a basic structure. You might need additional CSS for the overlay. -->
                         <div class="card position-absolute bottom-0 start-0 ms-3 mb-3 shadow-sm" style="max-width: 200px; background-color: rgba(255, 255, 255, 0.9);">
@@ -181,7 +264,7 @@
             <div class="row">
                 <div class="col-md-6 mb-4">
                     <div class="card h-100 shadow-sm">
-                        <img src="assets/uploads/cdot/daily_wear.jpeg" class="card-img-top" alt="DailyWear Co.">
+                        <img src="assets/uploads/CDOT/daily_wear.jpeg" class="card-img-top" alt="DailyWear Co.">
                         <div class="card-body">
                             <h5 class="card-title fw-bold">DailyWear Co. Boosts Online Sales by 18%</h5>
                             <p class="card-text text-muted">DailyWear Co. partnered with CDOT and saw sales surge by 18% in just 6 weeks. Thanks to the efforts of our PEA network, DailyWear Co. has rewarded our freelancers with over $39,000 in commissions and sales are still growing.</p>
@@ -191,7 +274,7 @@
                 </div>
                 <div class="col-md-6 mb-4">
                     <div class="card h-100 shadow-sm">
-                        <img src="assets/uploads/cdot/pure_aura.jpeg" class="card-img-top" alt="PureAura Cosmetics Success">
+                        <img src="assets/uploads/CDOT/pure_aura.jpeg" class="card-img-top" alt="PureAura Cosmetics Success">
                         <div class="card-body">
                             <h5 class="card-title fw-bold">PureAura Teams Up with CDOT for New Product Launch</h5>
                             <p class="card-text text-muted">PureAura Cosmetics partnered with CDOT, using our Product Engagement Associates (PEAs) to drive real purchases for their new line. PEAs create genuine sales momentum that boosts visibility and encourages others to buy, building consumer trust.</p>
@@ -201,7 +284,7 @@
                 </div>
                 <div class="col-md-6 mb-4">
                     <div class="card h-100 shadow-sm">
-                        <img src="assets/uploads/cdot/urban_nest.jpeg" class="card-img-top" alt="UrbanNest Furniture Success">
+                        <img src="assets/uploads/CDOT/urban_nest.jpeg" class="card-img-top" alt="UrbanNest Furniture Success">
                         <div class="card-body">
                             <h5 class="card-title fw-bold">The Strategy Behind UrbanNest's Online Surge</h5>
                             <p class="card-text text-muted">UrbanNest Furniture redefined its digital strategy by simulating early demand through targeted purchases turning visibility into real consumer interest and driving a 20% lift in online engagement over two months.</p>
@@ -211,7 +294,7 @@
                 </div>
                 <div class="col-md-6 mb-4">
                     <div class="card h-100 shadow-sm">
-                        <img src="assets/uploads/cdot/wave_electronics.jpeg" class="card-img-top" alt="Wave Electronics Success">
+                        <img src="assets/uploads/CDOT/wave_electronics.jpeg" class="card-img-top" alt="Wave Electronics Success">
                         <div class="card-body">
                             <h5 class="card-title fw-bold">Surfing the Future of Online Tech Shopping</h5>
                             <p class="card-text text-muted">Wave Electronics teamed up with CDOT to boost online sales and engagement. Through targeted strategies and our PEAs, we're helping Wave build real momentum and connect with more customers every day.</p>
@@ -368,19 +451,19 @@
                         <div class="accordion-item">
                             <h2 class="accordion-header" id="headingOne">
                                 <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
-                                    What is cdot Database?
+                                    What is CDOT Database?
                                 </button>
                             </h2>
                             <div id="collapseOne" class="accordion-collapse collapse show" aria-labelledby="headingOne" data-bs-parent="#faqAccordion">
                                 <div class="accordion-body">
-                                    Cdot is a virtual workspace for freelancers that helps increase product visibility for global businesses using AI-powered systems.
+                                    CDOT is a virtual workspace for freelancers that helps increase product visibility for global businesses using AI-powered systems.
                                 </div>
                             </div>
                         </div>
                         <div class="accordion-item">
                             <h2 class="accordion-header" id="headingTwo">
                                 <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
-                                    Who can join cdot?
+                                    Who can join CDOT?
                                 </button>
                             </h2>
                             <div id="collapseTwo" class="accordion-collapse collapse" aria-labelledby="headingTwo" data-bs-parent="#faqAccordion">
@@ -441,6 +524,97 @@
         </div>
     </section>
 
+    <!-- Are You a Store Owner Section -->
+    <section class="store-owner-section py-5 bg-light">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-6 mb-4 mb-lg-0">
+                    <div class="store-owner-content">
+                        <p class="text-muted mb-2">Contact Centro</p>
+                        <h2 class="display-5 fw-bold text-dark mb-4">Are You a Store Owner?</h2>
+                        <p class="lead text-muted mb-4">
+                            Whether you run your own ecommerce store or want to get maximum ROI from the 
+                            most successful affiliate marketing campaigns and techniques, our top-tier affiliate 
+                            marketing services will get the best conversion rate from our successful approach.
+                        </p>
+                        
+                        <!-- Reviews Section -->
+                        <div class="reviews-section mb-4">
+                            <div class="stars mb-2">
+                                <i class="fas fa-star text-warning"></i>
+                                <i class="fas fa-star text-warning"></i>
+                                <i class="fas fa-star text-warning"></i>
+                                <i class="fas fa-star text-warning"></i>
+                                <i class="fas fa-star text-warning"></i>
+                            </div>
+                            <p class="mb-2"><strong>4.9 out of 5 stars from 5,561+ reviews</strong></p>
+                              <div class="reviewer-avatars d-flex align-items-center mb-3">
+                                <div class="avatar-group">
+                                    <img src="assets/uploads/cdot/team/review1.avif" alt="Reviewer 1" class="rounded-circle me-1" style="width: 40px; height: 40px; object-fit: cover;">
+                                    <img src="assets/uploads/cdot/team/review2.jpg" alt="Reviewer 2" class="rounded-circle me-1" style="width: 40px; height: 40px; object-fit: cover;">
+                                    <img src="assets/uploads/cdot/team/review3.jpg" alt="Reviewer 3" class="rounded-circle me-1" style="width: 40px; height: 40px; object-fit: cover;">
+                                    <img src="assets/uploads/cdot/team/review4.jpeg" alt="Reviewer 4" class="rounded-circle me-1" style="width: 40px; height: 40px; object-fit: cover;">
+                                    <img src="assets/uploads/cdot/team/review5.jpg" alt="Reviewer 5" class="rounded-circle me-1" style="width: 40px; height: 40px; object-fit: cover;">
+                                </div>
+                                <div class="ms-3">
+                                    <p class="mb-0 text-muted small">
+                                        <strong>Join thousands of satisfied store owners who use 
+                                        our strategies to promote their 
+                                        businesses across the globe.</strong>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-lg-6">
+                    <div class="contact-form-card bg-white p-4 rounded-3 shadow">
+                        <form class="store-owner-form">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="firstName" class="form-label text-muted">First Name</label>
+                                    <input type="text" class="form-control" id="firstName" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="lastName" class="form-label text-muted">Your Email</label>
+                                    <input type="email" class="form-control" id="lastName" required>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="country" class="form-label text-muted">Country</label>
+                                    <select class="form-select" id="country" required>
+                                        <option value="">Select Country</option>
+                                        <option value="US">United States</option>
+                                        <option value="CA">Canada</option>
+                                        <option value="UK">United Kingdom</option>
+                                        <option value="AU">Australia</option>
+                                        <option value="other">Other</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="storeUrl" class="form-label text-muted">Store URL</label>
+                                    <input type="url" class="form-control" id="storeUrl" placeholder="https://yourstore.com">
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="message" class="form-label text-muted">Tell us about your store (optional)</label>
+                                <textarea class="form-control" id="message" rows="3" placeholder="Any specific needs, product lines, or questions about CDOT"></textarea>
+                            </div>
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="checkbox" id="agreement" required>
+                                <label class="form-check-label text-muted small" for="agreement">
+                                    I agree to receive updates, tips, and growth offers from CDOT
+                                </label>
+                            </div>
+                            <button type="submit" class="btn btn-dark btn-lg w-100 fw-bold">Submit</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
 
     <!-- Start Your Digital Income Journey Today Section -->
     <section class="digital-journey-section py-5">
@@ -504,6 +678,57 @@
                     });
                     bsCollapse.hide();
                 }
+            }
+        });
+        
+        // Store Owner Form Handling
+        document.addEventListener('DOMContentLoaded', function() {
+            const storeOwnerForm = document.querySelector('.store-owner-form');
+            if (storeOwnerForm) {
+                storeOwnerForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    
+                    // Get form data
+                    const formData = new FormData(this);
+                    const firstName = document.getElementById('firstName').value;
+                    const email = document.getElementById('lastName').value;
+                    const country = document.getElementById('country').value;
+                    const storeUrl = document.getElementById('storeUrl').value;
+                    const message = document.getElementById('message').value;
+                    const agreement = document.getElementById('agreement').checked;
+                    
+                    // Basic validation
+                    if (!firstName || !email || !country || !agreement) {
+                        alert('Please fill in all required fields and agree to receive updates.');
+                        return;
+                    }
+                    
+                    // Email validation
+                    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                    if (!emailRegex.test(email)) {
+                        alert('Please enter a valid email address.');
+                        return;
+                    }
+                    
+                    // Show loading state
+                    const submitBtn = this.querySelector('button[type="submit"]');
+                    const originalText = submitBtn.textContent;
+                    submitBtn.textContent = 'Submitting...';
+                    submitBtn.disabled = true;
+                    
+                    // Simulate API call (replace with actual endpoint)
+                    setTimeout(() => {
+                        // Reset form
+                        this.reset();
+                        
+                        // Show success message
+                        alert('Thank you for your interest! We\'ll contact you soon with more information about our store owner services.');
+                        
+                        // Reset button
+                        submitBtn.textContent = originalText;
+                        submitBtn.disabled = false;
+                    }, 1500);
+                });
             }
         });
     </script>

@@ -291,6 +291,98 @@
             justify-content: center;
             color: white;
             font-size: 32px;
+        }        
+        .question-response {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.8);
+            background: linear-gradient(135deg, rgba(79, 70, 229, 0.95), rgba(124, 58, 237, 0.95));
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 24px;
+            padding: 40px 30px;
+            max-width: 400px;
+            width: 90%;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 10000;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
+            text-align: center;
+        }
+        
+        .response-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(5px);
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            z-index: 9999;
+        }
+        
+        .response-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .question-response.show {
+            opacity: 1;
+            visibility: visible;
+            transform: translate(-50%, -50%) scale(1);
+        }
+        
+        .response-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+        }
+        
+        .response-content {
+            font-size: 15px;
+            color: rgba(255, 255, 255, 0.9);
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+        
+        .response-icon {
+            width: 32px;
+            height: 32px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+        
+        .response-close {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 12px;
+            color: white;
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            outline: none;
+        }
+        
+        .response-close:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-1px);
         }
 
         @media (max-width: 480px) {
@@ -439,8 +531,66 @@
                         <span>Not right now</span>
                     </div>
                 </div>
+            </div>            <!-- Response Section -->
+            <div class="question-response" id="response-1">
+                <div class="response-title">
+                    <div class="response-icon">💰</div>
+                    That's an excellent goal!
+                </div>
+                <div class="response-content">
+                    Your earning target shows you're serious about building wealth through CDOT. We'll help you create a strategic plan to reach and exceed this goal through our proven affiliate marketing framework.
+                </div>
+                <button class="response-close" onclick="closeResponse()">Continue</button>
             </div>
-
+            
+            <!-- Response Section -->
+            <div class="question-response" id="response-2">
+                <div class="response-title">
+                    <div class="response-icon">🚀</div>
+                    Your motivation is inspiring!
+                </div>
+                <div class="response-content">
+                    That drive is exactly what sets successful CDOT affiliates apart. We'll channel your motivation into actionable strategies and provide the tools you need to transform your aspirations into results.
+                </div>
+                <button class="response-close" onclick="closeResponse()">Continue</button>
+            </div>
+            
+            <!-- Response Section -->
+            <div class="question-response" id="response-3">
+                <div class="response-title">
+                    <div class="response-icon">💪</div>
+                    We've got your back!
+                </div>
+                <div class="response-content">
+                    Every successful entrepreneur has faced these challenges. CDOT is specifically designed to eliminate these barriers with flexible training, minimal startup costs, and comprehensive mentorship to guide you every step of the way.
+                </div>
+                <button class="response-close" onclick="closeResponse()">Continue</button>
+            </div>
+            
+            <!-- Response Section -->
+            <div class="question-response" id="response-4">
+                <div class="response-title">
+                    <div class="response-icon">🎯</div>
+                    That vision is powerful!
+                </div>
+                <div class="response-content">
+                    Having a clear vision of your future is the first step to achieving it. We'll help you create a personalized roadmap to reach your one-year goal, with milestones and support systems to keep you on track.
+                </div>
+                <button class="response-close" onclick="closeResponse()">Continue</button>
+            </div>
+            
+            <!-- Response Section -->
+            <div class="question-response" id="response-5">
+                <div class="response-title">
+                    <div class="response-icon">⭐</div>
+                    We love celebrating success!
+                </div>
+                <div class="response-content">
+                    Your journey with CDOT will be unique and inspiring. Whether you're ready to share your story now or later, we're here to support your success and celebrate your achievements with our amazing community.
+                </div>
+                <button class="response-close" onclick="closeResponse()">Continue</button>
+            </div>
+            
             <!-- Success Message -->
             <div class="success-message" id="successMessage">
                 <div class="success-icon">✓</div>
@@ -457,6 +607,9 @@
             <button class="nav-button" id="continueButton" disabled>Continue</button>
         </div>
     </div>
+
+    <!-- Response Overlay -->
+    <div class="response-overlay" id="responseOverlay"></div>
 
     <script>
         class OnboardingForm {
@@ -489,9 +642,7 @@
                 document.getElementById('backButton').addEventListener('click', () => {
                     this.previousQuestion();
                 });
-            }
-
-            selectOption(optionElement) {
+            }            selectOption(optionElement) {
                 const question = optionElement.closest('.question');
                 const questionNumber = question.dataset.question;
                 const value = optionElement.dataset.value;
@@ -509,33 +660,104 @@
 
                 // Enable continue button
                 document.getElementById('continueButton').disabled = false;
-            }
-
-            nextQuestion() {
+            }            nextQuestion() {
                 if (this.currentQuestion < this.totalQuestions) {
-                    // Hide current question
-                    document.querySelector(`[data-question="${this.currentQuestion}"]`).classList.remove('active');
-                    
-                    // Show next question
-                    this.currentQuestion++;
-                    document.querySelector(`[data-question="${this.currentQuestion}"]`).classList.add('active');
-                    
-                    this.updateProgress();
-                    this.updateNavigationState();
+                    // Show response popup for current question first
+                    const currentResponse = document.getElementById(`response-${this.currentQuestion}`);
+                    if (currentResponse && !currentResponse.classList.contains('show')) {
+                        this.showResponsePopup(this.currentQuestion);
+                    } else {
+                        // Response already shown or doesn't exist, proceed immediately
+                        this.proceedToNextQuestion();
+                    }
                 } else {
-                    // Submit form
-                    this.submitForm();
+                    // Show response popup for final question, then submit
+                    const currentResponse = document.getElementById(`response-${this.currentQuestion}`);
+                    if (currentResponse && !currentResponse.classList.contains('show')) {
+                        this.showResponsePopup(this.currentQuestion, true);
+                    } else {
+                        // Submit immediately if response already shown
+                        this.submitForm();
+                    }
                 }
             }
 
-            previousQuestion() {
+            showResponsePopup(questionNumber, isFinal = false) {
+                const overlay = document.getElementById('responseOverlay');
+                const responseElement = document.getElementById(`response-${questionNumber}`);
+                
+                if (overlay && responseElement) {
+                    // Store reference for close handler
+                    this.currentResponseQuestion = questionNumber;
+                    this.isResponseFinal = isFinal;
+                    
+                    // Show overlay and popup
+                    overlay.classList.add('show');
+                    responseElement.classList.add('show');
+                    
+                    // Add click handler to overlay to close popup
+                    overlay.onclick = () => this.closeResponsePopup();
+                }
+            }
+
+            closeResponsePopup() {
+                const overlay = document.getElementById('responseOverlay');
+                const responseElement = document.getElementById(`response-${this.currentResponseQuestion}`);
+                
+                if (overlay && responseElement) {
+                    overlay.classList.remove('show');
+                    responseElement.classList.remove('show');
+                    
+                    // Continue with the flow after closing
+                    if (this.isResponseFinal) {
+                        setTimeout(() => this.submitForm(), 300);
+                    } else {
+                        setTimeout(() => this.proceedToNextQuestion(), 300);
+                    }
+                }
+            }
+
+            proceedToNextQuestion() {
+                // Hide current question and response
+                const currentQuestionElement = document.querySelector(`[data-question="${this.currentQuestion}"]`);
+                currentQuestionElement.classList.remove('active');
+                
+                const currentResponse = document.getElementById(`response-${this.currentQuestion}`);
+                if (currentResponse) {
+                    currentResponse.classList.remove('show');
+                }
+                
+                // Show next question
+                this.currentQuestion++;
+                document.querySelector(`[data-question="${this.currentQuestion}"]`).classList.add('active');
+                
+                this.updateProgress();
+                this.updateNavigationState();
+            }previousQuestion() {
                 if (this.currentQuestion > 1) {
-                    // Hide current question
-                    document.querySelector(`[data-question="${this.currentQuestion}"]`).classList.remove('active');
+                    // Hide current question and response
+                    const currentQuestionElement = document.querySelector(`[data-question="${this.currentQuestion}"]`);
+                    currentQuestionElement.classList.remove('active');
+                    
+                    const currentResponse = document.getElementById(`response-${this.currentQuestion}`);
+                    if (currentResponse) {
+                        currentResponse.classList.remove('show');
+                    }
                     
                     // Show previous question
                     this.currentQuestion--;
                     document.querySelector(`[data-question="${this.currentQuestion}"]`).classList.add('active');
+                    
+                    // Show response if this question was already answered
+                    const existingAnswer = this.answers[`question_${this.currentQuestion}`];
+                    if (existingAnswer) {
+                        setTimeout(() => {
+                            const responseElement = document.getElementById(`response-${this.currentQuestion}`);
+                            if (responseElement) {
+                                responseElement.classList.add('show');
+                            }
+                        }, 100);
+                    }
                     
                     this.updateProgress();
                     this.updateNavigationState();
@@ -581,17 +803,21 @@
                         body: JSON.stringify(payload)
                     });
 
-                    const result = await response.json();
-
-                    if (result.success) {
+                    const result = await response.json();                    if (result.success) {
                         // Hide all questions
                         document.querySelectorAll('.question').forEach(q => q.classList.remove('active'));
                         
                         // Show success message
-                        document.getElementById('successMessage').classList.add('active');
+                        const successElement = document.getElementById('successMessage');
+                        if (successElement) {
+                            successElement.classList.add('active');
+                        }
                         
                         // Hide navigation
-                        document.querySelector('.navigation').style.display = 'none';
+                        const navigationElement = document.querySelector('.navigation');
+                        if (navigationElement) {
+                            navigationElement.style.display = 'none';
+                        }
 
                         // Clear temp data
                         localStorage.removeItem('temp_user_data');
@@ -607,12 +833,19 @@
                     console.error('Error submitting onboarding:', error);
                     alert('There was an error saving your responses. Please try again.');
                 }
+            }        }
+
+        // Global function for response close button
+        function closeResponse() {
+            const onboardingForm = window.onboardingFormInstance;
+            if (onboardingForm) {
+                onboardingForm.closeResponsePopup();
             }
         }
 
         // Initialize the onboarding form
         document.addEventListener('DOMContentLoaded', () => {
-            new OnboardingForm();
+            window.onboardingFormInstance = new OnboardingForm();
         });
     </script>
 </body>

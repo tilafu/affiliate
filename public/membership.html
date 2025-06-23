@@ -337,6 +337,161 @@
             
             .boost-percentage {
                 font-size: 3.5rem;
+            }        }
+        
+        /* PEA PREMIUM Section Styles */
+        .pea-premium {
+            background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .pea-premium::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.2);
+            z-index: 1;
+        }
+        
+        .pea-premium .container {
+            position: relative;
+            z-index: 2;
+        }
+        
+        .premium-content h2 {
+            font-weight: 800;
+            letter-spacing: -0.02em;
+        }
+        
+        .premium-content .btn {
+            font-weight: 600;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+        }
+        
+        .premium-content .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 35px rgba(0,0,0,0.3);
+        }
+        
+        .premium-image img {
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            transition: transform 0.3s ease;
+        }
+        
+        .premium-image:hover img {
+            transform: scale(1.02);
+        }
+        
+        @media (max-width: 991px) {
+            .premium-content {
+                text-align: center;
+                margin-bottom: 3rem;
+            }
+            
+            .pea-premium h2 {
+                font-size: 2.5rem;
+            }        }
+        
+        /* Client Testimonials Section Styles */
+        .client-testimonials-section {
+            background: #f8f9fa;
+        }
+        
+        .testimonials-content h2 {
+            font-weight: 800;
+            line-height: 1.2;
+        }
+        
+        .testimonials-content .btn {
+            font-weight: 600;
+            box-shadow: 0 8px 25px rgba(139, 92, 246, 0.3);
+            transition: all 0.3s ease;
+        }
+        
+        .testimonials-content .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 35px rgba(139, 92, 246, 0.4);
+        }
+        
+        .avatar-stack {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: -15px;
+        }
+        
+        .avatar {
+            width: 60px;
+            height: 60px;
+            border: 4px solid white;
+            margin-left: -15px;
+            transition: transform 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        .avatar:first-child {
+            margin-left: 0;
+        }
+        
+        .avatar:hover {
+            transform: scale(1.1) translateY(-5px);
+            z-index: 10;
+            position: relative;
+        }
+        
+        .trust-badge {
+            margin: 20px 0;
+        }
+        
+        .trust-badge p {
+            color: #6c757d;
+            font-size: 1rem;
+        }
+        
+        .navigation-dots {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #dee2e6;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .dot.active {
+            background: #343a40;
+        }
+        
+        .dot:hover {
+            background: #6c757d;
+            transform: scale(1.2);
+        }
+        
+        @media (max-width: 991px) {
+            .testimonials-content {
+                text-align: center;
+                margin-bottom: 3rem;
+            }
+            
+            .testimonials-content h2 {
+                font-size: 2.5rem;
+            }
+            
+            .avatar {
+                width: 50px;
+                height: 50px;
+                margin-left: -10px;
             }
         }
     </style>
@@ -436,10 +591,10 @@
                 </a>
             </div>            <div class="row g-4">
                 <!-- PEA Basic Plan -->
-                <div class="col-lg-4">
+                <div class="col-lg-4">  
                     <div class="pricing-card">
-                        <div class="price-amount">Entry Access</div>
-                        <div class="price-period">PEA Basic</div>
+                        <div class="price-amount">PEA Basic</div>
+                        <div class="price-period">Entry Access</div>
                         
                         <p class="text-muted mb-4 small">
                             Includes full access with smaller batches and base commissions. Best for first time users or those exploring how CDOT works. Upgrade anytime to increase your earnings.
@@ -488,9 +643,9 @@
                             </li>
                         </ul>
                         
-                        <div class="alert alert-warning small mb-3">
+                        <!-- <div class="alert alert-warning small mb-0">
                             The entry balance is fully returned to the user upon successful completion of a product batch.
-                        </div>
+                        </div> -->
                         
                         <div class="text-muted small mb-3">
                             <strong>Assigned Products:</strong> 70 Daily Items • 2 Batches
@@ -504,8 +659,8 @@
                 <div class="col-lg-4">
                     <div class="pricing-card featured">
                         <div class="badge bg-success mb-2">Popular</div>
-                        <div class="price-amount">Start With $200 Access Balance</div>
-                        <div class="price-period">PEA Plus</div>
+                        <div class="price-amount">PEA Plus</div>
+                        <div class="price-period">Start With $200 Access Balance</div>
                         
                         <p class="text-muted mb-4 small" style="color: #ccc !important;">
                             Balanced access with higher value product batches and stronger commissions. Ideal for those ready to earn consistently with weekly salary eligibility and priority support.
@@ -554,23 +709,23 @@
                             </li>
                         </ul>
                         
-                        <div class="alert alert-warning small mb-3">
+                        <!-- <div class="alert alert-warning small mb-0">
                             The entry balance is fully returned to the user upon successful completion of a product batch.
-                        </div>
+                        </div> -->
                         
                         <div class="text-muted small mb-3" style="color: #ccc !important;">
                             <strong>Assigned Products:</strong> 90 Daily Items • 2 Batches
                         </div>
                         
-                        <button class="btn pricing-btn primary">Start With $200 Access Balance</button>
+                        <button class="btn pricing-btn primary">$200 Access Balance</button>
                     </div>
                 </div>
                 
                 <!-- PEA PRO Plan -->
                 <div class="col-lg-4">
                     <div class="pricing-card">
-                        <div class="price-amount">Start With $3000 Access Balance</div>
-                        <div class="price-period">PEA PRO</div>
+                        <div class="price-amount">PEA PRO</div>
+                        <div class="price-period">Start With $3000 Access Balance</div>
                         
                         <p class="text-muted mb-4 small">
                             For those who want to make the most of the opportunity. The Pro access level unlocks the highest commissions, premium product batches, and the fastest earning potential available.
@@ -619,23 +774,290 @@
                             </li>
                         </ul>
                         
-                        <div class="alert alert-warning small mb-3">
+                        <!-- <div class="alert alert-warning small mb-0">
                             The entry balance is fully returned to the user upon successful completion of a product batch.
                         </div>
-                        
+                         -->
                         <div class="text-muted small mb-3">
                             <strong>Assigned Products:</strong> 120 Daily Items • 3 Batches
                         </div>
                         
-                        <button class="btn pricing-btn secondary">Start With $3000 Access Balance</button>
+                        <button class="btn pricing-btn secondary"> $3000 Access Balance</button>
                     </div>
+                </div>            </div>
+        </div>
+    </section>
+
+    <!-- PEA PREMIUM Section -->
+    <section class="pea-premium py-5">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-6">
+                    <div class="premium-content text-white">
+                        <h2 class="display-4 fw-bold mb-4">PEA PREMIUM</h2>
+                        <p class="lead mb-4">
+                            This is our highest and most exclusive access level, reserved for members who require advanced flexibility, higher batch volumes, and custom engagement cycles.
+                        </p>
+                        <a href="contact.html" class="btn btn-light btn-lg rounded-pill px-4">
+                            Start With $5000 Access Balance
+                        </a>
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <div class="premium-image">
+                        <img src="assets/uploads/images/Drive/happy-team.jpeg" alt="PEA Premium Members" class="img-fluid rounded-4">
+                    </div>
+                </div>
+            </div>        </div>
+    </section>
+
+    <!-- Client Testimonials Section -->
+    <section class="client-testimonials-section py-5 bg-light">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-6">
+                    <div class="testimonials-content">
+                        <h2 class="display-5 fw-bold mb-4">
+                            Discover What Our<br>
+                            <span class="text-primary">50k+ Clients</span> Have to Say
+                        </h2>
+                        <p class="lead text-muted mb-4">
+                            The agency and the client collaborate to refine the strategy further, making data-driven improvements.
+                        </p>
+                        <a href="contact.html" class="btn btn-primary btn-lg rounded-pill px-4" style="background: linear-gradient(45deg, #8B5CF6, #A855F7); border: none;">
+                            Get Started Now
+                        </a>
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <div class="testimonials-visual text-center">
+                        <div class="client-avatars mb-3">
+                            <div class="d-flex justify-content-center align-items-center">
+                                <div class="avatar-stack">
+                                    <img src="https://images.unsplash.com/photo-1494790108755-2616b612b765?w=150&h=150&fit=crop&crop=face" alt="Client 1" class="rounded-circle avatar">
+                                    <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face" alt="Client 2" class="rounded-circle avatar">
+                                    <img src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face" alt="Client 3" class="rounded-circle avatar">
+                                    <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face" alt="Client 4" class="rounded-circle avatar">
+                                    <img src="https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&h=150&fit=crop&crop=face" alt="Client 5" class="rounded-circle avatar">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="trust-badge">
+                            <p class="fw-bold mb-2">Over 15k+ Customers &<br>Companies Trust Us.</p>
+                        </div>
+                        <div class="navigation-dots">
+                            <span class="dot active"></span>
+                            <span class="dot"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>        </div>
+    </section>
+
+    <!-- PEA Success Stories Carousel -->
+    <section class="pea-success-stories py-5">
+        <div class="container">
+            <div class="row mb-5">
+                <div class="col-lg-8 mx-auto text-center">
+                    <h2 class="display-5 fw-bold mb-4">Success Stories from Our PEAs</h2>
+                    <p class="lead text-muted">
+                        Hear from PEAs who have achieved financial stability and transformed their lives through our platform.
+                    </p>
+                </div>
+            </div>
+            
+            <div class="row justify-content-center align-items-center">
+                <div class="col-auto d-none d-lg-block">
+                    <button class="carousel-control-prev" type="button" data-bs-target="#peaStoriesCarousel" data-bs-slide="prev" style="position: static; background: none; border: none;">
+                        <span class="carousel-control-prev-icon" aria-hidden="true" style="background-color: #6f42c1; border-radius: 50%; padding: 15px;"></span>
+                        <span class="visually-hidden">Previous</span>
+                    </button>
+                </div>
+                
+                <div class="col-lg-10">
+                    <div id="peaStoriesCarousel" class="carousel slide" data-bs-ride="false" data-bs-interval="5000">
+                        <div class="carousel-inner">
+                            <!-- Testimonial 1 -->
+                            <div class="carousel-item active">
+                                <div class="row g-4">
+                                    <div class="col-md-6">
+                                        <div class="testimonial-card h-100">
+                                            <div class="card-body p-4">
+                                                <div class="d-flex align-items-center mb-3">
+                                                    <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face" alt="James Benjamin" class="rounded-circle me-3" style="width: 60px; height: 60px;">
+                                                    <div>
+                                                        <h6 class="fw-bold mb-0">James Benjamin</h6>
+                                                        <p class="text-muted small mb-0">PEA Professional Member</p>
+                                                    </div>
+                                                </div>
+                                                <div class="rating mb-3">
+                                                    <i class="fas fa-star text-warning"></i>
+                                                    <i class="fas fa-star text-warning"></i>
+                                                    <i class="fas fa-star text-warning"></i>
+                                                    <i class="fas fa-star text-warning"></i>
+                                                    <i class="fas fa-star text-warning"></i>
+                                                </div>
+                                                <p class="testimonial-text">
+                                                    "The PEA program changed my life completely. I went from struggling financially to earning a consistent $4,200 monthly. The platform is legitimate, the support is amazing, and the earning potential is real."
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="testimonial-card h-100">
+                                            <div class="card-body p-4">
+                                                <div class="d-flex align-items-center mb-3">
+                                                    <img src="../public/assets/uploads/cdot/team/debbie.webp" alt="Sarah Martinez" class="rounded-circle me-3" style="width: 60px; height: 60px;">
+                                                    <div>
+                                                        <h6 class="fw-bold mb-0">Sarah Martinez</h6>
+                                                        <p class="text-muted small mb-0">PEA Elite Member</p>
+                                                    </div>
+                                                </div>
+                                                <div class="rating mb-3">
+                                                    <i class="fas fa-star text-warning"></i>
+                                                    <i class="fas fa-star text-warning"></i>
+                                                    <i class="fas fa-star text-warning"></i>
+                                                    <i class="fas fa-star text-warning"></i>
+                                                    <i class="fas fa-star text-warning"></i>
+                                                </div>
+                                                <p class="testimonial-text">
+                                                    "As a single mom, financial stability seemed impossible. The PEA program gave me the flexibility to work around my schedule while earning $6,800 per month. I finally have peace of mind."
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Testimonial 2 -->
+                            <div class="carousel-item">
+                                <div class="row g-4">
+                                    <div class="col-md-6">
+                                        <div class="testimonial-card h-100">
+                                            <div class="card-body p-4">
+                                                <div class="d-flex align-items-center mb-3">
+                                                    <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face" alt="Michael Chen" class="rounded-circle me-3" style="width: 60px; height: 60px;">
+                                                    <div>
+                                                        <h6 class="fw-bold mb-0">Michael Chen</h6>
+                                                        <p class="text-muted small mb-0">PEA Professional Member</p>
+                                                    </div>
+                                                </div>
+                                                <div class="rating mb-3">
+                                                    <i class="fas fa-star text-warning"></i>
+                                                    <i class="fas fa-star text-warning"></i>
+                                                    <i class="fas fa-star text-warning"></i>
+                                                    <i class="fas fa-star text-warning"></i>
+                                                    <i class="fas fa-star text-warning"></i>
+                                                </div>
+                                                <p class="testimonial-text">
+                                                    "I was skeptical at first, but the transparency and genuine support convinced me. Now I'm earning $5,500 monthly while building valuable e-commerce skills. This platform delivers on its promises."
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="testimonial-card h-100">
+                                            <div class="card-body p-4">
+                                                <div class="d-flex align-items-center mb-3">
+                                                    <img src="https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&h=150&fit=crop&crop=face" alt="Emily Rodriguez" class="rounded-circle me-3" style="width: 60px; height: 60px;">
+                                                    <div>
+                                                        <h6 class="fw-bold mb-0">Emily Rodriguez</h6>
+                                                        <p class="text-muted small mb-0">PEA Premium Member</p>
+                                                    </div>
+                                                </div>
+                                                <div class="rating mb-3">
+                                                    <i class="fas fa-star text-warning"></i>
+                                                    <i class="fas fa-star text-warning"></i>
+                                                    <i class="fas fa-star text-warning"></i>
+                                                    <i class="fas fa-star text-warning"></i>
+                                                    <i class="fas fa-star text-warning"></i>
+                                                </div>
+                                                <p class="testimonial-text">
+                                                    "From college student to earning $8,200 monthly - the PEA Premium level unlocked opportunities I never imagined. The mentorship and advanced training are worth every penny."
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Testimonial 3 -->
+                            <div class="carousel-item">
+                                <div class="row g-4">
+                                    <div class="col-md-6">
+                                        <div class="testimonial-card h-100">
+                                            <div class="card-body p-4">
+                                                <div class="d-flex align-items-center mb-3">
+                                                    <img src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face" alt="Lisa Thompson" class="rounded-circle me-3" style="width: 60px; height: 60px;">
+                                                    <div>
+                                                        <h6 class="fw-bold mb-0">Lisa Thompson</h6>
+                                                        <p class="text-muted small mb-0">PEA Elite Member</p>
+                                                    </div>
+                                                </div>
+                                                <div class="rating mb-3">
+                                                    <i class="fas fa-star text-warning"></i>
+                                                    <i class="fas fa-star text-warning"></i>
+                                                    <i class="fas fa-star text-warning"></i>
+                                                    <i class="fas fa-star text-warning"></i>
+                                                    <i class="fas fa-star text-warning"></i>
+                                                </div>
+                                                <p class="testimonial-text">
+                                                    "After losing my corporate job, the PEA program became my lifeline. I'm now earning $7,100 monthly and have built a sustainable income stream that gives me true financial freedom."
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="testimonial-card h-100">
+                                            <div class="card-body p-4">
+                                                <div class="d-flex align-items-center mb-3">
+                                                    <img src="https://images.unsplash.com/photo-1507591064344-4c6ce005b128?w=150&h=150&fit=crop&crop=face" alt="David Kim" class="rounded-circle me-3" style="width: 60px; height: 60px;">
+                                                    <div>
+                                                        <h6 class="fw-bold mb-0">David Kim</h6>
+                                                        <p class="text-muted small mb-0">PEA Professional Member</p>
+                                                    </div>
+                                                </div>
+                                                <div class="rating mb-3">
+                                                    <i class="fas fa-star text-warning"></i>
+                                                    <i class="fas fa-star text-warning"></i>
+                                                    <i class="fas fa-star text-warning"></i>
+                                                    <i class="fas fa-star text-warning"></i>
+                                                    <i class="fas fa-star text-warning"></i>
+                                                </div>
+                                                <p class="testimonial-text">
+                                                    "The structured approach and reliable income from the PEA program allowed me to pay off my student loans in just 18 months. I'm now earning $4,900 monthly with room to grow."
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Mobile controls -->
+                        <button class="carousel-control-prev d-lg-none" type="button" data-bs-target="#peaStoriesCarousel" data-bs-slide="prev">
+                            <span class="carousel-control-prev-icon" aria-hidden="true" style="background-color: #6f42c1; border-radius: 50%; padding: 15px;"></span>
+                            <span class="visually-hidden">Previous</span>
+                        </button>
+                        <button class="carousel-control-next d-lg-none" type="button" data-bs-target="#peaStoriesCarousel" data-bs-slide="next">
+                            <span class="carousel-control-next-icon" aria-hidden="true" style="background-color: #6f42c1; border-radius: 50%; padding: 15px;"></span>
+                            <span class="visually-hidden">Next</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="col-auto d-none d-lg-block">
+                    <button class="carousel-control-next" type="button" data-bs-target="#peaStoriesCarousel" data-bs-slide="next" style="position: static; background: none; border: none;">
+                        <span class="carousel-control-next-icon" aria-hidden="true" style="background-color: #6f42c1; border-radius: 50%; padding: 15px;"></span>
+                        <span class="visually-hidden">Next</span>
+                    </button>
                 </div>
             </div>
         </div>
     </section>
 
     <!-- FAQ Section -->
-    <section class="faq-section">
+    <!-- <section class="faq-section">
         <div class="container">
             <div class="faq-header">
                 <h2 class="display-5 fw-bold mb-4">Frequently Asked Questions</h2>
@@ -645,11 +1067,11 @@
                 <a href="contact.html" class="btn btn-primary btn-lg px-5 rounded-pill" style="background: #6f42c1; border-color: #6f42c1;">
                     Contact Sales
                 </a>
-            </div>
-            
-            <div class="faq-columns">
+            </div> -->
+
+            <!-- <div class="faq-columns"> -->
                 <!-- Sales & Billing Column -->
-                <div class="faq-column">
+                <!-- <div class="faq-column">
                     <h5>Sales & Billing</h5>
                     
                     <div class="faq-item">
@@ -687,10 +1109,10 @@
                             Benefits include cost-effectiveness, automatic updates, scalability, accessibility from anywhere, and reduced IT maintenance requirements.
                         </div>
                     </div>
-                </div>
+                </div> -->
                 
                 <!-- Account Related Column -->
-                <div class="faq-column">
+                <!-- <div class="faq-column">
                     <h5>Account Related</h5>
                     
                     <div class="faq-item">
@@ -731,10 +1153,10 @@
                 </div>
             </div>
         </div>
-    </section>
+    </section> -->
 
     <!-- Boost Revenue Section -->
-    <section class="boost-revenue">
+    <!-- <section class="boost-revenue">
         <div class="container">
             <div class="boost-content">
                 <div class="boost-percentage">150%+</div>
@@ -747,7 +1169,9 @@
                 </a>
             </div>
         </div>
-    </section>    <!-- Footer Component -->
+    </section>     -->
+    
+    <!-- Footer Component -->
     <div id="footer-placeholder"></div>    <!-- Bootstrap JavaScript -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <!-- Components JS -->

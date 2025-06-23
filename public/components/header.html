@@ -6,14 +6,8 @@
         </a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
-        </button>        <div class="collapse navbar-collapse" id="navbarNav">
-            <!-- Mobile menu header with close button -->
-            <div class="mobile-menu-header d-lg-none d-flex justify-content-between align-items-center p-3">
-                <span class="fw-bold">Menu</span>
-                <button type="button" class="btn-close-mobile" aria-label="Close">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
                 <li class="nav-item">
                     <a class="nav-link" href="home.html">Home</a>
@@ -23,18 +17,15 @@
                 </li>
                 <li class="nav-item">
                     <a class="nav-link" href="pea.html">PEA Guide</a>
-                </li>
-                <li class="nav-item">
+                </li>                <li class="nav-item">
                     <a class="nav-link" href="features.html">Features</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="pricing.html">Pricing</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="case-studies.html">Case Studies</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="project.html">Project</a>
+                    <a class="nav-link" href="pricing.html">Memberships</a>
+                </li>                <li class="nav-item">
+                    <a class="nav-link" href="insights.html">Insights</a>
+                </li>                <li class="nav-item">
+                    <a class="nav-link" href="careers.html">Careers</a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link" href="contact.html">Contact</a>
@@ -46,51 +37,53 @@
 </nav>
 
 <script>
-// JavaScript for full-screen mobile menu
+// JavaScript for full-screen mobile menu with hamburger-to-X transformation
 const navbarCollapse = document.getElementById('navbarNav');
 const navbarToggler = document.querySelector('.navbar-toggler');
 
-function toggleFullscreenMenu() {
-    if (navbarCollapse) {
-        navbarCollapse.classList.toggle('fullscreen');
-    }
-}
-
+// Handle navbar toggle click
 if (navbarToggler) {
     navbarToggler.addEventListener('click', function() {
-        if (navbarCollapse && !navbarCollapse.classList.contains('show')) { 
-            navbarCollapse.classList.add('fullscreen');
-        } else if (navbarCollapse) { 
-            navbarCollapse.classList.remove('fullscreen');
+        // Toggle the active class for hamburger-to-X animation
+        this.classList.toggle('active');
+        
+        // Handle fullscreen class
+        if (navbarCollapse) {
+            navbarCollapse.classList.toggle('fullscreen');
         }
     });
 }
 
-// Handle mobile close button
+// Handle clicks on nav links to close menu
 document.addEventListener('DOMContentLoaded', function() {
-    const mobileCloseBtn = document.querySelector('.btn-close-mobile');
-    if (mobileCloseBtn) {
-        mobileCloseBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            
-            if (navbarCollapse) {
+    const navLinks = document.querySelectorAll('.navbar-nav .nav-link');
+    
+    navLinks.forEach(link => {
+        link.addEventListener('click', function() {
+            // Close mobile menu when nav link is clicked
+            if (window.innerWidth <= 991.98 && navbarCollapse && navbarCollapse.classList.contains('fullscreen')) {
                 navbarCollapse.classList.remove('fullscreen');
-                navbarCollapse.classList.remove('show');
+                if (navbarToggler) {
+                    navbarToggler.classList.remove('active');
+                }
                 
-                // Also trigger Bootstrap collapse to hide
+                // Hide Bootstrap collapse
                 const bsCollapse = new bootstrap.Collapse(navbarCollapse, {
                     toggle: false
                 });
                 bsCollapse.hide();
             }
         });
-    }
+    });
 });
 
+// Handle window resize
 window.addEventListener('resize', function() {
     if (window.innerWidth > 991.98 && navbarCollapse && navbarCollapse.classList.contains('fullscreen')) {
         navbarCollapse.classList.remove('fullscreen');
+        if (navbarToggler) {
+            navbarToggler.classList.remove('active');
+        }
         if (navbarCollapse.classList.contains('show')) {
             const bsCollapse = new bootstrap.Collapse(navbarCollapse, {
                 toggle: false
@@ -116,38 +109,64 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 <style>
-/* Mobile menu styling */
-.mobile-menu-header {
-    border-bottom: 1px solid rgba(0,0,0,0.1);
-    margin-bottom: 1rem;
+/* Hamburger to X transformation */
+.navbar-toggler {
+    border: none;
+    padding: 4px 8px;
+    outline: none;
+    box-shadow: none;
 }
 
-.btn-close-mobile {
-    background: none;
+.navbar-toggler:focus {
+    box-shadow: none;
+}
+
+.navbar-toggler-icon {
+    position: relative;
+    transition: all 0.3s ease;
+    background-image: none;
     border: none;
-    font-size: 1.5rem;
-    color: #333;
-    cursor: pointer;
-    padding: 0.5rem;
-    border-radius: 50%;
-    width: 40px;
-    height: 40px;
+    width: 24px;
+    height: 24px;
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+.navbar-toggler-icon::before,
+.navbar-toggler-icon::after,
+.navbar-toggler-icon {
+    content: '';
+    position: absolute;
+    width: 24px;
+    height: 2px;
+    background-color: #333;
     transition: all 0.3s ease;
 }
 
-.btn-close-mobile:hover {
-    background-color: rgba(0,0,0,0.1);
-    color: #000;
+.navbar-toggler-icon::before {
+    top: -8px;
 }
 
-/* Ensure mobile menu header is only visible when menu is open */
-@media (min-width: 992px) {
-    .mobile-menu-header {
-        display: none !important;
-    }
+.navbar-toggler-icon::after {
+    top: 8px;
+}
+
+/* X transformation when active */
+.navbar-toggler.active .navbar-toggler-icon {
+    background-color: transparent;
+}
+
+.navbar-toggler.active .navbar-toggler-icon::before {
+    top: 0;
+    transform: rotate(45deg);
+    background-color: #333;
+}
+
+.navbar-toggler.active .navbar-toggler-icon::after {
+    top: 0;
+    transform: rotate(-45deg);
+    background-color: #333;
 }
 
 /* Full-screen mobile menu styles */
@@ -158,27 +177,133 @@ document.addEventListener('DOMContentLoaded', function() {
         left: 0;
         width: 100vw;
         height: 100vh;
-        background-color: white;
-        z-index: 9999;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        z-index: 9998;
         padding: 0;
         display: flex !important;
         flex-direction: column;
+        justify-content: center;
+        align-items: center;
         overflow-y: auto;
+        animation: slideIn 0.3s ease-out;
     }
     
     .navbar-collapse.fullscreen .navbar-nav {
         width: 100%;
-        padding: 1rem;
+        text-align: center;
+        padding: 2rem;
+        margin: 0;
     }
     
+    .navbar-collapse.fullscreen .nav-item {
+        margin: 0.5rem 0;
+        opacity: 0;
+        transform: translateY(30px);
+        animation: fadeInUp 0.5s ease-out forwards;
+    }
+    
+    .navbar-collapse.fullscreen .nav-item:nth-child(1) { animation-delay: 0.1s; }
+    .navbar-collapse.fullscreen .nav-item:nth-child(2) { animation-delay: 0.15s; }
+    .navbar-collapse.fullscreen .nav-item:nth-child(3) { animation-delay: 0.2s; }
+    .navbar-collapse.fullscreen .nav-item:nth-child(4) { animation-delay: 0.25s; }
+    .navbar-collapse.fullscreen .nav-item:nth-child(5) { animation-delay: 0.3s; }
+    .navbar-collapse.fullscreen .nav-item:nth-child(6) { animation-delay: 0.35s; }
+    .navbar-collapse.fullscreen .nav-item:nth-child(7) { animation-delay: 0.4s; }
+    .navbar-collapse.fullscreen .nav-item:nth-child(8) { animation-delay: 0.45s; }
+    
     .navbar-collapse.fullscreen .nav-link {
-        padding: 1rem 1.5rem;
-        font-size: 1.1rem;
-        border-bottom: 1px solid rgba(0,0,0,0.1);
+        color: white !important;
+        padding: 1.5rem 2rem;
+        font-size: 1.4rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        border: none;
+        transition: all 0.3s ease;
+        position: relative;
+    }
+    
+    .navbar-collapse.fullscreen .nav-link:hover,
+    .navbar-collapse.fullscreen .nav-link.active {
+        color: #ffc107 !important;
+        transform: scale(1.1);
+    }
+    
+    .navbar-collapse.fullscreen .nav-link::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 50%;
+        width: 0;
+        height: 2px;
+        background-color: #ffc107;
+        transition: all 0.3s ease;
+        transform: translateX(-50%);
+    }
+    
+    .navbar-collapse.fullscreen .nav-link:hover::after,
+    .navbar-collapse.fullscreen .nav-link.active::after {
+        width: 80%;
     }
     
     .navbar-collapse.fullscreen .btn.btn-primary {
-        margin: 1rem;
-        align-self: flex-start;
+        margin-top: 2rem;
+        padding: 1rem 2rem;
+        font-size: 1.1rem;
+        background: transparent;
+        border: 2px solid white;
+        color: white;
+        border-radius: 50px;
+        transition: all 0.3s ease;
+        opacity: 0;
+        transform: translateY(30px);
+        animation: fadeInUp 0.5s ease-out 0.5s forwards;
     }
-}</style>
+    
+    .navbar-collapse.fullscreen .btn.btn-primary:hover {
+        background: white;
+        color: #667eea;
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    }
+    
+    /* Make sure toggler stays on top */
+    .navbar-toggler {
+        position: relative;
+        z-index: 9999;
+    }
+    
+    /* Keep navbar brand visible */
+    .navbar-brand {
+        position: relative;
+        z-index: 9999;
+    }
+}
+
+/* Animations */
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(100%);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes fadeInUp {
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Desktop menu remains unchanged */
+@media (min-width: 992px) {
+    .navbar-nav .nav-link.active {
+        color: #667eea !important;
+        font-weight: 600;
+    }
+}
+</style>
