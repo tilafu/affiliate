@@ -1,5 +1,13 @@
 // Central authentication management for the frontend
 // This file provides reusable authentication utilities
+//
+// *** DEBUGGING MODE - REDIRECTS DISABLED ***
+// - All 401 error redirects have been completely removed
+// - 401 errors are only logged to console with detailed debug information
+// - Users will NOT be automatically logged out on 401 errors
+// - Check browser console for detailed debug information when 401 errors occur
+// - Redirects will be restored after identifying the root cause
+// *** END DEBUG NOTE ***
 
 /**
  * Central authentication check function with dual auth support
@@ -257,9 +265,20 @@ function enhancedFetchWithAuth(url, options = {}) {
         ...options,
         headers,    }).then(response => {
         if (response.status === 401) {
-            console.warn('API Request: 401 Unauthorized - authentication expired');
-            clearAuthAndRedirect('Logged out. Log in again', true);
-            throw new Error('Authentication expired - redirecting to login');
+            console.error('=== 401 AUTH ERROR DEBUG ===');
+            console.error('URL that returned 401:', url);
+            console.error('Request options:', options);
+            console.error('Current auth token:', authData.token ? `${authData.token.substring(0, 20)}...` : 'no token');
+            console.error('User data:', authData.user);
+            console.error('=== END 401 DEBUG ===');
+              // Show notification but don't redirect - debugging mode
+            if (typeof showNotification === 'function') {
+                showNotification(`API ${url} returned 401 - Check browser console for details`, 'error');
+            }
+            
+            // REDIRECT REMOVED FOR DEBUGGING - Will be restored after identifying the problem
+            
+            throw new Error(`401 Unauthorized from ${url} - Check console for debug info`);
         }
         
         if (!response.ok) {
@@ -303,13 +322,23 @@ async function authenticatedFetch(url, options = {}, panelType = null) {
     };    
     return fetch(url, {
         ...options,
-        headers
-    }).then(response => {
-        // Handle 401 responses - redirect to login
+        headers    }).then(response => {
+        // Handle 401 responses - log details for debugging instead of immediate redirect
         if (response.status === 401) {
-            console.warn('API request returned 401 - authentication expired or invalid');
-            clearAuthAndRedirect('Logged out. Log in again', true);
-            throw new Error('Authentication expired - redirecting to login');
+            console.error('=== 401 AUTH ERROR DEBUG ===');
+            console.error('URL that returned 401:', url);
+            console.error('Request options:', options);
+            console.error('Current auth token:', authData.token ? `${authData.token.substring(0, 20)}...` : 'no token');
+            console.error('User data:', authData);
+            console.error('=== END 401 DEBUG ===');
+              // Show notification but don't redirect - debugging mode
+            if (typeof showNotification === 'function') {
+                showNotification(`API ${url} returned 401 - Check browser console for details`, 'error');
+            }
+            
+            // REDIRECT REMOVED FOR DEBUGGING - Will be restored after identifying the problem
+            
+            throw new Error(`401 Unauthorized from ${url} - Check console for debug info`);
         }
         return response;
     });

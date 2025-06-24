@@ -948,6 +948,140 @@ const getHighValueProducts = async (req, res) => {
   }
 };
 
+/**
+ * @desc    Get active QR code for deposits
+ * @route   GET /api/deposits/qr-code
+ * @access  Public (for client deposits page)
+ */
+const getActiveQRCode = async (req, res) => {
+  try {
+    const qrQuery = `
+      SELECT qr_code_url, wallet_address, description, updated_at
+      FROM deposit_qr_codes 
+      WHERE is_active = true 
+      ORDER BY updated_at DESC 
+      LIMIT 1
+    `;
+
+    const result = await pool.query(qrQuery);
+
+    if (result.rows.length === 0) {
+      return res.json({ 
+        success: true, 
+        data: { 
+          qr_code_url: '/assets/uploads/qr-codes/default-qr.png',
+          wallet_address: null,
+          description: 'Default QR Code',
+          updated_at: new Date()
+        } 
+      });
+    }
+
+    res.json({ success: true, data: result.rows[0] });
+  } catch (error) {
+    logger.error('Error fetching active QR code:', { error: error.message, stack: error.stack });
+    res.status(500).json({ success: false, message: 'Server error fetching QR code' });
+  }
+};
+
+/**
+ * @desc    Upload new QR code (Admin only)
+ * @route   POST /api/admin/qr-code
+ * @access  Private (Admin only)
+ */
+const uploadQRCode = async (req, res) => {
+  try {
+    const adminId = req.user.id;
+    const { description, wallet_address } = req.body;
+    
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'No QR code image uploaded' });
+    }
+
+    // Deactivate all existing QR codes
+    await pool.query('UPDATE deposit_qr_codes SET is_active = false');
+
+    // Insert new active QR code
+    const insertQuery = `
+      INSERT INTO deposit_qr_codes (qr_code_url, wallet_address, description, is_active, uploaded_by_admin_id)
+      VALUES ($1, $2, $3, true, $4)
+      RETURNING *
+    `;
+
+    const qrCodeUrl = `/assets/uploads/qr-codes/${req.file.filename}`;
+    const result = await pool.query(insertQuery, [qrCodeUrl, wallet_address, description || 'Deposit QR Code', adminId]);
+
+    logger.info('New QR code uploaded by admin:', { adminId, qrCodeUrl, wallet_address, description });
+
+    res.json({ 
+      success: true, 
+      message: 'QR code uploaded successfully',
+      data: result.rows[0]
+    });
+  } catch (error) {
+    logger.error('Error uploading QR code:', { adminId: req.user?.id, error: error.message, stack: error.stack });
+    res.status(500).json({ success: false, message: 'Server error uploading QR code' });
+  }
+};
+
+/**
+ * @desc    Create deposit with client image
+ * @route   POST /api/user/deposit-with-image
+ * @access  Private (requires token)
+ */
+const createDepositWithImage = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { amount, description } = req.body;
+    
+    if (!amount || amount <= 0) {
+      return res.status(400).json({ success: false, message: 'Valid amount is required' });
+    }
+
+    let clientImageUrl = null;
+    let clientImageFilename = null;
+
+    if (req.file) {
+      clientImageUrl = `/assets/uploads/deposit-images/${req.file.filename}`;
+      clientImageFilename = req.file.filename;
+    }
+
+    const insertQuery = `
+      INSERT INTO deposits (user_id, amount, description, client_image_url, client_image_filename, status)
+      VALUES ($1, $2, $3, $4, $5, 'PENDING')
+      RETURNING *
+    `;
+
+    const result = await pool.query(insertQuery, [
+      userId, 
+      amount, 
+      description || 'Deposit request', 
+      clientImageUrl, 
+      clientImageFilename
+    ]);
+
+    logger.info('Deposit with image created:', { 
+      userId, 
+      amount, 
+      clientImageUrl, 
+      depositId: result.rows[0].id 
+    });
+
+    res.json({ 
+      success: true, 
+      message: 'Deposit request submitted successfully',
+      data: result.rows[0]
+    });
+  } catch (error) {
+    logger.error('Error creating deposit with image:', { 
+      userId: req.user?.id, 
+      error: error.message, 
+      stack: error.stack 
+    });
+    res.status(500).json({ success: false, message: 'Server error creating deposit' });
+  }
+};
+
 module.exports = {
   getUserDeposits,
   getUserWithdrawals,
@@ -969,6 +1103,9 @@ module.exports = {
   getDriveProgress,
   getActiveProducts,
   createCombo,
-  getHighValueProducts
+  getHighValueProducts,
+  getActiveQRCode,
+  uploadQRCode,
+  createDepositWithImage
   // Other user-related functions
 };

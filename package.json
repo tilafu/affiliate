@@ -2,11 +2,13 @@
   "dependencies": {
     "dotenv": "^16.5.0",
     "jquery": "^3.7.1",
+    "multer": "^2.0.1",
     "owl.carousel": "^2.3.4",
     "pg": "^8.16.0",
     "puppeteer": "^24.6.1",
     "winston": "^3.17.0"
-  },  "scripts": {
+  },
+  "scripts": {
     "start": "cd server && npm run start:both",
     "start:client": "cd server && npm run start",
     "start:admin": "cd server && npm run start:admin",

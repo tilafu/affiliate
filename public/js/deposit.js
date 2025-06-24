@@ -90,16 +90,25 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else {
                   typeDisplay = 'Admin Credit';
                   statusClass = 'status-success';
-                }
-              } else if (entry.type === 'deposit') {
+                }              } else if (entry.type === 'deposit') {
                 typeDisplay = 'Deposit';
               }
+
+              // Handle client image display
+              let imageDisplay = '-';
+              if (entry.client_image_url) {
+                imageDisplay = `<a href="${entry.client_image_url}" target="_blank" title="View payment proof">
+                  <img src="${entry.client_image_url}" alt="Payment proof" style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px; cursor: pointer;">
+                </a>`;
+              }
+
                 return `
                 <tr>
                   <td>${new Date(entry.date || entry.created_at).toLocaleDateString()}</td>
                   <td>${new Date(entry.date || entry.created_at).toLocaleTimeString()}</td>
                   <td>${amountPrefix}$${Math.abs(parseFloat(entry.amount)).toFixed(2)}</td>
                   <td><span class="status-badge status-${(entry.status || 'completed').toLowerCase()}">${entry.status || 'Completed'}</span></td>
+                  <td>${imageDisplay}</td>
                   ${entry.admin_note ? `<td><small class="text-muted">${entry.admin_note}</small></td>` : '<td>-</td>'}
                 </tr>
               `;
@@ -111,7 +120,7 @@ document.addEventListener('DOMContentLoaded', () => {
             response: response
           });          historyElement.innerHTML = `
             <tr>
-              <td colspan="5" class="empty-state">
+              <td colspan="6" class="empty-state">
                 <i class="fas fa-history"></i>
                 <p>No deposit history found</p>
               </td>
@@ -123,7 +132,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const historyElement = document.querySelector('#deposit-history table tbody');
       if (historyElement) {        historyElement.innerHTML = `
           <tr>
-            <td colspan="5" class="empty-state">
+            <td colspan="6" class="empty-state">
               <i class="fas fa-exclamation-triangle"></i>
               <p>Error loading deposit history</p>
             </td>
@@ -131,71 +140,235 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
   };
+  // Load QR code on page initialization
+  const loadDepositQRCode = async () => {
+    try {
+      console.log('Loading deposit QR code...');
+      const response = await fetch(`${API_BASE_URL}/api/user/qr-code`);
+      const data = await response.json();
+      
+      if (data.success && data.data) {
+        const qrCodeImg = document.getElementById('deposit-qr-code');
+        const qrCodeDesc = document.getElementById('qr-code-description');
+        const walletAddressSection = document.getElementById('wallet-address-section');
+        const walletAddressInput = document.getElementById('wallet-address-input');
+        
+        if (qrCodeImg && qrCodeDesc) {
+          qrCodeImg.src = data.data.qr_code_url;
+          qrCodeDesc.textContent = data.data.description || 'Scan to make payment';
+          qrCodeImg.style.display = 'block';
+          
+          // Handle wallet address
+          if (data.data.wallet_address && data.data.wallet_address.trim() !== '') {
+            if (walletAddressInput) {
+              walletAddressInput.value = data.data.wallet_address;
+            }
+            if (walletAddressSection) {
+              walletAddressSection.style.display = 'block';
+            }
+          } else {
+            if (walletAddressSection) {
+              walletAddressSection.style.display = 'none';
+            }
+          }
+          
+          console.log('QR code and wallet address loaded successfully');
+        }
+      } else {
+        console.warn('No QR code available');
+        const qrCodeDesc = document.getElementById('qr-code-description');
+        if (qrCodeDesc) {
+          qrCodeDesc.textContent = 'QR code not available';
+        }
+      }
+    } catch (error) {
+      console.error('Error loading QR code:', error);
+      const qrCodeDesc = document.getElementById('qr-code-description');
+      if (qrCodeDesc) {
+        qrCodeDesc.textContent = 'Error loading QR code';
+      }
+    }
+  };
 
-  // Initial data load
-  refreshDepositData();
+  // Handle image preview
+  const imageInput = document.getElementById('payment_proof');
+  const imagePreview = document.getElementById('image-preview');
+  const imagePreviewContainer = document.getElementById('image-preview-container');
+  const removeImageBtn = document.getElementById('remove-image');
 
-  // Set up the deposit form submission
+  if (imageInput && imagePreview && imagePreviewContainer && removeImageBtn) {
+    imageInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        // Validate file size (5MB max)
+        if (file.size > 5 * 1024 * 1024) {
+          alert('File size must be less than 5MB');
+          e.target.value = '';
+          return;
+        }
+
+        // Validate file type
+        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+        if (!allowedTypes.includes(file.type)) {
+          alert('Only image files (JPEG, PNG, GIF) are allowed');
+          e.target.value = '';
+          return;
+        }
+
+        // Show preview
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          imagePreview.src = e.target.result;
+          imagePreviewContainer.style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    removeImageBtn.addEventListener('click', () => {
+      imageInput.value = '';
+      imagePreview.src = '';
+      imagePreviewContainer.style.display = 'none';
+    });
+  }
+
+  // Modified deposit submission to handle image upload
   const depositButton = document.getElementById('deposit');
   if (depositButton) {
     depositButton.addEventListener('click', async (e) => {
       e.preventDefault();
-
+      
       const amountInput = document.getElementById('deposit_amount');
-      const amount = amountInput ? amountInput.value : null;
-      // Add other form fields (method, transaction_details, proof_image_path) as needed
-      // const method = document.getElementById('deposit_method').value;
-      // const transactionDetails = document.getElementById('transaction_details').value;
-      // const proofImage = document.getElementById('proof_image').files[0]; // Example for file upload
-
-      if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
-        showNotification('Please enter a valid deposit amount.', 'warning');
+      const descriptionInput = document.getElementById('deposit_description');
+      const imageInput = document.getElementById('payment_proof');
+      
+      if (!amountInput) {
+        console.error('Amount input not found');
         return;
       }
 
-      // Prepare data for the request
-      const depositData = {
-        amount: parseFloat(amount),
-        // method: method, // Include other fields
-        // transaction_details: transactionDetails,
-        // proof_image_path: proofImage ? 'path/to/upload' : null // Handle file upload separately or send base64
-      };
+      const amount = parseFloat(amountInput.value);
+      if (!amount || amount <= 0) {
+        alert('Please enter a valid deposit amount');
+        return;
+      }
 
-      // Example of sending data (assuming JSON for now)
       try {
-        // Show loading indicator
-        const originalText = depositButton.innerHTML;
+        // Disable button during submission
         depositButton.disabled = true;
-        depositButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
+        depositButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Submitting...';
 
-        const response = await fetchWithAuth('/api/user/deposit/request', {
+        // Create FormData for file upload
+        const formData = new FormData();
+        formData.append('amount', amount);
+        formData.append('description', descriptionInput?.value || '');
+        
+        if (imageInput?.files[0]) {
+          formData.append('image', imageInput.files[0]);
+        }
+
+        const response = await fetch(`${API_BASE_URL}/api/user/deposit-with-image`, {
           method: 'POST',
-          body: JSON.stringify(depositData)
+          headers: {
+            'Authorization': `Bearer ${authData.token}`
+          },
+          body: formData
         });
 
-        // Restore button
-        depositButton.disabled = false;
-        depositButton.innerHTML = originalText;
-
-        if (response.success) {
-          showNotification('Deposit request submitted successfully! ' + (response.message || ''), 'success');
+        const result = await response.json();
+        
+        if (result.success) {
+          alert('Deposit request submitted successfully!');
+          
           // Clear form
-          if (amountInput) amountInput.value = '';
+          amountInput.value = '';
+          if (descriptionInput) descriptionInput.value = '';
+          if (imageInput) {
+            imageInput.value = '';
+            imagePreview.src = '';
+            imagePreviewContainer.style.display = 'none';
+          }
+          
           // Refresh deposit data
-          await refreshDepositData();        } else {
-          showNotification('Deposit failed: ' + (response.message || 'Failed to submit deposit request.'), 'error');
+          await refreshDepositData();
+        } else {
+          alert(result.message || 'Failed to submit deposit request');
         }
       } catch (error) {
-        console.error('Error submitting deposit request:', error);
-        // Restore button
+        console.error('Error submitting deposit:', error);
+        alert('Error submitting deposit request. Please try again.');
+      } finally {
+        // Re-enable button
         depositButton.disabled = false;
-        depositButton.innerHTML = originalText;
-        showNotification('An error occurred while submitting the deposit request.', 'error');
-      }
-    });
-  } else {
-    console.warn('Deposit button not found.');
+        depositButton.innerHTML = '<i class="fas fa-paper-plane me-2"></i>Submit Deposit Request';
+      }    });
   }
+
+  // Copy wallet address function
+  window.copyWalletAddress = async () => {
+    const walletAddressInput = document.getElementById('wallet-address-input');
+    const copyBtn = document.getElementById('copy-wallet-btn');
+    
+    if (!walletAddressInput || !walletAddressInput.value) {
+      return;
+    }
+    
+    try {
+      // Use the modern Clipboard API if available
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(walletAddressInput.value);
+      } else {
+        // Fallback for older browsers
+        walletAddressInput.select();
+        walletAddressInput.setSelectionRange(0, 99999); // For mobile devices
+        document.execCommand('copy');
+      }
+      
+      // Visual feedback
+      const originalText = copyBtn.innerHTML;
+      copyBtn.innerHTML = '<i class="fas fa-check me-1"></i>Copied!';
+      copyBtn.classList.remove('btn-outline-primary');
+      copyBtn.classList.add('btn-success');
+      
+      // Reset button after 2 seconds
+      setTimeout(() => {
+        copyBtn.innerHTML = originalText;
+        copyBtn.classList.remove('btn-success');
+        copyBtn.classList.add('btn-outline-primary');
+      }, 2000);
+      
+      // Optional: Show toast notification if available
+      if (typeof showNotification === 'function') {
+        showNotification('Wallet address copied to clipboard!', 'success');
+      }
+      
+    } catch (err) {
+      console.error('Failed to copy wallet address:', err);
+      
+      // Visual feedback for error
+      const originalText = copyBtn.innerHTML;
+      copyBtn.innerHTML = '<i class="fas fa-times me-1"></i>Failed';
+      copyBtn.classList.remove('btn-outline-primary');
+      copyBtn.classList.add('btn-danger');
+      
+      setTimeout(() => {
+        copyBtn.innerHTML = originalText;
+        copyBtn.classList.remove('btn-danger');
+        copyBtn.classList.add('btn-outline-primary');
+      }, 2000);
+      
+      // Optional: Show error notification if available
+      if (typeof showNotification === 'function') {
+        showNotification('Failed to copy wallet address', 'error');
+      }
+    }
+  };
+
+  // Load QR code when page loads
+  loadDepositQRCode();
+
+  // Initial data load
+  refreshDepositData();
 
 });
 // Function to update translations on the deposit page

@@ -796,5 +796,73 @@ img {
     overflow-y: auto;
     padding-top: 1rem;
     padding-bottom: 1rem;
-    overflow-x: hidden;
+}
+
+/* Wallet Address Copy Functionality Styles */
+#wallet-address-section {
+    background: rgba(255, 255, 255, 0.8);
+    border-radius: 8px;
+    padding: 15px;
+    border: 1px solid #e0e0e0;
+    margin-top: 15px;
+}
+
+#wallet-address-input {
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    color: #495057;
+    font-weight: 500;
+}
+
+#wallet-address-input:focus {
+    background-color: #fff;
+    border-color: var(--color6);
+    box-shadow: 0 0 0 0.2rem rgba(51, 102, 255, 0.25);
+}
+
+#copy-wallet-btn {
+    border-color: var(--color6);
+    color: var(--color6);
+    transition: all 0.3s ease;
+}
+
+#copy-wallet-btn:hover {
+    background-color: var(--color6);
+    border-color: var(--color6);
+    color: white;
+}
+
+#copy-wallet-btn.btn-success {
+    background-color: var(--color8);
+    border-color: var(--color8);
+    color: white;
+}
+
+#copy-wallet-btn.btn-danger {
+    background-color: var(--color9);
+    border-color: var(--color9);
+    color: white;
+}
+
+/* QR Code section enhancements */
+#qr-code-container {
+    position: relative;
+}
+
+#qr-code-container img {
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    #wallet-address-input {
+        font-size: 10px;
+    }
+    
+    #wallet-address-section {
+        padding: 10px;
+    }
 }

@@ -1628,3 +1628,59 @@ body .product-modal .dot.active {
         border: 1px solid #ccc;
     }
 }
+
+/* Dashboard Modal Animations */
+@keyframes modalEntrance {
+    0% {
+        transform: scale(0.9) translateY(30px);
+        opacity: 0;
+    }
+    100% {
+        transform: scale(1) translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes iconPulse {
+    0%, 100% {
+        transform: scale(1);
+        opacity: 0.7;
+    }
+    50% {
+        transform: scale(1.1);
+        opacity: 1;
+    }
+}
+
+@keyframes iconGlow {
+    0% {
+        text-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+    }
+    100% {
+        text-shadow: 0 0 40px rgba(255, 215, 0, 0.8);
+    }
+}
+
+/* Dashboard Modal Button Shimmer Effect */
+@keyframes buttonShimmer {
+    0% {
+        background-position: -200px 0;
+    }
+    100% {
+        background-position: calc(200px + 100%) 0;
+    }
+}
+
+/* Improved modal backdrop blur support */
+@supports (backdrop-filter: blur(10px)) {
+    #drive-frozen-modal {
+        backdrop-filter: blur(10px) !important;
+    }
+}
+
+/* Fallback for browsers without backdrop-filter */
+@supports not (backdrop-filter: blur(10px)) {
+    #drive-frozen-modal {
+        background: rgba(0, 0, 0, 0.9) !important;
+    }
+}

@@ -1,3 +1,10 @@
+// *** DEBUGGING MODE - 401 REDIRECTS DISABLED ***
+// - All 401 error redirects have been completely removed from task.js
+// - 401 errors are only logged to console with detailed debug information
+// - Users will NOT be automatically logged out on 401 errors from task.js
+// - Redirects will be restored after identifying the root cause
+// *** END DEBUG NOTE ***
+
 // Ensure API_BASE_URL and showNotification are available (assuming from main.js)
 // If not, define them here or ensure main.js is loaded first.
 if (typeof API_BASE_URL === 'undefined') {
@@ -227,36 +234,34 @@ function fetchBalance(token) {
         },
     })
     .then(response => response.json())
-    .then(statusData => {
-        const isFrozen = statusData.success && statusData.status === 'frozen';
+    .then(statusData => {        const isFrozen = statusData.success && statusData.status === 'frozen';
         const frozenAmountNeeded = statusData.frozen_amount_needed ? parseFloat(statusData.frozen_amount_needed) : 0;
           if (isFrozen) {
-            // Show the frozen account modal with current status
-            const frozenModalElement = document.getElementById('frozenAccountModal');
-            if (frozenModalElement) {
-                const frozenModal = bootstrap.Modal.getOrCreateInstance(frozenModalElement);
+            // Use the modern dashboard modal instead of Bootstrap modal
+            if (typeof window.displayFrozenState === 'function') {
+                const message = statusData.info || "Drive frozen due to insufficient balance. Please deposit funds to continue.";
+                const tasksCompleted = statusData.tasks_completed || '0 of 0';
+                const totalCommission = statusData.total_commission || '0.00';
                 
-                // Update modal with current frozen amount needed
-                const modalAmountNeeded = document.getElementById('modal-amount-needed');
-                if (modalAmountNeeded && frozenAmountNeeded > 0) {
-                    modalAmountNeeded.textContent = `$${frozenAmountNeeded.toFixed(2)} USDT`;
-                } else if (modalAmountNeeded) {
-                    modalAmountNeeded.textContent = 'Contact Support';
-                }
-                
-                // Add visual effects when modal is shown
-                frozenModal.show();
-                
-                // Add pulse effect to the modal
-                frozenModalElement.addEventListener('shown.bs.modal', function() {
-                    const modalContent = frozenModalElement.querySelector('.modal-content');
-                    if (modalContent) {
-                        modalContent.classList.add('pulse-warning');
-                        setTimeout(() => {
-                            modalContent.classList.remove('pulse-warning');
-                        }, 3000);
+                console.log('Using dashboard modal for frozen state');
+                window.displayFrozenState(message, frozenAmountNeeded, tasksCompleted, totalCommission);
+            } else {
+                // Fallback to Bootstrap modal if dashboard modal not available
+                console.warn('Dashboard modal not available, using Bootstrap fallback');
+                const frozenModalElement = document.getElementById('frozenAccountModal');
+                if (frozenModalElement) {
+                    const frozenModal = bootstrap.Modal.getOrCreateInstance(frozenModalElement);
+                    
+                    // Update modal with current frozen amount needed
+                    const modalAmountNeeded = document.getElementById('modal-amount-needed');
+                    if (modalAmountNeeded && frozenAmountNeeded > 0) {
+                        modalAmountNeeded.textContent = `$${frozenAmountNeeded.toFixed(2)} USDT`;
+                    } else if (modalAmountNeeded) {
+                        modalAmountNeeded.textContent = 'Contact Support';
                     }
-                }, { once: true });
+                    
+                    frozenModal.show();
+                }
             }
         }
         
@@ -797,10 +802,9 @@ function fetchNextOrder(token) {
                     status: 'completed'
                 });
             }
-            
-            refreshWalletBalance();        } else if (data.code === 3) { // Drive Frozen
+              refreshWalletBalance();        } else if (data.code === 3) { // Drive Frozen
             console.warn("Drive Frozen message received from backend (getorder).");
-            displayFrozenState(data.info || "Session frozen due to insufficient balance.", data.frozen_amount_needed, data);
+            displayTaskFrozenState(data.info || "Session frozen due to insufficient balance.", data.frozen_amount_needed, data);
             if (data.total_session_commission !== undefined) {
                 totalDriveCommission = parseFloat(data.total_session_commission);
                 updateDriveCommission();
@@ -1038,22 +1042,22 @@ async function handlePurchase(token, productData) {
         if (!contentType || !contentType.includes('application/json')) {
             const responseText = await response.text();
             console.error('Expected JSON but got:', contentType);
-            console.error('Response body (first 500 chars):', responseText.substring(0, 500));
-              // Check if it's an authentication issue
+            console.error('Response body (first 500 chars):', responseText.substring(0, 500));            // Check if it's an authentication issue
             if (response.status === 401) {
-                // Clear auth data and redirect with notification
-                localStorage.removeItem('auth_token');
-                localStorage.removeItem('user_data');
+                console.error('=== 401 AUTH ERROR DEBUG (task.js) ===');
+                console.error('URL that returned 401:', url);
+                console.error('Response status:', response.status);
+                console.error('Response statusText:', response.statusText);
+                console.error('Content-Type:', contentType);
+                console.error('Response body preview:', responseText.substring(0, 500));
+                console.error('=== END 401 DEBUG ===');
                 
+                // REDIRECT REMOVED FOR DEBUGGING - Will be restored after identifying the problem
                 if (typeof showNotification === 'function') {
-                    showNotification('Logged out. Log in again', 'warning');
+                    showNotification(`task.js: API returned 401 - Check browser console for debug details`, 'error');
                 }
                 
-                setTimeout(() => {
-                    window.location.href = 'login.html';
-                }, 1500);
-                
-                throw new Error('Authentication expired - redirecting to login');
+                throw new Error(`401 Unauthorized from task.js - Check console for debug info`);
             } else if (response.status === 404) {
                 throw new Error('API endpoint not found. Check server configuration.');
             } else {
@@ -1232,12 +1236,11 @@ async function handlePurchase(token, productData) {
             }
               // Note: Code below this point won't execute due to page refresh
             // but keeping it for fallback in case reload fails
-            
-        } else if (data.code === 3) { // Frozen state
+              } else if (data.code === 3) { // Frozen state
              if (typeof showNotification === 'function') {
                 showNotification(data.info || "Session frozen due to insufficient balance.", 'warning');
              } else { alert(data.info || "Session frozen due to insufficient balance."); }
-             displayFrozenState(data.info || "Session frozen due to insufficient balance.", data.frozen_amount_needed, data);
+             displayTaskFrozenState(data.info || "Session frozen due to insufficient balance.", data.frozen_amount_needed, data);
              refreshWalletBalance();
         }
         else {            if (typeof showNotification === 'function') {
@@ -1436,9 +1439,18 @@ function checkDriveStatus(token) {
             'Content-Type': 'application/json'
         }
     })
-    .then(res => res.json())
-    .then(data => {        console.log('Drive status response received (/api/drive/status):', data);
-        // console.log('Drive status:', data.status); // data.status might be deprecated if using code + current_order
+    .then(res => {
+        console.log('Drive status response status:', res.status);
+        console.log('Drive status response headers:', res.headers);
+        
+        if (!res.ok) {
+            throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+        }
+        
+        return res.json();
+    })
+    .then(data => {
+        console.log('Drive status response received (/api/drive/status):', data);
         
         if (data.code === 0) { // Indicates a valid status response
             // Load total_session_commission from backend if available
@@ -1473,7 +1485,9 @@ function checkDriveStatus(token) {
             
             // Update UI with current values
             updateDriveCommission(); // Update UI and persist
-            updateProgressBar(tasksCompleted, totalTasksRequired);            if (data.status === 'active' && data.current_order) {
+            updateProgressBar(tasksCompleted, totalTasksRequired);
+            
+            if (data.status === 'active' && data.current_order) {
                 console.log('checkDriveStatus: Active session with current order found. Resuming drive.');
                 
                 // Clean up any frozen state displays when resuming
@@ -1493,21 +1507,22 @@ function checkDriveStatus(token) {
             } else if (data.status === 'frozen') {
                 console.log('checkDriveStatus: Frozen session found. Displaying frozen state.');
                 
-                // Extract and set global variables for frozen sessions (missing before)
+                // Extract and set global variables for frozen sessions
                 if (data.tasks_completed !== undefined && data.tasks_required !== undefined) {
                     totalTasksRequired = data.tasks_required;
                     tasksCompleted = data.tasks_completed;
                     updateProgressBar(tasksCompleted, totalTasksRequired);
                 }
                 
-                displayFrozenState(data.info || "Session frozen due to insufficient balance.", data.frozen_amount_needed, data);
+                displayTaskFrozenState(data.info || "Session frozen due to insufficient balance.", data.frozen_amount_needed, data);
                 if (autoStartButton) autoStartButton.style.display = 'none';
                 return true;
             } else if (data.status === 'complete') {
                 console.log('checkDriveStatus: Drive complete.');
                 displayDriveComplete(data.info || 'Drive completed successfully.');
                 if (autoStartButton) autoStartButton.style.display = 'none';
-                  } else if (data.status === 'no_session') {
+                return true;
+            } else if (data.status === 'no_session') {
                 console.log('checkDriveStatus: No active session found.');
                 if (autoStartButton) autoStartButton.style.display = 'block';
                 if (productCardContainer) productCardContainer.style.display = 'none';
@@ -1520,7 +1535,17 @@ function checkDriveStatus(token) {
                 updateProgressBar(tasksCompleted, totalTasksRequired); // Show proper progress
                 return false;
             }
+        } else {
+            // Handle non-zero codes (errors)
+            console.warn('checkDriveStatus: API returned error code:', data.code, 'Message:', data.info || data.message);
+            
+            if (data.code === 3) { // Frozen state
+                displayTaskFrozenState(data.info || "Session frozen due to insufficient balance.", data.frozen_amount_needed, data);
+                if (autoStartButton) autoStartButton.style.display = 'none';
+                return true;
+            }
         }
+        
         // If data.code is not 0, or status is unexpected
         console.warn('checkDriveStatus: Received unexpected status or error code:', data);
         if (autoStartButton) autoStartButton.style.display = 'block';
@@ -1529,6 +1554,21 @@ function checkDriveStatus(token) {
     })
     .catch(error => {
         console.error('checkDriveStatus: Error checking drive status:', error);
+        
+        // Check if it's a 401 authentication error
+        if (error.message && error.message.includes('401')) {
+            console.error('=== 401 AUTH ERROR DEBUG (checkDriveStatus) ===');
+            console.error('URL that returned 401:', `${API_BASE_URL}/api/drive/status`);
+            console.error('Token used:', token);
+            console.error('Error details:', error.message);
+            console.error('=== END 401 DEBUG ===');
+            
+            // REDIRECT REMOVED FOR DEBUGGING - Will be restored after identifying the problem
+            if (typeof showNotification === 'function') {
+                showNotification('Authentication error while checking drive status. Check console for details.', 'error');
+            }
+        }
+        
         if (autoStartButton) autoStartButton.style.display = 'block';
         if (productCardContainer) productCardContainer.style.display = 'none';
         return false;
@@ -1550,10 +1590,9 @@ async function performManualRefresh() {
             // 1. Refresh wallet balance
             console.log('Refreshing wallet balance...');
             refreshWalletBalance();
-            
-            // 2. Check current drive status
+              // 2. Check current drive status
             console.log('Checking drive status...');
-            await checkDriveStatus(globalAuthData.token);
+            await checkDriveStatusForRefresh(globalAuthData.token);
             
             // 3. Update all UI elements
             console.log('Updating UI elements...');
@@ -1589,7 +1628,7 @@ async function performManualRefresh() {
 }
 
 // Enhanced checkDriveStatus to be used by manual refresh
-async function checkDriveStatus(token) {
+async function checkDriveStatusForRefresh(token) {
     if (!token) {
         console.warn('No token provided for drive status check');
         return;
@@ -1634,10 +1673,9 @@ async function checkDriveStatus(token) {
                     }
                     
                     clearFrozenStateDisplay(); // Remove any frozen state displays
-                    
-                } else if (data.status === 'frozen') {
+                      } else if (data.status === 'frozen') {
                     console.log('Drive is frozen');
-                    displayFrozenState(data.info || "Session frozen due to insufficient balance.", data.frozen_amount_needed, data);
+                    displayTaskFrozenState(data.info || "Session frozen due to insufficient balance.", data.frozen_amount_needed, data);
                     if (autoStartButton) autoStartButton.style.display = 'none';
                     
                 } else if (data.status === 'complete') {
@@ -1675,10 +1713,9 @@ async function checkDriveStatus(token) {
                 }
                 
                 // Update progress and commission
-                updateProgressBar(tasksCompleted, totalTasksRequired);
-                updateDriveCommission();
+                updateProgressBar(tasksCompleted, totalTasksRequired);                updateDriveCommission();
                 
-                displayFrozenState(data.info || "Session frozen due to insufficient balance.", data.frozen_amount_needed, data);
+                displayTaskFrozenState(data.info || "Session frozen due to insufficient balance.", data.frozen_amount_needed, data);
             }
         } else {
             console.error('Failed to fetch drive status:', response.status, response.statusText);
@@ -1691,9 +1728,8 @@ async function checkDriveStatus(token) {
 
 // --- Check for Existing Drive on Page Load ---
 async function checkForExistingDrive(token) {
-    try {
-        console.log('Checking for existing active drive session...');
-        await checkDriveStatus(token);
+    try {        console.log('Checking for existing active drive session...');
+        await checkDriveStatusForRefresh(token);
     } catch (error) {
         console.error('Error checking for existing drive:', error);
         // Don't throw error - page should still load normally
@@ -1709,7 +1745,7 @@ async function performBackgroundRefresh() {
         // Only check drive status if we have an active session
         const sessionData = localStorage.getItem('current_drive_session');
         if (sessionData) {
-            await checkDriveStatus(globalAuthData.token);
+            await checkDriveStatusForRefresh(globalAuthData.token);
         }
         
         console.log('Background refresh completed');
@@ -1763,8 +1799,8 @@ function displayDriveError(message) {
     }
 }
 
-function displayFrozenState(message, frozenAmountNeeded, serverData = null) {
-    console.log('displayFrozenState called with message:', message, 'Amount needed:', frozenAmountNeeded, 'Server data:', serverData);
+function displayTaskFrozenState(message, frozenAmountNeeded, serverData = null) {
+    console.log('Task.js displayTaskFrozenState called with message:', message, 'Amount needed:', frozenAmountNeeded, 'Server data:', serverData);
     
     // Hide product card and start button but KEEP progress and commission visible
     if (productCardContainer) productCardContainer.style.display = 'none';
@@ -1789,29 +1825,36 @@ function displayFrozenState(message, frozenAmountNeeded, serverData = null) {
     updateDriveCommission(); // Update commission display
     updateProgressBar(tasksCompleted, totalTasksRequired); // Update progress display
     
-    // Create comprehensive frozen state display with progress info
-    const progressInfo = totalTasksRequired > 0 
-        ? `\nProgress: ${tasksCompleted}/${totalTasksRequired} tasks completed`
-        : '';
-    const commissionInfo = totalDriveCommission > 0 
-        ? `\nCommission earned: ${totalDriveCommission.toFixed(2)} USDT`
-        : '';
+    // Prepare formatted data for the dashboard modal
+    const tasksCompletedFormatted = totalTasksRequired > 0 
+        ? `${tasksCompleted} of ${totalTasksRequired}`
+        : '0 of 0';
+    const totalCommissionFormatted = totalDriveCommission > 0 
+        ? totalDriveCommission.toFixed(2)
+        : '0.00';
     
-    const frozenMessage = frozenAmountNeeded 
-        ? `${message} Please deposit ${parseFloat(frozenAmountNeeded).toFixed(2)} USDT to continue.${progressInfo}${commissionInfo}`
-        : `${message}${progressInfo}${commissionInfo}`;
-    
-    // Show frozen state notification with contact support option
-    if (typeof showNotification === 'function') {
-        showNotification(frozenMessage, 'warning');
-    } else if (typeof $(document).dialog === 'function') {
-        $(document).dialog({infoText: frozenMessage, autoClose: 8000}); // Longer display time for more info
+    // Use the modern dashboard modal if available
+    if (typeof window.displayFrozenState === 'function') {
+        console.log('Using dashboard modal for task frozen state');
+        window.displayFrozenState(message, frozenAmountNeeded, tasksCompletedFormatted, totalCommissionFormatted);
     } else {
-        alert(frozenMessage);
+        // Fallback to notification system if dashboard modal not available
+        console.warn('Dashboard modal not available, using notification fallback');
+        const frozenMessage = frozenAmountNeeded 
+            ? `${message} Please deposit ${parseFloat(frozenAmountNeeded).toFixed(2)} USDT to continue. Progress: ${tasksCompletedFormatted}. Commission: ${totalCommissionFormatted} USDT`
+            : `${message} Progress: ${tasksCompletedFormatted}. Commission: ${totalCommissionFormatted} USDT`;
+        
+        if (typeof showNotification === 'function') {
+            showNotification(frozenMessage, 'warning');
+        } else if (typeof $(document).dialog === 'function') {
+            $(document).dialog({infoText: frozenMessage, autoClose: 8000});
+        } else {
+            alert(frozenMessage);
+        }
+        
+        // Create fallback card display
+        createFrozenStateCard(message, frozenAmountNeeded);
     }
-    
-    // Create or update frozen state card to show progress and commission
-    createFrozenStateCard(message, frozenAmountNeeded);
     
     // Add contact support button functionality if not already added
     const contactSupportBtn = document.getElementById('contact-support-btn');
@@ -1957,14 +2000,20 @@ function attemptAutoUnfreeze(token, currentBalance, requiredAmount) {
             if (typeof showNotification === 'function') {
                 showNotification('Account unfrozen! You can now continue with your drive.', 'success');
             }
-            
-            // Hide the frozen modal if it's showing
+              // Hide any frozen modals that might be showing
+            // Try to hide Bootstrap modal (legacy fallback)
             const frozenModalElement = document.getElementById('frozenAccountModal');
             if (frozenModalElement) {
                 const frozenModal = bootstrap.Modal.getInstance(frozenModalElement);
                 if (frozenModal) {
                     frozenModal.hide();
                 }
+            }
+            
+            // Try to hide dashboard modal (modern version)
+            const dashboardModal = document.getElementById('drive-frozen-modal');
+            if (dashboardModal) {
+                dashboardModal.remove();
             }
             
             // Refresh the page to update drive status

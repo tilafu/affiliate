@@ -23,7 +23,10 @@ const {
     getDriveProgress, // Import new function
     getActiveProducts, // Import new function
     createCombo, // Import new function
-    getHighValueProducts // Import new function
+    getHighValueProducts, // Import new function
+    getActiveQRCode, // Import QR code function
+    uploadQRCode, // Import QR code upload function
+    createDepositWithImage // Import deposit with image function
 } = require('../controllers/userController');
 
 const router = express.Router();
@@ -170,5 +173,52 @@ router.get('/products/highvalue', protect, getHighValueProducts);
 // @desc    Create a combo for current user
 // @access  Private
 router.post('/combo/create', protect, createCombo);
+
+// --- QR Code and Deposit Image Routes ---
+
+// @route   GET /api/deposits/qr-code
+// @desc    Get active QR code for deposits page
+// @access  Public (no authentication required)
+router.get('/deposits/qr-code', getActiveQRCode);
+router.get('/qr-code', getActiveQRCode); // Alternative route for admin panel
+
+// @route   POST /api/user/deposit-with-image
+// @desc    Create deposit request with client image
+// @access  Private
+const multer = require('multer');
+const path = require('path');
+
+// Configure multer for deposit images
+const depositImageStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, path.join(__dirname, '../../public/assets/uploads/deposit-images/'));
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, 'deposit-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const uploadDepositImage = multer({
+  storage: depositImageStorage,
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = /jpeg|jpg|png|gif/;
+    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = allowedTypes.test(file.mimetype);
+    
+    if (mimetype && extname) {
+      return cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed'));
+    }
+  }
+});
+
+router.post('/deposit-with-image', protect, uploadDepositImage.single('image'), createDepositWithImage);
+
+// --- End QR Code and Deposit Image Routes ---
 
 module.exports = router;

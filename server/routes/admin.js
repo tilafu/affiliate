@@ -2,6 +2,39 @@ const express = require('express');
 const router = express.Router();
 const { protect, admin } = require('../middlewares/auth');
 const adminController = require('../controllers/adminController');
+const multer = require('multer');
+const path = require('path');
+
+// Configure multer for QR code uploads
+const qrCodeStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, path.join(__dirname, '../../public/assets/uploads/qr-codes/'));
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, 'qr-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const uploadQRCodeImage = multer({
+  storage: qrCodeStorage,
+  limits: {
+    fileSize: 2 * 1024 * 1024 // 2MB limit for QR codes
+  },
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = /jpeg|jpg|png/;
+    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = allowedTypes.test(file.mimetype);
+    
+    if (mimetype && extname) {
+      return cb(null, true);
+    } else {
+      cb(new Error('Only image files (JPEG, JPG, PNG) are allowed'));
+    }
+  }
+});
+
+const { uploadQRCode } = require('../controllers/userController');
 
 // Dashboard
 router.get('/stats', protect, admin, adminController.getDashboardStats);
@@ -68,5 +101,11 @@ router.put('/tier-quantity-configs/:id', protect, admin, adminController.updateT
 
 // Onboarding Responses
 router.get('/onboarding-responses', protect, admin, adminController.getOnboardingResponses);
+
+// QR Code Management for Deposits
+router.post('/qr-code/upload', protect, admin, uploadQRCodeImage.single('qrcode'), uploadQRCode);
+router.get('/qr-codes', protect, admin, adminController.getQRCodes);
+router.post('/qr-code/:id/activate', protect, admin, adminController.activateQRCode);
+router.delete('/qr-code/:id', protect, admin, adminController.deleteQRCode);
 
 module.exports = router;

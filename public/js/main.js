@@ -339,16 +339,18 @@ function getToken() {
     return localStorage.getItem('auth_token');
 }
 
-// Global flag to prevent multiple 401 dialogs
-let is401HandlerActive = false;
+// Global flag to prevent multiple 401 dialogs (avoid redeclaration)
+if (typeof window.is401HandlerActive === 'undefined') {
+    window.is401HandlerActive = false;
+}
 
 // Function to handle 401 authentication errors with a proper dialog
 async function handle401Error() {
     // Prevent multiple simultaneous 401 handlers
-    if (is401HandlerActive) {
+    if (window.is401HandlerActive) {
         return;
     }
-    is401HandlerActive = true;
+    window.is401HandlerActive = true;
 
     try {
         // Show signing out dialog
@@ -365,8 +367,7 @@ async function handle401Error() {
         if (driveSessionData) {
             localStorage.setItem('current_drive_session', driveSessionData);
         }
-        
-        // Short delay before redirect
+          // Short delay before redirect
         setTimeout(() => {
             window.location.href = 'login.html';
         }, 1000);
@@ -375,6 +376,11 @@ async function handle401Error() {
         console.error('Error in 401 handler:', error);
         // Force redirect even if there's an error
         window.location.href = 'login.html';
+    } finally {
+        // Reset the flag in case redirect fails
+        setTimeout(() => {
+            window.is401HandlerActive = false;
+        }, 2000);
     }
 }
 
@@ -493,6 +499,13 @@ function showSigningOutDialog() {
 }
 
 // Function to make authenticated API requests
+// *** DEBUGGING MODE - REDIRECTS DISABLED ***
+// - All 401 error redirects have been completely removed
+// - 401 errors are only logged to console with detailed debug information
+// - Users will NOT be automatically logged out on 401 errors
+// - Redirects will be restored after identifying the root cause
+// *** END DEBUG NOTE ***
+
 async function fetchWithAuth(url, options = {}) {
     const token = getToken();
     const headers = {
@@ -510,15 +523,21 @@ async function fetchWithAuth(url, options = {}) {
             headers,
         });        // Handle 401 (Unauthorized) upfront
         if (response.status === 401) {
-            console.error('401 Unauthorized error detected:', {
-                url: url,
-                status: response.status,
-                statusText: response.statusText
-            });
+            console.error('=== 401 AUTH ERROR DEBUG (fetchWithAuth) ===');
+            console.error('URL that returned 401:', url);
+            console.error('Full URL:', `${API_BASE_URL}${url}`);
+            console.error('Request options:', options);
+            console.error('Request headers:', headers);
+            console.error('Current token:', token ? `${token.substring(0, 20)}...` : 'no token');
+            console.error('Response status:', response.status);
+            console.error('Response statusText:', response.statusText);
+            console.error('=== END 401 DEBUG ===');
+              // Show notification but don't handle 401 - debugging mode
+            showNotification(`API ${url} returned 401 - Check browser console for debug details`, 'error');
             
-            // Show signing out dialog and handle logout
-            await handle401Error();
-            throw new Error('Authentication expired - redirecting to login');
+            // REDIRECT REMOVED FOR DEBUGGING - Will be restored after identifying the problem
+            
+            throw new Error(`401 Unauthorized from ${url} - Check console for debug info`);
         }// Handle other errors
         if (!response.ok) {
             let errorData = {};
@@ -553,11 +572,21 @@ window.addEventListener('unhandledrejection', function(event) {
     // Check if this is a 401 authentication error
     if (event.reason && event.reason.message && event.reason.message.includes('401')) {
         console.warn('Unhandled 401 error detected:', event.reason);
-        // Only handle if our main handler hasn't been triggered
-        if (!is401HandlerActive) {
-            event.preventDefault(); // Prevent the default unhandled rejection behavior
-            handle401Error();
+        console.error('=== 401 AUTH ERROR DEBUG (unhandledrejection) ===');
+        console.error('Rejection reason:', event.reason);
+        console.error('=== END 401 DEBUG ===');
+        
+        // REDIRECT REMOVED FOR DEBUGGING - Will be restored after identifying the problem
+        event.preventDefault(); // Prevent the default unhandled rejection behavior
+        
+        if (typeof showNotification === 'function') {
+            showNotification('Unhandled 401 error detected - Check browser console for debug details', 'error');
         }
+        
+        // Only handle if our main handler hasn't been triggered
+        // if (!is401HandlerActive) {
+        //     handle401Error();
+        // }
     }
 });
 
@@ -565,9 +594,19 @@ window.addEventListener('unhandledrejection', function(event) {
 window.addEventListener('error', function(event) {
     if (event.error && event.error.message && event.error.message.includes('401')) {
         console.warn('Unhandled 401 error detected in error event:', event.error);
-        if (!is401HandlerActive) {
-            handle401Error();
+        console.error('401 AUTH ERROR DEBUG (error event)');
+        console.error('Error object:', event.error);
+        console.error('Event details:', event);
+        console.error('=== END 401 DEBUG ===');
+        
+        // REDIRECT REMOVED FOR DEBUGGING - Will be restored after identifying the problem
+        if (typeof showNotification === 'function') {
+            showNotification('Error event 401 detected - Check browser console for debug details', 'error');
         }
+        
+        // if (!is401HandlerActive) {
+        //     handle401Error();
+        // }
     }
 });
 

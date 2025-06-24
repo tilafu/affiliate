@@ -1402,6 +1402,115 @@ const getOnboardingResponses = async (req, res) => {
     }
 };
 
+/**
+ * @desc    Get all QR codes for admin management
+ * @route   GET /admin/qr-codes
+ * @access  Private/Admin
+ */
+const getQRCodes = async (req, res) => {
+  try {
+    const qrQuery = `
+      SELECT id, qr_code_url, wallet_address, description, is_active, updated_at
+      FROM deposit_qr_codes 
+      ORDER BY updated_at DESC
+    `;
+
+    const result = await pool.query(qrQuery);
+
+    res.json({ 
+      success: true, 
+      data: result.rows.map(qr => ({
+        ...qr,
+        updated_at: new Date(qr.updated_at).toISOString()
+      }))
+    });
+  } catch (error) {
+    logger.error('Error fetching QR codes:', { error: error.message, stack: error.stack });
+    res.status(500).json({ success: false, message: 'Server error fetching QR codes' });
+  }
+};
+
+/**
+ * @desc    Activate a specific QR code
+ * @route   POST /admin/qr-code/:id/activate
+ * @access  Private/Admin
+ */
+const activateQRCode = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const adminId = req.user.id;
+
+    // First, deactivate all QR codes
+    await pool.query('UPDATE deposit_qr_codes SET is_active = false');
+
+    // Then activate the selected QR code
+    const result = await pool.query(
+      'UPDATE deposit_qr_codes SET is_active = true WHERE id = $1 RETURNING *',
+      [id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'QR code not found' });
+    }
+
+    logger.info('QR code activated by admin:', { adminId, qrCodeId: id });
+
+    res.json({ 
+      success: true, 
+      message: 'QR code activated successfully',
+      data: result.rows[0]
+    });
+  } catch (error) {
+    logger.error('Error activating QR code:', { error: error.message, stack: error.stack });
+    res.status(500).json({ success: false, message: 'Server error activating QR code' });
+  }
+};
+
+/**
+ * @desc    Delete a QR code
+ * @route   DELETE /admin/qr-code/:id
+ * @access  Private/Admin
+ */
+const deleteQRCode = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const adminId = req.user.id;
+
+    // Check if this is the active QR code
+    const checkResult = await pool.query(
+      'SELECT is_active FROM deposit_qr_codes WHERE id = $1',
+      [id]
+    );
+
+    if (checkResult.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'QR code not found' });
+    }
+
+    if (checkResult.rows[0].is_active) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Cannot delete active QR code. Please activate another QR code first.' 
+      });
+    }
+
+    // Delete the QR code
+    const result = await pool.query(
+      'DELETE FROM deposit_qr_codes WHERE id = $1 RETURNING *',
+      [id]
+    );
+
+    logger.info('QR code deleted by admin:', { adminId, qrCodeId: id });
+
+    res.json({ 
+      success: true, 
+      message: 'QR code deleted successfully'
+    });
+  } catch (error) {
+    logger.error('Error deleting QR code:', { error: error.message, stack: error.stack });
+    res.status(500).json({ success: false, message: 'Server error deleting QR code' });
+  }
+};
+
 module.exports = {// User Management
     getUsers,
     getFrozenUsers,
@@ -1454,9 +1563,18 @@ module.exports = {// User Management
     createGeneralNotification,
     updateGeneralNotification,
     deleteGeneralNotification,
-    sendCategorizedNotification,
-    sendBulkNotifications,
+    sendCategorizedNotification,    sendBulkNotifications,
+
+    // QR Code Management
+    getQRCodes,
+    activateQRCode,
+    deleteQRCode,
 
     // Onboarding Management
-    getOnboardingResponses
+    getOnboardingResponses,
+
+    // QR Code Management
+    getQRCodes,
+    activateQRCode,
+    deleteQRCode
 };

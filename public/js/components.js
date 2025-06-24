@@ -584,14 +584,9 @@ function initializeReferralCodeCopy(referralCode) {
 function generateUserInitials(username) {
     if (!username) return 'U';
     
-    // Check if the global function exists
-    if (typeof window.generateUserInitials === 'function') {
-        return window.generateUserInitials(username);
-    }    
     // Fallback implementation
     const parts = username.split(' ');
-    if (parts.length >= 2) {
-        return (parts[0][0] + parts[1][0]).toUpperCase();
+    if (parts.length >= 2) {        return (parts[0][0] + parts[1][0]).toUpperCase();
     } else {
         return username.substring(0, 2).toUpperCase();
     }

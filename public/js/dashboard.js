@@ -41,8 +41,9 @@ async function initializeDashboard() {
     const balancesEl = document.getElementById('dashboard-balances');
 
     // Try to use cached data first
-    const cachedUserData = localStorage.getItem('user_data');    try {        
-        console.log('Making API call to /api/user/profile');
+    const cachedUserData = localStorage.getItem('user_data');    try {          console.log('Making API call to /api/user/profile');
+        console.log('Current auth data:', authData);
+        console.log('Token available:', authData.token ? 'Yes' : 'No');
         
         // Use SimpleAuth if available, otherwise use fetchWithAuth
         const response = typeof SimpleAuth !== 'undefined' ? 
@@ -56,6 +57,7 @@ async function initializeDashboard() {
             const user = data.user;
             if (usernameEl) usernameEl.textContent = user.username;
             if (refcodeEl) refcodeEl.textContent = user.referral_code || 'N/A';              console.log('Making API call to /api/user/balances');
+              console.log('Auth data for balances call:', authData);
               
               // Fetch balances separately for real-time accuracy
             const balancesResponse = typeof SimpleAuth !== 'undefined' ? 
@@ -546,6 +548,7 @@ function checkAndInitializeDashboard() {
 // Make functions globally available
 window.checkAndInitializeDashboard = checkAndInitializeDashboard;
 window.initializeDashboard = initializeDashboard;
+window.displayFrozenState = displayFrozenState;
 
 // Function to display frozen state popup modal
 function displayFrozenState(message, amountNeeded, tasksCompleted = '0 of 0', totalCommission = '0.00') {
@@ -908,7 +911,7 @@ function displayFrozenState(message, amountNeeded, tasksCompleted = '0 of 0', to
     // Deposit funds button
     depositBtn.addEventListener('click', () => {
         modal.remove();
-        window.location.href = './account.html';
+        window.location.href = './deposits.html';
     });
 
     // Contact support button

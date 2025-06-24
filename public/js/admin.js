@@ -314,11 +314,13 @@ function loadSection(sectionName) {
         case 'notifications':
             loadNotificationCategories();
             loadGeneralNotifications();
-            break;
-        case 'tier-management':
+            break;        case 'tier-management':
             if (typeof window.tierManagement !== 'undefined') {
                 window.tierManagement.refreshData();
             }
+            break;
+        case 'qr-management':
+            loadQRCodeManagement();
             break;
         // Parent sections don't need to load data
         case 'general':
@@ -1344,8 +1346,22 @@ function initializeHandlers() {
                     window.location.href = 'login.html';
                 }, 1500);
             }
-        }
-    });
+        }    });
+    
+    // QR Code file input change handler
+    const qrFileInput = document.getElementById('qr-file');
+    if (qrFileInput) {
+        qrFileInput.addEventListener('change', previewQRCode);
+    }
+    
+    // QR Code form submission handler
+    const qrUploadForm = document.getElementById('qr-upload-form');
+    if (qrUploadForm) {
+        qrUploadForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await uploadQRCode();
+        });
+    }
 
     // Visibility change handler for drives
     document.addEventListener('visibilitychange', () => {
@@ -1867,6 +1883,197 @@ async function sendBulkNotification() {
     }
 }
 
+// QR Code Management Functions
+async function loadQRCodeManagement() {
+    try {
+        await loadCurrentQRCode();
+        await loadQRCodeHistory();
+    } catch (error) {
+        console.error('Error loading QR code management:', error);
+        showNotification('Failed to load QR code management', 'error');
+    }
+}
+
+async function loadCurrentQRCode() {
+    try {
+        const response = await fetchWithAuth('/api/user/qr-code');
+        const currentQRDisplay = document.getElementById('current-qr-display');
+        
+        if (response.success && response.data) {
+            document.getElementById('current-qr-image').src = response.data.qr_code_url;
+            document.getElementById('current-qr-description').textContent = response.data.description || 'Deposit QR Code';
+            document.getElementById('current-qr-wallet-address').textContent = response.data.wallet_address || 'No wallet address set';
+            document.getElementById('current-qr-updated').textContent = 
+                'Updated: ' + new Date(response.data.updated_at).toLocaleDateString();
+            currentQRDisplay.style.display = 'block';
+        } else {
+            document.getElementById('current-qr-description').textContent = 'No QR code uploaded yet';
+            document.getElementById('current-qr-wallet-address').textContent = 'No wallet address set';
+            document.getElementById('current-qr-updated').textContent = 'Updated: --';
+            document.getElementById('current-qr-image').src = '/assets/images/placeholder-qr.png';
+        }
+    } catch (error) {
+        console.error('Error loading current QR code:', error);
+        showNotification('Failed to load current QR code', 'error');
+        document.getElementById('current-qr-description').textContent = 'Error loading QR code';
+        document.getElementById('current-qr-wallet-address').textContent = 'Error loading wallet address';
+        document.getElementById('current-qr-updated').textContent = 'Updated: --';
+    }
+}
+
+async function loadQRCodeHistory() {
+    try {
+        const response = await fetchWithAuth('/admin/qr-codes');
+        const historyBody = document.getElementById('qr-history-list');
+        
+        if (response.success && response.data && response.data.length > 0) {
+            historyBody.innerHTML = '';
+              response.data.forEach(qr => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>
+                        <img src="${qr.qr_code_url}" alt="QR Code" style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px;">
+                    </td>
+                    <td>${qr.description || 'Deposit QR Code'}</td>
+                    <td class="text-break small">${qr.wallet_address || 'No wallet address'}</td>
+                    <td>
+                        <span class="badge bg-${qr.is_active ? 'success' : 'secondary'}">
+                            ${qr.is_active ? 'Active' : 'Inactive'}
+                        </span>
+                    </td>
+                    <td>${new Date(qr.updated_at).toLocaleDateString()}</td>
+                    <td>
+                        ${!qr.is_active ? `
+                            <button class="btn btn-sm btn-primary me-1" onclick="activateQRCode(${qr.id})">
+                                <i class="fas fa-check"></i> Activate
+                            </button>
+                        ` : ''}
+                        <button class="btn btn-sm btn-danger" onclick="deleteQRCode(${qr.id})">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                    </td>
+                `;
+                historyBody.appendChild(row);
+            });
+        } else {
+            historyBody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">No QR codes found</td></tr>';
+        }
+    } catch (error) {
+        console.error('Error loading QR code history:', error);
+        showNotification('Failed to load QR code history', 'error');
+        const historyBody = document.getElementById('qr-history-list');
+        historyBody.innerHTML = '<tr><td colspan="5" class="text-center text-danger">Error loading QR code history</td></tr>';
+    }
+}
+
+function previewQRCode() {
+    const fileInput = document.getElementById('qr-file');
+    const preview = document.getElementById('qr-preview');
+    const previewContainer = document.getElementById('qr-preview-container');
+    
+    if (fileInput.files && fileInput.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            preview.src = e.target.result;
+            previewContainer.style.display = 'block';
+        };
+        reader.readAsDataURL(fileInput.files[0]);
+    }
+}
+
+async function uploadQRCode() {
+    const fileInput = document.getElementById('qr-file');
+    const uploadBtn = document.getElementById('upload-qr-btn');
+    const description = document.getElementById('qr-description').value;
+    const walletAddress = document.getElementById('qr-wallet-address').value;
+    
+    if (!fileInput.files || !fileInput.files[0]) {
+        showNotification('Please select a QR code image', 'error');
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('qrcode', fileInput.files[0]);
+    formData.append('description', description);
+    formData.append('wallet_address', walletAddress);
+    
+    uploadBtn.disabled = true;
+    uploadBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Uploading...';
+    
+    try {
+        const response = await fetchWithAuth('/admin/qr-code/upload', {
+            method: 'POST',
+            body: formData
+        });
+        
+        if (response.success) {
+            showNotification('QR code uploaded successfully!', 'success');
+            
+            // Reset form
+            document.getElementById('qr-upload-form').reset();
+            document.getElementById('qr-preview-container').style.display = 'none';
+            
+            // Reload QR code data
+            await loadCurrentQRCode();
+            await loadQRCodeHistory();
+        } else {
+            showNotification(response.message || 'Failed to upload QR code', 'error');
+        }
+    } catch (error) {
+        console.error('Error uploading QR code:', error);
+        showNotification('Error uploading QR code: ' + error.message, 'error');
+    } finally {
+        uploadBtn.disabled = false;
+        uploadBtn.innerHTML = '<i class="fas fa-upload me-2"></i>Upload QR Code';
+    }
+}
+
+async function activateQRCode(qrId) {
+    if (!confirm('Are you sure you want to activate this QR code? This will deactivate the current active QR code.')) {
+        return;
+    }
+    
+    try {
+        const response = await fetchWithAuth(`/admin/qr-code/${qrId}/activate`, {
+            method: 'POST'
+        });
+        
+        if (response.success) {
+            showNotification('QR code activated successfully!', 'success');
+            await loadCurrentQRCode();
+            await loadQRCodeHistory();
+        } else {
+            showNotification(response.message || 'Failed to activate QR code', 'error');
+        }
+    } catch (error) {
+        console.error('Error activating QR code:', error);
+        showNotification('Error activating QR code: ' + error.message, 'error');
+    }
+}
+
+async function deleteQRCode(qrId) {
+    if (!confirm('Are you sure you want to delete this QR code? This action cannot be undone.')) {
+        return;
+    }
+    
+    try {
+        const response = await fetchWithAuth(`/admin/qr-code/${qrId}`, {
+            method: 'DELETE'
+        });
+        
+        if (response.success) {
+            showNotification('QR code deleted successfully!', 'success');
+            await loadCurrentQRCode();
+            await loadQRCodeHistory();
+        } else {
+            showNotification(response.message || 'Failed to delete QR code', 'error');
+        }
+    } catch (error) {
+        console.error('Error deleting QR code:', error);
+        showNotification('Error deleting QR code: ' + error.message, 'error');
+    }
+}
+
 // Make notification functions globally available
 window.loadNotificationCategories = loadNotificationCategories;
 window.showCreateCategoryModal = showCreateCategoryModal;
@@ -1883,3 +2090,10 @@ window.showSendIndividualNotificationModal = showSendIndividualNotificationModal
 window.sendIndividualNotification = sendIndividualNotification;
 window.showSendBulkNotificationModal = showSendBulkNotificationModal;
 window.sendBulkNotification = sendBulkNotification;
+
+// Make QR code management functions globally available
+window.loadQRCodeManagement = loadQRCodeManagement;
+window.previewQRCode = previewQRCode;
+window.uploadQRCode = uploadQRCode;
+window.activateQRCode = activateQRCode;
+window.deleteQRCode = deleteQRCode;

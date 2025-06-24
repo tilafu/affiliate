@@ -4,7 +4,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Panel</title>
       <!-- Bootstrap CSS -->
-    <link rel="stylesheet" href="./assets/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css">
     
     <!-- Font Awesome CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -91,12 +91,12 @@
                     <a href="#" class="nav-link admin-nav-link" data-section="frozen-users"><i class="fas fa-user-lock"></i>Frozen Users</a>
                     <a href="#" class="nav-link admin-nav-link" data-section="notifications"><i class="fas fa-bell"></i>Notifications</a>
                 </div>
-            </div>
-            <div class="has-submenu admin-has-submenu">
+            </div>            <div class="has-submenu admin-has-submenu">
                 <a href="#" class="nav-link admin-nav-link"><i class="fas fa-chart-line"></i>Finance</a>
                 <div class="sub-menu admin-sub-menu">
                     <a href="#" class="nav-link admin-nav-link" data-section="deposits"><i class="fas fa-plus-circle"></i>Deposits</a>
                     <a href="#" class="nav-link admin-nav-link" data-section="withdrawals"><i class="fas fa-minus-circle"></i>Withdrawals</a>
+                    <a href="#" class="nav-link admin-nav-link" data-section="qr-management"><i class="fas fa-qrcode"></i>QR Code Management</a>
                 </div>
             </div>
             <div class="has-submenu admin-has-submenu">
@@ -719,6 +719,110 @@
                                         </tbody>
                                     </table>
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- QR Code Management Section -->
+        <section id="qr-management-section" class="section admin-section" style="display: none;">
+            <div class="row">
+                <div class="col-12">
+                    <h2><i class="fas fa-qrcode me-2"></i>QR Code Management</h2>
+                    <p class="text-muted mb-4">Manage the QR code displayed on client deposit pages</p>
+                </div>
+            </div>
+
+            <!-- Current QR Code Display -->
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="fas fa-eye me-2"></i>Current Active QR Code</h5>
+                        </div>                        <div class="card-body text-center">
+                            <div id="current-qr-display">
+                                <img id="current-qr-image" src="" alt="Current QR Code" class="img-fluid mb-3" style="max-width: 200px;">
+                                <p id="current-qr-description" class="text-muted">Loading...</p>
+                                <div class="mb-2">
+                                    <strong>Wallet Address:</strong>
+                                    <p id="current-qr-wallet-address" class="text-break small">--</p>
+                                </div>
+                                <small id="current-qr-updated" class="text-muted">Updated: --</small>
+                            </div>
+                            <div id="no-qr-message" class="text-muted" style="display: none;">
+                                <i class="fas fa-info-circle me-2"></i>No QR code uploaded yet. Upload one to get started.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Upload New QR Code -->
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="fas fa-upload me-2"></i>Upload New QR Code</h5>
+                        </div>
+                        <div class="card-body">                            <form id="qr-upload-form" enctype="multipart/form-data">
+                                <div class="mb-3">
+                                    <label for="qr-description" class="form-label">Description</label>
+                                    <input type="text" class="form-control" id="qr-description" name="description" placeholder="Enter QR code description" value="Deposit QR Code">
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="qr-wallet-address" class="form-label">Wallet Address</label>
+                                    <input type="text" class="form-control" id="qr-wallet-address" name="wallet_address" placeholder="Enter wallet address for deposits">
+                                    <div class="form-text">This address will be displayed below the QR code with copy functionality</div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="qr-file" class="form-label">QR Code Image</label>
+                                    <input type="file" class="form-control" id="qr-file" name="qrcode" accept="image/jpeg,image/png,image/jpg" required>
+                                    <div class="form-text">Accepts JPEG, PNG files. Max size: 2MB</div>
+                                </div>
+                                
+                                <!-- Image Preview -->
+                                <div id="qr-preview-container" class="mb-3" style="display: none;">
+                                    <label class="form-label">Preview</label>
+                                    <div class="text-center">
+                                        <img id="qr-preview" src="" alt="QR Code Preview" class="img-fluid" style="max-width: 150px; border: 2px dashed #dee2e6; padding: 10px;">
+                                    </div>
+                                </div>
+                                
+                                <button type="submit" class="btn btn-primary w-100" id="upload-qr-btn">
+                                    <i class="fas fa-upload me-2"></i>Upload QR Code
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- QR Code History -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="fas fa-history me-2"></i>QR Code History</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table">                                    <thead>
+                                        <tr>
+                                            <th>Preview</th>
+                                            <th>Description</th>
+                                            <th>Wallet Address</th>
+                                            <th>Status</th>
+                                            <th>Uploaded</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>                                    <tbody id="qr-history-list">
+                                        <tr>
+                                            <td colspan="6" class="text-center text-muted">Loading QR code history...</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
                     </div>
