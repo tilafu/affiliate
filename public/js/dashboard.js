@@ -107,15 +107,12 @@ async function initializeDashboard() {
                     showNotification('Drive progress requires authentication. Please login.', 'warning');
                 }
             }
-            
+
+            // Fetch and update total withdrawals
             try {
-                // Fetch and update transaction balances
-                await updateTransactionBalances();
+                await fetchTotalWithdrawals();
             } catch (error) {
-                console.error('Error updating transaction balances:', error);
-                if (error.message.includes('authentication')) {
-                    showNotification('Transaction data requires authentication. Please login.', 'warning');
-                }
+                console.error('Error fetching total withdrawals:', error);
             }
             
         } else {
@@ -237,6 +234,53 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // Remove the old i18next language change listener since it's no longer available
+
+/**
+ * Fetch and update total withdrawals on the dashboard
+ */
+async function fetchTotalWithdrawals() {    
+    try {
+        console.log('Making API call to /api/user/withdrawals');
+        
+        const hasSimpleAuth = typeof SimpleAuth !== 'undefined' && typeof SimpleAuth.authenticatedFetch === 'function';
+        const hasFetchWithAuth = typeof fetchWithAuth === 'function';
+        
+        if (!hasSimpleAuth && !hasFetchWithAuth) {
+            throw new Error('No authentication method available');
+        }
+        
+        const response = hasSimpleAuth ? 
+                        await SimpleAuth.authenticatedFetch('/api/user/withdrawals') :
+                        await fetchWithAuth('/api/user/withdrawals');
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log('Total withdrawals API response:', data);
+        
+        const withdrawBalanceElement = document.getElementById('withdrawBalance');
+        
+        if (data && data.success && withdrawBalanceElement) {
+            const totalWithdrawals = data.totalWithdrawals || 0;
+            withdrawBalanceElement.textContent = `$${parseFloat(totalWithdrawals).toFixed(2)}`;
+            console.log('Updated total withdrawals:', totalWithdrawals);
+        } else {
+            console.error('Failed to fetch total withdrawals:', data ? (data.message || 'Unknown error') : 'No data returned');
+            if (withdrawBalanceElement) {
+                withdrawBalanceElement.textContent = '$0.00';
+            }
+        }
+    } catch (error) {
+        console.error('Failed to fetch total withdrawals:', error.message || 'Unknown error');
+        
+        const withdrawBalanceElement = document.getElementById('withdrawBalance');
+        if (withdrawBalanceElement) {
+            withdrawBalanceElement.textContent = '$0.00';
+        }
+    }
+}
 
 /**
  * Fetch and update the drive progress on the dashboard
@@ -464,112 +508,6 @@ function updateMembershipTier(tier) {
         }
     }
 }
-
-/**
- * Function to update the Current Transaction section with real balance data
- */
-async function updateTransactionBalances() {
-    try {
-        console.log('Making API calls for transaction balances');
-        
-        // Check what authentication methods are available
-        const hasSimpleAuth = typeof SimpleAuth !== 'undefined' && typeof SimpleAuth.authenticatedFetch === 'function';
-        const hasFetchWithAuth = typeof fetchWithAuth === 'function';
-        
-        if (!hasSimpleAuth && !hasFetchWithAuth) {
-            throw new Error('No authentication method available');
-        }
-        
-        // Fetch current balance (main balance)
-        const balancesResponse = hasSimpleAuth ? 
-                               await SimpleAuth.authenticatedFetch('/api/user/balances') :
-                               await fetchWithAuth('/api/user/balances');
-        
-        // Fetch total withdrawals
-        const withdrawalsResponse = hasSimpleAuth ? 
-                                  await SimpleAuth.authenticatedFetch('/api/user/withdrawals') :
-                                  await fetchWithAuth('/api/user/withdrawals');
-
-        // Check if responses are valid - handle both fetch Response objects and direct data
-        let balancesData, withdrawalsData;
-        
-        if (balancesResponse && typeof balancesResponse.json === 'function') {
-            // Standard fetch Response object
-            balancesData = await balancesResponse.json();
-        } else if (balancesResponse && typeof balancesResponse === 'object') {
-            // Direct data object (some auth methods return data directly)
-            balancesData = balancesResponse;
-        } else {
-            throw new Error('Invalid balances response format');
-        }
-        
-        if (withdrawalsResponse && typeof withdrawalsResponse.json === 'function') {
-            // Standard fetch Response object
-            withdrawalsData = await withdrawalsResponse.json();
-        } else if (withdrawalsResponse && typeof withdrawalsResponse === 'object') {
-            // Direct data object (some auth methods return data directly)
-            withdrawalsData = withdrawalsResponse;
-        } else {
-            throw new Error('Invalid withdrawals response format');
-        }
-        
-        console.log('Balances data:', balancesData);
-        console.log('Withdrawals data:', withdrawalsData);
-
-        // Update Current Balance (main balance)
-        const depositBalanceEl = document.getElementById('depositBalance');
-        if (depositBalanceEl && balancesData.success) {
-            const mainBalance = parseFloat(balancesData.balances?.main_balance || 0);
-            depositBalanceEl.textContent = `$${mainBalance.toFixed(2)}`;
-            console.log('Updated current balance:', mainBalance);
-        }
-
-        // Update Withdrawals
-        const withdrawBalanceEl = document.getElementById('withdrawBalance');
-        if (withdrawBalanceEl && withdrawalsData.success) {
-            const totalWithdrawals = parseFloat(withdrawalsData.totalWithdrawals || 0);
-            withdrawBalanceEl.textContent = `$${totalWithdrawals.toFixed(2)}`;
-            console.log('Updated total withdrawals:', totalWithdrawals);
-        }
-
-        // Update the transaction limit display if available
-        const transactionLimitEl = document.querySelector('.section-header .text-muted');
-        if (transactionLimitEl && balancesData.success) {
-            const mainBalance = parseFloat(balancesData.balances?.main_balance || 0);
-            const limit = 25000; // You can make this dynamic based on user tier
-            transactionLimitEl.textContent = `$${mainBalance.toFixed(2)} / $${limit.toLocaleString()}`;
-        }
-
-    } catch (error) {
-        console.error('Error updating transaction balances:', error);
-        
-        // Set fallback values on error
-        const depositBalanceEl = document.getElementById('depositBalance');
-        const withdrawBalanceEl = document.getElementById('withdrawBalance');
-        
-        if (depositBalanceEl) depositBalanceEl.textContent = '$0.00';
-        if (withdrawBalanceEl) withdrawBalanceEl.textContent = '$0.00';
-    }
-}
-
-/**
- * Set up periodic refresh of transaction balances
- */
-function setupTransactionBalanceRefresh() {
-    const authData = isAuthenticated();
-    if (!authData) return;
-
-    // Refresh transaction balances every 30 seconds
-    setInterval(async () => {
-        await updateTransactionBalances(authData.token);
-    }, 30000);
-}
-
-// Start the refresh when the page loads
-document.addEventListener('DOMContentLoaded', () => {
-    // Set up periodic refresh after a short delay
-    setTimeout(setupTransactionBalanceRefresh, 2000);
-});
 
 // Helper function to generate user initials properly
 function generateUserInitials(username) {

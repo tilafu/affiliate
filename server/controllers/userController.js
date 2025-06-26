@@ -64,7 +64,7 @@ const getUserWithdrawals = async (req, res) => {
     const result = await pool.query(`
       SELECT 
         COALESCE(
-          (SELECT SUM(amount) FROM withdrawals WHERE user_id = $1 AND status = 'APPROVED') + 
+          (SELECT SUM(amount) FROM withdrawals WHERE user_id = $1 AND status IN ('APPROVED', 'COMPLETED')) + 
           (SELECT COALESCE(SUM(commission_amount), 0) FROM commission_logs WHERE user_id = $1 AND commission_type = 'admin_withdrawal'),
           0
         ) AS total_withdrawals

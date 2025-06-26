@@ -66,12 +66,16 @@ document.addEventListener('DOMContentLoaded', () => {
   // Function to load balances
   const loadBalances = async () => {
     try {
-      // Get both user profile and balances data
-      const [profileResponse, balancesResponse] = await Promise.all([
-        fetchWithAuth('/api/user/profile'),
+      // Get total withdrawals and balances data
+      const [withdrawalsResponse, balancesResponse] = await Promise.all([
+        fetchWithAuth('/api/user/withdrawals'),
         fetchWithAuth('/api/user/balances')
-      ]);      console.log('Profile response:', profileResponse);
-      console.log('Balances response:', balancesResponse);      // Update withdrawable balance (main balance)
+      ]);
+
+      console.log('Withdrawals response:', withdrawalsResponse);
+      console.log('Balances response:', balancesResponse);
+
+      // Update withdrawable balance (main balance)
       const withdrawableElement = document.getElementById('withdrawable-balance');
       if (withdrawableElement) {
         withdrawableElement.classList.remove('loading');
@@ -86,26 +90,24 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       }
 
-      // Update total withdrawals (this might come from a different endpoint)
-      // For now, let's try to get it from the withdrawal history or user profile
+      // Update total withdrawals
       const totalWithdrawnElement = document.getElementById('user-withdrawn-amount');
       if (totalWithdrawnElement) {
-        // Try to get total withdrawals from profile or calculate from history
-        if (profileResponse.success && profileResponse.data?.total_withdrawals) {
-          const totalWithdrawals = profileResponse.data.total_withdrawals;
+        totalWithdrawnElement.classList.remove('loading');
+        if (withdrawalsResponse.success && typeof withdrawalsResponse.totalWithdrawals !== 'undefined') {
+          const totalWithdrawals = withdrawalsResponse.totalWithdrawals;
           totalWithdrawnElement.innerHTML = `$${parseFloat(totalWithdrawals).toFixed(2)}`;
-          totalWithdrawnElement.classList.remove('loading');
-          console.log('Updated total withdrawals from profile:', totalWithdrawals);
+          console.log('Updated total withdrawals from API:', totalWithdrawals);
         } else {
-          // If not available in profile, we'll calculate it from history
+          // Fallback if the API fails
           totalWithdrawnElement.innerHTML = `$0.00`;
-          totalWithdrawnElement.classList.remove('loading');
-          console.log('Total withdrawals set to default');
+          console.warn('Could not fetch total withdrawals from API.');
         }
       }
 
     } catch (error) {
-      console.error('Error loading balances:', error);      // Set default values on error
+      console.error('Error loading balances:', error);
+      // Set default values on error
       const withdrawableElement = document.getElementById('withdrawable-balance');
       const totalWithdrawnElement = document.getElementById('user-withdrawn-amount');
       
@@ -129,15 +131,10 @@ document.addEventListener('DOMContentLoaded', () => {
       const historyElement = document.querySelector('#withdraw-history-tbody');
       if (historyElement) {
         if (response.success && response.data && response.data.length > 0) {
-          let totalWithdrawals = 0;
           
           historyElement.innerHTML = response.data
             .map((entry) => {
-              // Only count completed withdrawals in total
-              if (entry.status === 'completed' || entry.status === 'approved') {
-                totalWithdrawals += parseFloat(entry.amount || 0);
-              }
-                // Determine styling based on entry type (for amount display)
+              // Determine styling based on entry type (for amount display)
               let amountPrefix = '-';
               if (entry.type === 'admin_adjustment' && entry.amount > 0) {
                 amountPrefix = '+';
@@ -154,13 +151,7 @@ document.addEventListener('DOMContentLoaded', () => {
             })
             .join('');
 
-          // Update total withdrawals based on completed withdrawals only
-          const totalWithdrawnElement = document.getElementById('user-withdrawn-amount');
-          if (totalWithdrawnElement) {
-            totalWithdrawnElement.innerHTML = `$${totalWithdrawals.toFixed(2)}`;
-            totalWithdrawnElement.classList.remove('loading');
-            console.log('Updated total withdrawals from history:', totalWithdrawals);
-          }        } else {
+        } else {
           historyElement.innerHTML = `
             <tr>
               <td colspan="4" class="empty-state">
