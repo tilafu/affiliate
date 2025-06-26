@@ -10,8 +10,8 @@ function debugTaskPageAPIs() {
         '/api/user/balances', 
         '/api/user/drive-progress',
         '/api/user/withdrawals',
-        '/api/products/list',
-        '/api/tasks/status'
+        '/api/products/list'
+        // Note: '/api/tasks/status' was removed as this endpoint doesn't exist
     ];
     
     // Test each endpoint
@@ -52,8 +52,11 @@ function debugTaskPageAPIs() {
     console.log('Check above for any 🚨 401 errors to identify the problematic endpoint');
 }
 
-// Auto-run the debug function
-debugTaskPageAPIs();
+// Auto-run the debug function (commented out to prevent automatic execution)
+// debugTaskPageAPIs();
+// 
+// To manually run debugging, open browser console and type:
+// debugTaskPageAPIs();
 
 // Also provide a manual function to check current auth state
 function checkCurrentAuthState() {

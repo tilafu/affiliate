@@ -1,3 +1,10 @@
+// Dashboard.js - Fixed authentication issues and error handling
+console.log('Dashboard.js loaded with fixes:')
+console.log('- Fixed authentication method checking')
+console.log('- Fixed balance response handling')
+console.log('- Fixed frozen state modal positioning')
+console.log('- Disabled debug script auto-execution')
+
 // Function to ensure i18n content is updated with correct translations
 function updatePageTranslations() {
     // Use the simplified fallback text conversion system
@@ -41,12 +48,24 @@ async function initializeDashboard() {
     const balancesEl = document.getElementById('dashboard-balances');
 
     // Try to use cached data first
-    const cachedUserData = localStorage.getItem('user_data');    try {          console.log('Making API call to /api/user/profile');
+    const cachedUserData = localStorage.getItem('user_data');    try {          
+        console.log('Making API call to /api/user/profile');
         console.log('Current auth data:', authData);
         console.log('Token available:', authData.token ? 'Yes' : 'No');
         
+        // Check what authentication methods are available
+        const hasSimpleAuth = typeof SimpleAuth !== 'undefined' && typeof SimpleAuth.authenticatedFetch === 'function';
+        const hasFetchWithAuth = typeof fetchWithAuth === 'function';
+        
+        console.log('SimpleAuth available:', hasSimpleAuth);
+        console.log('fetchWithAuth available:', hasFetchWithAuth);
+        
+        if (!hasSimpleAuth && !hasFetchWithAuth) {
+            throw new Error('No authentication method available');
+        }
+        
         // Use SimpleAuth if available, otherwise use fetchWithAuth
-        const response = typeof SimpleAuth !== 'undefined' ? 
+        const response = hasSimpleAuth ? 
                         await SimpleAuth.authenticatedFetch('/api/user/profile') :
                         await fetchWithAuth('/api/user/profile');
         
@@ -60,7 +79,7 @@ async function initializeDashboard() {
               console.log('Auth data for balances call:', authData);
               
               // Fetch balances separately for real-time accuracy
-            const balancesResponse = typeof SimpleAuth !== 'undefined' ? 
+            const balancesResponse = hasSimpleAuth ? 
                                    await SimpleAuth.authenticatedFetch('/api/user/balances') :
                                    await fetchWithAuth('/api/user/balances');
             
@@ -134,7 +153,16 @@ async function initializeDashboardWithFallback(authData) {
     const balancesEl = document.getElementById('dashboard-balances');
 
     // Try to use cached data first
-    const cachedUserData = localStorage.getItem('user_data');    try {
+    const cachedUserData = localStorage.getItem('user_data');    
+    
+    try {
+        // Check what authentication methods are available
+        const hasFetchWithAuth = typeof fetchWithAuth === 'function';
+        
+        if (!hasFetchWithAuth) {
+            throw new Error('fetchWithAuth not available in fallback mode');
+        }
+        
         // Use fetchWithAuth as fallback
         const data = await fetchWithAuth('/api/user/profile');
           if (data.success && data.user) {
@@ -213,10 +241,19 @@ document.addEventListener('DOMContentLoaded', () => {
 /**
  * Fetch and update the drive progress on the dashboard
  */
-async function fetchDriveProgress() {    try {
+async function fetchDriveProgress() {    
+    try {
         console.log('Making API call to /api/user/drive-progress');
         
-        const response = typeof SimpleAuth !== 'undefined' ? 
+        // Check what authentication methods are available
+        const hasSimpleAuth = typeof SimpleAuth !== 'undefined' && typeof SimpleAuth.authenticatedFetch === 'function';
+        const hasFetchWithAuth = typeof fetchWithAuth === 'function';
+        
+        if (!hasSimpleAuth && !hasFetchWithAuth) {
+            throw new Error('No authentication method available');
+        }
+        
+        const response = hasSimpleAuth ? 
                         await SimpleAuth.authenticatedFetch('/api/user/drive-progress') :
                         await fetchWithAuth('/api/user/drive-progress');
         
@@ -435,18 +472,46 @@ async function updateTransactionBalances() {
     try {
         console.log('Making API calls for transaction balances');
         
+        // Check what authentication methods are available
+        const hasSimpleAuth = typeof SimpleAuth !== 'undefined' && typeof SimpleAuth.authenticatedFetch === 'function';
+        const hasFetchWithAuth = typeof fetchWithAuth === 'function';
+        
+        if (!hasSimpleAuth && !hasFetchWithAuth) {
+            throw new Error('No authentication method available');
+        }
+        
         // Fetch current balance (main balance)
-        const balancesResponse = typeof SimpleAuth !== 'undefined' ? 
+        const balancesResponse = hasSimpleAuth ? 
                                await SimpleAuth.authenticatedFetch('/api/user/balances') :
                                await fetchWithAuth('/api/user/balances');
         
         // Fetch total withdrawals
-        const withdrawalsResponse = typeof SimpleAuth !== 'undefined' ? 
+        const withdrawalsResponse = hasSimpleAuth ? 
                                   await SimpleAuth.authenticatedFetch('/api/user/withdrawals') :
                                   await fetchWithAuth('/api/user/withdrawals');
 
-        const balancesData = await balancesResponse.json();
-        const withdrawalsData = await withdrawalsResponse.json();
+        // Check if responses are valid - handle both fetch Response objects and direct data
+        let balancesData, withdrawalsData;
+        
+        if (balancesResponse && typeof balancesResponse.json === 'function') {
+            // Standard fetch Response object
+            balancesData = await balancesResponse.json();
+        } else if (balancesResponse && typeof balancesResponse === 'object') {
+            // Direct data object (some auth methods return data directly)
+            balancesData = balancesResponse;
+        } else {
+            throw new Error('Invalid balances response format');
+        }
+        
+        if (withdrawalsResponse && typeof withdrawalsResponse.json === 'function') {
+            // Standard fetch Response object
+            withdrawalsData = await withdrawalsResponse.json();
+        } else if (withdrawalsResponse && typeof withdrawalsResponse === 'object') {
+            // Direct data object (some auth methods return data directly)
+            withdrawalsData = withdrawalsResponse;
+        } else {
+            throw new Error('Invalid withdrawals response format');
+        }
         
         console.log('Balances data:', balancesData);
         console.log('Withdrawals data:', withdrawalsData);
@@ -579,8 +644,9 @@ function displayFrozenState(message, amountNeeded, tasksCompleted = '0 of 0', to
 
     // Find the progress section to insert the modal before it
     const progressSection = document.querySelector('.progress-section');
+    const insertTarget = progressSection || document.body;
     if (!progressSection) {
-        console.error('Progress section not found, falling back to body append');
+        console.warn('Progress section not found, using body as fallback');
     }
 
     // Create modal with better positioning
@@ -880,12 +946,12 @@ function displayFrozenState(message, amountNeeded, tasksCompleted = '0 of 0', to
     `;
 
     // Insert modal before progress section or append to body as fallback
-    if (progressSection) {
-        progressSection.insertAdjacentHTML('beforebegin', modalHTML);
-        console.log('Modal inserted before progress section');
-    } else {
+    if (insertTarget === document.body) {
         document.body.insertAdjacentHTML('beforeend', modalHTML);
         console.log('Modal appended to body (fallback)');
+    } else {
+        insertTarget.insertAdjacentHTML('beforebegin', modalHTML);
+        console.log('Modal inserted before progress section');
     }
 
     // Get modal elements and add event listeners

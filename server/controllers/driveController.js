@@ -506,24 +506,46 @@ const getOrder = async (req, res) => {
         const driveSessionId = session.drive_session_id;        // 2. Calculate unlimited task sets progress (current product step / total products)
         const unlimitedProgress = await calculateUnlimitedProgress(driveSessionId, client);
 
-        // 3. Handle 'pending_reset' (drive completed) status
+        // 3. Calculate total commission earned in this drive session
+        const commissionResult = await client.query(
+            `SELECT COALESCE(SUM(commission_amount), 0) as total_commission
+             FROM commission_logs WHERE drive_session_id = $1`,
+            [driveSessionId]
+        );
+        const totalSessionCommission = parseFloat(commissionResult.rows[0]?.total_commission || 0);
+
+        // 4. Handle 'pending_reset' (drive completed) status
         if (session.session_status === 'pending_reset') {
             client.release();
             return res.json({
                 success: true, code: 2, // Original code for drive complete
                 status: 'complete', 
-                tasks_completed: unlimitedProgress.currentStep, // Current product step completed
-                tasks_required: unlimitedProgress.totalProducts, // Total products across all task sets
+                tasks_completed: unlimitedProgress.currentStep, // Original tasks completed
+                tasks_required: unlimitedProgress.totalProducts, // Original tasks required
+                original_tasks_completed: unlimitedProgress.currentStep, // Original tasks completed
+                original_tasks_required: unlimitedProgress.totalProducts, // Original tasks required
+                all_tasks_completed: unlimitedProgress.allTasksCurrentStep, // All tasks including combos
+                all_tasks_total: unlimitedProgress.allTasksTotalProducts, // All tasks including combos
+                total_commission: totalSessionCommission.toFixed(2),
+                drive_session_id: driveSessionId,
                 info: 'Congratulations! You have completed all tasks in this drive.'
             });
         }
 
-        // 4. Handle 'frozen' status
+        // 5. Handle 'frozen' status
         if (session.session_status === 'frozen') {
             client.release();
             return res.status(403).json({ // Original status code for frozen
                 success: false, code: 3, // Original code for frozen
                 status: 'frozen',
+                tasks_completed: unlimitedProgress.currentStep, // Original tasks completed
+                tasks_required: unlimitedProgress.totalProducts, // Original tasks required
+                original_tasks_completed: unlimitedProgress.currentStep, // Original tasks completed
+                original_tasks_required: unlimitedProgress.totalProducts, // Original tasks required
+                all_tasks_completed: unlimitedProgress.allTasksCurrentStep, // All tasks including combos
+                all_tasks_total: unlimitedProgress.allTasksTotalProducts, // All tasks including combos
+                total_commission: totalSessionCommission.toFixed(2),
+                drive_session_id: driveSessionId,
                 info: 'Your drive session is frozen. Please resolve any outstanding issues.',
                 frozen_amount_needed: session.frozen_amount_needed ? parseFloat(session.frozen_amount_needed).toFixed(2) : null
             });
@@ -620,6 +642,14 @@ const getOrder = async (req, res) => {
                 success: true, code: 0,
                 tasks_required: unlimitedProgress.totalProducts, // Total products across all task sets (unlimited design)
                 tasks_completed: unlimitedProgress.currentStep, // Current product step completed (unlimited design)
+                // Add all progress fields for consistency with drive status
+                original_tasks_completed: unlimitedProgress.currentStep,
+                original_tasks_required: unlimitedProgress.totalProducts,
+                all_tasks_completed: unlimitedProgress.allTasksCurrentStep,
+                all_tasks_total: unlimitedProgress.allTasksTotalProducts,
+                total_commission: totalSessionCommission.toFixed(2),
+                total_session_commission: totalSessionCommission.toFixed(2),
+                drive_session_id: driveSessionId,
                 // --- Details of the specific sub-product ---
                 order_id: uuidv4(), // Unique ID for this sub-product "order" attempt
                 parent_item_id: itemState.uadi_id, // ID of the user_active_drive_item

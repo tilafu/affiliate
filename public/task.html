@@ -84,7 +84,7 @@
                 <div class="stat-icon warning">
                     <i class="fas fa-tasks"></i>
                 </div>                <div class="stat-content">
-                    <div class="stat-label">Original Tasks Completed</div>
+                    <div class="stat-label">Tasks Completed</div>
                     <div class="stat-value">
                         <span id="tasks-count">0 / 45</span>
                     </div>
@@ -390,8 +390,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Get user tier from global data or default to bronze
     const userTier = window.globalAuthData?.user?.tier || 'bronze';
     
-    // Initialize simple drive progress
-    const driveProgress = initializeDriveProgress('simple-drive-progress', {
+    // Initialize simple drive progress and store globally for updates
+    window.globalDriveProgress = initializeDriveProgress('simple-drive-progress', {
         tier: userTier,
         currentProgress: window.tasksCompleted || 0,
         totalCommission: window.totalDriveCommission || 0

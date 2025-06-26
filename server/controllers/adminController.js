@@ -588,11 +588,65 @@ const approveDeposit = async (req, res) => {
             [deposit.amount, deposit.user_id, 'main']
         );
 
+        // Get updated balance for auto-unfreeze check
+        const balanceResult = await client.query(
+            'SELECT balance FROM accounts WHERE user_id = $1 AND type = $2',
+            [deposit.user_id, 'main']
+        );
+        
+        const newBalance = parseFloat(balanceResult.rows[0]?.balance || 0);
+
+        // Check for automatic unfreezing after deposit approval
+        const frozenSessionsResult = await client.query(
+            `SELECT id, frozen_amount_needed 
+             FROM drive_sessions 
+             WHERE user_id = $1 AND status = 'frozen' AND frozen_amount_needed IS NOT NULL`,
+            [deposit.user_id]
+        );
+
+        let unfrozenSessions = 0;
+        for (const session of frozenSessionsResult.rows) {
+            const frozenAmountNeeded = parseFloat(session.frozen_amount_needed);
+            if (newBalance >= frozenAmountNeeded) {
+                // Unfreeze this session
+                await client.query(
+                    `UPDATE drive_sessions 
+                     SET status = 'active', frozen_amount_needed = NULL, updated_at = NOW()
+                     WHERE id = $1`,
+                    [session.id]
+                );
+
+                // Update any frozen drive items to active
+                await client.query(
+                    `UPDATE user_active_drive_items 
+                     SET user_status = 'active'
+                     WHERE drive_session_id = $1 AND user_status = 'frozen'`,
+                    [session.id]
+                );
+
+                unfrozenSessions++;
+                
+                // Log the automatic unfreeze
+                await client.query(
+                    `INSERT INTO commission_logs 
+                     (user_id, source_user_id, account_type, commission_amount, commission_type, description)
+                     VALUES ($1, $2, $3, $4, $5, $6)`,
+                    [deposit.user_id, req.user.id, 'main', 0, 'admin_action', 
+                     `Auto-unfroze session ${session.id} after deposit approval - balance now ${newBalance}`]
+                );
+            }
+        }
+
         // Optional: Log this transaction in commission_logs or a dedicated transaction log
         // For now, we'll rely on the deposits table status change as the record.
 
         await client.query('COMMIT');
-        res.json({ success: true, message: 'Deposit approved successfully' });
+        
+        const message = unfrozenSessions > 0 
+            ? `Deposit approved successfully. Auto-unfroze ${unfrozenSessions} frozen session(s).`
+            : 'Deposit approved successfully';
+            
+        res.json({ success: true, message, unfrozenSessions });
     } catch (error) {
         await client.query('ROLLBACK');
         console.error('Error approving deposit:', error);
@@ -1554,7 +1608,9 @@ module.exports = {// User Management
     
     // Tier Quantity Configuration Management
     getTierQuantityConfigs,
-    updateTierQuantityConfig,    // Unfreeze User Account
+    updateTierQuantityConfig,
+    
+    // Unfreeze User Account
     unfreezeUser,
 
     // Notification Management
@@ -1563,7 +1619,8 @@ module.exports = {// User Management
     createGeneralNotification,
     updateGeneralNotification,
     deleteGeneralNotification,
-    sendCategorizedNotification,    sendBulkNotifications,
+    sendCategorizedNotification,
+    sendBulkNotifications,
 
     // QR Code Management
     getQRCodes,
@@ -1571,10 +1628,5 @@ module.exports = {// User Management
     deleteQRCode,
 
     // Onboarding Management
-    getOnboardingResponses,
-
-    // QR Code Management
-    getQRCodes,
-    activateQRCode,
-    deleteQRCode
+    getOnboardingResponses
 };

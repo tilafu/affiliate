@@ -240,7 +240,7 @@ function fetchBalance(token) {
             // Use the modern dashboard modal instead of Bootstrap modal
             if (typeof window.displayFrozenState === 'function') {
                 const message = statusData.info || "Drive frozen due to insufficient balance. Please deposit funds to continue.";
-                const tasksCompleted = statusData.tasks_completed || '0 of 0';
+                const tasksCompleted = statusData.all_tasks_completed || '0 of 0';
                 const totalCommission = statusData.total_commission || '0.00';
                 
                 console.log('Using dashboard modal for frozen state');
@@ -637,7 +637,13 @@ function callStartDriveAPI(token) {
                 'Content-Type': 'application/json'
             },
         })
-        .then(response => response.json())
+        .then(response => {
+            console.log("Start drive API response status:", response.status, response.statusText);
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            return response.json();
+        })
         .then(data => {
             console.log("API response received from /api/drive/start:", data);
             try {
@@ -681,7 +687,16 @@ function callStartDriveAPI(token) {
                     $('.product-carousel').css('border', '');
                 }, 3000);
 
-                // Backend now returns tasks_in_configuration (total task sets) and current_order
+                // Debug: Log the exact data structure received
+                console.log("Start drive API success response structure:", {
+                    tasks_in_configuration: data.tasks_in_configuration,
+                    current_order: data.current_order,
+                    hasTasksConfig: data.tasks_in_configuration !== undefined,
+                    hasCurrentOrder: !!data.current_order,
+                    fullData: data
+                });
+
+                // Backend returns tasks_in_configuration (total task sets) and current_order
                 if (data.tasks_in_configuration !== undefined && data.current_order) {
                     totalTasksRequired = data.tasks_in_configuration; // Total Task Sets
                     tasksCompleted = 0; // Drive just started
@@ -699,9 +714,18 @@ function callStartDriveAPI(token) {
                     if (autoStartButton) autoStartButton.style.display = 'none';
                     if (productCardContainer) productCardContainer.style.display = 'block';
                 } else {
-                    console.error("callStartDriveAPI: Missing tasks_in_configuration or current_order in successful response", data);
-                    // Fallback or error display
-                    displayDriveError("Error initializing drive: Incomplete data from server.");
+                    console.error("callStartDriveAPI: Missing required fields in successful response", {
+                        received: data,
+                        missingFields: {
+                            tasks_in_configuration: data.tasks_in_configuration === undefined,
+                            current_order: !data.current_order
+                        }
+                    });
+                    // Fallback: Try to get the first product through checkDriveStatus
+                    console.log("Attempting fallback: checking drive status to get current product");
+                    setTimeout(() => {
+                        checkDriveStatus(token);
+                    }, 1000);
                 }
             } else {
                 try {
@@ -725,6 +749,11 @@ function callStartDriveAPI(token) {
         })
         .catch(error => {
             console.error('Error starting drive:', error);
+            console.error('Error details:', {
+                message: error.message,
+                stack: error.stack,
+                name: error.name
+            });
             try {
                  if (loadingMethod === 'layer' && loadingIndicator !== null) {
                     console.log("Closing layer indicator with index:", loadingIndicator);
@@ -786,38 +815,38 @@ function fetchNextOrder(token) {
           if (data.code === 2) { // Drive complete
             console.log("Drive complete message received from backend (getorder).");
             displayDriveComplete(data.info || 'Congratulations! Your data drive is complete.');
-            if (data.total_session_commission !== undefined) {
-                totalDriveCommission = parseFloat(data.total_session_commission);
-                updateDriveCommission();
+            if (data.total_commission !== undefined) {
+                totalDriveCommission = parseFloat(data.total_commission);
+                updateDrive
             }
             
             // Update drive progress component with completion status
             if (window.globalDriveProgress && window.globalDriveProgress.updateFromDriveStatus) {
                 window.globalDriveProgress.updateFromDriveStatus({
-                    original_tasks_completed: data.tasks_completed || tasksCompleted,
-                    original_tasks_required: data.tasks_required || totalTasksRequired,
-                    all_tasks_completed: data.all_tasks_completed || data.tasks_completed || tasksCompleted,
-                    all_tasks_total: data.all_tasks_total || data.tasks_required || totalTasksRequired,
-                    total_commission: data.total_session_commission || totalDriveCommission,
+                    original_tasks_completed: data.tasks_completed || data.all_tasks_completed || tasksCompleted,
+                    original_tasks_required: data.tasks_required || data.all_tasks_total || totalTasksRequired,
+                    all_tasks_completed: data.all_tasks_completed || tasksCompleted,
+                    all_tasks_total: data.all_tasks_total || totalTasksRequired,
+                    total_commission: data.total_commission || totalDriveCommission,
                     status: 'completed'
                 });
             }
               refreshWalletBalance();        } else if (data.code === 3) { // Drive Frozen
             console.warn("Drive Frozen message received from backend (getorder).");
             displayTaskFrozenState(data.info || "Session frozen due to insufficient balance.", data.frozen_amount_needed, data);
-            if (data.total_session_commission !== undefined) {
-                totalDriveCommission = parseFloat(data.total_session_commission);
+            if (data.total_commission !== undefined) {
+                totalDriveCommission = parseFloat(data.total_commission);
                 updateDriveCommission();
             }
             
             // Update drive progress component with frozen status
             if (window.globalDriveProgress && window.globalDriveProgress.updateFromDriveStatus) {
                 window.globalDriveProgress.updateFromDriveStatus({
-                    original_tasks_completed: data.tasks_completed || tasksCompleted,
-                    original_tasks_required: data.tasks_required || totalTasksRequired,
-                    all_tasks_completed: data.all_tasks_completed || data.tasks_completed || tasksCompleted,
-                    all_tasks_total: data.all_tasks_total || data.tasks_required || totalTasksRequired,
-                    total_commission: data.total_session_commission || totalDriveCommission,
+                    original_tasks_completed: data.tasks_completed || data.all_tasks_completed || tasksCompleted,
+                    original_tasks_required: data.tasks_required || data.all_tasks_total || totalTasksRequired,
+                    all_tasks_completed: data.all_tasks_completed || tasksCompleted,
+                    all_tasks_total: data.all_tasks_total || totalTasksRequired,
+                    total_commission: data.total_commission || totalDriveCommission,
                     status: 'frozen'
                 });
             }
@@ -841,19 +870,19 @@ function fetchNextOrder(token) {
             }
 
             renderProductCard(data.current_order);
-            console.log("Current order received (getorder):", data.current_order);            if (data.tasks_completed !== undefined && data.tasks_required !== undefined) {
-                tasksCompleted = data.tasks_completed; // Task Sets completed
-                totalTasksRequired = data.tasks_required; // Total Task Sets
+            console.log("Current order received (getorder):", data.current_order);            if (data.all_tasks_completed !== undefined && data.all_tasks_total !== undefined) {
+                tasksCompleted = data.all_tasks_completed; // All tasks completed (real-time)
+                totalTasksRequired = data.all_tasks_total; // Total tasks (real-time)
                 updateProgressBar(tasksCompleted, totalTasksRequired);
                 
                 // Update drive progress component with full drive status data
                 if (window.globalDriveProgress && window.globalDriveProgress.updateFromDriveStatus) {
                     window.globalDriveProgress.updateFromDriveStatus({
-                        original_tasks_completed: data.tasks_completed,
-                        original_tasks_required: data.tasks_required,
-                        all_tasks_completed: data.all_tasks_completed || data.tasks_completed,
-                        all_tasks_total: data.all_tasks_total || data.tasks_required,
-                        total_commission: data.total_session_commission || totalDriveCommission,
+                        original_tasks_completed: data.tasks_completed || data.all_tasks_completed,
+                        original_tasks_required: data.tasks_required || data.all_tasks_total,
+                        all_tasks_completed: data.all_tasks_completed,
+                        all_tasks_total: data.all_tasks_total,
+                        total_commission: data.total_commission || totalDriveCommission,
                         status: 'active'
                     });
                 }
@@ -1092,19 +1121,20 @@ async function handlePurchase(token, productData) {
                 if (refundResponse.ok && refundData.success) {
                     console.log(`Refund successful: ${productData.product_price} USDT refunded + ${refundData.commission_amount} USDT commission`);
                     
-                    // Update commission and task progress after successful purchase and refund
-                    const previousCompleted = tasksCompleted;
-                    const previousCommission = totalDriveCommission;
-                    
+                    // Update commission and fetch real-time progress after successful purchase and refund
                     totalDriveCommission += parseFloat(refundData.commission_amount || productData.order_commission || 0);
-                    tasksCompleted += 1; // Increment tasks completed
                     
-                    console.log(`Task progress updated: ${previousCompleted} -> ${tasksCompleted} (total: ${totalTasksRequired})`);
-                    console.log(`Commission updated: ${previousCommission} -> ${totalDriveCommission}`);
-                    
-                    // Save updated session data
-                    updateDriveCommission(); // This calls saveCurrentSessionData()
-                    updateProgressBar(tasksCompleted, totalTasksRequired);                    // Refresh wallet balance immediately after successful refund
+                    // Fetch fresh drive status to get accurate progress
+                    try {
+                        await updateDriveStatus();
+                        console.log('Drive status updated after successful purchase and refund');
+                    } catch (statusError) {
+                        console.warn('Failed to update drive status after purchase:', statusError);
+                        // Fallback to local progress update
+                        tasksCompleted += 1;
+                        updateDriveCommission();
+                        updateProgressBar(tasksCompleted, totalTasksRequired);
+                    }                    // Refresh wallet balance immediately after successful refund
                     console.log('Refreshing wallet balance after successful refund...');
                     refreshWalletBalanceWithRetry(3, 500); // 3 retries with 500ms delay (no await to avoid syntax issues)
                       // Show purchase success popup instead of notification
@@ -1129,18 +1159,19 @@ async function handlePurchase(token, productData) {
                     console.warn('Refund failed but purchase was successful:', refundData);
                     
                     // Still update commission since purchase was successful
-                    const previousCompleted = tasksCompleted;
-                    const previousCommission = totalDriveCommission;
-                    
                     totalDriveCommission += parseFloat(productData.order_commission || 0);
-                    tasksCompleted += 1; // Increment tasks completed
                     
-                    console.log(`Task progress updated (refund failed): ${previousCompleted} -> ${tasksCompleted} (total: ${totalTasksRequired})`);
-                    console.log(`Commission updated (refund failed): ${previousCommission} -> ${totalDriveCommission}`);
-                    
-                    // Save updated session data
-                    updateDriveCommission(); // This calls saveCurrentSessionData()
-                    updateProgressBar(tasksCompleted, totalTasksRequired);
+                    // Fetch fresh drive status to get accurate progress
+                    try {
+                        await updateDriveStatus();
+                        console.log('Drive status updated after successful purchase (refund failed)');
+                    } catch (statusError) {
+                        console.warn('Failed to update drive status after purchase:', statusError);
+                        // Fallback to local progress update
+                        tasksCompleted += 1;
+                        updateDriveCommission();
+                        updateProgressBar(tasksCompleted, totalTasksRequired);
+                    }
                       // Refresh wallet balance even if refund failed (commission should still be added)
                     console.log('Refreshing wallet balance after purchase (refund failed)...');
                     refreshWalletBalance();
@@ -1167,8 +1198,19 @@ async function handlePurchase(token, productData) {
                 console.error('Error processing refund:', refundError);
                 
                 // Still update commission since purchase was successful
-                const previousCompleted = tasksCompleted;
-                const previousCommission = totalDriveCommission;
+                totalDriveCommission += parseFloat(productData.order_commission || 0);
+                
+                // Fetch fresh drive status to get accurate progress
+                try {
+                    await updateDriveStatus();
+                    console.log('Drive status updated after successful purchase (refund error)');
+                } catch (statusError) {
+                    console.warn('Failed to update drive status after purchase:', statusError);
+                    // Fallback to local progress update
+                    tasksCompleted += 1;
+                    updateDriveCommission();
+                    updateProgressBar(tasksCompleted, totalTasksRequired);
+                }
                 
                 totalDriveCommission += parseFloat(productData.order_commission || 0);
                 tasksCompleted += 1; // Increment tasks completed
@@ -1319,12 +1361,12 @@ async function refreshDriveStatistics() {
         if (response.ok) {
             const data = await response.json();
             if (data.code === 0 && data.session) {
-                // Update global variables with fresh server data
-                if (data.session.tasks_completed !== undefined) {
-                    tasksCompleted = data.session.tasks_completed;
+                // Update global variables with fresh server data - use all_tasks_* fields for real-time progress
+                if (data.session.all_tasks_completed !== undefined) {
+                    tasksCompleted = data.session.all_tasks_completed;
                 }
-                if (data.session.tasks_required !== undefined) {
-                    totalTasksRequired = data.session.tasks_required;
+                if (data.session.all_tasks_total !== undefined) {
+                    totalTasksRequired = data.session.all_tasks_total;
                 }
                 if (data.session.total_commission !== undefined) {
                     totalDriveCommission = parseFloat(data.session.total_commission);
@@ -1425,6 +1467,77 @@ function animateUIRefresh() {
 }
 
 // --- Drive Status Check for Persistence ---
+/**
+ * Update drive status and progress component with fresh data from backend
+ * This function fetches the latest drive status and updates all progress displays
+ */
+async function updateDriveStatus() {
+    const token = getAuthToken();
+    if (!token) {
+        console.warn('updateDriveStatus: No token found');
+        throw new Error('No authentication token');
+    }
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/drive/status`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        console.log('updateDriveStatus: Fresh status received:', data);
+
+        if (data.code === 0) { // Valid status response
+            // Update commission
+            if (data.total_commission !== undefined) {
+                totalDriveCommission = parseFloat(data.total_commission);
+                console.log('updateDriveStatus: Updated commission:', totalDriveCommission);
+            }
+
+            // Update task progress with real-time data
+            if (data.all_tasks_completed !== undefined && data.all_tasks_total !== undefined) {
+                totalTasksRequired = data.all_tasks_total;
+                tasksCompleted = data.all_tasks_completed;
+                console.log('updateDriveStatus: Updated progress:', tasksCompleted, '/', totalTasksRequired);
+            }
+
+            // Update UI components
+            updateDriveCommission();
+            updateProgressBar(tasksCompleted, totalTasksRequired);
+
+            // Update simple drive progress component with all fields
+            if (window.globalDriveProgress && window.globalDriveProgress.updateFromDriveStatus) {
+                window.globalDriveProgress.updateFromDriveStatus({
+                    original_tasks_completed: data.original_tasks_completed || data.tasks_completed || tasksCompleted,
+                    original_tasks_required: data.original_tasks_required || data.tasks_required || totalTasksRequired,
+                    all_tasks_completed: data.all_tasks_completed || tasksCompleted,
+                    all_tasks_total: data.all_tasks_total || totalTasksRequired,
+                    total_commission: data.total_commission || totalDriveCommission,
+                    status: data.status || 'active'
+                });
+                console.log('updateDriveStatus: Updated drive progress component');
+            }
+
+            // Save updated session data
+            saveCurrentSessionData();
+            
+            return data;
+        } else {
+            throw new Error(`Invalid status response: ${data.info || data.message || 'Unknown error'}`);
+        }
+    } catch (error) {
+        console.error('updateDriveStatus: Error fetching drive status:', error);
+        throw error;
+    }
+}
+
 function checkDriveStatus(token) {
     console.log('checkDriveStatus function called.');
     if (!token) {
@@ -1453,9 +1566,9 @@ function checkDriveStatus(token) {
         console.log('Drive status response received (/api/drive/status):', data);
         
         if (data.code === 0) { // Indicates a valid status response
-            // Load total_session_commission from backend if available
-            if (data.total_session_commission !== undefined) {
-                totalDriveCommission = parseFloat(data.total_session_commission);
+            // Load total_commission from backend if available (renamed to total_commission from total_session_commission)
+            if (data.total_commission !== undefined) {
+                totalDriveCommission = parseFloat(data.total_commission);
                 console.log('Updated commission from backend:', totalDriveCommission);
             } else {
                 // Fallback to localStorage if backend doesn't send it
@@ -1468,11 +1581,11 @@ function checkDriveStatus(token) {
                 }
             }
             
-            // Load task progress from backend if available
-            if (data.tasks_completed !== undefined && data.tasks_required !== undefined) {
-                totalTasksRequired = data.tasks_required;
-                tasksCompleted = data.tasks_completed;
-                console.log('Updated task progress from backend:', tasksCompleted, '/', totalTasksRequired);
+            // Load task progress from backend if available - use all_tasks_* fields for real-time drive session progress
+            if (data.all_tasks_completed !== undefined && data.all_tasks_total !== undefined) {
+                totalTasksRequired = data.all_tasks_total;
+                tasksCompleted = data.all_tasks_completed;
+                console.log('Updated task progress from backend (real-time):', tasksCompleted, '/', totalTasksRequired);
             } else {
                 // Fallback to localStorage if backend doesn't send it
                 const sessionData = getCurrentSessionData();
@@ -1486,6 +1599,19 @@ function checkDriveStatus(token) {
             // Update UI with current values
             updateDriveCommission(); // Update UI and persist
             updateProgressBar(tasksCompleted, totalTasksRequired);
+            
+            // Update simple drive progress component with real-time data
+            if (window.globalDriveProgress && window.globalDriveProgress.updateFromDriveStatus) {
+                window.globalDriveProgress.updateFromDriveStatus({
+                    original_tasks_completed: data.tasks_completed || tasksCompleted,
+                    original_tasks_required: data.tasks_required || totalTasksRequired,
+                    all_tasks_completed: data.all_tasks_completed || tasksCompleted,
+                    all_tasks_total: data.all_tasks_total || totalTasksRequired,
+                    total_commission: data.total_commission || totalDriveCommission,
+                    status: data.status || 'active'
+                });
+                console.log('Updated simple drive progress component with real-time data');
+            }
             
             if (data.status === 'active' && data.current_order) {
                 console.log('checkDriveStatus: Active session with current order found. Resuming drive.');
@@ -1507,10 +1633,10 @@ function checkDriveStatus(token) {
             } else if (data.status === 'frozen') {
                 console.log('checkDriveStatus: Frozen session found. Displaying frozen state.');
                 
-                // Extract and set global variables for frozen sessions
-                if (data.tasks_completed !== undefined && data.tasks_required !== undefined) {
-                    totalTasksRequired = data.tasks_required;
-                    tasksCompleted = data.tasks_completed;
+                // Extract and set global variables for frozen sessions - use all_tasks_* fields for real-time progress
+                if (data.all_tasks_completed !== undefined && data.all_tasks_total !== undefined) {
+                    totalTasksRequired = data.all_tasks_total;
+                    tasksCompleted = data.all_tasks_completed;
                     updateProgressBar(tasksCompleted, totalTasksRequired);
                 }
                 
@@ -1648,17 +1774,30 @@ async function checkDriveStatusForRefresh(token) {
             console.log('Drive status response:', data);
             
             if (data.code === 0) {
-                // Update commission immediately from response
-                if (data.total_session_commission !== undefined) {
-                    totalDriveCommission = parseFloat(data.total_session_commission);
+                // Update commission immediately from response - use total_commission field
+                if (data.total_commission !== undefined) {
+                    totalDriveCommission = parseFloat(data.total_commission);
                     updateDriveCommission();
                 }
                 
-                // Update progress data
-                if (data.tasks_completed !== undefined && data.tasks_required !== undefined) {
-                    tasksCompleted = data.tasks_completed;
-                    totalTasksRequired = data.tasks_required;
+                // Update progress data - use all_tasks_* fields for real-time drive session progress
+                if (data.all_tasks_completed !== undefined && data.all_tasks_total !== undefined) {
+                    tasksCompleted = data.all_tasks_completed;
+                    totalTasksRequired = data.all_tasks_total;
                     updateProgressBar(tasksCompleted, totalTasksRequired);
+                }
+                
+                // Update simple drive progress component with real-time data
+                if (window.globalDriveProgress && window.globalDriveProgress.updateFromDriveStatus) {
+                    window.globalDriveProgress.updateFromDriveStatus({
+                        original_tasks_completed: data.tasks_completed || tasksCompleted,
+                        original_tasks_required: data.tasks_required || totalTasksRequired,
+                        all_tasks_completed: data.all_tasks_completed || tasksCompleted,
+                        all_tasks_total: data.all_tasks_total || totalTasksRequired,
+                        total_commission: data.total_commission || totalDriveCommission,
+                        status: data.status || 'active'
+                    });
+                    console.log('Updated simple drive progress component during refresh');
                 }
                 
                 // Handle different drive states

@@ -212,8 +212,41 @@ async function populateSidebarUserData() {
     try {
         console.log('Fetching user profile for sidebar...');
         
-        // Fetch user profile data using authenticated fetch
-        const data = await fetchWithAuth('/api/user/profile');
+        // Check what authentication methods are available
+        const hasSimpleAuth = typeof SimpleAuth !== 'undefined' && typeof SimpleAuth.authenticatedFetch === 'function';
+        const hasFetchWithAuth = typeof fetchWithAuth === 'function';
+        
+        let data;
+        
+        if (hasSimpleAuth) {
+            // Use SimpleAuth if available
+            console.log('Using SimpleAuth for sidebar profile fetch');
+            const response = await SimpleAuth.authenticatedFetch('/api/user/profile');
+            data = await response.json();
+        } else if (hasFetchWithAuth) {
+            // Use fetchWithAuth if available
+            console.log('Using fetchWithAuth for sidebar profile fetch');
+            data = await fetchWithAuth('/api/user/profile');
+        } else {
+            // Fallback to manual fetch with token
+            console.log('Using manual fetch with token for sidebar profile');
+            const token = authData.token;
+            const baseUrl = window.API_BASE_URL || window.baseurl || '.';
+            const response = await fetch(`${baseUrl}/api/user/profile`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            data = await response.json();
+        }
+        
         console.log('Sidebar profile API response:', data);
 
         if (data.success && data.user) {
