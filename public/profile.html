@@ -15,6 +15,9 @@
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
+    <!-- Custom CSS for shared styles -->
+    <link rel="stylesheet" href="css/task-account-styles.css">
+    
     <!-- Legacy scripts for compatibility -->
     <script src="./assets/frontend/js/jquery.min.js"></script>
     <script charset="utf-8" src="./assets/frontend/shopva/dialog.min.js"></script>
@@ -42,18 +45,51 @@
 
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: var(--background);
+            background: white !important; /* Force white background */
+            background-image: none !important; /* Prevent gradients */
             color: var(--text-primary);
             line-height: 1.6;
             min-height: 100vh;
         }
         
+        /* Force white background on all profile cards */
+        .profile-card {
+            background-color: white !important;
+            background-image: none !important;
+            box-shadow: var(--shadow);
+            border-radius: 12px;
+            margin-bottom: 24px;
+            overflow: hidden;
+        }
+        
+        /* Force white background on all profile items */
+        .profile-item {
+            background-color: white !important;
+            background-image: none !important;
+            padding: 24px;
+        }
+        
+        /* Force white background on all form controls */
+        .form-control {
+            background-color: white !important;
+            background-image: none !important;
+        }
+        
+        /* Main content area should also have white background */
+        .main-content, .container {
+            background-color: white !important;
+            background-image: none !important;
+        }
+        
         .profile-hero-section {
-            background: var(--primary-gradient);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             padding: 120px 0 80px;
             position: relative;
             overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+            border-radius: 0 0 30px 30px;
+            margin-bottom: 20px;
         }
         
         .profile-hero-section::before {
@@ -73,34 +109,49 @@
         
         .profile-hero-section .highlight-yellow {
             color: #ffc107;
+            font-weight: 700;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+        }
+        
+        .profile-hero-section h2 {
+            font-size: 2.2rem;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
         }
         
         .profile-card {
-            background: var(--white);
+            background: white !important;
+            background-image: none !important;
             border-radius: 20px;
             padding: 25px;
             margin-bottom: 20px;
             box-shadow: var(--shadow);
             border: 1px solid var(--border-color);
+            border-top: 4px solid #764ba2;
             transition: all 0.3s ease;
         }
 
         .profile-card:hover {
             transform: translateY(-5px);
             box-shadow: var(--shadow-hover);
+            background: white !important;
+            background-image: none !important;
         }
         
         .profile-item {
             padding: 20px;
             border-bottom: 1px solid var(--border-color);
             transition: all 0.3s ease;
+            background: white !important;
+            background-image: none !important;
+            background: white !important; /* Force white background with !important */
+            background-image: none !important; /* Prevent gradients */
         }
         
         .profile-item:last-child {
             border-bottom: none;
         }
           .profile-item:hover {
-            background: rgba(248, 249, 250, 0.5);
+            background: rgba(0, 0, 0, 0.02);
         }
         
         .profile-image {
@@ -132,30 +183,30 @@
             font-weight: 500;
         }
           .btn-modern {
-            background: #6c757d;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             border: none;
             border-radius: 25px;
             padding: 12px 30px;
             color: white;
             font-weight: 600;
             transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(108, 117, 125, 0.3);
+            box-shadow: 0 4px 15px rgba(118, 75, 162, 0.3);
             display: inline-flex;
             align-items: center;
             gap: 0.5rem;
         }
         
         .btn-modern:hover {
-            background: #5a6268;
+            background: linear-gradient(135deg, #5a71d6 0%, #6a4292 100%);
             transform: translateY(-2px);
-            box-shadow: 0 6px 25px rgba(108, 117, 125, 0.4);
+            box-shadow: 0 6px 25px rgba(118, 75, 162, 0.4);
             color: white;
         }
           .btn-outline-modern {
             background: transparent;
-            border: 2px solid #6c757d;
+            border: 2px solid #764ba2;
             border-radius: 25px;
-            color: #6c757d;
+            color: #764ba2;
             padding: 12px 30px;
             transition: all 0.3s ease;
             text-decoration: none;
@@ -164,10 +215,10 @@
         }
         
         .btn-outline-modern:hover {
-            background: #6c757d;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             transform: translateY(-2px);
-            box-shadow: 0 6px 25px rgba(108, 117, 125, 0.4);
+            box-shadow: 0 6px 25px rgba(118, 75, 162, 0.4);
         }
         
         .modal-content {
@@ -176,7 +227,7 @@
             box-shadow: var(--shadow-hover);
         }
           .modal-header {
-            background: #6c757d;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border-radius: 20px 20px 0 0;
             border-bottom: none;
@@ -191,17 +242,18 @@
             border: 2px solid var(--border-color);
             padding: 12px 20px;
             transition: all 0.3s ease;
-            background: var(--card-background);
+            background: white !important; /* Force white background */
+            background-image: none !important; /* Prevent gradients */
             color: var(--text-primary);
             font-size: 16px;
         }
           .form-control:focus {
-            border-color: #6c757d;
-            box-shadow: 0 0 0 3px rgba(108, 117, 125, 0.1);
+            border-color: #764ba2;
+            box-shadow: 0 0 0 3px rgba(118, 75, 162, 0.1);
             outline: none;
         }
           .icon-circle {
-            background: #6c757d;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             width: 50px;
             height: 50px;
@@ -211,7 +263,7 @@
             justify-content: center;
             margin-right: 15px;
             font-size: 1.2rem;
-            box-shadow: 0 4px 15px rgba(108, 117, 125, 0.3);
+            box-shadow: 0 4px 15px rgba(118, 75, 162, 0.3);
         }
         
         .back-btn {
@@ -219,11 +271,20 @@
             font-size: 1.2rem;
             text-decoration: none;
             transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(5px);
         }
         
         .back-btn:hover {
             color: #ffc107;
             transform: translateX(-5px);
+            background: rgba(255, 255, 255, 0.3);
         }
         
         .menu-btn {
@@ -259,18 +320,18 @@
             background-size: contain;
             border: 1px solid rgba(0, 0, 0, 0.25);
             appearance: none;
-            color-adjust: exact;
+            -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
             transition: background-position .15s ease-in-out;
         }        .form-check-input:checked {
-            background-color: #6c757d;
-            border-color: #6c757d;
+            background-color: #764ba2;
+            border-color: #764ba2;
         }
 
         .form-check-input:focus {
-            border-color: #6c757d;
+            border-color: #764ba2;
             outline: 0;
-            box-shadow: 0 0 0 0.25rem rgba(108, 117, 125, 0.25);
+            box-shadow: 0 0 0 0.25rem rgba(118, 75, 162, 0.25);
         }
 
         /* Card Headers */
@@ -303,6 +364,9 @@
 <div id="sidebar-placeholder"></div>
 <!-- End Sidebar Placeholder -->
 
+<!-- Toast container for notifications -->
+<div class="toast-container position-fixed top-0 end-0 p-3" id="toast-container"></div>
+
 <!-- Modern Profile Hero Section -->
 <section class="profile-hero-section">
     <div class="container">
@@ -317,41 +381,68 @@
             <div style="width: 45px;"></div> <!-- Spacer for alignment -->
         </div>
     </div>
+    <div class="wave-decoration"></div>
 </section>
 
-<main class="main-content py-5">
-    <div class="container">
+<style>
+    .wave-decoration {
+        position: absolute;
+        bottom: -2px;
+        left: 0;
+        width: 100%;
+        height: 30px;
+        background: white;
+        border-radius: 100% 100% 0 0;
+        filter: drop-shadow(0px -5px 5px rgba(0,0,0,0.05));
+    }
+</style>
+
+<main class="main-content py-5" style="background-color: white !important; background-image: none !important;">
+    <div class="container" style="background-color: white !important; background-image: none !important;">
         <!-- Profile Image Card -->
-        <div class="profile-card">
-            <div class="profile-item text-center">
+        <div class="profile-card" style="background-color: white !important; background-image: none !important;">
+            <div class="profile-item text-center" style="background-color: white !important; background-image: none !important;">
                 <img src="./assets/uploads/user.jpg" class="profile-image mb-3" alt="Profile Picture" id="profile-image">
                 <h4 class="mb-2" id="profile-username">Loading...</h4>
                 <p class="text-muted mb-0" id="profile-email">Loading...</p>
+                <div class="mt-3">
+                    <div class="d-flex justify-content-center align-items-center mb-2">
+                        <span class="profile-label me-2">Referral Code:</span>
+                        <span class="profile-value" id="profile-referral-code">Loading...</span>
+                        <button class="btn btn-sm ms-2" id="copy-profile-refcode" style="background: none; border: none;">
+                            <i class="fas fa-copy text-secondary"></i>
+                        </button>
+                    </div>
+                    <div class="d-flex justify-content-center align-items-center">
+                        <span class="profile-label me-2">Total Balance:</span>
+                        <span class="profile-value" id="profile-total-balance">Loading...</span>
+                    </div>
+                </div>
             </div>
         </div>
 
         <!-- Personal Information Card -->
-        <div class="profile-card">
-            <div class="profile-item">
-                <h5 class="mb-4">Personal Information</h5>
+        <div class="profile-card" style="background-color: white !important; background-image: none !important;">
+            <div class="profile-item" style="background-color: white !important; background-image: none !important;">
+                <h5 class="mb-4">Update Personal Information</h5>
                 <form id="profile-form">
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="profile-label">First Name</label>
-                            <input type="text" class="form-control" id="first-name" placeholder="Enter your first name">
+                            <input type="text" class="form-control" id="first-name" placeholder="Enter your first name" style="background-color: white !important; background-image: none !important;">
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="profile-label">Last Name</label>
-                            <input type="text" class="form-control" id="last-name" placeholder="Enter your last name">
+                            <input type="text" class="form-control" id="last-name" placeholder="Enter your last name" style="background-color: white !important; background-image: none !important;">
                         </div>
                     </div>
                     <div class="mb-3">
                         <label class="profile-label">Email Address</label>
-                        <input type="email" class="form-control" id="email" placeholder="Enter your email address" readonly>
+                        <input type="email" class="form-control" id="email" placeholder="Enter your email address" readonly style="background-color: white !important; background-image: none !important;">
                     </div>
                     <div class="mb-3">
                         <label class="profile-label">Phone Number</label>
-                        <input type="tel" class="form-control" id="phone" placeholder="Enter your phone number">
+                        <input type="tel" class="form-control" id="phone" placeholder="Enter your phone number" style="background-color: white !important; background-image: none !important;">
                     </div>                    <div class="text-end">
                         <button type="submit" class="btn btn-modern" id="profile-save-btn">
                             <i class="fas fa-save"></i> Save Changes
@@ -362,8 +453,8 @@
         </div>
 
         <!-- Security Card -->
-        <div class="profile-card">
-            <div class="profile-item">
+        <div class="profile-card" style="background-color: white !important; background-image: none !important;">
+            <div class="profile-item" style="background-color: white !important; background-image: none !important;">
                 <h5 class="mb-4">Security</h5>
                 <div class="d-flex align-items-center justify-content-between mb-3">
                     <div class="d-flex align-items-center">
@@ -383,8 +474,8 @@
         </div>
 
         <!-- Additional Settings Card -->
-        <div class="profile-card">
-            <div class="profile-item">
+        <div class="profile-card" style="background-color: white !important; background-image: none !important;">
+            <div class="profile-item" style="background-color: white !important; background-image: none !important;">
                 <h5 class="mb-4">Additional Settings</h5>
                 <div class="d-flex align-items-center justify-content-between mb-3">
                     <div class="d-flex align-items-center">
@@ -422,27 +513,30 @@
 <!-- Change Password Modal -->
 <div class="modal fade" id="changePasswordModal" tabindex="-1" aria-labelledby="changePasswordModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
+        <div class="modal-content" style="background-color: white !important; background-image: none !important;">
             <div class="modal-header">
                 <h5 class="modal-title" id="changePasswordModalLabel">Change Password</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body" style="background-color: white !important; background-image: none !important;">
                 <form id="change-password-form">
                     <div class="mb-3">
                         <label class="profile-label">Current Password</label>
-                        <input type="password" class="form-control" id="current-password" placeholder="Enter current password">
+                        <input type="password" class="form-control" id="current-password" placeholder="Enter current password" style="background-color: white !important; background-image: none !important;">
                     </div>
                     <div class="mb-3">
                         <label class="profile-label">New Password</label>
-                        <input type="password" class="form-control" id="new-password" placeholder="Enter new password">
+                        <input type="password" class="form-control" id="new-password" placeholder="Enter new password" style="background-color: white !important; background-image: none !important;">
                     </div>
                     <div class="mb-3">
                         <label class="profile-label">Confirm New Password</label>
-                        <input type="password" class="form-control" id="confirm-password" placeholder="Confirm new password">
+                        <input type="password" class="form-control" id="confirm-password" placeholder="Confirm new password" style="background-color: white !important; background-image: none !important;">
+                    </div>
+                    <div id="password-error" class="alert alert-danger d-none mb-3" role="alert">
+                        <span></span>
                     </div>
                     <div class="text-end">
-                        <button type="submit" class="btn btn-modern">
+                        <button type="submit" class="btn btn-modern" id="change-password-btn">
                             <i class="fas fa-save"></i> Update Password
                         </button>
                     </div>
@@ -455,12 +549,12 @@
 <!-- Privacy Settings Modal -->
 <div class="modal fade" id="privacySettingsModal" tabindex="-1" aria-labelledby="privacySettingsModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
+        <div class="modal-content" style="background-color: white !important; background-image: none !important;">
             <div class="modal-header">
                 <h5 class="modal-title" id="privacySettingsModalLabel">Privacy Settings</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body" style="background-color: white !important; background-image: none !important;">
                 <form id="privacy-settings-form">
                     <div class="mb-3">
                         <div class="form-check form-switch">
@@ -490,22 +584,335 @@
 <!-- Footer Navigation -->
 <div id="footer-navigation"></div>
 
-<script>let baseurl = '.';</script> <!-- Use relative base URL -->
+<script>
+// Define API base URL - must be before loading JS files
+window.API_BASE_URL = window.location.hostname === 'localhost' ? 'http://localhost:3000' : '.';
+</script>
 
 <!-- Bootstrap 5 JS Bundle -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
-<script src="./js/components.js"></script>
-<!-- Important: i18n.js must be loaded before other scripts -->
-<script src="./js/i18n.js"></script>
+<!-- Load auth system first -->
+<script src="./js/simple-auth.js"></script> <!-- Authentication system -->
 <script src="./js/main.js"></script>
 <script src="./js/auth-check.js"></script> <!-- Centralized authentication -->
+<!-- Important: i18n.js must be loaded before components -->
+<script src="./js/i18n.js"></script>
+<script src="./js/components.js"></script>
+<!-- Profile specific scripts must be loaded last -->
 <script src="./js/profile.js"></script>
+
+<script>
+// Simple debug script that will run when the page loads
+document.addEventListener('DOMContentLoaded', function() {
+  console.log('Debug script running in profile.html');
+  setTimeout(function() {
+    console.log('Performing automated profile data debug...');
+    
+    // Check for auth tokens
+    const authToken = localStorage.getItem('auth_token');
+    console.log('Auth token exists:', authToken ? 'YES' : 'NO');
+    
+    // Check for user data
+    const userData = localStorage.getItem('user_data');
+    console.log('User data exists:', userData ? 'YES' : 'NO');
+    
+    if (userData) {
+      try {
+        const user = JSON.parse(userData);
+        console.log('User data parsed successfully');
+        
+        // Try to update UI directly
+        const elements = {
+          'profile-username': user.username,
+          'profile-email': user.email,
+          'profile-referral-code': user.referral_code || user.refCode,
+          'profile-total-balance': user.balance ? 
+              `$${parseFloat(user.balance).toFixed(2)}<small style="font-size:12px"> USDT</small>` : null
+        };
+        
+        // Update each element
+        for (const [id, value] of Object.entries(elements)) {
+          const element = document.getElementById(id);
+          if (element && value) {
+            element.innerHTML = value;
+            console.log(`Updated ${id} with value: ${value}`);
+          } else {
+            console.log(`Could not update ${id}, element exists: ${!!element}, value exists: ${!!value}`);
+          }
+        }
+      } catch (e) {
+        console.error('Failed to parse user data:', e);
+      }
+    }
+  }, 1000); // Wait 1 second for other scripts to initialize
+});
+</script>
 
 <script>
     // Load standard navigation components
     document.addEventListener('DOMContentLoaded', function() {
         loadStandardNavigation('profile');
     });
+</script>
+
+<script>
+    // Get token from storage, but add debugging
+    function getToken() {
+        let token = null;
+        
+        // Try SimpleAuth first
+        if (typeof SimpleAuth !== 'undefined') {
+            token = SimpleAuth.getToken();
+            console.log('SimpleAuth.getToken() returned:', token ? `Token found (${token.length} chars)` : 'No token');
+        }
+        
+        // Fallback to localStorage
+        if (!token) {
+            token = localStorage.getItem('auth_token');
+            console.log('localStorage token:', token ? `Token found (${token.length} chars)` : 'No token');
+        }
+        
+        if (!token) {
+            console.warn('No authentication token found in any storage mechanism');
+        }
+        
+        return token;
+    }
+
+    // Add debug function for checking token status
+    window.debugToken = function() {
+        console.log('=== TOKEN DEBUG ===');
+        const simpleAuthAvailable = typeof SimpleAuth !== 'undefined';
+        console.log('SimpleAuth available:', simpleAuthAvailable);
+        
+        if (simpleAuthAvailable) {
+            const clientToken = SimpleAuth.getToken('client');
+            const adminToken = SimpleAuth.getToken('admin');
+            const autoToken = SimpleAuth.getToken();
+            console.log('SimpleAuth client token:', clientToken ? `Found (${clientToken.length} chars)` : 'None');
+            console.log('SimpleAuth admin token:', adminToken ? `Found (${adminToken.length} chars)` : 'None');
+            console.log('SimpleAuth auto-context token:', autoToken ? `Found (${autoToken.length} chars)` : 'None');
+        }
+        
+        const localStorageToken = localStorage.getItem('auth_token');
+        console.log('localStorage auth_token:', localStorageToken ? `Found (${localStorageToken.length} chars)` : 'None');
+        
+        const userData = localStorage.getItem('user_data');
+        console.log('userData in localStorage:', userData ? 'Found' : 'None');
+        if (userData) {
+            try {
+                const parsed = JSON.parse(userData);
+                console.log('User data:', parsed);
+            } catch (e) {
+                console.error('Failed to parse user_data:', e);
+            }
+        }
+        
+        // Check auth-check.js functions
+        if (typeof isAuthenticated === 'function') {
+            const authData = isAuthenticated();
+            console.log('isAuthenticated() returned:', authData);
+        } else {
+            console.warn('isAuthenticated function not available');
+        }
+        
+        console.log('=== END TOKEN DEBUG ===');
+        return 'Token debug information logged to console';
+    };
+
+    // Add console message to help troubleshoot
+    console.log('Profile page loaded. Use window.debugToken() in console to check authentication status.');
+</script>
+
+<!-- Debug Script for Library Availability -->
+<script>
+    // This script checks if all required libraries and functions are available
+    window.checkLibraries = function() {
+        const report = {
+            'SimpleAuth': typeof SimpleAuth !== 'undefined',
+            'i18next': typeof i18next !== 'undefined',
+            'updateContent (i18n)': typeof updateContent === 'function',
+            'fetchWithAuth': typeof fetchWithAuth === 'function',
+            'showNotification': typeof showNotification === 'function',
+            'checkAuthentication': typeof checkAuthentication === 'function',
+            'bootstrap': typeof bootstrap !== 'undefined',
+            'updateProfileUI': typeof window.updateProfileUI === 'function',
+            'jQuery': typeof $ !== 'undefined'
+        };
+        
+        console.table(report);
+        
+        // Check for auth data
+        const authData = typeof SimpleAuth !== 'undefined' ? SimpleAuth.getAuthData() : null;
+        console.log('Auth data available:', authData ? 'YES' : 'NO');
+        if (authData) {
+            console.log('Auth user:', authData.user);
+        }
+        
+        // Check cached user data
+        const userData = localStorage.getItem('user_data');
+        if (userData) {
+            try {
+                console.log('Cached user data:', JSON.parse(userData));
+            } catch (e) {
+                console.error('Error parsing cached user data:', e);
+            }
+        } else {
+            console.log('No cached user data found');
+        }
+        
+        return report;
+    };
+    
+    // Run the check when the page loads
+    setTimeout(window.checkLibraries, 2000);
+</script>
+
+<!-- Add Component Loaded Event Listener -->
+<script>
+    // Check if sidebar and components are loaded properly
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('DOM content loaded - checking component status');
+        
+        // Check for sidebar placeholder
+        const sidebarPlaceholder = document.getElementById('sidebar-placeholder');
+        if (!sidebarPlaceholder) {
+            console.error('Sidebar placeholder not found in DOM!');
+        } else {
+            console.log('Sidebar placeholder found in DOM');
+            
+            // Listen for component loaded event
+            sidebarPlaceholder.addEventListener('componentLoaded', function(e) {
+                console.log('Component loaded event received:', e.detail.path);
+                
+                // If sidebar component loaded, ensure we have all necessary elements
+                setTimeout(function() {
+                    console.log('Checking profile elements after component load...');
+                    ['profile-username', 'profile-email', 'profile-referral-code', 'profile-total-balance']
+                    .forEach(id => {
+                        const element = document.getElementById(id);
+                        console.log(`- ${id}: ${element ? 'FOUND' : 'MISSING'} after component load`);
+                    });
+                    
+                    // Manually trigger an update of the UI
+                    console.log('Manually triggering profile page UI update after component load');
+                    try {
+                        // Try to get updateUserInterface function from profile.js
+                        if (typeof window.updateProfileUI === 'function') {
+                            window.updateProfileUI();
+                        } else {
+                            // Use cached data as fallback
+                            const cachedUserData = localStorage.getItem('user_data');
+                            if (cachedUserData) {
+                                const userData = JSON.parse(cachedUserData);
+                                // Update profile elements with cached data
+                                const elements = {
+                                    'profile-username': userData.username,
+                                    'profile-email': userData.email,
+                                    'profile-referral-code': userData.referral_code || userData.refCode || userData.referralCode,
+                                    'profile-total-balance': userData.balance ? 
+                                        `$${parseFloat(userData.balance).toFixed(2)}<small style="font-size:12px"> USDT</small>` : null,
+                                    'first-name': userData.first_name || userData.firstName,
+                                    'last-name': userData.last_name || userData.lastName,
+                                    'email': userData.email,
+                                    'phone': userData.mobile_number || userData.mobile || userData.phone
+                                };
+                                
+                                Object.keys(elements).forEach(id => {
+                                    const element = document.getElementById(id);
+                                    if (element && elements[id]) {
+                                        if (element.tagName === 'INPUT') {
+                                            element.value = elements[id];
+                                        } else {
+                                            element.innerHTML = elements[id];
+                                        }
+                                    }
+                                });
+                                console.log('Profile updated with cached data after component load');
+                            }
+                        }
+                    } catch (e) {
+                        console.error('Error updating profile after component load:', e);
+                    }
+                }, 500);
+            });
+        }
+    });
+</script>
+
+<!-- Debug Console for Profile Page -->
+<script>
+// Add debug information to the console
+console.log('========== PROFILE PAGE DEBUG ==========');
+console.log('Current Page:', window.location.pathname);
+console.log('API_BASE_URL:', window.API_BASE_URL);
+console.log('SimpleAuth available:', typeof SimpleAuth !== 'undefined');
+
+// Check all auth-related token storage
+console.log('auth_token in localStorage:', localStorage.getItem('auth_token') ? 'YES' : 'NO');
+console.log('user_data in localStorage:', localStorage.getItem('user_data') ? 'YES' : 'NO');
+console.log('auth_token_client in localStorage:', localStorage.getItem('auth_token_client') ? 'YES' : 'NO');
+console.log('user_data_client in localStorage:', localStorage.getItem('user_data_client') ? 'YES' : 'NO');
+
+// Log all HTML IDs that profile.js expects to find
+console.log('DOM elements needed for profile:');
+['profile-username', 'profile-email', 'profile-referral-code', 'profile-total-balance', 
+ 'copy-profile-refcode', 'first-name', 'last-name', 'email', 'phone', 'profile-save-btn']
+.forEach(id => {
+    const element = document.getElementById(id);
+    console.log(`- ${id}: ${element ? 'FOUND' : 'MISSING'}`);
+});
+
+// Define a DEBUG function to manually update the UI with cached data
+window.debugUpdateUI = function() {
+    console.log('Manually triggering UI update from cache...');
+    try {
+        const cachedUserData = localStorage.getItem('user_data');
+        if (cachedUserData) {
+            const userData = JSON.parse(cachedUserData);
+            console.log('Debug: Found user data in cache:', userData);
+            
+            // Update profile elements
+            document.getElementById('profile-username').textContent = userData.username || 'N/A';
+            document.getElementById('profile-email').textContent = userData.email || 'N/A';
+            
+            // Get referral code (check multiple property names)
+            const refCode = userData.referral_code || userData.refCode || userData.referralCode || 'N/A';
+            document.getElementById('profile-referral-code').textContent = refCode;
+            
+            // Get balance
+            const balance = userData.balance || userData.total_balance || 0;
+            document.getElementById('profile-total-balance').innerHTML = 
+                `$${parseFloat(balance).toFixed(2)}<small style="font-size:12px"> USDT</small>`;
+            
+            // Update form fields
+            document.getElementById('first-name').value = userData.first_name || userData.firstName || '';
+            document.getElementById('last-name').value = userData.last_name || userData.lastName || '';
+            document.getElementById('email').value = userData.email || '';
+            document.getElementById('phone').value = userData.mobile_number || userData.mobile || '';
+            
+            return 'UI updated with cached data!';
+        } else {
+            return 'No cached user data found!';
+        }
+    } catch (error) {
+        console.error('Error in debugUpdateUI:', error);
+        return `Error: ${error.message}`;
+    }
+};
+
+// Add debug button to manually update UI
+const debugBtn = document.createElement('button');
+debugBtn.innerText = 'Debug: Update UI';
+debugBtn.style.cssText = 'position: fixed; bottom: 10px; right: 10px; z-index: 9999; padding: 10px; background: red; color: white; border: none; border-radius: 5px;';
+debugBtn.onclick = () => {
+    const result = window.debugUpdateUI();
+    alert(result);
+};
+document.body.appendChild(debugBtn);
+
+console.log('=========================================');
+console.log('Debug function added! Use window.debugUpdateUI() in console to manually update UI from cache.');
 </script>
 </body>
 </html>

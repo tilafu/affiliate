@@ -283,11 +283,11 @@ async function fetchTotalWithdrawals() {
 }
 
 /**
- * Fetch and update the drive progress on the dashboard
+ * Fetch and update the drive progress on the dashboard using real-time session data
  */
 async function fetchDriveProgress() {    
     try {
-        console.log('Making API call to /api/user/drive-progress');
+        console.log('Making API call to get real-time drive progress');
         
         // Check what authentication methods are available
         const hasSimpleAuth = typeof SimpleAuth !== 'undefined' && typeof SimpleAuth.authenticatedFetch === 'function';
@@ -296,6 +296,96 @@ async function fetchDriveProgress() {
         if (!hasSimpleAuth && !hasFetchWithAuth) {
             throw new Error('No authentication method available');
         }
+        
+        // First, get user ID from profile
+        const profileResponse = hasSimpleAuth ? 
+                        await SimpleAuth.authenticatedFetch('/api/user/profile') :
+                        await fetchWithAuth('/api/user/profile');
+        
+        if (!profileResponse.ok) {
+            throw new Error(`HTTP error getting profile! status: ${profileResponse.status}`);
+        }
+        
+        const profileData = await profileResponse.json();
+        
+        if (!profileData.success || !profileData.user?.id) {
+            throw new Error('Could not get user ID from profile');
+        }
+        
+        const userId = profileData.user.id;
+        
+        // Now get real-time drive progress using admin endpoint pattern
+        const response = hasSimpleAuth ? 
+                        await SimpleAuth.authenticatedFetch(`/api/admin/drive-management/users/${userId}/drive-progress`) :
+                        await fetchWithAuth(`/api/admin/drive-management/users/${userId}/drive-progress`);
+        
+        if (!response.ok) {
+            // If admin endpoint fails, fall back to old endpoint
+            console.warn('Admin drive progress endpoint failed, falling back to user endpoint');
+            return await fetchDriveProgressFallback();
+        }
+        
+        const data = await response.json();
+        console.log('Real-time drive progress API response:', data);
+        
+        if (data && data.drive_session_id) {
+            // Update the "Completed" counter with actual session data
+            const completedEl = document.querySelector('[data-i18n="completedWorkingDays"]');
+            if (completedEl) {
+                const completedCount = data.completed_original_tasks || 0;
+                completedEl.setAttribute('data-i18n-options', `{"count": ${completedCount}}`);
+                completedEl.innerHTML = `<b>Completed (${completedCount})</b>`;
+            }
+            
+            // Update the progress bar and text with real-time data
+            const progressTextEl = document.querySelector('[data-i18n="progressWorkingDays"]');
+            const progressBarEl = document.querySelector('.progress-bar.bg-info');
+            
+            if (progressTextEl && progressBarEl) {
+                const completed = data.completed_original_tasks || 0;
+                const total = data.total_task_items || 1;
+                
+                progressTextEl.setAttribute('data-i18n-options', `{"completed": ${completed}, "total": ${total}}`);
+                progressTextEl.textContent = `Progress (${completed}/${total})`;
+                
+                const percentage = Math.min(Math.round((completed / total) * 100), 100);
+                progressBarEl.style.width = `${percentage}%`;
+                
+                // Add a tooltip to show more details
+                progressBarEl.setAttribute('title', `${percentage}% of current drive completed`);
+                
+                // Add drive configuration info
+                const workingDaysDescEl = document.querySelector('[data-i18n="workingDaysDescription"]');
+                if (workingDaysDescEl) {
+                    workingDaysDescEl.innerHTML = `Current Drive: ${data.drive_configuration_name || 'Unknown'}`;
+                    if (percentage === 100) {
+                        workingDaysDescEl.innerHTML += '<span class="badge bg-success ms-2">Drive Complete!</span>';
+                    }
+                }
+            }
+            
+            console.log('Real-time drive progress updated successfully');
+        } else {
+            console.log('No active drive session, showing default progress');
+            await fetchDriveProgressFallback();
+        }
+    } catch (error) {
+        console.error('Failed to fetch real-time drive progress:', error.message || 'Unknown error');
+        console.error('Drive progress error details:', error);
+        // Fall back to old system
+        await fetchDriveProgressFallback();
+    }
+}
+
+/**
+ * Fallback function for drive progress using the old static system
+ */
+async function fetchDriveProgressFallback() {
+    try {
+        console.log('Using fallback drive progress system');
+        
+        const hasSimpleAuth = typeof SimpleAuth !== 'undefined' && typeof SimpleAuth.authenticatedFetch === 'function';
+        const hasFetchWithAuth = typeof fetchWithAuth === 'function';
         
         const response = hasSimpleAuth ? 
                         await SimpleAuth.authenticatedFetch('/api/user/drive-progress') :
@@ -306,8 +396,10 @@ async function fetchDriveProgress() {
         }
         
         const data = await response.json();
-        console.log('Drive progress API response:', data);        if (data && data.success) {
-            // Update the "Completed" counter
+        console.log('Fallback drive progress API response:', data);
+        
+        if (data && data.success) {
+            // Update using old system data
             const completedEl = document.querySelector('[data-i18n="completedWorkingDays"]');
             if (completedEl) {
                 const completedCount = data.total_working_days || 0;
@@ -315,7 +407,6 @@ async function fetchDriveProgress() {
                 completedEl.innerHTML = `<b>Completed (${completedCount})</b>`;
             }
             
-            // Update the progress bar and text
             const progressTextEl = document.querySelector('[data-i18n="progressWorkingDays"]');
             const progressBarEl = document.querySelector('.progress-bar.bg-info');
             
@@ -328,13 +419,9 @@ async function fetchDriveProgress() {
                 
                 const percentage = Math.min(Math.round((completed / total) * 100), 100);
                 progressBarEl.style.width = `${percentage}%`;
-                
-                // Add a tooltip to show more details if needed
                 progressBarEl.setAttribute('title', `${percentage}% of weekly goal completed`);
                 
-                // Add a visual effect for today's completion
                 if (data.today?.is_working_day) {
-                    // Add a small badge or indicator that today's quota is complete
                     const workingDaysDescEl = document.querySelector('[data-i18n="workingDaysDescription"]');
                     if (workingDaysDescEl) {
                         workingDaysDescEl.innerHTML += '<span class="badge bg-success ms-2">Today Complete!</span>';
@@ -342,12 +429,10 @@ async function fetchDriveProgress() {
                 }
             }
             
-            console.log('Drive progress updated successfully');
-        } else {
-            console.error('Failed to fetch drive progress:', data ? (data.info || data.message || 'Unknown error') : 'No data returned');
-        }    } catch (error) {
-        console.error('Failed to fetch drive progress:', error.message || 'Unknown error');
-        console.error('Drive progress error details:', error);
+            console.log('Fallback drive progress updated successfully');
+        }
+    } catch (error) {
+        console.error('Fallback drive progress also failed:', error);
     }
 }
 
