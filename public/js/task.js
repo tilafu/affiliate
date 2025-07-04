@@ -510,7 +510,8 @@ function updateProgressBar(currentStep, totalProducts) {
         window.globalDriveProgress.updateProgress(completed, totalDriveCommission);
     } else {
         // Trigger global progress update event
-        SimpleDriveProgress.updateGlobalProgress(completed, totalDriveCommission);    }
+        SimpleDriveProgress.updateGlobalProgress(completed, totalDriveCommission);
+    }
     
     console.log(`Drive Progress updated: ${completed}/${total} products (${percentage.toFixed(1)}%)`);
 }
@@ -532,8 +533,8 @@ function updateDriveCommission() {
     if (window.globalDriveProgress) {
         window.globalDriveProgress.updateCommission(totalDriveCommission);
     } else {
-        // Trigger global commission update event
-        SimpleDriveProgress.updateGlobalCommission(totalDriveCommission);
+        // Trigger global progress update event
+        SimpleDriveProgress.updateGlobalProgress(tasksCompleted, totalDriveCommission);
     }
     
     // Save current session data to localStorage for persistence
@@ -817,21 +818,15 @@ function fetchNextOrder(token) {
             displayDriveComplete(data.info || 'Congratulations! Your data drive is complete.');
             if (data.total_commission !== undefined) {
                 totalDriveCommission = parseFloat(data.total_commission);
-                updateDrive
+                updateDriveCommission();
             }
             
-            // Update drive progress component with completion status
-            if (window.globalDriveProgress && window.globalDriveProgress.updateFromDriveStatus) {
-                window.globalDriveProgress.updateFromDriveStatus({
-                    original_tasks_completed: data.tasks_completed || data.all_tasks_completed || tasksCompleted,
-                    original_tasks_required: data.tasks_required || data.all_tasks_total || totalTasksRequired,
-                    all_tasks_completed: data.all_tasks_completed || tasksCompleted,
-                    all_tasks_total: data.all_tasks_total || totalTasksRequired,
-                    total_commission: data.total_commission || totalDriveCommission,
-                    status: 'completed'
-                });
+            // Update simple drive progress component
+            if (window.globalDriveProgress) {
+                window.globalDriveProgress.updateProgress(tasksCompleted, totalDriveCommission);
             }
-              refreshWalletBalance();        } else if (data.code === 3) { // Drive Frozen
+            
+            refreshWalletBalance();        } else if (data.code === 3) { // Drive Frozen
             console.warn("Drive Frozen message received from backend (getorder).");
             displayTaskFrozenState(data.info || "Session frozen due to insufficient balance.", data.frozen_amount_needed, data);
             if (data.total_commission !== undefined) {
@@ -839,16 +834,9 @@ function fetchNextOrder(token) {
                 updateDriveCommission();
             }
             
-            // Update drive progress component with frozen status
-            if (window.globalDriveProgress && window.globalDriveProgress.updateFromDriveStatus) {
-                window.globalDriveProgress.updateFromDriveStatus({
-                    original_tasks_completed: data.tasks_completed || data.all_tasks_completed || tasksCompleted,
-                    original_tasks_required: data.tasks_required || data.all_tasks_total || totalTasksRequired,
-                    all_tasks_completed: data.all_tasks_completed || tasksCompleted,
-                    all_tasks_total: data.all_tasks_total || totalTasksRequired,
-                    total_commission: data.total_commission || totalDriveCommission,
-                    status: 'frozen'
-                });
+            // Update simple drive progress component
+            if (window.globalDriveProgress) {
+                window.globalDriveProgress.updateProgress(tasksCompleted, totalDriveCommission);
             }
             
             refreshWalletBalance();
@@ -870,38 +858,39 @@ function fetchNextOrder(token) {
             }
 
             renderProductCard(data.current_order);
-            console.log("Current order received (getorder):", data.current_order);            if (data.all_tasks_completed !== undefined && data.all_tasks_total !== undefined) {
-                tasksCompleted = data.all_tasks_completed; // All tasks completed (real-time)
-                totalTasksRequired = data.all_tasks_total; // Total tasks (real-time)
+            console.log("Current order received (getorder):", data.current_order);            if (data.tasks_completed !== undefined && data.tasks_required !== undefined) {
+                tasksCompleted = data.tasks_completed; // Original tasks completed (user-visible)
+                totalTasksRequired = data.tasks_required; // Total original tasks (user-visible)
                 updateProgressBar(tasksCompleted, totalTasksRequired);
                 
-                // Update drive progress component with full drive status data
-                if (window.globalDriveProgress && window.globalDriveProgress.updateFromDriveStatus) {
-                    window.globalDriveProgress.updateFromDriveStatus({
-                        original_tasks_completed: data.tasks_completed || data.all_tasks_completed,
-                        original_tasks_required: data.tasks_required || data.all_tasks_total,
-                        all_tasks_completed: data.all_tasks_completed,
-                        all_tasks_total: data.all_tasks_total,
-                        total_commission: data.total_commission || totalDriveCommission,
-                        status: 'active'
-                    });
+                // Update simple drive progress component
+                if (window.globalDriveProgress) {
+                    window.globalDriveProgress.updateProgress(tasksCompleted, totalDriveCommission);
                 }
             }
-            if (data.total_session_commission !== undefined) {
+            if (data.total_commission !== undefined) {
+                totalDriveCommission = parseFloat(data.total_commission);
+                updateDriveCommission();
+            } else if (data.total_session_commission !== undefined) {
                 totalDriveCommission = parseFloat(data.total_session_commission);
                 updateDriveCommission();
             }
             refreshWalletBalance();        } else {
-            console.error('Error fetching next order (getorder):', data.info || data.message || 'Unknown error - no error message provided');
+            // Enhanced error logging for unknown errors
+            if (!data.info && !data.message) {
+                console.error('Error fetching next order (getorder): FULL RESPONSE:', data);
+            }
+            const errorMsg = data.info || data.message || 'Unknown error - no error message provided';
+            console.error('Error fetching next order (getorder):', errorMsg);
             if (data.code === 1) { // No active session / Drive not started
-                displayDriveError(data.info || 'Your drive session has not started or is complete. Please start a new drive.');
+                displayDriveError(data.info || data.message || 'Your drive session has not started or is complete. Please start a new drive.');
                 if (autoStartButton) autoStartButton.style.display = 'block';
                 if (productCardContainer) productCardContainer.style.display = 'none';
                  totalDriveCommission = 0;
                  updateDriveCommission();
                  updateProgressBar(0, totalTasksRequired || 0); // Reset progress bar
             } else {
-                displayDriveError(`Error fetching order: ${data.info || data.message || 'Unknown error'}`);
+                displayDriveError(`Error fetching order: ${errorMsg}`);
             }
         }
     })
@@ -1037,8 +1026,9 @@ async function handlePurchase(token, productData) {
         determined_slot = productData.product_slot;
         console.log('Using productData.product_slot for slot:', determined_slot);
     } else if (productData.is_combo_product === true && productData.combo_product_index !== undefined) {
-        determined_slot = productData.combo_product_index;
-        console.log('Using productData.combo_product_index for slot (combo product):', determined_slot);
+        // combo_product_index is 1-based from backend, but saveOrder expects 0-based slot index
+        determined_slot = productData.combo_product_index - 1;
+        console.log('Converting combo_product_index from 1-based to 0-based for slot:', productData.combo_product_index, '->', determined_slot);
     } else if (productData.is_combo_product === false) {
         determined_slot = 0; // Default for non-combo products if product_slot is missing
         console.log('Defaulting slot to 0 (non-combo product, product_slot missing):', determined_slot);
@@ -1096,11 +1086,28 @@ async function handlePurchase(token, productData) {
 
         const data = await response.json();
         if (orderLoadingOverlay) orderLoadingOverlay.style.display = 'none';        if (response.ok && data.code === 0) { // Order processed successfully
-            console.log('Order saved successfully (saveorder):', data);            
+            console.log('Order saved successfully (saveorder):', data);
             
-            // Process refund for the purchase amount + commission
+            // Update commission and wallet balance from backend response
+            if (data.total_commission !== undefined) {
+                totalDriveCommission = parseFloat(data.total_commission);
+                updateDriveCommission();
+                console.log(`Commission updated from backend (saveOrder): ${totalDriveCommission} USDT total`);
+            } else if (data.total_session_commission !== undefined) {
+                totalDriveCommission = parseFloat(data.total_session_commission);
+                updateDriveCommission();
+                console.log(`Commission updated from backend (saveOrder/fallback): ${totalDriveCommission} USDT total`);
+            }
+            
+            // Update wallet balance if provided
+            if (data.new_balance !== undefined) {
+                console.log(`Wallet balance updated from backend: ${data.new_balance} USDT`);
+                // The wallet will be refreshed below, but this logs the immediate update
+            }
+            
+            // Process refund for the purchase amount (commission was already added by backend)
             try {
-                console.log(`Processing refund of ${productData.product_price} USDT + commission for product purchase`);
+                console.log(`Processing refund of ${productData.product_price} USDT for product purchase`);
                 const refundResponse = await fetch(`${API_BASE_URL}/api/drive/refund`, {
                     method: 'POST',
                     headers: {
@@ -1119,10 +1126,10 @@ async function handlePurchase(token, productData) {
                 console.log('Refund response:', refundData);
 
                 if (refundResponse.ok && refundData.success) {
-                    console.log(`Refund successful: ${productData.product_price} USDT refunded + ${refundData.commission_amount} USDT commission`);
+                    console.log(`Refund successful: ${productData.product_price} USDT refunded`);
+                    console.log(`Commission flow: Backend handled commission during purchase, refund only returned product price`);
                     
-                    // Update commission and fetch real-time progress after successful purchase and refund
-                    totalDriveCommission += parseFloat(refundData.commission_amount || productData.order_commission || 0);
+                    // Commission was already updated from saveOrder response above
                     
                     // Fetch fresh drive status to get accurate progress
                     try {
@@ -1146,9 +1153,9 @@ async function handlePurchase(token, productData) {
                     } else {
                         // Fallback to regular notification if popup function is not available
                         if (typeof showNotification === 'function') {
-                            showNotification(`Purchase completed! ${productData.product_price} USDT refunded + ${refundData.commission_amount} USDT commission earned`, 'success');
+                            showNotification(`Purchase completed! ${productData.product_price} USDT refunded + ${(productData.order_commission || 0)} USDT commission earned`, 'success');
                         } else { 
-                            alert(`Order completed! ${productData.product_price} USDT refunded + ${refundData.commission_amount} USDT commission earned`); 
+                            alert(`Order completed! ${productData.product_price} USDT refunded + ${(productData.order_commission || 0)} USDT commission earned`); 
                         }
                         // Continue to next product after showing notification
                         setTimeout(() => {
@@ -1158,8 +1165,7 @@ async function handlePurchase(token, productData) {
                 } else {
                     console.warn('Refund failed but purchase was successful:', refundData);
                     
-                    // Still update commission since purchase was successful
-                    totalDriveCommission += parseFloat(productData.order_commission || 0);
+                    // Commission was already updated from saveOrder response above, no need to add again
                     
                     // Fetch fresh drive status to get accurate progress
                     try {
@@ -1197,8 +1203,7 @@ async function handlePurchase(token, productData) {
             } catch (refundError) {
                 console.error('Error processing refund:', refundError);
                 
-                // Still update commission since purchase was successful
-                totalDriveCommission += parseFloat(productData.order_commission || 0);
+                // Commission was already updated from saveOrder response above, no need to add again
                 
                 // Fetch fresh drive status to get accurate progress
                 try {
@@ -1211,17 +1216,7 @@ async function handlePurchase(token, productData) {
                     updateDriveCommission();
                     updateProgressBar(tasksCompleted, totalTasksRequired);
                 }
-                
-                totalDriveCommission += parseFloat(productData.order_commission || 0);
-                tasksCompleted += 1; // Increment tasks completed
-                
-                console.log(`Task progress updated (refund error): ${previousCompleted} -> ${tasksCompleted} (total: ${totalTasksRequired})`);
-                console.log(`Commission updated (refund error): ${previousCommission} -> ${totalDriveCommission}`);
-                
-                // Save updated session data
-                updateDriveCommission(); // This calls saveCurrentSessionData()
-                updateProgressBar(tasksCompleted, totalTasksRequired);
-                  // Refresh wallet balance even if refund had an error (commission should still be added)
+                  // Refresh wallet balance even if refund had an error (commission should still be added by backend)
                 console.log('Refreshing wallet balance after purchase (refund error)...');
                 refreshWalletBalance();
                   // Show success popup even if refund had an error
@@ -1360,16 +1355,16 @@ async function refreshDriveStatistics() {
         
         if (response.ok) {
             const data = await response.json();
-            if (data.code === 0 && data.session) {
-                // Update global variables with fresh server data - use all_tasks_* fields for real-time progress
-                if (data.session.all_tasks_completed !== undefined) {
-                    tasksCompleted = data.session.all_tasks_completed;
+            if (data.code === 0) {
+                // Update global variables with fresh server data - use original tasks for user-visible progress
+                if (data.tasks_completed !== undefined) {
+                    tasksCompleted = data.tasks_completed;
                 }
-                if (data.session.all_tasks_total !== undefined) {
-                    totalTasksRequired = data.session.all_tasks_total;
+                if (data.tasks_required !== undefined) {
+                    totalTasksRequired = data.tasks_required;
                 }
-                if (data.session.total_commission !== undefined) {
-                    totalDriveCommission = parseFloat(data.session.total_commission);
+                if (data.total_commission !== undefined) {
+                    totalDriveCommission = parseFloat(data.total_commission);
                 }
                 console.log('Drive statistics refreshed from server');
             }
@@ -1501,10 +1496,10 @@ async function updateDriveStatus() {
                 console.log('updateDriveStatus: Updated commission:', totalDriveCommission);
             }
 
-            // Update task progress with real-time data
-            if (data.all_tasks_completed !== undefined && data.all_tasks_total !== undefined) {
-                totalTasksRequired = data.all_tasks_total;
-                tasksCompleted = data.all_tasks_completed;
+            // Update task progress with original task data (user-visible progress)
+            if (data.tasks_completed !== undefined && data.tasks_required !== undefined) {
+                totalTasksRequired = data.tasks_required;
+                tasksCompleted = data.tasks_completed;
                 console.log('updateDriveStatus: Updated progress:', tasksCompleted, '/', totalTasksRequired);
             }
 
@@ -1515,14 +1510,14 @@ async function updateDriveStatus() {
             // Update simple drive progress component with all fields
             if (window.globalDriveProgress && window.globalDriveProgress.updateFromDriveStatus) {
                 window.globalDriveProgress.updateFromDriveStatus({
-                    original_tasks_completed: data.original_tasks_completed || data.tasks_completed || tasksCompleted,
-                    original_tasks_required: data.original_tasks_required || data.tasks_required || totalTasksRequired,
+                    original_tasks_completed: data.tasks_completed || tasksCompleted,
+                    original_tasks_required: data.tasks_required || totalTasksRequired,
                     all_tasks_completed: data.all_tasks_completed || tasksCompleted,
                     all_tasks_total: data.all_tasks_total || totalTasksRequired,
                     total_commission: data.total_commission || totalDriveCommission,
                     status: data.status || 'active'
                 });
-                console.log('updateDriveStatus: Updated drive progress component');
+                console.log('updateDriveStatus: Updated simple drive progress component');
             }
 
             // Save updated session data
@@ -1566,10 +1561,13 @@ function checkDriveStatus(token) {
         console.log('Drive status response received (/api/drive/status):', data);
         
         if (data.code === 0) { // Indicates a valid status response
-            // Load total_commission from backend if available (renamed to total_commission from total_session_commission)
+            // Load total_commission from backend if available (primary field, with total_session_commission as fallback)
             if (data.total_commission !== undefined) {
                 totalDriveCommission = parseFloat(data.total_commission);
-                console.log('Updated commission from backend:', totalDriveCommission);
+                console.log('Updated commission from backend (total_commission):', totalDriveCommission);
+            } else if (data.total_session_commission !== undefined) {
+                totalDriveCommission = parseFloat(data.total_session_commission);
+                console.log('Updated commission from backend (total_session_commission fallback):', totalDriveCommission);
             } else {
                 // Fallback to localStorage if backend doesn't send it
                 const sessionData = getCurrentSessionData();
@@ -1581,11 +1579,11 @@ function checkDriveStatus(token) {
                 }
             }
             
-            // Load task progress from backend if available - use all_tasks_* fields for real-time drive session progress
-            if (data.all_tasks_completed !== undefined && data.all_tasks_total !== undefined) {
-                totalTasksRequired = data.all_tasks_total;
-                tasksCompleted = data.all_tasks_completed;
-                console.log('Updated task progress from backend (real-time):', tasksCompleted, '/', totalTasksRequired);
+            // Load task progress from backend if available - use original tasks for user-visible progress
+            if (data.tasks_completed !== undefined && data.tasks_required !== undefined) {
+                totalTasksRequired = data.tasks_required;
+                tasksCompleted = data.tasks_completed;
+                console.log('Updated task progress from backend (original tasks):', tasksCompleted, '/', totalTasksRequired);
             } else {
                 // Fallback to localStorage if backend doesn't send it
                 const sessionData = getCurrentSessionData();
@@ -1598,9 +1596,9 @@ function checkDriveStatus(token) {
             
             // Update UI with current values
             updateDriveCommission(); // Update UI and persist
-            updateProgressBar(tasksCompleted, totalTasksRequired);
+            updateProgressBar(tasksCompleted, totalTasksRequired); // Show proper progress
             
-            // Update simple drive progress component with real-time data
+            // Update simple drive progress component with original task data (user-visible progress)
             if (window.globalDriveProgress && window.globalDriveProgress.updateFromDriveStatus) {
                 window.globalDriveProgress.updateFromDriveStatus({
                     original_tasks_completed: data.tasks_completed || tasksCompleted,
@@ -1610,7 +1608,7 @@ function checkDriveStatus(token) {
                     total_commission: data.total_commission || totalDriveCommission,
                     status: data.status || 'active'
                 });
-                console.log('Updated simple drive progress component with real-time data');
+                console.log('Updated simple drive progress component with original task data');
             }
             
             if (data.status === 'active' && data.current_order) {
@@ -1633,10 +1631,10 @@ function checkDriveStatus(token) {
             } else if (data.status === 'frozen') {
                 console.log('checkDriveStatus: Frozen session found. Displaying frozen state.');
                 
-                // Extract and set global variables for frozen sessions - use all_tasks_* fields for real-time progress
-                if (data.all_tasks_completed !== undefined && data.all_tasks_total !== undefined) {
-                    totalTasksRequired = data.all_tasks_total;
-                    tasksCompleted = data.all_tasks_completed;
+                // Extract and set global variables for frozen sessions - use original tasks for user-visible progress
+                if (data.tasks_completed !== undefined && data.tasks_required !== undefined) {
+                    totalTasksRequired = data.tasks_required;
+                    tasksCompleted = data.tasks_completed;
                     updateProgressBar(tasksCompleted, totalTasksRequired);
                 }
                 
@@ -1780,10 +1778,10 @@ async function checkDriveStatusForRefresh(token) {
                     updateDriveCommission();
                 }
                 
-                // Update progress data - use all_tasks_* fields for real-time drive session progress
-                if (data.all_tasks_completed !== undefined && data.all_tasks_total !== undefined) {
-                    tasksCompleted = data.all_tasks_completed;
-                    totalTasksRequired = data.all_tasks_total;
+                // Update progress data - use original tasks for user-visible progress
+                if (data.tasks_completed !== undefined && data.tasks_required !== undefined) {
+                    tasksCompleted = data.tasks_completed;
+                    totalTasksRequired = data.tasks_required;
                     updateProgressBar(tasksCompleted, totalTasksRequired);
                 }
                 
@@ -1826,11 +1824,26 @@ async function checkDriveStatusForRefresh(token) {
                     if (autoStartButton) autoStartButton.style.display = 'block';
                     if (productCardContainer) productCardContainer.style.display = 'none';
                     
-                    // Reset state for no session - show default drive requirements
+                    // Reset state for no session - use backend-provided drive requirements
                     clearSessionData();
                     totalDriveCommission = 0;
                     tasksCompleted = 0;
-                    totalTasksRequired = 45; // Default drive requirement
+                    
+                    // Use drive configuration from backend response if available
+                    if (data.tasks_required !== undefined) {
+                        totalTasksRequired = data.tasks_required;
+                        console.log(`Set totalTasksRequired to ${totalTasksRequired} from backend drive configuration`);
+                    } else {
+                        // Fallback to fetching drive configuration if not provided
+                        try {
+                            totalTasksRequired = await fetchUserDriveConfiguration(token);
+                            console.log(`Set totalTasksRequired to ${totalTasksRequired} from user's drive configuration (fallback)`);
+                        } catch (error) {
+                            console.error('Error fetching drive config, using default:', error);
+                            totalTasksRequired = 45; // Fallback to default
+                        }
+                    }
+                    
                     updateDriveCommission();
                     updateProgressBar(tasksCompleted, totalTasksRequired);
                 }
@@ -1847,7 +1860,9 @@ async function checkDriveStatusForRefresh(token) {
                 if (data.tasks_required !== undefined) {
                     totalTasksRequired = data.tasks_required;
                 }
-                if (data.total_session_commission !== undefined) {
+                if (data.total_commission !== undefined) {
+                    totalDriveCommission = parseFloat(data.total_commission);
+                } else if (data.total_session_commission !== undefined) {
                     totalDriveCommission = parseFloat(data.total_session_commission);
                 }
                 
@@ -2549,4 +2564,32 @@ function applyCoupon(couponCode) {
     
     console.log('Invalid coupon code:', couponCode);
   }
+}
+
+// --- Fetch User Drive Configuration ---
+async function fetchUserDriveConfiguration(token) {
+    try {
+        console.log('Fetching user drive configuration...');
+        const response = await fetch(`${API_BASE_URL}/api/user/drive-config`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.configuration) {
+                console.log('User drive configuration:', data.configuration);
+                return data.configuration.tasks_required || 45; // Fallback to 45 if not found
+            }
+        }
+        
+        console.warn('Failed to fetch drive configuration, using default');
+        return 45; // Default fallback
+    } catch (error) {
+        console.error('Error fetching drive configuration:', error);
+        return 45; // Default fallback
+    }
 }
