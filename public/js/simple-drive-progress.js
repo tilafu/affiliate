@@ -29,11 +29,12 @@ class SimpleDriveProgress {
     init() {
         if (!this.container) {
             console.error('Drive progress container not found');
-            return;
+            return false;
         }
         
         this.render();
         this.bindEvents();
+        return true;
     }
       render() {
         const { tier, currentProgress, totalCommission, allTasksCompleted, allTasksTotal } = this.options;
@@ -109,20 +110,30 @@ class SimpleDriveProgress {
         }
     }
       updateProgress(newProgress, newCommission = null) {
+        if (!this.container) {
+            console.warn('Cannot update progress: container not found');
+            return;
+        }
+        
         this.options.currentProgress = newProgress;
         if (newCommission !== null) {
             this.options.totalCommission = newCommission;
         }
         
         // Add update animation
-        this.container.querySelector('.drive-progress-wrapper')?.classList.add('drive-progress-update');
+        const progressWrapper = this.container.querySelector('.drive-progress-wrapper');
+        if (progressWrapper) {
+            progressWrapper.classList.add('drive-progress-update');
+        }
         
         setTimeout(() => {
             this.render();
             
             // Remove animation class
             setTimeout(() => {
-                this.container.querySelector('.drive-progress-wrapper')?.classList.remove('drive-progress-update');
+                if (progressWrapper) {
+                    progressWrapper.classList.remove('drive-progress-update');
+                }
             }, 600);
         }, 100);
         
@@ -247,6 +258,24 @@ let globalDriveProgress = null;
 
 // Initialize function for easy setup
 function initializeDriveProgress(containerId, options = {}) {
+    // Check if container exists, if not try to find a suitable parent
+    let container = document.getElementById(containerId);
+    
+    if (!container) {
+        console.warn(`Container '${containerId}' not found. Looking for alternative containers...`);
+        
+        // Try to find the card body in the drive progress section
+        const cardBody = document.querySelector('.card-body');
+        if (cardBody && cardBody.closest('.card').querySelector('h6')?.textContent.includes('Drive Progress')) {
+            cardBody.id = containerId;
+            container = cardBody;
+            console.log(`Assigned ID '${containerId}' to existing drive progress card body`);
+        } else {
+            console.error(`No suitable container found for drive progress`);
+            return null;
+        }
+    }
+    
     globalDriveProgress = new SimpleDriveProgress(containerId, options);
     return globalDriveProgress;
 }

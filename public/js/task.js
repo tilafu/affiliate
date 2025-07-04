@@ -50,7 +50,7 @@ function initializeTaskPage() {
   // Store auth data globally for use in other functions
   globalAuthData = authData;
     // Get references to key elements
-  autoStartButton = document.getElementById('autoStart');
+  autoStartButton = document.getElementById('start-drive-button');
   productCardContainer = document.getElementById('product-card-container'); // Get reference to the new container
   walletBalanceElement = document.querySelector('.datadrive-balance');  // Select the balance element directly
   driveCommissionElement = document.querySelector('.datadrive-commission'); // Element for drive commission
@@ -98,8 +98,10 @@ function initializeTaskPage() {
     console.log('Values after default initialization:', { totalDriveCommission, tasksCompleted, totalTasksRequired });
   }
   
-  // Initialize progress bars with restored or default values
-  updateProgressBar(tasksCompleted, totalTasksRequired);
+  // Initialize progress bars with restored or default values (delayed to allow components to load)
+  setTimeout(() => {
+    updateProgressBar(tasksCompleted, totalTasksRequired);
+  }, 200);
   
   // Initialize commission display with restored value
   updateDriveCommission();
@@ -141,9 +143,9 @@ function initializeTaskPage() {
   
   // Attach listener for the Start button
   if (autoStartButton) {
-      console.log("Found #autoStart button, attaching listener.");
+      console.log("Found #start-drive-button button, attaching listener.");
       autoStartButton.addEventListener('click', () => {
-          console.log("#autoStart button clicked.");
+          console.log("#start-drive-button button clicked.");
           if (!isStartingDrive) { // Only start if not already in the process
               isStartingDrive = true; // Set flag
               startDriveProcess(authData.token);
@@ -151,7 +153,7 @@ function initializeTaskPage() {
               console.log("Start Drive button clicked, but process is already starting.");
           }
       });  } else {
-      console.error('Could not find #autoStart button to attach listener.');
+      console.error('Could not find #start-drive-button button to attach listener.');
   }
 
   // Attach listener for the Refresh Drive button
@@ -506,11 +508,21 @@ function updateProgressBar(currentStep, totalProducts) {
     saveCurrentSessionData();
     
     // Update simple drive progress component
-    if (window.globalDriveProgress) {
-        window.globalDriveProgress.updateProgress(completed, totalDriveCommission);
+    if (window.globalDriveProgress && typeof window.globalDriveProgress.updateProgress === 'function') {
+        try {
+            window.globalDriveProgress.updateProgress(completed, totalDriveCommission);
+        } catch (error) {
+            console.warn('Error updating globalDriveProgress:', error);
+        }
+    } else if (typeof SimpleDriveProgress !== 'undefined' && SimpleDriveProgress.updateGlobalProgress) {
+        // Fallback: Trigger global progress update event
+        try {
+            SimpleDriveProgress.updateGlobalProgress(completed, totalDriveCommission);
+        } catch (error) {
+            console.warn('Error updating SimpleDriveProgress:', error);
+        }
     } else {
-        // Trigger global progress update event
-        SimpleDriveProgress.updateGlobalProgress(completed, totalDriveCommission);
+        console.warn('Drive progress component not available yet');
     }
     
     console.log(`Drive Progress updated: ${completed}/${total} products (${percentage.toFixed(1)}%)`);

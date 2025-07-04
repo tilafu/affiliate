@@ -25,6 +25,34 @@
     <!-- Simple automatic drive progress -->
     <link rel="stylesheet" href="css/simple-drive-progress.css">
 
+    <style>
+        /* Debug Console Styles */
+        #debug-section {
+            margin-top: 20px;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+        }
+        
+        .debug-info { color: #17a2b8; }
+        .debug-warn { color: #ffc107; }
+        .debug-error { color: #dc3545; }
+        .debug-dev { color: #6c757d; }
+        
+        .debug-time { color: #6c757d; font-size: 11px; }
+        .debug-type { font-weight: bold; margin-right: 5px; }
+        
+        #debug-console {
+            background: #f8f9fa !important;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            line-height: 1.4;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+    </style>
 </head>
 <body>
 
@@ -102,7 +130,8 @@
                         <h6 class="mb-0"><i class="fas fa-chart-line me-2"></i>Drive Progress<span class="small ms-2">0/45 Original Tasks</span></h6>
                         <span class="badge bg-light text-primary">Ready</span>
                     </div>
-                    <div class="card-body p-4">
+                    <div class="card-body p-4" id="simple-drive-progress">
+                        <!-- This will be populated by simple-drive-progress.js -->
                         <div class="row text-center mb-3">
                             <div class="col-4">
                                 <div class="h4 text-primary mb-1">0</div>
@@ -134,9 +163,9 @@
         <!-- Task Controls -->
         <div class="task-controls animate-bounce-in">
             <input type="hidden" name="user_status" id="user_status" value="1">
-            <button class="btn-modern btn-primary btn-lg enhanced-focus pulse" id="autoStart">
+            <button class="btn-modern btn-primary btn-lg enhanced-focus pulse" id="start-drive-button">
                 <i class="fas fa-play"></i>
-                <span>Start Tasks</span>
+                <span>Start Drive</span>
                 <div class="btn-shine"></div>
             </button>
             <a href="./orders.html" class="btn-modern btn-secondary btn-lg enhanced-focus">
@@ -144,7 +173,27 @@
                 <span>View Records</span>
                 <div class="btn-shine"></div>
             </a>
-        </div>        <!-- Product Display Section (hidden by default) -->
+        </div>        <!-- Drive Content Area (Drive Modal/Interface) -->
+        <div id="drive-content-area" style="display: none;">
+            <!-- This will be populated by drive.js -->
+        </div>
+
+        <!-- Debug Section (hidden by default, toggle with Ctrl+Shift+D) -->
+        <div id="debug-section" style="display: none; margin-top: 20px;">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0">Debug Console</h6>
+                    <button id="clear-debug-btn" class="btn btn-sm btn-outline-secondary">Clear</button>
+                </div>
+                <div class="card-body">
+                    <div id="debug-console" style="height: 200px; overflow-y: auto; font-family: monospace; font-size: 12px; background: #f8f9fa; padding: 10px; border-radius: 4px;">
+                        <!-- Debug messages will appear here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Product Display Section (hidden by default) -->
         <div class="product-section animate-fade-in-up" id="product-card-container" style="display: none;">
             <div class="product-preview glass-card" id="order-loading-overlay" style="display: none;">
                 <div class="loading-spinner"></div>
@@ -415,32 +464,41 @@
 <!-- Drive unified product renderer -->
 <script src="./js/drive-product-renderer.js"></script>
 
+<!-- Main Drive Script -->
+<script src="./js/drive.js"></script>
+
 
 
 <!-- Enhanced order progress component -->
 <script src="./js/simple-drive-progress.js"></script>
 
-<!-- Order progress integration -->
+<!-- Withdrawable balance -->
+<script src="./js/task.js"></script>
+
 <!-- Simple drive progress auto-sync -->
 <script>
 // Initialize simple drive progress when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
-    // Get user tier from global data or default to bronze
-    const userTier = window.globalAuthData?.user?.tier || 'bronze';
-    
-    // Initialize simple drive progress and store globally for updates
-    window.globalDriveProgress = initializeDriveProgress('simple-drive-progress', {
-        tier: userTier,
-        currentProgress: window.tasksCompleted || 0,
-        totalCommission: window.totalDriveCommission || 0
-    });
-    
-    console.log('Simple drive progress initialized for tier:', userTier);
+    // Wait a bit to ensure all other scripts are loaded
+    setTimeout(() => {
+        // Get user tier from global data or default to bronze
+        const userTier = window.globalAuthData?.user?.tier || 'bronze';
+        
+        // Initialize simple drive progress and store globally for updates
+        if (typeof initializeDriveProgress === 'function') {
+            window.globalDriveProgress = initializeDriveProgress('simple-drive-progress', {
+                tier: userTier,
+                currentProgress: window.tasksCompleted || 0,
+                totalCommission: window.totalDriveCommission || 0
+            });
+            
+            console.log('Simple drive progress initialized for tier:', userTier);
+        } else {
+            console.warn('initializeDriveProgress function not found');
+        }
+    }, 100);
 });
 </script>
-
-<!-- Withdrawable balance -->
-<script src="./js/task.js"></script>
 
 <script src="./js/auth.js"></script>
 
