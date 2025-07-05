@@ -724,7 +724,7 @@ body .product-modal .dot.active {
 
 .progress-header {
     display: flex;
-    justify-content: between;
+    justify-content: space-between;
     align-items: center;
     margin-bottom: 1.5rem;
 }

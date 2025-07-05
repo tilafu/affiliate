@@ -576,9 +576,9 @@ const getOrder = async (req, res) => {
                 all_tasks_completed: unlimitedProgress.allTasksCurrentStep, // All tasks including combos
                 all_tasks_total: unlimitedProgress.allTasksTotalProducts, // All tasks including combos
                 total_commission: totalSessionCommission.toFixed(2),
+                frozen_amount_needed: session.frozen_amount_needed ? parseFloat(session.frozen_amount_needed).toFixed(2) : null,
                 drive_session_id: driveSessionId,
-                info: 'Your drive session is frozen. Please resolve any outstanding issues.',
-                frozen_amount_needed: session.frozen_amount_needed ? parseFloat(session.frozen_amount_needed).toFixed(2) : null
+                info: 'Your drive session is frozen. Please resolve any outstanding issues.'
             });
         }
         
@@ -1463,6 +1463,121 @@ const refundPurchase = async (req, res) => {
     }
 };
 
+/**
+ * Get detailed user's drive progress with task-level information
+ * @desc    Get detailed drive progress for client-side task page
+ * @route   GET /api/drive/detailed-progress
+ * @access  Private
+ */
+const getDetailedDriveProgress = async (req, res) => {
+  const userId = req.user.id;
+  
+  try {
+    // Find the latest active or pending_reset session for the user
+    const sessionRes = await pool.query(
+      `SELECT id, drive_configuration_id, tasks_required, tasks_completed 
+       FROM drive_sessions 
+       WHERE user_id = $1 AND status IN ('active', 'pending_reset', 'frozen')
+       ORDER BY created_at DESC LIMIT 1`,
+      [userId]
+    );
+
+    if (sessionRes.rows.length === 0) {
+      return res.status(404).json({ 
+        code: 1, 
+        info: 'No active drive session found',
+        message: 'No active drive session found for this user.' 
+      });
+    }
+    
+    const session = sessionRes.rows[0];
+
+    // Get details of the drive configuration
+    const configRes = await pool.query(
+      'SELECT name FROM drive_configurations WHERE id = $1',
+      [session.drive_configuration_id]
+    );
+    const configName = configRes.rows.length > 0 ? configRes.rows[0].name : 'Unknown Configuration';
+
+    // Get task items (user_active_drive_items) for this session with product details and task set info
+    const taskItemsRes = await pool.query(
+      `SELECT 
+          uadi.id,
+          uadi.order_in_drive,
+          uadi.user_status,
+          uadi.task_type,
+          uadi.product_id_1,
+          uadi.product_id_2,
+          uadi.product_id_3,
+          uadi.drive_task_set_id_override,
+          dts.name as task_name,
+          dts.is_combo,
+          p1.name AS product_1_name,
+          p1.price AS product_1_price,
+          p1.image_url AS product_1_image,
+          p2.name AS product_2_name,
+          p2.price AS product_2_price,
+          p2.image_url AS product_2_image,
+          p3.name AS product_3_name,
+          p3.price AS product_3_price,
+          p3.image_url AS product_3_image
+       FROM user_active_drive_items uadi
+       LEFT JOIN products p1 ON uadi.product_id_1 = p1.id
+       LEFT JOIN products p2 ON uadi.product_id_2 = p2.id
+       LEFT JOIN products p3 ON uadi.product_id_3 = p3.id
+       LEFT JOIN drive_task_sets dts ON uadi.drive_task_set_id_override = dts.id
+       WHERE uadi.drive_session_id = $1
+       ORDER BY uadi.order_in_drive ASC`,
+      [session.id]
+    );
+
+    // Count completed tasks (excluding combos for the total, but including them for completed count)
+    const allTaskItems = taskItemsRes.rows;
+    
+    // Original drive tasks (exclude combo tasks from total count)
+    const originalTasks = allTaskItems.filter(item => 
+      !item.is_combo && item.task_type !== 'combo_order'
+    );
+    
+    // Completed tasks (can include combos since they contribute to progress)
+    const completedTasks = allTaskItems.filter(item => item.user_status === 'COMPLETED').length;
+    const completedOriginalTasks = originalTasks.filter(item => item.user_status === 'COMPLETED').length;
+    
+    // Total tasks should be based on original drive configuration, not including admin-added combos
+    const totalTasks = originalTasks.length;
+
+    // Find current task (first non-completed task)
+    const currentTaskItem = allTaskItems.find(item => item.user_status === 'CURRENT') || null;
+    const nextTaskItem = allTaskItems.find(item => item.user_status === 'PENDING') || null;
+
+    res.json({
+      code: 0,
+      drive_session_id: session.id,
+      drive_configuration_id: session.drive_configuration_id,
+      drive_configuration_name: configName,
+      tasks_required: session.tasks_required,
+      tasks_completed: session.tasks_completed,
+      completed_task_items: completedTasks, // Total completed including combos
+      completed_original_tasks: completedOriginalTasks, // Only original tasks completed
+      total_task_items: totalTasks, // Only original tasks count toward drive requirement
+      total_items_including_combos: allTaskItems.length, // All items for display purposes
+      task_items: allTaskItems,
+      current_task: currentTaskItem,
+      next_task: nextTaskItem,
+      progress_percentage: totalTasks > 0 ? (completedOriginalTasks / totalTasks) * 100 : 0,
+      is_completed: completedOriginalTasks >= totalTasks,
+      can_continue: currentTaskItem !== null || nextTaskItem !== null
+    });
+
+  } catch (error) {
+    logger.error(`Error in getDetailedDriveProgress for user ID ${userId}: ${error.message}`, { stack: error.stack });
+    res.status(500).json({ 
+      code: 1, 
+      info: 'Server error getting detailed drive progress: ' + error.message 
+    });
+  }
+};
+
 module.exports = {
   startDrive,
   getDriveStatus,
@@ -1473,5 +1588,6 @@ module.exports = {
   getDriveOrders,
   getDriveProgress,
   checkAutoUnfreeze,
-  refundPurchase
+  refundPurchase,
+  getDetailedDriveProgress
 };

@@ -838,7 +838,7 @@ async function checkDriveStatus() { // Removed token parameter, use global token
     // Get references to key elements for showing/hiding
     const startDriveButton = document.getElementById('start-drive-button');
     const driveContentArea = document.getElementById('drive-content-area');
-    const driveProgressSection = document.getElementById('drive-progress-section'); // Assuming this is the ID of the "Drive Progress" section
+    const driveProgressSection = document.getElementById('progress-section'); // Fixed: Use correct ID from HTML
     const noDriveMessageSection = document.getElementById('no-drive-message-section'); // New section for the message and button
 
     try {
@@ -857,7 +857,13 @@ async function checkDriveStatus() { // Removed token parameter, use global token
                 console.log('Active session with current product found. Resuming drive.');
                 if(startDriveButton) startDriveButton.style.display = 'none';
                 if(driveContentArea) driveContentArea.style.display = 'block';
-                if(driveProgressSection) driveProgressSection.style.display = 'block'; // Show progress
+                if(driveProgressSection) {
+                    driveProgressSection.style.display = 'block';
+                    driveProgressSection.style.visibility = 'visible';
+                    driveProgressSection.style.opacity = '1';
+                    driveProgressSection.classList.add('show');
+                    driveProgressSection.classList.remove('d-none');
+                } // Show progress with multiple approaches
                 if(noDriveMessageSection) noDriveMessageSection.style.display = 'none'; // Hide no-drive message
                 updateFrontendState(data); // Update state with all details
                 renderProductCard(data.current_product_details);
@@ -865,7 +871,13 @@ async function checkDriveStatus() { // Removed token parameter, use global token
                  console.log('Frozen session found. Displaying frozen state.');
                  if(startDriveButton) startDriveButton.style.display = 'none';
                  if(driveContentArea) driveContentArea.style.display = 'block';
-                 if(driveProgressSection) driveProgressSection.style.display = 'block'; // Show progress
+                 if(driveProgressSection) {
+                     driveProgressSection.style.display = 'block';
+                     driveProgressSection.style.visibility = 'visible';
+                     driveProgressSection.style.opacity = '1';
+                     driveProgressSection.classList.add('show');
+                     driveProgressSection.classList.remove('d-none');
+                 } // Show progress with multiple approaches
                  if(noDriveMessageSection) noDriveMessageSection.style.display = 'none'; // Hide no-drive message
                  const tasksCompleted = data.tasks_completed && data.tasks_required ? 
                      `${data.tasks_completed} of ${data.tasks_required}` : '0 of 0';
@@ -874,7 +886,13 @@ async function checkDriveStatus() { // Removed token parameter, use global token
                  updateWalletBalance();
             } else if (data.status === 'complete' || data.status === 'pending_reset') { // pending_reset is also a form of completion
                  console.log('Drive complete or pending reset.');
-                 if(driveProgressSection) driveProgressSection.style.display = 'block'; // Show progress (even if complete)
+                 if(driveProgressSection) {
+                     driveProgressSection.style.display = 'block';
+                     driveProgressSection.style.visibility = 'visible';
+                     driveProgressSection.style.opacity = '1';
+                     driveProgressSection.classList.add('show');
+                     driveProgressSection.classList.remove('d-none');
+                 } // Show progress (even if complete) with multiple approaches
                  if(noDriveMessageSection) noDriveMessageSection.style.display = 'none'; // Hide no-drive message
                  displayDriveComplete(data.info || 'Your data drive is complete.');
                  updateWalletBalance();
@@ -936,6 +954,28 @@ function requireAuth() {
     return { token: token };
 }
 
+// Debug function to check progress section visibility
+function debugProgressSection() {
+    const progressSection = document.getElementById('progress-section');
+    if (progressSection) {
+        console.log('Progress Section Debug:', {
+            element: progressSection,
+            display: getComputedStyle(progressSection).display,
+            visibility: getComputedStyle(progressSection).visibility,
+            opacity: getComputedStyle(progressSection).opacity,
+            classList: progressSection.classList.toString(),
+            style: progressSection.style.cssText,
+            offsetHeight: progressSection.offsetHeight,
+            offsetWidth: progressSection.offsetWidth
+        });
+    } else {
+        console.log('Progress section element not found!');
+    }
+}
+
+// Add to window for manual debugging
+window.debugProgressSection = debugProgressSection;
+
 // Test function to manually trigger the frozen modal (for debugging)
 window.testFrozenModal = function() {
     console.log('Testing frozen modal...');
@@ -946,3 +986,35 @@ window.testFrozenModal = function() {
         '25.50'
     );
 };
+
+// Manual function to show progress section for testing
+function showProgressSection() {
+    const progressSection = document.getElementById('progress-section');
+    if (progressSection) {
+        progressSection.style.display = 'block';
+        progressSection.style.visibility = 'visible';
+        progressSection.style.opacity = '1';
+        progressSection.classList.add('show');
+        progressSection.classList.remove('d-none');
+        console.log('Progress section manually shown');
+        debugProgressSection();
+    } else {
+        console.log('Progress section element not found');
+    }
+}
+
+// Add to window for testing
+window.showProgressSection = showProgressSection;
+
+// Initialize page and check drive status
+console.log('Drive.js initializing...');
+    
+// Ensure progress section is properly reset on load
+const progressSection = document.getElementById('progress-section');
+if (progressSection) {
+    // Remove any conflicting classes/styles that might hide it
+    progressSection.classList.remove('d-none');
+    progressSection.style.visibility = 'visible';
+    progressSection.style.opacity = '1';
+    console.log('Progress section initialized for visibility');
+}

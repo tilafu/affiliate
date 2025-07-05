@@ -1,0 +1,751 @@
+/* Task Page Styles - Extracted from task.html */
+/* 
+ * This file contains all styles that were previously inline in task.html:
+ * - Debug console styles
+ * - Purchase success popup styles  
+ * - Animation keyframes and classes
+ * - Utility classes for dynamic states
+ * - Responsive styles
+ * - Print styles
+ * - Progress section styles
+ * 
+ * Last updated: 2025-07-05
+ */
+
+/* Debug Console Styles */
+#debug-section {
+    margin-top: 20px;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+}
+
+.debug-info { 
+    color: #17a2b8; 
+}
+
+.debug-warn { 
+    color: #ffc107; 
+}
+
+.debug-error { 
+    color: #dc3545; 
+}
+
+.debug-dev { 
+    color: #6c757d; 
+}
+
+.debug-time { 
+    color: #6c757d; 
+    font-size: 11px; 
+}
+
+.debug-type { 
+    font-weight: bold; 
+    margin-right: 5px; 
+}
+
+#debug-console {
+    background: #f8f9fa !important;
+    border: 1px solid #e9ecef;
+    border-radius: 4px;
+    padding: 10px;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    line-height: 1.4;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+/* Purchase Success Popup Styles */
+.purchase-popup-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(8px);
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.purchase-popup-overlay.show {
+    opacity: 1;
+}
+
+.purchase-popup {
+    background: white;
+    border-radius: 20px;
+    padding: 0;
+    max-width: 400px;
+    width: 90%;
+    position: relative;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+    transform: scale(0.8) translateY(30px);
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.purchase-popup-overlay.show .purchase-popup {
+    transform: scale(1) translateY(0);
+}
+
+.purchase-popup-close {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background: rgba(0, 0, 0, 0.1);
+    border: none;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #666;
+    transition: all 0.2s ease;
+    z-index: 1;
+}
+
+.purchase-popup-close:hover {
+    background: rgba(0, 0, 0, 0.2);
+    color: #333;
+}
+
+.purchase-popup-content {
+    padding: 40px 30px 30px;
+    text-align: center;
+}
+
+.purchase-success-icon {
+    margin-bottom: 20px;
+}
+
+.purchase-success-icon i {
+    font-size: 64px;
+    color: #30D158;
+    animation: successPulse 0.6s ease-out;
+}
+
+@keyframes successPulse {
+    0% { 
+        transform: scale(0); 
+        opacity: 0; 
+    }
+    50% { 
+        transform: scale(1.1); 
+        opacity: 1; 
+    }
+    100% { 
+        transform: scale(1); 
+        opacity: 1; 
+    }
+}
+
+.purchase-popup-title {
+    font-size: 28px;
+    font-weight: 700;
+    color: #000000;
+    margin-bottom: 12px;
+    font-family: 'Inter', sans-serif;
+}
+
+.purchase-popup-message {
+    font-size: 16px;
+    color: #8E8E93;
+    margin-bottom: 30px;
+    line-height: 1.5;
+}
+
+.purchase-popup-buttons {
+    display: flex;
+    justify-content: center;
+}
+
+.purchase-continue-btn {
+    background: linear-gradient(135deg, #007AFF, #5AC8FA);
+    border: none;
+    padding: 12px 30px;
+    border-radius: 12px;
+    color: white;
+    font-weight: 600;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 4px 16px rgba(0, 122, 255, 0.3);
+}
+
+.purchase-continue-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 24px rgba(0, 122, 255, 0.4);
+}
+
+.purchase-continue-btn i {
+    font-size: 14px;
+}
+
+/* Responsive Styles for Purchase Popup */
+@media (max-width: 480px) {
+    .purchase-popup {
+        margin: 20px;
+        width: calc(100% - 40px);
+    }
+    
+    .purchase-popup-content {
+        padding: 30px 20px 20px;
+    }
+    
+    .purchase-success-icon i {
+        font-size: 48px;
+    }
+    
+    .purchase-popup-title {
+        font-size: 24px;
+    }
+}
+
+/* Connection Status Indicator Styles (for dynamic injection) */
+#connection-status {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    z-index: 1000;
+    transition: all 0.3s ease;
+}
+
+/* Ripple Effect for Buttons */
+.ripple {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.6);
+    pointer-events: none;
+    animation: ripple-animation 0.6s linear;
+}
+
+@keyframes ripple-animation {
+    0% {
+        transform: scale(0);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(4);
+        opacity: 0;
+    }
+}
+
+/* Loading Skeleton Effect */
+.loading-skeleton {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: loading-skeleton 1.5s infinite;
+}
+
+@keyframes loading-skeleton {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+/* Enhanced Hover Effects */
+.enhanced-hover {
+    transition: all 0.3s ease;
+}
+
+.enhanced-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+/* Enhanced Focus Effects */
+.enhanced-focus:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
+}
+
+/* Rotate Animation */
+.rotate-on-hover {
+    transition: transform 0.3s ease;
+}
+
+.rotate-on-hover:hover {
+    transform: rotate(180deg);
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Animation Classes */
+.animate-fade-in-up {
+    animation: fadeInUp 0.6s ease-out forwards;
+    animation-play-state: paused;
+}
+
+.animate-slide-in-right {
+    animation: slideInRight 0.6s ease-out forwards;
+    animation-play-state: paused;
+}
+
+.animate-bounce-in {
+    animation: bounceIn 0.8s ease-out forwards;
+    animation-play-state: paused;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(50px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes bounceIn {
+    0% {
+        opacity: 0;
+        transform: scale(0.3);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.05);
+    }
+    70% {
+        transform: scale(0.9);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* Pulse Animation */
+.pulse {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* Float Animation */
+.float {
+    animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+    0% {
+        transform: translateY(0px);
+    }
+    50% {
+        transform: translateY(-10px);
+    }
+    100% {
+        transform: translateY(0px);
+    }
+}
+
+/* Shine Effect for Buttons */
+.btn-shine {
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+    transition: left 0.5s;
+}
+
+.btn-modern:hover .btn-shine {
+    left: 100%;
+}
+
+/* Text Shadow Effects */
+.text-shadow {
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Gradient Text */
+.gradient-text {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* Glass Card Effect */
+.glass-card {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 15px;
+}
+
+/* Form Validation Styles */
+.is-invalid {
+    border-color: #dc3545 !important;
+    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25) !important;
+}
+
+/* Success and Error Message Styles */
+.success-message {
+    background-color: #d4edda;
+    border: 1px solid #c3e6cb;
+    color: #155724;
+    padding: 10px 15px;
+    border-radius: 5px;
+    margin: 10px 0;
+}
+
+.error-message {
+    background-color: #f8d7da;
+    border: 1px solid #f5c6cb;
+    color: #721c24;
+    padding: 10px 15px;
+    border-radius: 5px;
+    margin: 10px 0;
+}
+
+/* Custom Button Styles for Enhanced Interactions */
+.btn-modern {
+    position: relative;
+    overflow: hidden;
+    border: none;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.btn-modern:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+/* Progress Bar Enhancements */
+.progress-bar-enhanced {
+    transition: width 1s ease-out;
+    background: linear-gradient(90deg, #007bff, #00c851);
+}
+
+/* Modal Enhancements */
+.modal-enhanced {
+    backdrop-filter: blur(5px);
+}
+
+.modal-enhanced .modal-content {
+    border: none;
+    border-radius: 15px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+/* Tooltip Styles for Custom Implementation */
+.admin-custom-tooltip {
+    position: absolute;
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 5px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    z-index: 10000;
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+}
+
+.admin-custom-tooltip.show {
+    opacity: 1;
+}
+
+/* Notification Styles */
+.notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 15px 20px;
+    border-radius: 5px;
+    color: white;
+    z-index: 10000;
+    transition: all 0.3s ease;
+    max-width: 400px;
+}
+
+.notification.success {
+    background-color: #28a745;
+}
+
+.notification.error {
+    background-color: #dc3545;
+}
+
+.notification.warning {
+    background-color: #ffc107;
+    color: #333;
+}
+
+.notification.info {
+    background-color: #17a2b8;
+}
+
+/* Progress Section Styles */
+.progress-section {
+    margin: 1.5rem 0;
+    /* Override any potential conflicts */
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+.progress-section.show {
+    display: block !important;
+}
+
+.progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.progress-title {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.progress-text {
+    margin: 0;
+    font-size: 0.9rem;
+    color: #6c757d;
+}
+
+.progress-stats {
+    text-align: right;
+}
+
+.tasks-count {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #495057;
+    padding: 0.25rem 0.5rem;
+    background: #f8f9fa;
+    border-radius: 0.25rem;
+    border: 1px solid #e9ecef;
+}
+
+.progress-container {
+    margin-bottom: 1rem;
+}
+
+.progress {
+    height: 0.75rem;
+    background-color: #e9ecef;
+    border-radius: 0.375rem;
+    overflow: hidden;
+}
+
+.progress-bar {
+    background: linear-gradient(90deg, #007bff, #0056b3);
+    transition: width 0.6s ease;
+    font-size: 0.75rem;
+    line-height: 0.75rem;
+    color: white;
+    text-align: center;
+}
+
+.progress-bar-animated {
+    animation: progress-bar-stripes 1s linear infinite;
+}
+
+.progress-details {
+    margin-top: 0.75rem;
+}
+
+.progress-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.progress-item .label {
+    font-size: 0.875rem;
+    color: #6c757d;
+    margin-right: 1rem;
+}
+
+.mini-progress {
+    flex: 1;
+    max-width: 200px;
+}
+
+.progress-sm {
+    height: 0.5rem;
+}
+
+@keyframes progress-bar-stripes {
+    0% {
+        background-position: 1rem 0;
+    }
+    100% {
+        background-position: 0 0;
+    }
+}
+
+/* Critical fix for progress section visibility */
+#progress-section.show {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    position: relative !important;
+    z-index: 1 !important;
+}
+
+/* Ensure progress elements are properly styled */
+#progress-section .progress-header {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+}
+
+/* Responsive Enhancements */
+@media (max-width: 768px) {
+    .animate-fade-in-up,
+    .animate-slide-in-right,
+    .animate-bounce-in {
+        animation-duration: 0.4s;
+    }
+    
+    .enhanced-hover:hover {
+        transform: none;
+    }
+    
+    .purchase-continue-btn {
+        padding: 10px 25px;
+        font-size: 14px;
+    }
+}
+
+/* Print Styles */
+@media print {
+    #debug-section,
+    .purchase-popup-overlay,
+    #connection-status,
+    .notification {
+        display: none !important;
+    }
+}
+
+/* Utility Classes for Dynamic States */
+.text-error {
+    color: #dc3545 !important;
+}
+
+.text-success {
+    color: #28a745 !important;
+}
+
+.text-warning {
+    color: #ffc107 !important;
+}
+
+.text-info {
+    color: #17a2b8 !important;
+}
+
+.text-muted {
+    color: #6c757d !important;
+}
+
+/* Display Utility Classes */
+.d-none {
+    display: none !important;
+}
+
+.d-block {
+    display: block !important;
+}
+
+.d-flex {
+    display: flex !important;
+}
+
+.d-inline {
+    display: inline !important;
+}
+
+.d-inline-block {
+    display: inline-block !important;
+}
+
+/* Background Utility Classes */
+.bg-error {
+    background-color: #dc3545 !important;
+}
+
+.bg-success {
+    background-color: #28a745 !important;
+}
+
+.bg-warning {
+    background-color: #ffc107 !important;
+}
+
+.bg-info {
+    background-color: #17a2b8 !important;
+}
+
+/* Border Utility Classes */
+.border-error {
+    border-color: #dc3545 !important;
+}
+
+.border-success {
+    border-color: #28a745 !important;
+}
+
+.border-warning {
+    border-color: #ffc107 !important;
+}
+
+.border-info {
+    border-color: #17a2b8 !important;
+}

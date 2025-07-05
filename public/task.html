@@ -21,38 +21,8 @@
     <script charset="utf-8" src="./assets/frontend/shopva/common.js"></script>
     <link rel="stylesheet" href="./assets/frontend/shopva/layer.css">    <script src="./assets/frontend/shopva/layer.js"></script>    <!-- Custom CSS for shared styles -->
     <link rel="stylesheet" href="css/task-account-styles.css">    <!-- Drive unified styles -->
-    <link rel="stylesheet" href="css/drive-unified-styles.css">
-    <!-- Simple automatic drive progress -->
-    <link rel="stylesheet" href="css/simple-drive-progress.css">
-
-    <style>
-        /* Debug Console Styles */
-        #debug-section {
-            margin-top: 20px;
-            border: 1px solid #dee2e6;
-            border-radius: 8px;
-        }
-        
-        .debug-info { color: #17a2b8; }
-        .debug-warn { color: #ffc107; }
-        .debug-error { color: #dc3545; }
-        .debug-dev { color: #6c757d; }
-        
-        .debug-time { color: #6c757d; font-size: 11px; }
-        .debug-type { font-weight: bold; margin-right: 5px; }
-        
-        #debug-console {
-            background: #f8f9fa !important;
-            border: 1px solid #e9ecef;
-            border-radius: 4px;
-            padding: 10px;
-            font-family: 'Courier New', monospace;
-            font-size: 12px;
-            line-height: 1.4;
-            max-height: 200px;
-            overflow-y: auto;
-        }
-    </style>
+    <link rel="stylesheet" href="css/drive-unified-styles.css">    <!-- Task page specific styles -->
+    <link rel="stylesheet" href="css/task.css">
 </head>
 <body>
 
@@ -108,51 +78,46 @@
                     </div>
                 </div>
             </div>
-
-            <div class="app-card animate-fade-in-up enhanced-hover">
-                <div class="stat-icon warning">
-                    <i class="fas fa-tasks"></i>
-                </div>
-                <div class="stat-content">
-                    <div class="stat-label">Tasks Completed</div>
-                    <div class="stat-value">
-                        <span>0 / 0</span>
-                    </div>
-                </div>
-            </div>
         </div>
 
-        <!-- Simple Drive Progress Section -->
-        <div class="row mb-3">
-            <div class="col-12">
-                <div class="card border-0 shadow-sm">
-                    <div class="card-header bg-gradient-primary text-white d-flex justify-content-between align-items-center">
-                        <h6 class="mb-0"><i class="fas fa-chart-line me-2"></i>Drive Progress<span class="small ms-2">0/45 Original Tasks</span></h6>
-                        <span class="badge bg-light text-primary">Ready</span>
+        <!-- Drive Progress Section -->
+        <div class="progress-section animate-fade-in-up" id="progress-section" style="display: none;">
+            <div class="app-card">
+                <div class="progress-header">
+                    <div class="progress-info">
+                        <h5 class="progress-title">Drive Progress</h5>
+                        <p class="progress-text" id="progress-text">0 / 0 tasks completed</p>
                     </div>
-                    <div class="card-body p-4" id="simple-drive-progress">
-                        <!-- This will be populated by simple-drive-progress.js -->
-                        <div class="row text-center mb-3">
-                            <div class="col-4">
-                                <div class="h4 text-primary mb-1">0</div>
-                                <div class="small text-muted">COMPLETED</div>
-                            </div>
-                            <div class="col-4">
-                                <div class="h4 text-info mb-1">45</div>
-                                <div class="small text-muted">REMAINING</div>
-                            </div>
-                            <div class="col-4">
-                                <div class="h4 text-success mb-1">0%</div>
-                                <div class="small text-muted">COMPLETE</div>
-                            </div>
+                    <div class="progress-stats">
+                        <span class="tasks-count" id="tasks-count">0 / 0</span>
+                    </div>
+                </div>
+                <div class="progress-container">
+                    <div class="progress">
+                        <div class="progress-bar progress-bar-animated" 
+                             role="progressbar" 
+                             id="drive-progress-bar" 
+                             style="width: 0%" 
+                             aria-valuenow="0" 
+                             aria-valuemin="0" 
+                             aria-valuemax="100">
+                            0%
                         </div>
-                        <div class="progress mb-3" style="height: 12px;">
-                            <div class="progress-bar bg-gradient-success" role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
-                        </div>
-                        <div class="text-center">
-                            <div class="bg-light p-3 rounded">
-                                <div class="h5 text-success mb-1">$29.22 USDT</div>
-                                <div class="small text-muted">TOTAL COMMISSION EARNED</div>
+                    </div>
+                </div>
+                <div class="progress-details">
+                    <div class="progress-item">
+                        <span class="label">Tasks Progress:</span>
+                        <div class="mini-progress">
+                            <div class="progress progress-sm">
+                                <div class="progress-bar" 
+                                     role="progressbar" 
+                                     id="tasks-progress-bar" 
+                                     style="width: 0%" 
+                                     aria-valuenow="0" 
+                                     aria-valuemin="0" 
+                                     aria-valuemax="100">
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -444,9 +409,6 @@
 <!-- Load general site script (uses jQuery) -->
 <script src="./assets/frontend/js/script.js"></script>
 
-<!-- Important: i18n.js must be loaded before other scripts -->
-<script src="./js/i18n.js"></script>
-
 <!-- Load Component Loader -->
 <script src="./js/components.js"></script>
 <script src="./js/dashboard.js"></script>
@@ -461,44 +423,17 @@
 <!-- DEBUG: Temporary script to debug 401 errors -->
 <script src="./js/debug-task-401.js"></script>
 
+<!-- CSS Verification Script (development only) -->
+<script src="./js/css-verification.js"></script>
+
 <!-- Drive unified product renderer -->
 <script src="./js/drive-product-renderer.js"></script>
 
 <!-- Main Drive Script -->
 <script src="./js/drive.js"></script>
 
-
-
-<!-- Enhanced order progress component -->
-<script src="./js/simple-drive-progress.js"></script>
-
 <!-- Withdrawable balance -->
 <script src="./js/task.js"></script>
-
-<!-- Simple drive progress auto-sync -->
-<script>
-// Initialize simple drive progress when DOM is loaded
-document.addEventListener('DOMContentLoaded', function() {
-    // Wait a bit to ensure all other scripts are loaded
-    setTimeout(() => {
-        // Get user tier from global data or default to bronze
-        const userTier = window.globalAuthData?.user?.tier || 'bronze';
-        
-        // Initialize simple drive progress and store globally for updates
-        if (typeof initializeDriveProgress === 'function') {
-            window.globalDriveProgress = initializeDriveProgress('simple-drive-progress', {
-                tier: userTier,
-                currentProgress: window.tasksCompleted || 0,
-                totalCommission: window.totalDriveCommission || 0
-            });
-            
-            console.log('Simple drive progress initialized for tier:', userTier);
-        } else {
-            console.warn('initializeDriveProgress function not found');
-        }
-    }, 100);
-});
-</script>
 
 <script src="./js/auth.js"></script>
 
@@ -939,6 +874,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Preload critical resources
         const criticalResources = [
             './css/task-account-styles.css',
+            './css/task.css',
             './js/task.js'
         ];
         
@@ -958,17 +894,6 @@ document.addEventListener('DOMContentLoaded', function() {
     function updateConnectionStatus() {
         const indicator = document.createElement('div');
         indicator.id = 'connection-status';
-        indicator.style.cssText = `
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-            z-index: 1000;
-            transition: all 0.3s ease;
-        `;
         
         function updateStatus() {
             if (navigator.onLine) {
@@ -1034,154 +959,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         </div>
     </div>
 </div>
-
-<style>
-/* Purchase Success Popup Styles */
-.purchase-popup-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(8px);
-    z-index: 10000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-}
-
-.purchase-popup-overlay.show {
-    opacity: 1;
-}
-
-.purchase-popup {
-    background: white;
-    border-radius: 20px;
-    padding: 0;
-    max-width: 400px;
-    width: 90%;
-    position: relative;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
-    transform: scale(0.8) translateY(30px);
-    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.purchase-popup-overlay.show .purchase-popup {
-    transform: scale(1) translateY(0);
-}
-
-.purchase-popup-close {
-    position: absolute;
-    top: 15px;
-    right: 15px;
-    background: rgba(0, 0, 0, 0.1);
-    border: none;
-    border-radius: 50%;
-    width: 32px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    color: #666;
-    transition: all 0.2s ease;
-    z-index: 1;
-}
-
-.purchase-popup-close:hover {
-    background: rgba(0, 0, 0, 0.2);
-    color: #333;
-}
-
-.purchase-popup-content {
-    padding: 40px 30px 30px;
-    text-align: center;
-}
-
-.purchase-success-icon {
-    margin-bottom: 20px;
-}
-
-.purchase-success-icon i {
-    font-size: 64px;
-    color: #30D158;
-    animation: successPulse 0.6s ease-out;
-}
-
-@keyframes successPulse {
-    0% { transform: scale(0); opacity: 0; }
-    50% { transform: scale(1.1); opacity: 1; }
-    100% { transform: scale(1); opacity: 1; }
-}
-
-.purchase-popup-title {
-    font-size: 28px;
-    font-weight: 700;
-    color: #000000;
-    margin-bottom: 12px;
-    font-family: 'Inter', sans-serif;
-}
-
-.purchase-popup-message {
-    font-size: 16px;
-    color: #8E8E93;
-    margin-bottom: 30px;
-    line-height: 1.5;
-}
-
-.purchase-popup-buttons {
-    display: flex;
-    justify-content: center;
-}
-
-.purchase-continue-btn {
-    background: linear-gradient(135deg, #007AFF, #5AC8FA);
-    border: none;
-    padding: 12px 30px;
-    border-radius: 12px;
-    color: white;
-    font-weight: 600;
-    font-size: 16px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    box-shadow: 0 4px 16px rgba(0, 122, 255, 0.3);
-}
-
-.purchase-continue-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 24px rgba(0, 122, 255, 0.4);
-}
-
-.purchase-continue-btn i {
-    font-size: 14px;
-}
-
-/* Responsive */
-@media (max-width: 480px) {
-    .purchase-popup {
-        margin: 20px;
-        width: calc(100% - 40px);
-    }
-    
-    .purchase-popup-content {
-        padding: 30px 20px 20px;
-    }
-    
-    .purchase-success-icon i {
-        font-size: 48px;
-    }
-    
-    .purchase-popup-title {
-        font-size: 24px;
-    }
-}
-</style>
 
 <script>
 // Purchase Success Popup Functions

@@ -5,6 +5,8 @@
 // - Redirects will be restored after identifying the root cause
 // *** END DEBUG NOTE ***
 
+console.log('TASK.JS LOADING - CHECK FOR DUPLICATES', new Date().getTime());
+
 // Ensure API_BASE_URL and showNotification are available (assuming from main.js)
 // If not, define them here or ensure main.js is loaded first.
 if (typeof API_BASE_URL === 'undefined') {
@@ -23,15 +25,18 @@ let isStartingDrive = false; // Flag to prevent unintentional start drive calls
 window.selectedAction = 'buy'; // Default modal action state
 
 // --- UI Element References ---
-let autoStartButton;
-let productCardContainer; // New container for the dynamic product card
-let walletBalanceElement;
-let driveCommissionElement; // Element to display commission earned in this drive
-let tasksProgressElement; // Element to display tasks completed/required
-let driveProgressBar; // Main progress bar at the top
-let progressTextElement; // Text showing progress count
-let tasksProgressBar; // Small progress bar in tasks card
-let orderLoadingOverlay; // Reference to the new loading overlay
+window.taskPageElements = window.taskPageElements || {
+    autoStartButton: null,
+    productCardContainer: null, // New container for the dynamic product card
+    walletBalanceElement: null,
+    driveCommissionElement: null, // Element to display commission earned in this drive
+    tasksProgressElement: null, // Element to display tasks completed/required
+    driveProgressBar: null, // Main progress bar at the top
+    progressTextElement: null, // Text showing progress count
+    tasksProgressBar: null, // Small progress bar in tasks card
+    progressSection: null, // Progress section container
+    orderLoadingOverlay: null // Reference to the new loading overlay
+};
 
 // --- Drive State Variables ---
 let currentProductData = null; // Store data of the currently displayed product
@@ -50,38 +55,40 @@ function initializeTaskPage() {
   // Store auth data globally for use in other functions
   globalAuthData = authData;
     // Get references to key elements
-  autoStartButton = document.getElementById('start-drive-button');
-  productCardContainer = document.getElementById('product-card-container'); // Get reference to the new container
-  walletBalanceElement = document.querySelector('.datadrive-balance');  // Select the balance element directly
-  driveCommissionElement = document.querySelector('.datadrive-commission'); // Element for drive commission
-  tasksProgressElement = document.getElementById('tasks-count'); // Element displaying tasks completed/required
-  tasksProgressBar = document.getElementById('tasks-progress-bar'); // Progress bar element for tasks card
-  driveProgressBar = document.getElementById('drive-progress-bar'); // Main progress bar at the top
-  progressTextElement = document.getElementById('progress-text'); // Text element for progress 
-  orderLoadingOverlay = document.getElementById('order-loading-overlay'); // Get reference to the loading overlay
+  window.taskPageElements.autoStartButton = document.getElementById('start-drive-button');
+  window.taskPageElements.productCardContainer = document.getElementById('product-card-container'); // Get reference to the new container
+  window.taskPageElements.walletBalanceElement = document.querySelector('.datadrive-balance');  // Select the balance element directly
+  window.taskPageElements.driveCommissionElement = document.querySelector('.datadrive-commission'); // Element for drive commission
+  window.taskPageElements.tasksProgressElement = document.getElementById('tasks-count'); // Element displaying tasks completed/required
+  window.taskPageElements.tasksProgressBar = document.getElementById('tasks-progress-bar'); // Progress bar element for tasks card
+  window.taskPageElements.driveProgressBar = document.getElementById('drive-progress-bar'); // Main progress bar at the top
+  window.taskPageElements.progressTextElement = document.getElementById('progress-text'); // Text element for progress 
+  window.taskPageElements.progressSection = document.getElementById('progress-section'); // Progress section container
+  window.taskPageElements.orderLoadingOverlay = document.getElementById('order-loading-overlay'); // Get reference to the loading overlay
   // Debug: Check if elements are found
   console.log('Element references:', {
-    autoStartButton: !!autoStartButton,
-    productCardContainer: !!productCardContainer,
-    walletBalanceElement: !!walletBalanceElement,
-    driveCommissionElement: !!driveCommissionElement,
-    tasksProgressElement: !!tasksProgressElement,
-    tasksProgressBar: !!tasksProgressBar,
-    driveProgressBar: !!driveProgressBar,
-    progressTextElement: !!progressTextElement,
-    orderLoadingOverlay: !!orderLoadingOverlay
+    autoStartButton: !!window.taskPageElements.autoStartButton,
+    productCardContainer: !!window.taskPageElements.productCardContainer,
+    walletBalanceElement: !!window.taskPageElements.walletBalanceElement,
+    driveCommissionElement: !!window.taskPageElements.driveCommissionElement,
+    tasksProgressElement: !!window.taskPageElements.tasksProgressElement,
+    tasksProgressBar: !!window.taskPageElements.tasksProgressBar,
+    driveProgressBar: !!window.taskPageElements.driveProgressBar,
+    progressTextElement: !!window.taskPageElements.progressTextElement,
+    progressSection: !!window.taskPageElements.progressSection,
+    orderLoadingOverlay: !!window.taskPageElements.orderLoadingOverlay
   });
   
   // Additional debug for tasks-count element specifically
   console.log('Tasks count element details:', {
-    found: !!tasksProgressElement,
-    id: tasksProgressElement?.id,
-    currentText: tasksProgressElement?.textContent,
-    innerHTML: tasksProgressElement?.innerHTML
+    found: !!window.taskPageElements.tasksProgressElement,
+    id: window.taskPageElements.tasksProgressElement?.id,
+    currentText: window.taskPageElements.tasksProgressElement?.textContent,
+    innerHTML: window.taskPageElements.tasksProgressElement?.innerHTML
   });// Initial UI state: Hide elements by default, will be shown based on drive status
-  if (autoStartButton) autoStartButton.style.display = 'none'; // Don't show until we check drive status
-  if (productCardContainer) productCardContainer.style.display = 'none';
-  if (orderLoadingOverlay) orderLoadingOverlay.style.display = 'none';
+  if (window.taskPageElements.autoStartButton) window.taskPageElements.autoStartButton.style.display = 'none'; // Don't show until we check drive status
+  if (window.taskPageElements.productCardContainer) window.taskPageElements.productCardContainer.style.display = 'none';
+  if (window.taskPageElements.orderLoadingOverlay) window.taskPageElements.orderLoadingOverlay.style.display = 'none';
     // Try to restore session data from localStorage first
   const savedSessionData = getCurrentSessionData();
   if (savedSessionData) {
@@ -142,9 +149,9 @@ function initializeTaskPage() {
   }
   
   // Attach listener for the Start button
-  if (autoStartButton) {
+  if (window.taskPageElements.autoStartButton) {
       console.log("Found #start-drive-button button, attaching listener.");
-      autoStartButton.addEventListener('click', () => {
+      window.taskPageElements.autoStartButton.addEventListener('click', () => {
           console.log("#start-drive-button button clicked.");
           if (!isStartingDrive) { // Only start if not already in the process
               isStartingDrive = true; // Set flag
@@ -186,8 +193,8 @@ function initializeTaskPage() {
 
   // Event delegation for dynamically added Purchase button
   // Using productCardContainer ensures listener is within the relevant area
-  if (productCardContainer) {
-      productCardContainer.addEventListener('click', function(event) {
+  if (window.taskPageElements.productCardContainer) {
+      window.taskPageElements.productCardContainer.addEventListener('click', function(event) {
           if (event.target && event.target.id === 'purchase-button') {
               console.log("#purchase-button clicked.");
               if (currentProductData) {
@@ -474,10 +481,10 @@ async function fetchBalanceAsync(token) {
 
 // --- Update Progress Bar Function (Unlimited Task Sets Design) ---
 function updateProgressBar(currentStep, totalProducts) {
-    // Get DOM elements for legacy support
+    // Get DOM elements for legacy support using global variables where available
     const progressBar = document.getElementById('drive-progress-bar');
     const progressText = document.getElementById('progress-text');
-    const tasksProgressElement = document.getElementById('tasks-count');
+    // Use global tasksProgressElement and tasksProgressBar variables instead of creating new const
     
     // Ensure we have valid numbers
     const completed = Math.max(0, parseInt(currentStep) || 0);
@@ -486,18 +493,37 @@ function updateProgressBar(currentStep, totalProducts) {
     // Calculate percentage for legacy progress bar
     const percentage = total > 0 ? Math.min(100, Math.max(0, (completed / total) * 100)) : 0;
     
-    // Update legacy progress bar (if exists)
+    // Show progress section if we have data - use multiple approaches to ensure visibility
+    const progressSection = window.taskPageElements?.progressSection;
+    if (progressSection && total > 0) {
+        progressSection.style.display = 'block';
+        progressSection.style.visibility = 'visible';
+        progressSection.style.opacity = '1';
+        progressSection.classList.add('show');
+        progressSection.classList.remove('d-none');
+    }
+    
+    // Update main drive progress bar (if exists)
     if (progressBar) {
         progressBar.style.width = `${percentage}%`;
         progressBar.setAttribute('aria-valuenow', percentage);
+        progressBar.textContent = `${Math.round(percentage)}%`;
+    }
+    
+    // Update tasks progress bar (if exists) - use global reference
+    const tasksProgressBar = window.taskPageElements?.tasksProgressBar;
+    if (window.taskPageElements.tasksProgressBar) {
+        window.taskPageElements.tasksProgressBar.style.width = `${percentage}%`;
+        window.taskPageElements.tasksProgressBar.setAttribute('aria-valuenow', percentage);
     }
     
     // Update progress text (if exists)
     if (progressText) {
-        progressText.textContent = `${completed} / ${total} products completed`;
+        progressText.textContent = `${completed} / ${total} tasks completed`;
     }
     
-    // Update tasks count (if exists)
+    // Update tasks count (if exists) - use global reference
+    const tasksProgressElement = window.taskPageElements?.tasksProgressElement;
     if (tasksProgressElement) {
         tasksProgressElement.textContent = `${completed} / ${total}`;
     }
@@ -507,47 +533,21 @@ function updateProgressBar(currentStep, totalProducts) {
     totalTasksRequired = total;
     saveCurrentSessionData();
     
-    // Update simple drive progress component
-    if (window.globalDriveProgress && typeof window.globalDriveProgress.updateProgress === 'function') {
-        try {
-            window.globalDriveProgress.updateProgress(completed, totalDriveCommission);
-        } catch (error) {
-            console.warn('Error updating globalDriveProgress:', error);
-        }
-    } else if (typeof SimpleDriveProgress !== 'undefined' && SimpleDriveProgress.updateGlobalProgress) {
-        // Fallback: Trigger global progress update event
-        try {
-            SimpleDriveProgress.updateGlobalProgress(completed, totalDriveCommission);
-        } catch (error) {
-            console.warn('Error updating SimpleDriveProgress:', error);
-        }
-    } else {
-        console.warn('Drive progress component not available yet');
-    }
-    
-    console.log(`Drive Progress updated: ${completed}/${total} products (${percentage.toFixed(1)}%)`);
+    console.log(`Drive Progress updated: ${completed}/${total} tasks (${percentage.toFixed(1)}%)`);
 }
 
 // --- Update Drive Commission Function ---
 function updateDriveCommission() {
     // Update the commission display element
-    if (driveCommissionElement) {
+    if (window.taskPageElements.driveCommissionElement) {
         const commissionValue = (totalDriveCommission || 0).toFixed(2);
-        driveCommissionElement.innerHTML = `${commissionValue}<small style="font-size:14px"> USDT</small>`;
+        window.taskPageElements.driveCommissionElement.innerHTML = `${commissionValue}<small style="font-size:14px"> USDT</small>`;
         
         // Add highlight animation when commission updates
-        driveCommissionElement.classList.remove('highlight-green');
+        window.taskPageElements.driveCommissionElement.classList.remove('highlight-green');
         setTimeout(() => {
-            driveCommissionElement.classList.add('highlight-green');
+            window.taskPageElements.driveCommissionElement.classList.add('highlight-green');
         }, 10);    }
-    
-    // Update simple drive progress component with new commission
-    if (window.globalDriveProgress) {
-        window.globalDriveProgress.updateCommission(totalDriveCommission);
-    } else {
-        // Trigger global progress update event
-        SimpleDriveProgress.updateGlobalProgress(tasksCompleted, totalDriveCommission);
-    }
     
     // Save current session data to localStorage for persistence
     saveCurrentSessionData();
@@ -600,9 +600,9 @@ function startDriveProcess(token) {
     }
     console.log("startDriveProcess called.");
     
-    if (autoStartButton) {
-        autoStartButton.innerHTML = '<i class="fas fa-hourglass-half me-2"></i>Starting...';
-        autoStartButton.disabled = true;
+    if (window.taskPageElements.autoStartButton) {
+        window.taskPageElements.autoStartButton.innerHTML = '<i class="fas fa-hourglass-half me-2"></i>Starting...';
+        window.taskPageElements.autoStartButton.disabled = true;
     }
     
     // Call API directly without countdown
@@ -640,7 +640,7 @@ function callStartDriveAPI(token) {
         'animation': 'pulse 1s infinite',
         'box-shadow': '0 0 15px rgba(0,123,255,0.7)'
     });
-    if (orderLoadingOverlay) orderLoadingOverlay.style.display = 'flex';
+    if (window.taskPageElements.orderLoadingOverlay) window.taskPageElements.orderLoadingOverlay.style.display = 'flex';
 
     setTimeout(() => {
         fetch(`${API_BASE_URL}/api/drive/start`, {
@@ -671,10 +671,10 @@ function callStartDriveAPI(token) {
                 }            } catch (e) {
                 console.error("Error closing loading indicator:", e);
             }
-            if (orderLoadingOverlay) orderLoadingOverlay.style.display = 'none';
-            if (autoStartButton) {
-                autoStartButton.innerHTML = '<i class="fas fa-play me-2"></i>Start';
-                autoStartButton.disabled = false;
+            if (window.taskPageElements.orderLoadingOverlay) window.taskPageElements.orderLoadingOverlay.style.display = 'none';
+            if (window.taskPageElements.autoStartButton) {
+                window.taskPageElements.autoStartButton.innerHTML = '<i class="fas fa-play me-2"></i>Start';
+                window.taskPageElements.autoStartButton.disabled = false;
             }
             $('.product-carousel').removeClass('starting-drive');
             $('.product-carousel').css({
@@ -724,8 +724,8 @@ function callStartDriveAPI(token) {
                     currentProductData = data.current_order;
                     renderProductCard(data.current_order);
                     
-                    if (autoStartButton) autoStartButton.style.display = 'none';
-                    if (productCardContainer) productCardContainer.style.display = 'block';
+                    if (window.taskPageElements.autoStartButton) window.taskPageElements.autoStartButton.style.display = 'none';
+                    if (window.taskPageElements.productCardContainer) window.taskPageElements.productCardContainer.style.display = 'block';
                 } else {
                     console.error("callStartDriveAPI: Missing required fields in successful response", {
                         received: data,
@@ -779,10 +779,10 @@ function callStartDriveAPI(token) {
                 }            } catch (e) {
                 console.error("Error closing loading indicator on catch:", e);
             }
-            if (orderLoadingOverlay) orderLoadingOverlay.style.display = 'none';
-            if (autoStartButton) {
-                autoStartButton.innerHTML = '<i class="fas fa-play me-2"></i>Start';
-                autoStartButton.disabled = false;
+            if (window.taskPageElements.orderLoadingOverlay) window.taskPageElements.orderLoadingOverlay.style.display = 'none';
+            if (window.taskPageElements.autoStartButton) {
+                window.taskPageElements.autoStartButton.innerHTML = '<i class="fas fa-play me-2"></i>Start';
+                window.taskPageElements.autoStartButton.disabled = false;
             }
             $('.product-carousel').removeClass('starting-drive');            $('.product-carousel').css({
                 'animation': '',
@@ -811,7 +811,7 @@ function callStartDriveAPI(token) {
 
 function fetchNextOrder(token) {
     console.log("Fetching next order (/api/drive/getorder)...");
-    if (orderLoadingOverlay) orderLoadingOverlay.style.display = 'flex';
+    if (window.taskPageElements.orderLoadingOverlay) window.taskPageElements.orderLoadingOverlay.style.display = 'flex';
     $('.product-carousel').trigger('stop.owl.autoplay');
     fetch(`${API_BASE_URL}/api/drive/getorder`, { // This is a POST request as per existing code
         method: 'POST', // Assuming it's POST, though GET might be more appropriate for "get"
@@ -824,7 +824,7 @@ function fetchNextOrder(token) {
     .then(data => {
         console.log("Response from /api/drive/getorder:", data);
         $('.product-carousel').trigger('play.owl.autoplay', [3000]);
-        if (orderLoadingOverlay) orderLoadingOverlay.style.display = 'none';
+        if (window.taskPageElements.orderLoadingOverlay) window.taskPageElements.orderLoadingOverlay.style.display = 'none';
           if (data.code === 2) { // Drive complete
             console.log("Drive complete message received from backend (getorder).");
             displayDriveComplete(data.info || 'Congratulations! Your data drive is complete.');
@@ -833,22 +833,12 @@ function fetchNextOrder(token) {
                 updateDriveCommission();
             }
             
-            // Update simple drive progress component
-            if (window.globalDriveProgress) {
-                window.globalDriveProgress.updateProgress(tasksCompleted, totalDriveCommission);
-            }
-            
             refreshWalletBalance();        } else if (data.code === 3) { // Drive Frozen
             console.warn("Drive Frozen message received from backend (getorder).");
             displayTaskFrozenState(data.info || "Session frozen due to insufficient balance.", data.frozen_amount_needed, data);
             if (data.total_commission !== undefined) {
                 totalDriveCommission = parseFloat(data.total_commission);
                 updateDriveCommission();
-            }
-            
-            // Update simple drive progress component
-            if (window.globalDriveProgress) {
-                window.globalDriveProgress.updateProgress(tasksCompleted, totalDriveCommission);
             }
             
             refreshWalletBalance();
@@ -874,11 +864,6 @@ function fetchNextOrder(token) {
                 tasksCompleted = data.tasks_completed; // Original tasks completed (user-visible)
                 totalTasksRequired = data.tasks_required; // Total original tasks (user-visible)
                 updateProgressBar(tasksCompleted, totalTasksRequired);
-                
-                // Update simple drive progress component
-                if (window.globalDriveProgress) {
-                    window.globalDriveProgress.updateProgress(tasksCompleted, totalDriveCommission);
-                }
             }
             if (data.total_commission !== undefined) {
                 totalDriveCommission = parseFloat(data.total_commission);
@@ -896,8 +881,8 @@ function fetchNextOrder(token) {
             console.error('Error fetching next order (getorder):', errorMsg);
             if (data.code === 1) { // No active session / Drive not started
                 displayDriveError(data.info || data.message || 'Your drive session has not started or is complete. Please start a new drive.');
-                if (autoStartButton) autoStartButton.style.display = 'block';
-                if (productCardContainer) productCardContainer.style.display = 'none';
+                if (window.taskPageElements.autoStartButton) window.taskPageElements.autoStartButton.style.display = 'block';
+                if (window.taskPageElements.productCardContainer) window.taskPageElements.productCardContainer.style.display = 'none';
                  totalDriveCommission = 0;
                  updateDriveCommission();
                  updateProgressBar(0, totalTasksRequired || 0); // Reset progress bar
@@ -907,7 +892,7 @@ function fetchNextOrder(token) {
         }
     })
     .catch(error => {
-        if (orderLoadingOverlay) orderLoadingOverlay.style.display = 'none';
+        if (window.taskPageElements.orderLoadingOverlay) window.taskPageElements.orderLoadingOverlay.style.display = 'none';
         $('.product-carousel').trigger('play.owl.autoplay', [3000]);
         console.error('Error fetching next order:', error);
         displayDriveError(`Network error fetching order: ${error.message}`);
@@ -915,7 +900,7 @@ function fetchNextOrder(token) {
 }
 
 function renderProductCard(productData) {
-    if (!productCardContainer) return;
+    if (!window.taskPageElements.productCardContainer) return;
     // productData now includes is_combo, product_name, product_image, product_price, order_commission, user_active_drive_item_id
     // Enhanced to show combo information and task progress
     
@@ -924,13 +909,13 @@ function renderProductCard(productData) {
     console.log('Alternative description field:', productData.description);
     
     // Enhanced fade effect for better UX and refresh indication
-    productCardContainer.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
-    productCardContainer.style.opacity = '0.3';
-    productCardContainer.style.transform = 'scale(0.98)';
+    window.taskPageElements.productCardContainer.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+    window.taskPageElements.productCardContainer.style.opacity = '0.3';
+    window.taskPageElements.productCardContainer.style.transform = 'scale(0.98)';
       setTimeout(() => {
         // Use the sophisticated drive product renderer if available
         if (typeof renderDriveProductCard === 'function') {
-            renderDriveProductCard(productData, productCardContainer, {
+            renderDriveProductCard(productData, window.taskPageElements.productCardContainer, {
                 showProgress: true,
                 showStats: true
             });
@@ -970,7 +955,7 @@ function renderProductCard(productData) {
                 ? getProductDescription(productData)
                 : (productData.product_description || productData.description || 'High-quality product available for purchase in your data drive.');
 
-            productCardContainer.innerHTML = `
+            window.taskPageElements.productCardContainer.innerHTML = `
                 <div class="card">
                     <div class="card-body text-center">
                         <h4>${productTitle}${comboInfo}</h4>
@@ -996,10 +981,10 @@ function renderProductCard(productData) {
         }
         
         // Restore appearance with enhanced animation
-        productCardContainer.style.opacity = '1';
-        productCardContainer.style.transform = 'scale(1)';
+        window.taskPageElements.productCardContainer.style.opacity = '1';
+        window.taskPageElements.productCardContainer.style.transform = 'scale(1)';
           // Add a subtle highlight effect to indicate new content
-        const card = productCardContainer.querySelector('.card, .drive-product-card');
+        const card = window.taskPageElements.productCardContainer.querySelector('.card, .drive-product-card');
         if (card) {
             card.style.boxShadow = '0 0 20px rgba(0, 123, 255, 0.3)';
             setTimeout(() => {
@@ -1010,7 +995,7 @@ function renderProductCard(productData) {
         
         // Remove transition after animation completes
         setTimeout(() => {
-            productCardContainer.style.transition = '';
+            window.taskPageElements.productCardContainer.style.transition = '';
         }, 300);
     }, 150); // Slightly longer delay for better effect
 }
@@ -1030,7 +1015,7 @@ async function handlePurchase(token, productData) {
         purchaseButton.disabled = true;
         purchaseButton.textContent = 'Processing...';
     }
-    if (orderLoadingOverlay) orderLoadingOverlay.style.display = 'flex';
+    if (window.taskPageElements.orderLoadingOverlay) window.taskPageElements.orderLoadingOverlay.style.display = 'flex';
     
     // Determine product_slot_to_complete
     let determined_slot;
@@ -1097,7 +1082,9 @@ async function handlePurchase(token, productData) {
         }
 
         const data = await response.json();
-        if (orderLoadingOverlay) orderLoadingOverlay.style.display = 'none';        if (response.ok && data.code === 0) { // Order processed successfully
+        if (window.taskPageElements.orderLoadingOverlay) window.taskPageElements.orderLoadingOverlay.style.display = 'none';
+        
+        if (response.ok && data.code === 0) { // Order processed successfully
             console.log('Order saved successfully (saveorder):', data);
             
             // Update commission and wallet balance from backend response
@@ -1403,12 +1390,12 @@ function updateAllUIElements(data) {
 
 // Update tasks display elements
 function updateTasksDisplay() {
-    if (tasksProgressElement) {
+    if (window.taskPageElements.tasksProgressElement) {
         if (tasksCompleted >= totalTasksRequired) {
-            tasksProgressElement.textContent = `(${totalTasksRequired} / ${totalTasksRequired})`;
+            window.taskPageElements.tasksProgressElement.textContent = `(${totalTasksRequired} / ${totalTasksRequired})`;
         } else {
             const currentTask = tasksCompleted + 1;
-            tasksProgressElement.textContent = `(${currentTask} / ${totalTasksRequired})`;
+            window.taskPageElements.tasksProgressElement.textContent = `(${currentTask} / ${totalTasksRequired})`;
         }
     }
 }
@@ -1455,9 +1442,9 @@ function showRefreshFeedback() {
 // Add subtle animation to UI elements during refresh
 function animateUIRefresh() {
     const elementsToAnimate = [
-        driveCommissionElement?.parentElement,
-        tasksProgressElement?.parentElement,
-        walletBalanceElement?.parentElement
+        window.taskPageElements.driveCommissionElement?.parentElement,
+        window.taskPageElements.tasksProgressElement?.parentElement,
+        window.taskPageElements.walletBalanceElement?.parentElement
     ].filter(Boolean);
     
     elementsToAnimate.forEach(element => {
@@ -1518,19 +1505,6 @@ async function updateDriveStatus() {
             // Update UI components
             updateDriveCommission();
             updateProgressBar(tasksCompleted, totalTasksRequired);
-
-            // Update simple drive progress component with all fields
-            if (window.globalDriveProgress && window.globalDriveProgress.updateFromDriveStatus) {
-                window.globalDriveProgress.updateFromDriveStatus({
-                    original_tasks_completed: data.tasks_completed || tasksCompleted,
-                    original_tasks_required: data.tasks_required || totalTasksRequired,
-                    all_tasks_completed: data.all_tasks_completed || tasksCompleted,
-                    all_tasks_total: data.all_tasks_total || totalTasksRequired,
-                    total_commission: data.total_commission || totalDriveCommission,
-                    status: data.status || 'active'
-                });
-                console.log('updateDriveStatus: Updated simple drive progress component');
-            }
 
             // Save updated session data
             saveCurrentSessionData();
@@ -1610,28 +1584,15 @@ function checkDriveStatus(token) {
             updateDriveCommission(); // Update UI and persist
             updateProgressBar(tasksCompleted, totalTasksRequired); // Show proper progress
             
-            // Update simple drive progress component with original task data (user-visible progress)
-            if (window.globalDriveProgress && window.globalDriveProgress.updateFromDriveStatus) {
-                window.globalDriveProgress.updateFromDriveStatus({
-                    original_tasks_completed: data.tasks_completed || tasksCompleted,
-                    original_tasks_required: data.tasks_required || totalTasksRequired,
-                    all_tasks_completed: data.all_tasks_completed || tasksCompleted,
-                    all_tasks_total: data.all_tasks_total || totalTasksRequired,
-                    total_commission: data.total_commission || totalDriveCommission,
-                    status: data.status || 'active'
-                });
-                console.log('Updated simple drive progress component with original task data');
-            }
-            
             if (data.status === 'active' && data.current_order) {
                 console.log('checkDriveStatus: Active session with current order found. Resuming drive.');
                 
                 // Clean up any frozen state displays when resuming
                 clearFrozenStateDisplay();
                 
-                if (autoStartButton) autoStartButton.style.display = 'none';
-                if (productCardContainer) {
-                    productCardContainer.style.display = 'block';
+                if (window.taskPageElements.autoStartButton) window.taskPageElements.autoStartButton.style.display = 'none';
+                if (window.taskPageElements.productCardContainer) {
+                    window.taskPageElements.productCardContainer.style.display = 'block';
                     renderProductCard(data.current_order);
                     currentProductData = data.current_order;
                 }
@@ -1651,17 +1612,17 @@ function checkDriveStatus(token) {
                 }
                 
                 displayTaskFrozenState(data.info || "Session frozen due to insufficient balance.", data.frozen_amount_needed, data);
-                if (autoStartButton) autoStartButton.style.display = 'none';
+                if (window.taskPageElements.autoStartButton) window.taskPageElements.autoStartButton.style.display = 'none';
                 return true;
             } else if (data.status === 'complete') {
                 console.log('checkDriveStatus: Drive complete.');
                 displayDriveComplete(data.info || 'Drive completed successfully.');
-                if (autoStartButton) autoStartButton.style.display = 'none';
+                if (window.taskPageElements.autoStartButton) window.taskPageElements.autoStartButton.style.display = 'none';
                 return true;
             } else if (data.status === 'no_session') {
                 console.log('checkDriveStatus: No active session found.');
-                if (autoStartButton) autoStartButton.style.display = 'block';
-                if (productCardContainer) productCardContainer.style.display = 'none';
+                if (window.taskPageElements.autoStartButton) window.taskPageElements.autoStartButton.style.display = 'block';
+                if (window.taskPageElements.productCardContainer) window.taskPageElements.productCardContainer.style.display = 'none';
                 
                 clearSessionData();
                 totalDriveCommission = 0; // Reset commission
@@ -1677,15 +1638,15 @@ function checkDriveStatus(token) {
             
             if (data.code === 3) { // Frozen state
                 displayTaskFrozenState(data.info || "Session frozen due to insufficient balance.", data.frozen_amount_needed, data);
-                if (autoStartButton) autoStartButton.style.display = 'none';
+                if (window.taskPageElements.autoStartButton) window.taskPageElements.autoStartButton.style.display = 'none';
                 return true;
             }
         }
         
         // If data.code is not 0, or status is unexpected
         console.warn('checkDriveStatus: Received unexpected status or error code:', data);
-        if (autoStartButton) autoStartButton.style.display = 'block';
-        if (productCardContainer) productCardContainer.style.display = 'none';
+        if (window.taskPageElements.autoStartButton) window.taskPageElements.autoStartButton.style.display = 'block';
+        if (window.taskPageElements.productCardContainer) window.taskPageElements.productCardContainer.style.display = 'none';
         return false;
     })
     .catch(error => {
@@ -1705,8 +1666,8 @@ function checkDriveStatus(token) {
             }
         }
         
-        if (autoStartButton) autoStartButton.style.display = 'block';
-        if (productCardContainer) productCardContainer.style.display = 'none';
+        if (window.taskPageElements.autoStartButton) window.taskPageElements.autoStartButton.style.display = 'block';
+        if (window.taskPageElements.productCardContainer) window.taskPageElements.productCardContainer.style.display = 'none';
         return false;
     });
 }
@@ -1797,27 +1758,14 @@ async function checkDriveStatusForRefresh(token) {
                     updateProgressBar(tasksCompleted, totalTasksRequired);
                 }
                 
-                // Update simple drive progress component with real-time data
-                if (window.globalDriveProgress && window.globalDriveProgress.updateFromDriveStatus) {
-                    window.globalDriveProgress.updateFromDriveStatus({
-                        original_tasks_completed: data.tasks_completed || tasksCompleted,
-                        original_tasks_required: data.tasks_required || totalTasksRequired,
-                        all_tasks_completed: data.all_tasks_completed || tasksCompleted,
-                        all_tasks_total: data.all_tasks_total || totalTasksRequired,
-                        total_commission: data.total_commission || totalDriveCommission,
-                        status: data.status || 'active'
-                    });
-                    console.log('Updated simple drive progress component during refresh');
-                }
-                
                 // Handle different drive states
                 if (data.status === 'active' && data.current_order) {
                     console.log('Drive is active with current order');
                     currentProductData = data.current_order;
                     
-                    if (autoStartButton) autoStartButton.style.display = 'none';
-                    if (productCardContainer) {
-                        productCardContainer.style.display = 'block';
+                    if (window.taskPageElements.autoStartButton) window.taskPageElements.autoStartButton.style.display = 'none';
+                    if (window.taskPageElements.productCardContainer) {
+                        window.taskPageElements.productCardContainer.style.display = 'block';
                         renderProductCard(data.current_order);
                     }
                     
@@ -1825,16 +1773,16 @@ async function checkDriveStatusForRefresh(token) {
                       } else if (data.status === 'frozen') {
                     console.log('Drive is frozen');
                     displayTaskFrozenState(data.info || "Session frozen due to insufficient balance.", data.frozen_amount_needed, data);
-                    if (autoStartButton) autoStartButton.style.display = 'none';
+                    if (window.taskPageElements.autoStartButton) window.taskPageElements.autoStartButton.style.display = 'none';
                     
                 } else if (data.status === 'complete') {
                     console.log('Drive is complete');
                     displayDriveComplete(data.info || 'Drive completed successfully.');
-                    if (autoStartButton) autoStartButton.style.display = 'none';
+                    if (window.taskPageElements.autoStartButton) window.taskPageElements.autoStartButton.style.display = 'none';
                       } else if (data.status === 'no_session') {
                     console.log('No active drive session');
-                    if (autoStartButton) autoStartButton.style.display = 'block';
-                    if (productCardContainer) productCardContainer.style.display = 'none';
+                    if (window.taskPageElements.autoStartButton) window.taskPageElements.autoStartButton.style.display = 'block';
+                    if (window.taskPageElements.productCardContainer) window.taskPageElements.productCardContainer.style.display = 'none';
                     
                     // Reset state for no session - use backend-provided drive requirements
                     clearSessionData();
@@ -1900,6 +1848,7 @@ async function checkForExistingDrive(token) {
         console.error('Error checking for existing drive:', error);
         // Don't throw error - page should still load normally
     }
+
 }
 
 // --- Background Refresh Functionality ---
@@ -1924,11 +1873,11 @@ async function performBackgroundRefresh() {
 function displayDriveComplete(message) {
     console.log('displayDriveComplete called with message:', message);
     
-    // Hide the product card and show completion message    if (productCardContainer) productCardContainer.style.display = 'none';
-    if (autoStartButton) {
-        autoStartButton.style.display = 'block';
-        autoStartButton.innerHTML = '<i class="fas fa-play me-2"></i>Start New Drive';
-        autoStartButton.disabled = false;
+    // Hide the product card and show completion message    if (window.taskPageElements.productCardContainer) window.taskPageElements.productCardContainer.style.display = 'none';
+    if (window.taskPageElements.autoStartButton) {
+        window.taskPageElements.autoStartButton.style.display = 'block';
+        window.taskPageElements.autoStartButton.innerHTML = '<i class="fas fa-play me-2"></i>Start New Drive';
+        window.taskPageElements.autoStartButton.disabled = false;
     }
     
     // Show success notification
@@ -1948,12 +1897,12 @@ function displayDriveComplete(message) {
 function displayDriveError(message) {
     console.log('displayDriveError called with message:', message);
       // Show the start button and hide product card
-    if (autoStartButton) {
-        autoStartButton.style.display = 'block';
-        autoStartButton.innerHTML = '<i class="fas fa-play me-2"></i>Start';
-        autoStartButton.disabled = false;
+    if (window.taskPageElements.autoStartButton) {
+        window.taskPageElements.autoStartButton.style.display = 'block';
+        window.taskPageElements.autoStartButton.innerHTML = '<i class="fas fa-play me-2"></i>Start';
+        window.taskPageElements.autoStartButton.disabled = false;
     }
-    if (productCardContainer) productCardContainer.style.display = 'none';
+    if (window.taskPageElements.productCardContainer) window.taskPageElements.productCardContainer.style.display = 'none';
     
     // Show error notification
     if (typeof showNotification === 'function') {
@@ -1969,8 +1918,8 @@ function displayTaskFrozenState(message, frozenAmountNeeded, serverData = null) 
     console.log('Task.js displayTaskFrozenState called with message:', message, 'Amount needed:', frozenAmountNeeded, 'Server data:', serverData);
     
     // Hide product card and start button but KEEP progress and commission visible
-    if (productCardContainer) productCardContainer.style.display = 'none';
-    if (autoStartButton) autoStartButton.style.display = 'none';
+    if (window.taskPageElements.productCardContainer) window.taskPageElements.productCardContainer.style.display = 'none';
+    if (window.taskPageElements.autoStartButton) window.taskPageElements.autoStartButton.style.display = 'none';
     
     // Extract and update data from server response if available
     if (serverData) {
@@ -2605,3 +2554,173 @@ async function fetchUserDriveConfiguration(token) {
         return 45; // Default fallback
     }
 }
+
+// --- Fetch Detailed Drive Progress ---
+/**
+ * Fetches detailed drive progress including task-level information
+ * @returns {Promise<Object|null>} Detailed progress data or null if error
+ */
+async function fetchDetailedDriveProgress() {
+    try {
+        const token = getAuthToken();
+        if (!token) {
+            console.error('No auth token available for detailed progress fetch');
+            return null;
+        }
+
+        console.log('Fetching detailed drive progress...');
+        const response = await fetch(`${API_BASE_URL}/api/drive/detailed-progress`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            console.log('Detailed drive progress received:', data);
+            
+            if (data.code === 0) {
+                return {
+                    sessionId: data.drive_session_id,
+                    configurationName: data.drive_configuration_name,
+                    tasksRequired: data.tasks_required,
+                    tasksCompleted: data.tasks_completed,
+                    completedTaskItems: data.completed_task_items,
+                    completedOriginalTasks: data.completed_original_tasks,
+                    totalTaskItems: data.total_task_items,
+                    totalItemsIncludingCombos: data.total_items_including_combos,
+                    taskItems: data.task_items || [],
+                    currentTask: data.current_task,
+                    nextTask: data.next_task,
+                    progressPercentage: data.progress_percentage || 0,
+                    isCompleted: data.is_completed || false,
+                    canContinue: data.can_continue || false
+                };
+            }
+        } else if (response.status === 404) {
+            console.log('No active drive session found');
+            return null;
+        } else {
+            console.error('Failed to fetch detailed drive progress:', response.status, response.statusText);
+        }
+        
+        return null;
+    } catch (error) {
+        console.error('Error fetching detailed drive progress:', error);
+        return null;
+    }
+}
+
+// --- Display Detailed Progress (for debugging/testing) ---
+/**
+ * Displays detailed progress information in the debug console
+ * Call this function from browser console for testing: window.showDetailedProgress()
+ */
+window.showDetailedProgress = async function() {
+    try {
+        const progressData = await fetchDetailedDriveProgress();
+        
+        if (!progressData) {
+            console.log('❌ No detailed progress data available');
+            debugLog('No active drive session or error fetching progress', 'warn');
+            return;
+        }
+
+        console.log('📊 DETAILED DRIVE PROGRESS:');
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        console.log(`🚗 Session ID: ${progressData.sessionId}`);
+        console.log(`📋 Configuration: ${progressData.configurationName}`);
+        console.log(`📈 Progress: ${progressData.completedOriginalTasks}/${progressData.totalTaskItems} tasks (${progressData.progressPercentage.toFixed(1)}%)`);
+        console.log(`📦 Total Items: ${progressData.totalItemsIncludingCombos} (including ${progressData.totalItemsIncludingCombos - progressData.totalTaskItems} combos)`);
+        console.log(`✅ Completed: ${progressData.isCompleted}`);
+        console.log(`▶️ Can Continue: ${progressData.canContinue}`);
+        
+        if (progressData.currentTask) {
+            console.log(`🎯 Current Task: ${progressData.currentTask.task_name || 'Task'} (Order ${progressData.currentTask.order_in_drive})`);
+            console.log(`   Product: ${progressData.currentTask.product_1_name || 'N/A'}`);
+        }
+        
+        if (progressData.nextTask) {
+            console.log(`⏭️ Next Task: ${progressData.nextTask.task_name || 'Task'} (Order ${progressData.nextTask.order_in_drive})`);
+            console.log(`   Product: ${progressData.nextTask.product_1_name || 'N/A'}`);
+        }
+
+        console.log('\n📋 TASK BREAKDOWN:');
+        progressData.taskItems.forEach((task, index) => {
+            const status = task.user_status;
+            const emoji = status === 'COMPLETED' ? '✅' : status === 'CURRENT' ? '🎯' : '⏳';
+            const type = task.is_combo || task.task_type === 'combo_order' ? '[COMBO]' : '[REGULAR]';
+            const productName = task.product_1_name || 'N/A';
+            const price = task.product_1_price ? `$${parseFloat(task.product_1_price).toFixed(2)}` : 'N/A';
+            
+            console.log(`${emoji} ${task.order_in_drive}. ${type} ${task.task_name || 'Task'}`);
+            console.log(`   Product: ${productName} (${price}) - Status: ${status}`);
+        });
+
+        // Also log to debug console if available
+        debugLog(`Detailed progress loaded: ${progressData.completedOriginalTasks}/${progressData.totalTaskItems} tasks completed`, 'info');
+        
+        return progressData;
+    } catch (error) {
+        console.error('❌ Error displaying detailed progress:', error);
+        debugLog(`Error displaying detailed progress: ${error.message}`, 'error');
+        return null;
+    }
+};
+
+// --- Integration Helper: Update Progress Display ---
+/**
+ * Updates the task page progress display using detailed progress data
+ * @param {Object} progressData - Detailed progress data from API
+ */
+function updateProgressDisplayFromDetailedData(progressData) {
+    if (!progressData) return;
+
+    try {
+        // Update progress percentage and text
+        if (typeof updateProgressBar === 'function') {
+            updateProgressBar(progressData.progressPercentage);
+        }
+
+        // Update task completion counts
+        if (window.taskPageElements.progressTextElement) {
+            window.taskPageElements.progressTextElement.textContent = `${progressData.completedOriginalTasks}/${progressData.totalTaskItems}`;
+        }
+
+        // Update global variables for compatibility
+        totalTasksRequired = progressData.totalTaskItems;
+        tasksCompleted = progressData.completedOriginalTasks;
+
+        console.log(`Progress display updated: ${progressData.completedOriginalTasks}/${progressData.totalTaskItems} (${progressData.progressPercentage.toFixed(1)}%)`);
+        
+    } catch (error) {
+        console.error('Error updating progress display:', error);
+    }
+}
+
+// Test function to verify progress section is working
+window.testProgressSection = function() {
+    console.log('Testing progress section...');
+    // Use global progressSection variable from taskPageElements
+    const progressSection = window.taskPageElements?.progressSection || document.getElementById('progress-section');
+    if (window.taskPageElements.progressSection) {
+        console.log('Progress section found:', window.taskPageElements.progressSection);
+        console.log('Current display:', getComputedStyle(window.taskPageElements.progressSection).display);
+        console.log('Current visibility:', getComputedStyle(window.taskPageElements.progressSection).visibility);
+        
+        // Try to show it
+        window.taskPageElements.progressSection.style.display = 'block';
+        window.taskPageElements.progressSection.style.visibility = 'visible';
+        progressSection.style.opacity = '1';
+        progressSection.classList.add('show');
+        progressSection.classList.remove('d-none');
+        
+        console.log('After manual show - display:', getComputedStyle(progressSection).display);
+        return true;
+    } else {
+        console.log('Progress section not found!');
+        return false;
+    }
+};

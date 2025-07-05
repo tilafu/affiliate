@@ -11,6 +11,7 @@ const {
   saveComboProduct, // Added based on task.html logic
   getDriveStatus, // Added new function
   getDriveProgress, // Added for tracking progress
+  getDetailedDriveProgress, // Added for detailed task-level progress
   checkAutoUnfreeze // Added for auto-unfreeze functionality
 } = require('../controllers/driveController'); // Controller to be created
 
@@ -22,6 +23,9 @@ router.get('/status', protect, getDriveStatus); // New route
 
 // Route to get user's drive progress (for dashboard)
 router.get('/progress', protect, getDriveProgress);
+
+// Route to get detailed user's drive progress (for task page with individual tasks)
+router.get('/detailed-progress', protect, getDetailedDriveProgress);
 
 // Route to get the next order/product details (mimics task/getorder)
 router.post('/getorder', protect, getOrder); // Changed to POST based on task.html usage
