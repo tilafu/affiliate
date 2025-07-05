@@ -528,6 +528,8 @@
 /* Progress Section Styles */
 .progress-section {
     margin: 1.5rem 0;
+    /* Hidden by default, shown when needed */
+    display: none !important;
     /* Override any potential conflicts */
     visibility: visible !important;
     opacity: 1 !important;

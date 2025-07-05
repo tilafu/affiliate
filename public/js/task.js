@@ -1584,6 +1584,17 @@ function checkDriveStatus(token) {
             updateDriveCommission(); // Update UI and persist
             updateProgressBar(tasksCompleted, totalTasksRequired); // Show proper progress
             
+            // Update with detailed progress data for more accurate display (async, non-blocking)
+            updateProgressFromDetailedData().then(detailedData => {
+                if (detailedData) {
+                    console.log('Progress updated with detailed data from /api/drive/detailed-progress');
+                } else {
+                    console.log('Using basic progress data from /api/drive/status');
+                }
+            }).catch(error => {
+                console.warn('Could not fetch detailed progress, using basic progress:', error.message);
+            });
+            
             if (data.status === 'active' && data.current_order) {
                 console.log('checkDriveStatus: Active session with current order found. Resuming drive.');
                 
@@ -1595,6 +1606,16 @@ function checkDriveStatus(token) {
                     window.taskPageElements.productCardContainer.style.display = 'block';
                     renderProductCard(data.current_order);
                     currentProductData = data.current_order;
+                }
+                
+                // Show progress section for active drive
+                if (window.taskPageElements.progressSection) {
+                    window.taskPageElements.progressSection.style.display = 'block';
+                    window.taskPageElements.progressSection.style.visibility = 'visible';
+                    window.taskPageElements.progressSection.style.opacity = '1';
+                    window.taskPageElements.progressSection.classList.add('show');
+                    window.taskPageElements.progressSection.classList.remove('d-none');
+                    console.log('Progress section explicitly shown for active drive');
                 }
                 
                 // Ensure wallet balance is up to date
@@ -1611,18 +1632,56 @@ function checkDriveStatus(token) {
                     updateProgressBar(tasksCompleted, totalTasksRequired);
                 }
                 
+                // Update with detailed progress data for more accurate display
+                updateProgressFromDetailedData().catch(error => {
+                    console.warn('Could not fetch detailed progress for frozen session:', error.message);
+                });
+                
                 displayTaskFrozenState(data.info || "Session frozen due to insufficient balance.", data.frozen_amount_needed, data);
                 if (window.taskPageElements.autoStartButton) window.taskPageElements.autoStartButton.style.display = 'none';
+                
+                // Show progress section for frozen drive
+                if (window.taskPageElements.progressSection) {
+                    window.taskPageElements.progressSection.style.display = 'block';
+                    window.taskPageElements.progressSection.style.visibility = 'visible';
+                    window.taskPageElements.progressSection.style.opacity = '1';
+                    window.taskPageElements.progressSection.classList.add('show');
+                    window.taskPageElements.progressSection.classList.remove('d-none');
+                    console.log('Progress section explicitly shown for frozen drive');
+                }
                 return true;
             } else if (data.status === 'complete') {
                 console.log('checkDriveStatus: Drive complete.');
                 displayDriveComplete(data.info || 'Drive completed successfully.');
                 if (window.taskPageElements.autoStartButton) window.taskPageElements.autoStartButton.style.display = 'none';
+                
+                // Update with detailed progress data for complete state
+                updateProgressFromDetailedData().catch(error => {
+                    console.warn('Could not fetch detailed progress for completed drive:', error.message);
+                });
+                
+                // Show progress section for completed drive
+                if (window.taskPageElements.progressSection) {
+                    window.taskPageElements.progressSection.style.display = 'block';
+                    window.taskPageElements.progressSection.style.visibility = 'visible';
+                    window.taskPageElements.progressSection.style.opacity = '1';
+                    window.taskPageElements.progressSection.classList.add('show');
+                    window.taskPageElements.progressSection.classList.remove('d-none');
+                    console.log('Progress section explicitly shown for completed drive');
+                }
                 return true;
             } else if (data.status === 'no_session') {
                 console.log('checkDriveStatus: No active session found.');
                 if (window.taskPageElements.autoStartButton) window.taskPageElements.autoStartButton.style.display = 'block';
                 if (window.taskPageElements.productCardContainer) window.taskPageElements.productCardContainer.style.display = 'none';
+                
+                // Hide progress section when no session
+                if (window.taskPageElements.progressSection) {
+                    window.taskPageElements.progressSection.style.display = 'none';
+                    window.taskPageElements.progressSection.classList.remove('show');
+                    window.taskPageElements.progressSection.classList.add('d-none');
+                    console.log('Progress section hidden for no session');
+                }
                 
                 clearSessionData();
                 totalDriveCommission = 0; // Reset commission
@@ -2568,7 +2627,7 @@ async function fetchDetailedDriveProgress() {
             return null;
         }
 
-        console.log('Fetching detailed drive progress...');
+        console.log('Fetching drive progress...');
         const response = await fetch(`${API_BASE_URL}/api/drive/detailed-progress`, {
             method: 'GET',
             headers: {
@@ -2609,6 +2668,64 @@ async function fetchDetailedDriveProgress() {
         return null;
     } catch (error) {
         console.error('Error fetching detailed drive progress:', error);
+        return null;
+    }
+}
+
+// --- Update Progress Bar with Detailed Data ---
+/**
+ * Updates the progress bar using data from the detailed progress endpoint
+ * This provides the most accurate progress information including combo tasks
+ */
+async function updateProgressFromDetailedData() {
+    try {
+        const progressData = await fetchDetailedDriveProgress();
+        
+        if (!progressData) {
+            console.log('No detailed progress data available - hiding progress section');
+            // Hide progress section when no active session
+            const progressSection = window.taskPageElements?.progressSection;
+            if (progressSection) {
+                progressSection.style.display = 'none';
+                progressSection.classList.remove('show');
+                progressSection.classList.add('d-none');
+            }
+            return null;
+        }
+
+        // Update progress bar with detailed data
+        // Use completedOriginalTasks/totalTaskItems for the main progress (excludes combos from denominator)
+        const completed = progressData.completedOriginalTasks || 0;
+        const total = progressData.totalTaskItems || 0;
+        
+        console.log(`Updating progress from detailed data: ${completed}/${total} tasks (${progressData.progressPercentage.toFixed(1)}%)`);
+        
+        // Update global variables to keep in sync
+        tasksCompleted = completed;
+        totalTasksRequired = total;
+        
+        // Update the progress bar UI
+        updateProgressBar(completed, total);
+        
+        // Update commission if available
+        if (progressData.taskItems && progressData.taskItems.length > 0) {
+            // Calculate commission from completed tasks
+            const completedItems = progressData.taskItems.filter(item => item.user_status === 'COMPLETED');
+            let totalCommissionFromItems = 0;
+            completedItems.forEach(item => {
+                if (item.product_1_price) totalCommissionFromItems += parseFloat(item.product_1_price) * 0.045; // 4.5% commission estimate
+            });
+            
+            if (totalCommissionFromItems > 0) {
+                totalDriveCommission = totalCommissionFromItems;
+                updateDriveCommission();
+            }
+        }
+        
+        return progressData;
+        
+    } catch (error) {
+        console.error('Error updating progress from detailed data:', error);
         return null;
     }
 }
@@ -2700,6 +2817,75 @@ function updateProgressDisplayFromDetailedData(progressData) {
     }
 }
 
+// --- Test Progress Update Functions ---
+/**
+ * Test function to manually update progress from detailed endpoint
+ * Call this from browser console: window.testDetailedProgress()
+ */
+window.testDetailedProgress = async function() {
+    console.log('🧪 Testing detailed progress update...');
+    try {
+        const result = await updateProgressFromDetailedData();
+        if (result) {
+            console.log('✅ Detailed progress update successful');
+            console.log('📊 Progress Data:', result);
+        } else {
+            console.log('❌ No detailed progress data available');
+        }
+    } catch (error) {
+        console.error('❌ Error testing detailed progress:', error);
+    }
+};
+
+/**
+ * Compare basic vs detailed progress data
+ * Call this from browser console: window.compareProgressData()
+ */
+window.compareProgressData = async function() {
+    console.log('🔍 Comparing basic vs detailed progress data...');
+    
+    try {
+        // Get basic progress from /api/drive/status
+        const token = getAuthToken();
+        const statusResponse = await fetch(`${API_BASE_URL}/api/drive/status`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const statusData = await statusResponse.json();
+        
+        // Get detailed progress from /api/drive/detailed-progress
+        const detailedData = await fetchDetailedDriveProgress();
+        
+        console.log('📋 BASIC PROGRESS (/api/drive/status):');
+        if (statusData.code === 0) {
+            console.log(`   Tasks: ${statusData.tasks_completed || 0}/${statusData.tasks_required || 0}`);
+            console.log(`   Commission: ${statusData.total_commission || '0.00'} USDT`);
+            console.log(`   Status: ${statusData.status}`);
+        } else {
+            console.log('   ❌ No valid status data');
+        }
+        
+        console.log('\n📊 DETAILED PROGRESS (/api/drive/detailed-progress):');
+        if (detailedData) {
+            console.log(`   Original Tasks: ${detailedData.completedOriginalTasks}/${detailedData.totalTaskItems}`);
+            console.log(`   All Tasks: ${detailedData.completedTaskItems}/${detailedData.totalItemsIncludingCombos}`);
+            console.log(`   Progress: ${detailedData.progressPercentage.toFixed(1)}%`);
+            console.log(`   Session ID: ${detailedData.sessionId}`);
+            console.log(`   Configuration: ${detailedData.configurationName}`);
+        } else {
+            console.log('   ❌ No detailed progress data');
+        }
+        
+        // Show which one is being used for the UI
+        console.log('\n🎯 CURRENT UI STATE:');
+        console.log(`   Global tasksCompleted: ${tasksCompleted}`);
+        console.log(`   Global totalTasksRequired: ${totalTasksRequired}`);
+        console.log(`   Global totalDriveCommission: ${totalDriveCommission}`);
+        
+    } catch (error) {
+        console.error('❌ Error comparing progress data:', error);
+    }
+};
+
 // Test function to verify progress section is working
 window.testProgressSection = function() {
     console.log('Testing progress section...');
@@ -2718,9 +2904,45 @@ window.testProgressSection = function() {
         progressSection.classList.remove('d-none');
         
         console.log('After manual show - display:', getComputedStyle(progressSection).display);
-        return true;
+        console.log('Progress section manually shown with test data');
+        
+        // Update with test data
+        updateProgressBar(3, 5); // Show 3 of 5 tasks completed
+        updateDriveCommission(); // Update commission display
     } else {
-        console.log('Progress section not found!');
-        return false;
+        console.log('Progress section not found in taskPageElements');
+    }
+};
+
+// Enhanced test function to force show progress section regardless of drive status
+window.forceShowProgressSection = function() {
+    console.log('=== FORCE SHOWING PROGRESS SECTION ===');
+    const progressSection = document.getElementById('progress-section');
+    if (progressSection) {
+        // Override all CSS with inline styles
+        progressSection.style.cssText = `
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            position: relative !important;
+            z-index: 10 !important;
+        `;
+        progressSection.classList.add('show');
+        progressSection.classList.remove('d-none');
+        
+        console.log('Progress section forced to show');
+        console.log('Current computed display:', getComputedStyle(progressSection).display);
+        
+        // Set some test data
+        totalDriveCommission = 25.50;
+        tasksCompleted = 3;
+        totalTasksRequired = 5;
+        
+        updateProgressBar(tasksCompleted, totalTasksRequired);
+        updateDriveCommission();
+        
+        console.log('Test data applied: 3/5 tasks, 25.50 USDT commission');
+    } else {
+        console.log('ERROR: Progress section element not found!');
     }
 };
