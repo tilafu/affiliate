@@ -1,11 +1,15 @@
 {
   "dependencies": {
+    "cookie": "^0.6.0",
     "dotenv": "^16.5.0",
+    "express-session": "^1.18.1",
     "jquery": "^3.7.1",
     "multer": "^2.0.1",
     "owl.carousel": "^2.3.4",
     "pg": "^8.16.0",
     "puppeteer": "^24.6.1",
+    "socket.io": "^4.8.1",
+    "socketio": "^1.0.0",
     "winston": "^3.17.0"
   },
   "scripts": {

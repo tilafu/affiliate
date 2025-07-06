@@ -860,11 +860,26 @@ function fetchNextOrder(token) {
             }
 
             renderProductCard(data.current_order);
-            console.log("Current order received (getorder):", data.current_order);            if (data.tasks_completed !== undefined && data.tasks_required !== undefined) {
+            console.log("Current order received (getorder):", data.current_order);            
+            
+            // Update progress from basic status data
+            if (data.tasks_completed !== undefined && data.tasks_required !== undefined) {
                 tasksCompleted = data.tasks_completed; // Original tasks completed (user-visible)
                 totalTasksRequired = data.tasks_required; // Total original tasks (user-visible)
                 updateProgressBar(tasksCompleted, totalTasksRequired);
+                console.log(`Progress updated from getorder: ${tasksCompleted}/${totalTasksRequired}`);
             }
+            
+            // Update with detailed progress data for more accurate display (async, non-blocking)
+            updateProgressFromDetailedData().then(detailedData => {
+                if (detailedData) {
+                    console.log('Progress updated with detailed data in fetchNextOrder');
+                }
+            }).catch(error => {
+                console.warn('Could not fetch detailed progress in fetchNextOrder:', error.message);
+            });
+            
+            // Update commission data
             if (data.total_commission !== undefined) {
                 totalDriveCommission = parseFloat(data.total_commission);
                 updateDriveCommission();
@@ -1130,14 +1145,27 @@ async function handlePurchase(token, productData) {
                     
                     // Commission was already updated from saveOrder response above
                     
-                    // Fetch fresh drive status to get accurate progress
+                    // Update progress immediately after successful purchase
+                    console.log('Updating progress immediately after successful purchase...');
+                    tasksCompleted += 1; // Increment local progress
+                    updateProgressBar(tasksCompleted, totalTasksRequired);
+                    
+                    // Fetch fresh drive status to get accurate progress and update with detailed data
                     try {
                         await updateDriveStatus();
                         console.log('Drive status updated after successful purchase and refund');
+                        
+                        // Also update with detailed progress for most accurate display
+                        updateProgressFromDetailedData().then(detailedData => {
+                            if (detailedData) {
+                                console.log('Progress updated with detailed data after purchase');
+                            }
+                        }).catch(error => {
+                            console.warn('Could not fetch detailed progress after purchase:', error.message);
+                        });
                     } catch (statusError) {
                         console.warn('Failed to update drive status after purchase:', statusError);
-                        // Fallback to local progress update
-                        tasksCompleted += 1;
+                        // Fallback: progress was already updated locally above
                         updateDriveCommission();
                         updateProgressBar(tasksCompleted, totalTasksRequired);
                     }                    // Refresh wallet balance immediately after successful refund
@@ -1166,14 +1194,27 @@ async function handlePurchase(token, productData) {
                     
                     // Commission was already updated from saveOrder response above, no need to add again
                     
-                    // Fetch fresh drive status to get accurate progress
+                    // Update progress immediately after successful purchase
+                    console.log('Updating progress immediately after successful purchase (refund failed)...');
+                    tasksCompleted += 1; // Increment local progress
+                    updateProgressBar(tasksCompleted, totalTasksRequired);
+                    
+                    // Fetch fresh drive status to get accurate progress and update with detailed data
                     try {
                         await updateDriveStatus();
                         console.log('Drive status updated after successful purchase (refund failed)');
+                        
+                        // Also update with detailed progress for most accurate display
+                        updateProgressFromDetailedData().then(detailedData => {
+                            if (detailedData) {
+                                console.log('Progress updated with detailed data after purchase (refund failed)');
+                            }
+                        }).catch(error => {
+                            console.warn('Could not fetch detailed progress after purchase:', error.message);
+                        });
                     } catch (statusError) {
                         console.warn('Failed to update drive status after purchase:', statusError);
-                        // Fallback to local progress update
-                        tasksCompleted += 1;
+                        // Fallback: progress was already updated locally above
                         updateDriveCommission();
                         updateProgressBar(tasksCompleted, totalTasksRequired);
                     }
@@ -1204,14 +1245,27 @@ async function handlePurchase(token, productData) {
                 
                 // Commission was already updated from saveOrder response above, no need to add again
                 
-                // Fetch fresh drive status to get accurate progress
+                // Update progress immediately after successful purchase
+                console.log('Updating progress immediately after successful purchase (refund error)...');
+                tasksCompleted += 1; // Increment local progress
+                updateProgressBar(tasksCompleted, totalTasksRequired);
+                
+                // Fetch fresh drive status to get accurate progress and update with detailed data
                 try {
                     await updateDriveStatus();
                     console.log('Drive status updated after successful purchase (refund error)');
+                    
+                    // Also update with detailed progress for most accurate display
+                    updateProgressFromDetailedData().then(detailedData => {
+                        if (detailedData) {
+                            console.log('Progress updated with detailed data after purchase (refund error)');
+                        }
+                    }).catch(error => {
+                        console.warn('Could not fetch detailed progress after purchase:', error.message);
+                    });
                 } catch (statusError) {
                     console.warn('Failed to update drive status after purchase:', statusError);
-                    // Fallback to local progress update
-                    tasksCompleted += 1;
+                    // Fallback: progress was already updated locally above
                     updateDriveCommission();
                     updateProgressBar(tasksCompleted, totalTasksRequired);
                 }
@@ -2816,6 +2870,64 @@ function updateProgressDisplayFromDetailedData(progressData) {
         console.error('Error updating progress display:', error);
     }
 }
+
+/**
+ * Test function to simulate a successful purchase and progress update
+ * Call this from browser console: window.testProgressAfterPurchase()
+ */
+window.testProgressAfterPurchase = async function() {
+    console.log('🧪 Testing progress update after simulated purchase...');
+    
+    const originalCompleted = tasksCompleted;
+    const originalTotal = totalTasksRequired;
+    const originalCommission = totalDriveCommission;
+    
+    console.log(`📊 BEFORE: ${originalCompleted}/${originalTotal} tasks, ${originalCommission} USDT`);
+    
+    try {
+        // Simulate a successful purchase by incrementing progress
+        tasksCompleted += 1;
+        totalDriveCommission += 0.50; // Add sample commission
+        
+        console.log('📈 Simulating progress update...');
+        updateProgressBar(tasksCompleted, totalTasksRequired);
+        updateDriveCommission();
+        
+        // Test detailed progress update
+        console.log('📊 Fetching detailed progress...');
+        const detailedData = await updateProgressFromDetailedData();
+        
+        console.log(`📊 AFTER: ${tasksCompleted}/${totalTasksRequired} tasks, ${totalDriveCommission} USDT`);
+        
+        if (detailedData) {
+            console.log('✅ Detailed progress data available');
+            console.log(`   Original Tasks: ${detailedData.completedOriginalTasks}/${detailedData.totalTaskItems}`);
+            console.log(`   All Tasks: ${detailedData.completedTaskItems}/${detailedData.totalItemsIncludingCombos}`);
+        } else {
+            console.log('ℹ️ No detailed progress data (no active session or error)');
+        }
+        
+        // Wait a moment to see the update, then restore original values
+        setTimeout(() => {
+            console.log('🔄 Restoring original values...');
+            tasksCompleted = originalCompleted;
+            totalTasksRequired = originalTotal;
+            totalDriveCommission = originalCommission;
+            updateProgressBar(tasksCompleted, totalTasksRequired);
+            updateDriveCommission();
+            console.log('✅ Test completed - values restored');
+        }, 3000);
+        
+    } catch (error) {
+        console.error('❌ Error in progress update test:', error);
+        // Restore original values on error
+        tasksCompleted = originalCompleted;
+        totalTasksRequired = originalTotal;
+        totalDriveCommission = originalCommission;
+        updateProgressBar(tasksCompleted, totalTasksRequired);
+        updateDriveCommission();
+    }
+};
 
 // --- Test Progress Update Functions ---
 /**

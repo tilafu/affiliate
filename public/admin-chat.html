@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="csrf-token" content="">
+  <title>Admin Chat Management</title>
+  <link rel="stylesheet" href="css/admin.css">
+  <link rel="stylesheet" href="css/admin-chat.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+</head>
+<body>
+  <div class="admin-container">
+    <!-- Admin Header -->
+    <header class="admin-header">
+      <div class="logo">
+        <img src="images/logo.png" alt="Logo">
+        <span>Admin Panel</span>
+      </div>
+      <div class="user-info">
+        <span id="adminUsername">Admin</span>
+        <a href="#" onclick="logoutAdmin(); return false;" class="logout-btn">Logout</a>
+      </div>
+    </header>
+    
+    <!-- Admin Navigation -->
+    <nav class="admin-nav">
+      <ul>
+        <li><a href="admin.html"><i class="fas fa-tachometer-alt"></i> Admin Dashboard</a></li>
+        <li class="active"><a href="admin-chat.html"><i class="fas fa-comments"></i> Group Chat Management</a></li>
+      </ul>
+    </nav>
+    
+    <!-- Main Content -->
+    <main class="admin-content">
+      <div class="page-header">
+        <h1><i class="fas fa-comments"></i> Chat Management</h1>
+        <div class="actions">
+          <button id="refreshBtn" class="btn"><i class="fas fa-sync-alt"></i> Refresh</button>
+          <button id="viewLogsBtn" class="btn"><i class="fas fa-history"></i> View Logs</button>
+        </div>
+      </div>
+      
+      <!-- Admin Chat Interface -->
+      <div class="admin-chat-container">
+        <!-- Groups Panel -->
+        <div class="groups-panel panel">
+          <div class="panel-header">
+            <h2>Chat Groups</h2>
+            <div class="search-container">
+              <input type="text" id="groupSearch" placeholder="Search groups...">
+              <button id="searchGroupsBtn"><i class="fas fa-search"></i></button>
+            </div>
+          </div>
+          <div class="panel-content">
+            <div class="groups-list" id="groupsList">
+              <!-- Groups will be loaded here -->
+              <div class="loading">Loading groups...</div>
+            </div>
+          </div>
+          <div class="panel-footer">
+            <div class="pagination" id="groupsPagination">
+              <!-- Pagination controls -->
+            </div>
+          </div>
+        </div>
+        
+        <!-- Users Panel -->
+        <div class="users-panel panel">
+          <div class="panel-header">
+            <h2>Fake Users</h2>
+            <div class="search-container">
+              <input type="text" id="userSearch" placeholder="Search users...">
+              <button id="searchUsersBtn"><i class="fas fa-search"></i></button>
+            </div>
+          </div>
+          <div class="panel-content">
+            <div class="users-list" id="usersList">
+              <!-- Users will be loaded here -->
+              <div class="loading">Select a group to view users</div>
+            </div>
+          </div>
+          <div class="panel-footer">
+            <div class="pagination" id="usersPagination">
+              <!-- Pagination controls -->
+            </div>
+          </div>
+        </div>
+        
+        <!-- Message Panel -->
+        <div class="message-panel panel">
+          <div class="panel-header">
+            <h2>Compose Message</h2>
+            <div class="message-actions">
+              <button id="previewBtn" class="btn btn-small" disabled><i class="fas fa-eye"></i> Preview</button>
+              <button id="scheduleBtn" class="btn btn-small" disabled><i class="fas fa-clock"></i> Schedule</button>
+            </div>
+          </div>
+          <div class="panel-content">
+            <div class="selected-info">
+              <div id="selectedGroup">No group selected</div>
+              <div id="selectedUser">No user selected</div>
+            </div>
+            
+            <div class="message-composer">
+              <textarea id="messageContent" placeholder="Type your message here..." disabled></textarea>
+              
+              <div class="message-tools">
+                <select id="messageType" disabled>
+                  <option value="text">Text</option>
+                  <option value="image">Image</option>
+                  <option value="link">Link</option>
+                </select>
+                <button id="sendMessageBtn" class="btn" disabled><i class="fas fa-paper-plane"></i> Send</button>
+              </div>
+            </div>
+            
+            <div class="scheduled-messages" id="scheduledMessages">
+              <h3>Scheduled Messages</h3>
+              <div class="scheduled-list" id="scheduledList">
+                <!-- Scheduled messages will be loaded here -->
+                <div class="empty-state">No scheduled messages</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Preview Modal -->
+      <div class="modal" id="previewModal">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h2>Message Preview</h2>
+            <span class="close-modal">&times;</span>
+          </div>
+          <div class="modal-body">
+            <div class="chat-preview" id="chatPreview">
+              <!-- Preview content will be loaded here -->
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button id="closePreviewBtn" class="btn">Close</button>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Schedule Modal -->
+      <div class="modal" id="scheduleModal">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h2>Schedule Message</h2>
+            <span class="close-modal">&times;</span>
+          </div>
+          <div class="modal-body">
+            <div class="form-group">
+              <label for="scheduleDate">Date:</label>
+              <input type="date" id="scheduleDate" required>
+            </div>
+            <div class="form-group">
+              <label for="scheduleTime">Time:</label>
+              <input type="time" id="scheduleTime" required>
+            </div>
+            <div class="form-group">
+              <label for="isRecurring">Recurring:</label>
+              <input type="checkbox" id="isRecurring">
+            </div>
+            <div class="recurring-options" id="recurringOptions" style="display: none;">
+              <div class="form-group">
+                <label for="recurringFrequency">Frequency:</label>
+                <select id="recurringFrequency">
+                  <option value="daily">Daily</option>
+                  <option value="weekly">Weekly</option>
+                  <option value="monthly">Monthly</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="recurringInterval">Every:</label>
+                <input type="number" id="recurringInterval" min="1" value="1" required>
+                <span id="intervalLabel">day(s)</span>
+              </div>
+              <div class="form-group">
+                <label for="recurringEnd">End Date (Optional):</label>
+                <input type="date" id="recurringEnd">
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button id="confirmScheduleBtn" class="btn">Schedule</button>
+            <button id="cancelScheduleBtn" class="btn btn-secondary">Cancel</button>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Logs Modal -->
+      <div class="modal" id="logsModal">
+        <div class="modal-content modal-large">
+          <div class="modal-header">
+            <h2>Admin Action Logs</h2>
+            <span class="close-modal">&times;</span>
+          </div>
+          <div class="modal-body">
+            <div class="logs-filters">
+              <div class="form-group">
+                <label for="logActionType">Action Type:</label>
+                <select id="logActionType">
+                  <option value="">All Actions</option>
+                  <option value="VIEW_GROUPS">View Groups</option>
+                  <option value="VIEW_GROUP_DETAILS">View Group Details</option>
+                  <option value="VIEW_GROUP_USERS">View Group Users</option>
+                  <option value="VIEW_FAKE_USERS">View Users</option>
+                  <option value="POST_AS_FAKE_USER">Post as User</option>
+                  <option value="SCHEDULE_MESSAGE">Schedule Message</option>
+                  <option value="CANCEL_SCHEDULED_MESSAGE">Cancel Scheduled Message</option>
+                  <option value="SCHEDULED_MESSAGE_SENT">Message Sent (Scheduled)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="logStartDate">Start Date:</label>
+                <input type="date" id="logStartDate">
+              </div>
+              <div class="form-group">
+                <label for="logEndDate">End Date:</label>
+                <input type="date" id="logEndDate">
+              </div>
+              <button id="filterLogsBtn" class="btn">Filter</button>
+            </div>
+            
+            <div class="logs-table-container">
+              <table class="logs-table" id="logsTable">
+                <thead>
+                  <tr>
+                    <th>Date & Time</th>
+                    <th>Admin</th>
+                    <th>Action</th>
+                    <th>Group</th>
+                    <th>Fake User</th>
+                    <th>Details</th>
+                  </tr>
+                </thead>
+                <tbody id="logsTableBody">
+                  <!-- Logs will be loaded here -->
+                </tbody>
+              </table>
+            </div>
+            
+            <div class="pagination" id="logsPagination">
+              <!-- Pagination controls -->
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button id="closeLogsBtn" class="btn">Close</button>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Scripts -->
+  <script src="js/admin-auth.js"></script>
+  <script src="js/admin-chat-api.js"></script>
+  <script src="js/admin-chat.js"></script>
+</body>
+</html>
