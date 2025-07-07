@@ -1,0 +1,1030 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge"/>
+    <title data-i18n-title="taskPageTitle">Task</title>
+    <meta name="csrf-token" content="OMQEMMbTOijuw7VQQjJ3OJfRh0OxIoBZVH9aGGDe">
+    <link rel="shortcut icon" href="./assets/uploads/generals/favicon-665b8c8a863b91717275786.png">
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Legacy scripts for compatibility -->
+    <script src="./assets/frontend/js/jquery.min.js"></script>
+    <script charset="utf-8" src="./assets/frontend/shopva/dialog.min.js"></script>
+    <script charset="utf-8" src="./assets/frontend/shopva/common.js"></script>
+    <link rel="stylesheet" href="./assets/frontend/shopva/layer.css">    <script src="./assets/frontend/shopva/layer.js"></script>    <!-- Custom CSS for shared styles -->
+    <link rel="stylesheet" href="css/task-account-styles.css">    <!-- Drive unified styles -->
+    <link rel="stylesheet" href="css/drive-unified-styles.css">    <!-- Task page specific styles -->
+    <link rel="stylesheet" href="css/task.css">
+</head>
+<body>
+
+<div class="bg-overlay navbar-btn"></div>
+<!-- Sidebar Placeholder -->
+<div id="sidebar-placeholder"></div>
+<!-- End Sidebar Placeholder -->
+
+<!-- Modern Task Header -->
+<header class="page-header">
+    <div class="container">
+        <div class="d-flex align-items-center justify-content-between">
+            <a href="javascript:history.back()" class="back-btn">
+                <i class="fas fa-arrow-left"></i>
+            </a>
+            <div class="text-center flex-grow-1">
+                <h1 data-i18n="taskPageTitle">Task Center</h1>
+                <p class="subtitle">Complete tasks and earn rewards</p>
+            </div>
+            <div style="width: 44px;"></div> <!-- Spacer for alignment -->
+        </div>
+    </div>
+</header>
+
+<main class="main-content">
+    <div class="container">        
+        
+        <!-- Dashboard Stats -->
+        <div class="stats-grid">
+            <div class="app-card animate-fade-in-up enhanced-hover">
+                <div class="stat-icon">
+                    <i class="fas fa-wallet"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-label">Wallet Balance</div>
+                    <div class="stat-value">
+                        <span class="datadrive-balance">Loading...</span>
+                    </div>
+                </div>
+                <button id="refresh-drive-button" class="stat-refresh rotate-on-hover" title="Refresh Balance">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+            </div>
+            
+            <div class="app-card animate-fade-in-up enhanced-hover">
+                <div class="stat-icon success">
+                    <i class="fas fa-coins"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-label">Commission Earned</div>
+                    <div class="stat-value gradient-text">
+                        <span class="datadrive-commission">0.00 USDT</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Drive Progress Section -->
+        <div class="progress-section animate-fade-in-up" id="progress-section">
+            <div class="app-card">
+                <div class="progress-header">
+                    <div class="progress-info">
+                        <h5 class="progress-title">Drive Progress</h5>
+                        <p class="progress-text" id="progress-text">0 / 0 tasks completed</p>
+                    </div>
+                    <div class="progress-stats">
+                        <span class="tasks-count" id="tasks-count">0 / 0</span>
+                    </div>
+                </div>
+                <div class="progress-container">
+                    <div class="progress">
+                        <div class="progress-bar progress-bar-animated" 
+                             role="progressbar" 
+                             id="drive-progress-bar" 
+                             style="width: 0%" 
+                             aria-valuenow="0" 
+                             aria-valuemin="0" 
+                             aria-valuemax="100">
+                            0%
+                        </div>
+                    </div>
+                </div>
+                <div class="progress-details">
+                    <div class="progress-item">
+                        <span class="label">Tasks Progress:</span>
+                        <div class="mini-progress">
+                            <div class="progress progress-sm">
+                                <div class="progress-bar" 
+                                     role="progressbar" 
+                                     id="tasks-progress-bar" 
+                                     style="width: 0%" 
+                                     aria-valuenow="0" 
+                                     aria-valuemin="0" 
+                                     aria-valuemax="100">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Task Controls -->
+        <div class="task-controls animate-bounce-in">
+            <input type="hidden" name="user_status" id="user_status" value="1">
+            <button class="btn-modern btn-primary btn-lg enhanced-focus pulse" id="start-drive-button">
+                <i class="fas fa-play"></i>
+                <span>Start Drive</span>
+                <div class="btn-shine"></div>
+            </button>
+            <a href="./orders.html" class="btn-modern btn-secondary btn-lg enhanced-focus">
+                <i class="fas fa-list"></i>
+                <span>View Records</span>
+                <div class="btn-shine"></div>
+            </a>
+        </div>        <!-- Drive Content Area (Drive Modal/Interface) -->
+        <div id="drive-content-area" style="display: none;">
+            <!-- This will be populated by drive.js -->
+        </div>
+
+        <!-- Debug Section (hidden by default, toggle with Ctrl+Shift+D) -->
+        <div id="debug-section" style="display: none; margin-top: 20px;">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0">Debug Console</h6>
+                    <button id="clear-debug-btn" class="btn btn-sm btn-outline-secondary">Clear</button>
+                </div>
+                <div class="card-body">
+                    <div id="debug-console" style="height: 200px; overflow-y: auto; font-family: monospace; font-size: 12px; background: #f8f9fa; padding: 10px; border-radius: 4px;">
+                        <!-- Debug messages will appear here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Product Display Section (hidden by default) -->
+        <div class="product-section animate-fade-in-up" id="product-card-container" style="display: none;">
+            <div class="product-preview glass-card" id="order-loading-overlay" style="display: none;">
+                <div class="loading-spinner"></div>
+                <p class="loading-text">Loading next product...</p>
+            </div>
+            
+            <div class="product-card enhanced-hover float" id="product-display">
+                <div class="product-image-container">
+                    <img id="product-image" src="" alt="Product Image" class="product-image">
+                    <div class="product-overlay">
+                        <button class="btn-view-product enhanced-focus js-modal-open" onclick="openProductModal()">
+                            <i class="fas fa-eye"></i>
+                            View Details
+                        </button>
+                    </div>
+                </div>
+                <div class="product-info">
+                    <h3 id="product-name" class="product-title gradient-text text-shadow">Product Name</h3>
+                    <div class="product-stats">
+                        <div class="product-stat">
+                            <span class="stat-label">Commission</span>
+                            <span id="product-commission" class="stat-value gradient-text">0.00 USDT</span>
+                        </div>
+                        <div class="product-stat">
+                            <span class="stat-label">Price</span>
+                            <span id="product-price" class="stat-value">$0.00</span>
+                        </div>
+                    </div>                    <button id="purchase-button" class="btn-modern btn-success btn-lg enhanced-focus">
+                        <i class="fas fa-shopping-cart"></i>
+                        <span>Purchase & Earn</span>
+                        <div class="btn-shine"></div>
+                    </button>
+                </div>
+            </div>        </div>        <!-- Information Cards -->
+        <div class="info-cards">
+            <div class="info-card enhanced-hover animate-fade-in-up">
+                <div class="info-icon">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <div class="info-content">
+                    <h4 class="text-shadow">Operating Hours</h4>
+                    <p>10:00 AM - 11:00 PM daily</p>
+                </div>
+            </div>
+            
+            <div class="info-card enhanced-hover animate-fade-in-up">
+                <div class="info-icon" style="color: #28a745;">
+                    <i class="fas fa-money-bill-wave"></i>
+                </div>
+                <div class="info-content">
+                    <h4 class="text-shadow">Refund Policy</h4>
+                    <p>All purchase amounts are automatically refunded after task completion</p>
+                </div>
+            </div>
+            
+            <div class="info-card enhanced-hover animate-fade-in-up">
+                <div class="info-icon warning">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <div class="info-content">
+                    <h4 class="text-shadow">Important Notice</h4>
+                    <p>System pauses product distribution during non-operating hours</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<!-- Professional Ecommerce Product Modal -->
+<div class="product-modal" id="product-modal">
+    <div class="product-modal-backdrop" onclick="closeProductModal()"></div>
+    <div class="product-modal-content">
+        <div class="product-modal-header d-flex align-items-center justify-content-between p-3 border-bottom">
+            <div class="fw-bold fs-5">Product Item</div>
+            <button class="modal-close js-modal-close" onclick="closeProductModal()" aria-label="Close">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="product-modal-body p-4">
+            <div class="row g-4">
+                <!-- Product Image Gallery -->
+                <div class="col-12 text-center">
+                    <div class="position-relative d-inline-block">
+                        <img id="modal-product-image" src="" alt="Product Image" class="product-main-image rounded-4 shadow-sm" style="width: 120px; height: 120px; object-fit: cover; background: #f3f4f6;">
+                        <span class="badge bg-primary position-absolute top-0 start-0 translate-middle rounded-pill px-3 py-2" style="font-size: 0.9rem;">Rewards: 5%</span>
+                    </div>
+                    <div class="d-flex justify-content-center gap-2 mt-2">
+                        <span class="dot active" data-image="0"></span>
+                        <span class="dot" data-image="1"></span>
+                        <span class="dot" data-image="2"></span>
+                    </div>
+                </div>
+                <!-- Product Details -->
+                <div class="col-12">
+                    <div class="fw-semibold fs-5 mb-1" id="modal-product-name">Product Name</div>
+                    <div class="text-secondary mb-3" id="modal-product-description" style="min-height: 48px;">Detailed product description will be displayed here with all the features and benefits.</div>
+                </div>
+                <!-- Info Grid -->
+                <div class="col-12">
+                    <div class="row g-2 text-center align-items-center">
+                        <div class="col-3">
+                            <div class="small text-secondary">Price</div>
+                            <div class="fw-bold" id="modal-product-price">$500</div>
+                        </div>
+                        <div class="col-3">
+                            <div class="small text-secondary">Cashback</div>
+                            <div class="fw-bold" id="modal-product-commission">$5</div>
+                        </div>
+                        <div class="col-3">
+                            <div class="small text-secondary">Date</div>
+                            <div class="fw-bold" id="product-date">24/04/2023</div>
+                        </div>
+                        <div class="col-3">
+                            <div class="small text-secondary">Reference No.</div>
+                            <div class="fw-bold" id="product-time">42394235</div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Total Return -->
+                <div class="col-12">
+                    <div class="d-flex justify-content-between align-items-center bg-light rounded-3 px-3 py-2 mb-2">
+                        <div class="fw-semibold text-secondary">Total Return:</div>
+                        <div class="fw-bold fs-5 text-success" id="total-return-value">$5</div>
+                    </div>
+                </div>
+                <!-- Coupon Code -->
+                <div class="col-12">
+                    <label for="coupon-code" class="form-label small mb-1">Coupon code :</label>
+                    <div class="input-group">
+                        <input type="text" id="coupon-code" class="form-control coupon-input" placeholder="Enter code">
+                        <button class="btn btn-outline-primary coupon-apply-btn" type="button">
+                            <i class="fas fa-check"></i>
+                        </button>
+                    </div>
+                </div>
+                <!-- Purchase Button -->
+                <div class="col-12 mt-3">
+                    <button id="modal-purchase-button" class="btn btn-modern btn-primary w-100 py-3 fs-5 rounded-3 js-modal-purchase">
+                        <i class="fas fa-shopping-cart me-2"></i>
+                        Purchase
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal for Frozen Account -->
+<div class="modal fade" id="frozenAccountModal" tabindex="-1" aria-labelledby="frozenAccountModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-warning text-dark">
+        <div class="d-flex align-items-center">
+          <div class="icon-circle bg-warning text-dark me-3">
+            <i class="fas fa-exclamation-triangle"></i>
+          </div>
+          <div>
+            <h5 class="modal-title mb-0" id="frozenAccountModalLabel">Account Temporarily Frozen</h5>
+            <small class="text-muted">Action Required</small>
+          </div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-warning border-0 mb-4">
+          <div class="d-flex align-items-start">
+            <i class="fas fa-info-circle me-3 mt-1"></i>
+            <div>
+              <h6 class="alert-heading mb-2">Why is my account frozen?</h6>
+              <p class="mb-0">Your account has been temporarily frozen due to insufficient balance during a drive operation. This is a protective measure to prevent negative balances.</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="mb-4">
+          <h6 class="fw-bold mb-3">Current Status:</h6>
+          <div class="row">
+            <div class="col-md-6">
+              <div class="border rounded p-3 text-center">
+                <i class="fas fa-wallet text-primary mb-2 d-block" style="font-size: 1.5rem;"></i>
+                <small class="text-muted d-block">Available Balance</small>
+                <strong id="modal-current-balance" class="text-primary">Loading...</strong>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="border rounded p-3 text-center">
+                <i class="fas fa-dollar-sign text-success mb-2 d-block" style="font-size: 1.5rem;"></i>
+                <small class="text-muted d-block">Amount Needed</small>
+                <strong id="modal-amount-needed" class="text-success">Calculating...</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-light rounded p-3 mb-4">
+          <h6 class="fw-bold mb-2">
+            <i class="fas fa-lightbulb text-warning me-2"></i>
+            How to resolve this:
+          </h6>
+          <ol class="mb-0 ps-3">
+            <li>Make a deposit to add funds to your account</li>
+            <li>Wait for the deposit to be confirmed</li>
+            <li>Your account will be automatically unfrozen once sufficient funds are available</li>
+            <li>If the issue persists, contact our support team</li>
+          </ol>
+        </div>
+        
+        <div class="text-center">
+          <p class="text-muted mb-0">
+            <i class="fas fa-shield-alt me-1"></i>
+            Your account security and funds are protected during this process.
+          </p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-light" data-bs-dismiss="modal">I'll Handle This Later</button>
+        <a href="deposits.html" class="btn btn-warning">
+          <i class="fas fa-plus-circle me-2"></i>Make Deposit
+        </a>
+        <a href="support.html" class="btn btn-custom">
+          <i class="fas fa-headset me-2"></i>Contact Support
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Footer Navigation -->
+<div id="footer-navigation"></div>
+
+<script>let baseurl = '.';</script> <!-- Use relative base URL -->
+
+<script src="./assets/frontend/js/bootstrap.bundle.min.js"></script>
+<script src="./js/components.js"></script>
+<script src="./js/i18n.js"></script>
+<script src="./js/main.js"></script>
+<script src="./js/auth-check.js"></script>
+
+<!-- Owl Carousel JS - Using both CDN and local fallback -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/OwlCarousel2/2.3.4/owl.carousel.min.js"></script>
+<script>
+    // If CDN fails, load from node_modules
+    if (typeof $.fn.owlCarousel === 'undefined') {
+        document.write('<script src="../node_modules/owl.carousel/dist/owl.carousel.min.js"><\/script>');
+    }
+</script>
+
+<!-- Load general site script (uses jQuery) -->
+<script src="./assets/frontend/js/script.js"></script>
+
+<!-- Load Component Loader -->
+<script src="./js/components.js"></script>
+<script src="./js/dashboard.js"></script>
+
+<!-- Session data management -->
+<script src="./js/session-data.js"></script>
+
+<!-- Load Helper/Auth Scripts -->
+<script src="./js/main.js"></script>
+<script src="./js/auth-check.js"></script> <!-- Centralized authentication -->
+
+<!-- DEBUG: Temporary script to debug 401 errors -->
+<script src="./js/debug-task-401.js"></script>
+
+<!-- CSS Verification Script (development only) -->
+<script src="./js/css-verification.js"></script>
+
+<!-- Drive unified product renderer -->
+<script src="./js/drive-product-renderer.js"></script>
+
+<!-- Main Drive Script -->
+<script src="./js/drive.js"></script>
+
+<!-- Withdrawable balance -->
+<script src="./js/task.js"></script>
+
+<script src="./js/auth.js"></script>
+
+<!-- Product Modal Functions -->
+<script>
+// Professional Ecommerce Product Modal Functions
+let selectedAction = 'buy'; // Default action
+
+function openProductModal() {
+    const modal = document.getElementById('product-modal');
+    const productImage = document.getElementById('product-image');
+    const productName = document.getElementById('product-name');
+    const productPrice = document.getElementById('product-price');
+    const productCommission = document.getElementById('product-commission');
+    
+    // Copy data to modal
+    document.getElementById('modal-product-image').src = productImage.src;
+    document.getElementById('modal-product-name').textContent = productName.textContent;
+    document.getElementById('modal-product-price').textContent = productPrice.textContent;
+    document.getElementById('modal-product-commission').textContent = productCommission.textContent;
+    
+    // Set current date and time
+    const now = new Date();
+    document.getElementById('product-date').textContent = now.toLocaleDateString('en-GB');
+    document.getElementById('product-time').textContent = Date.now().toString();
+    
+    // Calculate total return based on selected action
+    updateTotalReturn();
+    
+    // Show modal
+    modal.classList.add('show');
+    document.body.style.overflow = 'hidden';
+    
+    // Initialize action buttons
+    initializeActionButtons();
+    
+    // Set up modal purchase button
+    const modalPurchaseBtn = document.getElementById('modal-purchase-button');
+    const originalPurchaseBtn = document.getElementById('purchase-button');
+    
+    modalPurchaseBtn.onclick = function() {
+        // Apply coupon if entered
+        const couponCode = document.getElementById('coupon-code').value.trim();
+        if (couponCode) {
+            applyCoupon(couponCode);
+        }
+        
+        // Trigger the original purchase logic with selected action
+        console.log('Purchase initiated with action:', selectedAction);
+        if (originalPurchaseBtn.onclick) {
+            originalPurchaseBtn.onclick();
+        } else if (originalPurchaseBtn.click) {
+            originalPurchaseBtn.click();
+        }
+        closeProductModal();
+    };
+}
+
+function initializeActionButtons() {
+    const actionButtons = document.querySelectorAll('.action-btn');
+    
+    actionButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            // Remove active class from all buttons
+            actionButtons.forEach(btn => btn.classList.remove('active'));
+            
+            // Add active class to clicked button
+            this.classList.add('active');
+            
+            // Update selected action
+            selectedAction = this.getAttribute('data-action');
+            
+            // Update total return based on selected action
+            updateTotalReturn();
+        });
+    });
+}
+
+function updateTotalReturn() {
+    const commissionText = document.getElementById('modal-product-commission').textContent;
+    const commission = parseFloat(commissionText.replace(/[^0-9.]/g, '')) || 0;
+    
+    let totalReturn = commission;
+    
+    // Adjust return based on selected action
+    switch (selectedAction) {
+        case 'buy':
+            totalReturn = commission;
+            break;
+        case 'cashback':
+            totalReturn = commission * 1.1; // 10% bonus for cashback
+            break;
+        case 'gift':
+            totalReturn = commission * 0.9; // 10% less for gift
+            break;
+        case 'reference':
+            totalReturn = commission * 1.05; // 5% bonus for reference
+            break;
+    }
+    
+    document.getElementById('total-return-value').textContent = '$' + totalReturn.toFixed(2);
+}
+
+function applyCoupon(couponCode) {
+    // Mock coupon validation
+    const validCoupons = {
+        'SAVE10': 0.1,
+        'WELCOME': 0.05,
+        'BONUS20': 0.2
+    };
+    
+    const discount = validCoupons[couponCode.toUpperCase()];
+    
+    if (discount) {
+        const currentReturn = parseFloat(document.getElementById('total-return-value').textContent.replace('$', ''));
+        const newReturn = currentReturn * (1 + discount);
+        document.getElementById('total-return-value').textContent = '$' + newReturn.toFixed(2);
+        
+        // Show success feedback
+        const couponInput = document.getElementById('coupon-code');
+        couponInput.style.borderColor = '#10b981';
+        couponInput.style.background = '#ecfdf5';
+        
+        // Add checkmark to apply button
+        const applyBtn = document.querySelector('.coupon-apply-btn');
+        applyBtn.innerHTML = '<i class="fas fa-check"></i>';
+        applyBtn.style.background = '#10b981';
+        
+        setTimeout(() => {
+            couponInput.style.borderColor = '';
+            couponInput.style.background = '';
+            applyBtn.innerHTML = '<i class="fas fa-check"></i>';
+            applyBtn.style.background = '';
+        }, 3000);
+    } else {
+        // Show error feedback
+        const couponInput = document.getElementById('coupon-code');
+        couponInput.style.borderColor = '#ef4444';
+        couponInput.style.background = '#fef2f2';
+        
+        setTimeout(() => {
+            couponInput.style.borderColor = '';
+            couponInput.style.background = '';
+        }, 3000);
+    }
+}
+
+function closeProductModal() {
+    const modal = document.getElementById('product-modal');
+    modal.classList.remove('show');
+    document.body.style.overflow = '';
+    
+    // Reset form
+    document.getElementById('coupon-code').value = '';
+    selectedAction = 'buy';
+    
+    // Reset action buttons
+    const actionButtons = document.querySelectorAll('.action-btn');
+    actionButtons.forEach(btn => btn.classList.remove('active'));
+    document.querySelector('[data-action="buy"]').classList.add('active');
+}
+
+// Image gallery functionality
+function initializeImageGallery() {
+    const dots = document.querySelectorAll('.dot');
+    const mainImage = document.getElementById('modal-product-image');
+    
+    dots.forEach((dot, index) => {
+        dot.addEventListener('click', function() {
+            // Remove active class from all dots
+            dots.forEach(d => d.classList.remove('active'));
+            
+            // Add active class to clicked dot
+            this.classList.add('active');
+            
+            // Here you would typically change the image source
+            // For now, we'll just add a subtle animation
+            mainImage.style.transform = 'scale(0.95)';
+            setTimeout(() => {
+                mainImage.style.transform = 'scale(1)';
+            }, 150);
+        });
+    });
+}
+
+// Coupon apply button functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const couponApplyBtn = document.querySelector('.coupon-apply-btn');
+    if (couponApplyBtn) {
+        couponApplyBtn.addEventListener('click', function() {
+            const couponCode = document.getElementById('coupon-code').value.trim();
+            if (couponCode) {
+                applyCoupon(couponCode);
+            }
+        });
+    }
+    
+    // Initialize image gallery when modal opens
+    const modal = document.getElementById('product-modal');
+    const observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+            if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+                if (modal.classList.contains('show')) {
+                    initializeImageGallery();
+                }
+            }
+        });
+    });
+    
+    observer.observe(modal, { attributes: true });
+});
+
+// Close modal when clicking outside or pressing Escape
+document.addEventListener('DOMContentLoaded', function() {
+    const modal = document.getElementById('product-modal');
+    const backdrop = document.querySelector('.product-modal-backdrop');
+    
+    // Close modal when clicking backdrop
+    if (backdrop) {
+        backdrop.addEventListener('click', closeProductModal);
+    }
+    
+    // Close modal with Escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && modal.classList.contains('show')) {
+            closeProductModal();
+        }
+    });
+});
+
+// Enhanced button animations
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize animation observer
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+                entry.target.style.animationPlayState = 'running';
+            }
+        });
+    });
+
+    // Observe animated elements
+    document.querySelectorAll('.animate-fade-in-up, .animate-slide-in-right, .animate-bounce-in').forEach((el) => {
+        el.style.animationPlayState = 'paused';
+        observer.observe(el);
+    });
+
+    // Add ripple effect to buttons
+    const buttons = document.querySelectorAll('.btn-modern');
+    buttons.forEach(button => {
+        button.addEventListener('click', function(e) {
+            // Remove existing ripples
+            const existingRipples = button.querySelectorAll('.ripple');
+            existingRipples.forEach(ripple => ripple.remove());
+            
+            const ripple = document.createElement('span');
+            ripple.classList.add('ripple');
+            
+            const rect = button.getBoundingClientRect();
+            const size = Math.max(rect.width, rect.height);
+            const x = e.clientX - rect.left - size / 2;
+            const y = e.clientY - rect.top - size / 2;
+            
+            ripple.style.width = ripple.style.height = size + 'px';
+            ripple.style.left = x + 'px';
+            ripple.style.top = y + 'px';
+            
+            button.appendChild(ripple);
+            
+            setTimeout(() => {
+                ripple.remove();
+            }, 600);
+        });
+    });
+    
+    // Refresh button animation
+    const refreshBtn = document.getElementById('refresh-drive-button');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', function() {
+            const icon = this.querySelector('i');
+            icon.classList.add('rotate-on-hover');
+            icon.style.animation = 'spin 1s linear';
+            setTimeout(() => {
+                icon.style.animation = '';
+                icon.classList.remove('rotate-on-hover');
+            }, 1000);
+        });
+    }
+
+    // Add smooth scrolling to all links
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+            e.preventDefault();
+            const target = document.querySelector(this.getAttribute('href'));
+            if (target) {
+                target.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start'
+                });
+            }
+        });
+    });
+
+    // Add loading skeleton effect
+    function showLoadingSkeleton(element) {
+        element.classList.add('loading-skeleton');
+        element.textContent = 'Loading...';
+    }
+
+    function hideLoadingSkeleton(element, content) {
+        element.classList.remove('loading-skeleton');
+        element.textContent = content;
+    }
+
+    // Progress bar animation enhancement
+    function animateProgressBar(element, targetWidth, duration = 1000) {
+        const startWidth = parseFloat(element.style.width) || 0;
+        const difference = targetWidth - startWidth;
+        const startTime = performance.now();
+
+        function updateProgress(currentTime) {
+            const elapsed = currentTime - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            
+            // Use easing function for smooth animation
+            const easeOutCubic = 1 - Math.pow(1 - progress, 3);
+            const currentWidth = startWidth + (difference * easeOutCubic);
+            
+            element.style.width = currentWidth + '%';
+            
+            if (progress < 1) {
+                requestAnimationFrame(updateProgress);
+            }
+        }
+        
+        requestAnimationFrame(updateProgress);
+    }
+
+    // Add parallax effect to floating elements
+    window.addEventListener('scroll', function() {
+        const scrolled = window.pageYOffset;
+        const parallaxElements = document.querySelectorAll('.float');
+        
+        parallaxElements.forEach((element, index) => {
+            const speed = 0.5 + (index * 0.1);
+            const yPos = -(scrolled * speed);
+            element.style.transform = `translateY(${yPos}px)`;
+        });
+    });
+
+    // Add auto-hide notification for long messages
+    function showNotificationWithAutoHide(message, type = 'info', duration = 5000) {
+        // Assuming showNotification function exists
+        if (typeof showNotification === 'function') {
+            showNotification(message, type);
+            
+            // Auto-hide after duration
+            setTimeout(() => {
+                const notifications = document.querySelectorAll('.notification, .alert');
+                notifications.forEach(notification => {
+                    notification.style.opacity = '0';
+                    setTimeout(() => {
+                        notification.remove();
+                    }, 300);
+                });
+            }, duration);
+        }
+    }
+
+    // Add keyboard navigation support
+    document.addEventListener('keydown', function(e) {
+        // ESC key functionality
+        if (e.key === 'Escape') {
+            // Close any open modals
+            const modals = document.querySelectorAll('.product-modal.show');
+            modals.forEach(modal => {
+                if (typeof closeProductModal === 'function') {
+                    closeProductModal();
+                }
+            });
+        }
+        
+        // Enter key on buttons
+        if (e.key === 'Enter' && e.target.classList.contains('btn-modern')) {
+            e.target.click();
+        }
+    });
+
+    // Enhance form validation with real-time feedback
+    const forms = document.querySelectorAll('form');
+    forms.forEach(form => {
+        form.addEventListener('submit', function(e) {
+            const inputs = form.querySelectorAll('input, select, textarea');
+            let isValid = true;
+            
+            inputs.forEach(input => {
+                if (input.hasAttribute('required') && !input.value.trim()) {
+                    input.classList.add('is-invalid');
+                    isValid = false;
+                } else {
+                    input.classList.remove('is-invalid');
+                }
+            });
+            
+            if (!isValid) {
+                e.preventDefault();
+                showNotificationWithAutoHide('Please fill in all required fields', 'error');
+            }
+        });
+    });
+
+    // Add dynamic favicon update based on activity
+    function updateFavicon(active = false) {
+        const link = document.querySelector('link[rel="shortcut icon"]');
+        if (link && active) {
+            // Could add different favicon for active state
+            link.href = link.href; // Refresh current favicon
+        }
+    }
+
+    // Performance monitoring and optimization
+    function optimizePerformance() {
+        // Lazy load images
+        const images = document.querySelectorAll('img[data-src]');
+        const imageObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const img = entry.target;
+                    img.src = img.dataset.src;
+                    img.removeAttribute('data-src');
+                    imageObserver.unobserve(img);
+                }
+            });
+        });
+        
+        images.forEach(img => imageObserver.observe(img));
+        
+        // Preload critical resources
+        const criticalResources = [
+            './css/task-account-styles.css',
+            './css/task.css',
+            './js/task.js'
+        ];
+        
+        criticalResources.forEach(resource => {
+            const link = document.createElement('link');
+            link.rel = 'preload';
+            link.href = resource;
+            link.as = resource.includes('.css') ? 'style' : 'script';
+            document.head.appendChild(link);
+        });
+    }
+    
+    // Initialize performance optimizations
+    optimizePerformance();
+    
+    // Add connection status indicator
+    function updateConnectionStatus() {
+        const indicator = document.createElement('div');
+        indicator.id = 'connection-status';
+        
+        function updateStatus() {
+            if (navigator.onLine) {
+                indicator.textContent = '🟢 Online';
+                indicator.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+                indicator.style.color = 'white';
+            } else {
+                indicator.textContent = '🔴 Offline';
+                indicator.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
+                indicator.style.color = 'white';
+            }
+        }
+        
+        updateStatus();
+        document.body.appendChild(indicator);
+        
+        window.addEventListener('online', updateStatus);
+        window.addEventListener('offline', updateStatus);
+        
+        // Auto-hide after 3 seconds if online
+        setTimeout(() => {
+            if (navigator.onLine) {
+                indicator.style.opacity = '0';
+                setTimeout(() => indicator.remove(), 300);
+            }
+        }, 3000);
+    }    
+    // Initialize connection status
+    updateConnectionStatus();
+});
+
+// Load standard navigation components
+document.addEventListener('DOMContentLoaded', async function() {
+    try {
+        await loadStandardNavigation();
+        console.log('Standard navigation components loaded for task page');
+    } catch (error) {
+        console.error('Error loading navigation components:', error);
+    }
+});
+</script>
+
+<!-- Data Drive Purchase Success Popup -->
+<div id="purchase-success-popup" class="purchase-popup-overlay" style="display: none;">
+    <div class="purchase-popup">
+        <button class="purchase-popup-close" id="purchase-popup-close">
+            <i class="fas fa-times"></i>
+        </button>
+        <div class="purchase-popup-content">
+            <div class="purchase-success-icon">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <h3 class="purchase-popup-title">Success!</h3>
+            <p class="purchase-popup-message" id="purchase-popup-message">
+                Product successfully driven.
+            </p>
+            <div class="purchase-popup-buttons">
+                <button class="btn btn-primary purchase-continue-btn" id="purchase-continue-btn">
+                    <i class="fas fa-arrow-right"></i>
+                    Continue Drive
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Purchase Success Popup Functions
+function showPurchaseSuccessPopup(productName, onContinue) {
+    const popup = document.getElementById('purchase-success-popup');
+    const messageEl = document.getElementById('purchase-popup-message');
+    const continueBtn = document.getElementById('purchase-continue-btn');
+    const closeBtn = document.getElementById('purchase-popup-close');
+    
+    // Set the message
+    messageEl.textContent = `${productName} successfully driven.`;
+    
+    // Show the popup
+    popup.style.display = 'flex';
+    setTimeout(() => {
+        popup.classList.add('show');
+    }, 10);
+    
+    // Handle continue button
+    const handleContinue = () => {
+        hidePurchaseSuccessPopup();
+        if (typeof onContinue === 'function') {
+            onContinue();
+        }
+    };
+    
+    // Handle close button
+    const handleClose = () => {
+        hidePurchaseSuccessPopup();
+    };
+    
+    // Remove existing event listeners
+    continueBtn.replaceWith(continueBtn.cloneNode(true));
+    closeBtn.replaceWith(closeBtn.cloneNode(true));
+    
+    // Add new event listeners
+    document.getElementById('purchase-continue-btn').addEventListener('click', handleContinue);
+    document.getElementById('purchase-popup-close').addEventListener('click', handleClose);
+    
+    // Close on overlay click
+    popup.addEventListener('click', (e) => {
+        if (e.target === popup) {
+            handleClose();
+        }
+    });
+    
+    // Close on escape key
+    const handleEscape = (e) => {
+        if (e.key === 'Escape') {
+            handleClose();
+            document.removeEventListener('keydown', handleEscape);
+        }
+    };
+    document.addEventListener('keydown', handleEscape);
+}
+
+function hidePurchaseSuccessPopup() {
+    const popup = document.getElementById('purchase-success-popup');
+    popup.classList.remove('show');
+    setTimeout(() => {
+        popup.style.display = 'none';
+    }, 300);
+}
+</script>
+
+<!-- Initialize Owl Carousel -->
+<!-- Removed Owl Carousel initialization as it's not used in the current HTML structure -->
+</body>
+</html>

@@ -650,6 +650,90 @@
     align-items: center !important;
 }
 
+/* Purchase Success Popup */
+.purchase-success-popup {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1050;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.purchase-success-popup.show {
+    opacity: 1;
+}
+
+.purchase-success-content {
+    background-color: #fff;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 400px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    transform: scale(0.9);
+    transition: transform 0.3s ease;
+}
+
+.purchase-success-popup.show .purchase-success-content {
+    transform: scale(1);
+}
+
+.purchase-success-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    border-bottom: 1px solid #eee;
+}
+
+.purchase-success-header h4 {
+    margin: 0;
+    color: #333;
+}
+
+.purchase-popup-close {
+    background: none;
+    border: none;
+    font-size: 1.25rem;
+    cursor: pointer;
+    color: #888;
+}
+
+.purchase-success-body {
+    padding: 1.5rem;
+    text-align: center;
+}
+
+.success-icon {
+    font-size: 3rem;
+    color: #10b981;
+    margin-bottom: 1rem;
+}
+
+.purchase-success-footer {
+    padding: 1rem;
+    text-align: center;
+    border-top: 1px solid #eee;
+}
+
+#purchase-continue-btn {
+    background: linear-gradient(135deg, #4f46e5, #8b5cf6);
+    border: none;
+    padding: 0.5rem 1.5rem;
+    transition: all 0.3s ease;
+}
+
+#purchase-continue-btn:hover {
+    background: linear-gradient(135deg, #4338ca, #7c3aed);
+    transform: translateY(-2px);
+}
+
 /* Responsive Enhancements */
 @media (max-width: 768px) {
     .animate-fade-in-up,

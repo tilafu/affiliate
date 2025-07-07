@@ -428,20 +428,34 @@
 <script src="./assets/frontend/js/bootstrap.bundle.min.js"></script>
 
 <!-- Global Components and Utils -->
+<script src="./assets/frontend/js/bootstrap.bundle.min.js"></script>
 <script src="./js/components.js"></script>
 <script src="./js/i18n.js"></script>
 <script src="./js/main.js"></script>
 <script src="./js/auth-check.js"></script>
 <script src="./js/session-data.js"></script>
+<script src="./assets/frontend/js/script.js"></script>
+
+<!-- Owl Carousel (with fallback) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/OwlCarousel2/2.3.4/owl.carousel.min.js"></script>
+<script>
+    // If CDN fails, load from node_modules
+    if (typeof $.fn.owlCarousel === 'undefined') {
+        document.write('<script src="../node_modules/owl.carousel/dist/owl.carousel.min.js"><\/script>');
+    }
+</script>
+
+<!-- Debug & Development Tools -->
+<script src="./js/debug-task-401.js"></script>
+<script src="./js/css-verification.js"></script>
 
 <!-- Drive Specific Components -->
 <script src="./js/drive-product-renderer.js"></script>
 <script src="./js/drive.js"></script>
 
-<!-- Legacy Task Script (Essential Business Logic) -->
+<!-- Task Management Scripts -->
+<script src="./js/dashboard.js"></script>
 <script src="./js/task.js"></script>
-
-<!-- UI Enhancement for Task Page (New) -->
 <script src="./js/task-ui.js"></script>
 
 <!-- Authentication -->

@@ -380,6 +380,22 @@ document.addEventListener('DOMContentLoaded', function() {
         observer.observe(el);
     });
 
+    // Connect modal open/close buttons to their functions
+    const openModalBtn = document.getElementById('open-product-modal-btn');
+    if (openModalBtn) {
+        openModalBtn.addEventListener('click', openProductModal);
+    }
+
+    const closeModalBtn = document.getElementById('close-product-modal-btn');
+    if (closeModalBtn) {
+        closeModalBtn.addEventListener('click', closeProductModal);
+    }
+
+    const modalBackdrop = document.getElementById('product-modal-backdrop');
+    if (modalBackdrop) {
+        modalBackdrop.addEventListener('click', closeProductModal);
+    }
+
     // Add ripple effect to buttons
     const buttons = document.querySelectorAll('.btn-modern');
     buttons.forEach(button => {
@@ -490,17 +506,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Coupon apply button functionality
-    const couponApplyBtn = document.querySelector('.coupon-apply-btn');
-    if (couponApplyBtn) {
-        couponApplyBtn.addEventListener('click', function() {
-            const couponCode = document.getElementById('coupon-code').value.trim();
-            if (couponCode) {
-                applyCoupon(couponCode);
-            }
-        });
-    }
-    
     // Initialize image gallery when modal opens
     const modal = document.getElementById('product-modal');
     if (modal) {
@@ -516,7 +521,39 @@ document.addEventListener('DOMContentLoaded', function() {
         
         observer.observe(modal, { attributes: true });
     }
-
+    
+    // Purchase Success Popup Initialization
+    const successPopup = document.getElementById('purchase-success-popup');
+    const continueBtn = document.getElementById('purchase-continue-btn');
+    const closePopupBtn = document.getElementById('purchase-popup-close');
+    
+    if (successPopup && continueBtn && closePopupBtn) {
+        // Set up event listeners
+        closePopupBtn.addEventListener('click', hidePurchaseSuccessPopup);
+        continueBtn.addEventListener('click', function() {
+            hidePurchaseSuccessPopup();
+            // Any continuation logic can go here
+        });
+        
+        // Close on background click
+        successPopup.addEventListener('click', function(e) {
+            if (e.target === successPopup) {
+                hidePurchaseSuccessPopup();
+            }
+        });
+    }
+    
+    // Coupon apply button functionality
+    const couponApplyBtn = document.querySelector('.coupon-apply-btn');
+    if (couponApplyBtn) {
+        couponApplyBtn.addEventListener('click', function() {
+            const couponCode = document.getElementById('coupon-code').value.trim();
+            if (couponCode) {
+                applyCoupon(couponCode);
+            }
+        });
+    }
+    
     // Close modal when clicking outside or pressing Escape
     if (modal) {
         const backdrop = document.querySelector('.product-modal-backdrop');
