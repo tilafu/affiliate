@@ -7,6 +7,20 @@
 // Globals for task management
 let selectedAction = 'buy'; // Default action
 
+// Initialize everything when DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Task UI initializing...');
+    
+    // Initialize carousel
+    initCarousel();
+    
+    // Handle product icon clicks
+    handleProductClicks();
+    
+    // Setup other UI elements
+    setupUIElements();
+});
+
 // Product Modal Functions
 function openProductModal() {
     const modal = document.getElementById('product-modal');
@@ -515,6 +529,147 @@ function handleWindowResize() {
     }
 }
 
+// Initialize Trending Products Carousel
+function initCarousel() {
+    const carousel = document.querySelector('.gdot-products-carousel');
+    const container = document.querySelector('.gdot-carousel-container');
+    const inner = document.querySelector('.gdot-carousel-inner');
+    const controls = document.querySelectorAll('.gdot-carousel-control');
+    
+    if (!carousel || !container) return; // Exit if elements don't exist
+    
+    // Variables for manual scrolling
+    let isScrolling = false;
+    let startX;
+    let scrollLeft;
+    
+    // Calculate visible items based on viewport width
+    function adjustCarouselItems() {
+        const isMobile = window.innerWidth < 768;
+        const isDesktop = window.innerWidth >= 992;
+        
+        // Update animation speed and behavior based on screen size
+        if (isDesktop) {
+            carousel.style.animationDuration = '40s';
+            
+            // Add hover effect to pause animation on desktop
+            container.addEventListener('mouseenter', () => {
+                carousel.style.animationPlayState = 'paused';
+            });
+            
+            container.addEventListener('mouseleave', () => {
+                if (!isScrolling) {
+                    carousel.style.animationPlayState = 'running';
+                }
+            });
+        } else if (!isMobile) {
+            // Tablet view
+            carousel.style.animationDuration = '30s';
+        } else {
+            // Mobile view
+            carousel.style.animationDuration = '20s';
+        }
+        
+        // Show/hide navigation controls based on screen size
+        const controlsContainer = document.querySelector('.gdot-carousel-controls');
+        if (controlsContainer) {
+            controlsContainer.style.display = isMobile ? 'none' : 'flex';
+        }
+    }
+    
+    // Manual scroll with controls
+    controls.forEach(control => {
+        control.addEventListener('click', (e) => {
+            e.preventDefault();
+            const direction = control.getAttribute('data-direction');
+            const scrollAmount = container.offsetWidth * 0.3; // Scroll by 30% of container width
+            
+            // Pause auto-animation temporarily
+            carousel.style.animationPlayState = 'paused';
+            
+            if (direction === 'next') {
+                inner.scrollLeft += scrollAmount;
+            } else {
+                inner.scrollLeft -= scrollAmount;
+            }
+            
+            // Resume animation after a delay
+            setTimeout(() => {
+                carousel.style.animationPlayState = 'running';
+            }, 2000);
+        });
+    });
+    
+    // Mouse drag to scroll
+    container.addEventListener('mousedown', (e) => {
+        isScrolling = true;
+        startX = e.pageX - container.offsetLeft;
+        scrollLeft = inner.scrollLeft;
+        carousel.style.animationPlayState = 'paused';
+        container.style.cursor = 'grabbing';
+    });
+    
+    container.addEventListener('mouseleave', () => {
+        if (isScrolling) {
+            isScrolling = false;
+            container.style.cursor = '';
+            setTimeout(() => {
+                carousel.style.animationPlayState = 'running';
+            }, 1000);
+        }
+    });
+    
+    container.addEventListener('mouseup', () => {
+        isScrolling = false;
+        container.style.cursor = '';
+        setTimeout(() => {
+            carousel.style.animationPlayState = 'running';
+        }, 1000);
+    });
+    
+    container.addEventListener('mousemove', (e) => {
+        if (!isScrolling) return;
+        e.preventDefault();
+        const x = e.pageX - container.offsetLeft;
+        const walk = (x - startX) * 2; // Scroll speed multiplier
+        inner.scrollLeft = scrollLeft - walk;
+    });
+    
+    // Touch events for mobile
+    container.addEventListener('touchstart', (e) => {
+        isScrolling = true;
+        startX = e.touches[0].pageX - container.offsetLeft;
+        scrollLeft = inner.scrollLeft;
+        carousel.style.animationPlayState = 'paused';
+    });
+    
+    container.addEventListener('touchend', () => {
+        isScrolling = false;
+        setTimeout(() => {
+            carousel.style.animationPlayState = 'running';
+        }, 1000);
+    });
+    
+    container.addEventListener('touchmove', (e) => {
+        if (!isScrolling) return;
+        const x = e.touches[0].pageX - container.offsetLeft;
+        const walk = (x - startX) * 2;
+        inner.scrollLeft = scrollLeft - walk;
+    });
+    
+    // Initialize carousel on load
+    adjustCarouselItems();
+    
+    // Add PC-specific enhancements
+    enhanceCarouselForPC();
+    
+    // Update on resize
+    window.addEventListener('resize', () => {
+        adjustCarouselItems();
+        enhanceCarouselForPC();
+    });
+}
+
 // DOM-Ready event handlers
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize animation observer
@@ -531,6 +686,12 @@ document.addEventListener('DOMContentLoaded', function() {
         el.style.animationPlayState = 'paused';
         observer.observe(el);
     });
+    
+    // Initialize trending products carousel
+    initCarousel();
+    
+    // Initialize product icon click handlers
+    handleProductClicks();
 
     // Connect modal open/close buttons to their functions
     const openModalBtn = document.getElementById('open-product-modal-btn');
@@ -761,6 +922,41 @@ document.addEventListener('DOMContentLoaded', function() {
     window.addEventListener('resize', handleWindowResize);
 });
 
+// Setup UI elements and event listeners
+function setupUIElements() {
+    console.log('Setting up UI elements...');
+    
+    // Connect modal open/close buttons to their functions
+    const openModalBtn = document.getElementById('open-product-modal-btn');
+    if (openModalBtn) {
+        openModalBtn.addEventListener('click', openProductModal);
+    }
+
+    const closeModalBtn = document.getElementById('close-product-modal-btn');
+    if (closeModalBtn) {
+        closeModalBtn.addEventListener('click', closeProductModal);
+    }
+    
+    // Setup modal backdrop click to close
+    const modalBackdrop = document.getElementById('product-modal-backdrop');
+    if (modalBackdrop) {
+        modalBackdrop.addEventListener('click', closeProductModal);
+    }
+    
+    // Setup search button to show modal
+    const searchButton = document.getElementById('show-product-modal-btn');
+    if (searchButton) {
+        console.log('Search button found, attaching click handler');
+        searchButton.addEventListener('click', function() {
+            console.log('Search button clicked');
+            openProductModal();
+        });
+    }
+    
+    // Initialize other UI components as needed
+    initAnimations();
+}
+
 /**
  * Desktop Enhancement Functions
  * These functions provide improved UX for desktop users
@@ -804,31 +1000,26 @@ function enhanceDesktopExperience() {
     // Add tooltip functionality for product icons
     const productIcons = document.querySelectorAll('.gdot-product-icon');
     productIcons.forEach(icon => {
+        // Remove existing tooltips to avoid duplicates
+        const existingTooltip = icon.querySelector('.gdot-tooltip');
+        if (existingTooltip) {
+            existingTooltip.remove();
+        }
+        
         const tooltip = document.createElement('div');
         tooltip.className = 'gdot-tooltip';
         tooltip.textContent = icon.getAttribute('data-name') || 'Product';
-        tooltip.style.position = 'absolute';
-        tooltip.style.bottom = '-30px';
-        tooltip.style.left = '50%';
-        tooltip.style.transform = 'translateX(-50%)';
-        tooltip.style.backgroundColor = '#333';
-        tooltip.style.color = '#fff';
-        tooltip.style.padding = '4px 8px';
-        tooltip.style.borderRadius = '4px';
-        tooltip.style.fontSize = '12px';
-        tooltip.style.opacity = '0';
-        tooltip.style.transition = 'opacity 0.2s ease';
-        tooltip.style.pointerEvents = 'none';
-        tooltip.style.zIndex = '10';
         
         icon.appendChild(tooltip);
         
         icon.addEventListener('mouseenter', function() {
             tooltip.style.opacity = '1';
+            tooltip.style.visibility = 'visible';
         });
         
         icon.addEventListener('mouseleave', function() {
             tooltip.style.opacity = '0';
+            tooltip.style.visibility = 'hidden';
         });
     });
     
@@ -852,3 +1043,130 @@ document.addEventListener('DOMContentLoaded', enhanceDesktopExperience);
 
 // Handle window resize events
 window.addEventListener('resize', handleWindowResize);
+
+// Handle product icon clicks for both grid and carousel
+function handleProductClicks() {
+    const productIcons = document.querySelectorAll('.gdot-product-icon');
+    
+    productIcons.forEach(icon => {
+        icon.addEventListener('click', () => {
+            // Get product details from data attributes or default values
+            const productName = icon.getAttribute('data-name') || 'Product Name';
+            const productImageSrc = icon.querySelector('img').src;
+            
+            // Get or set placeholders for drive modal data
+            document.getElementById('product-image').src = productImageSrc;
+            document.getElementById('product-name').textContent = productName;
+            document.getElementById('product-price').textContent = '$' + (Math.random() * 100 + 10).toFixed(2);
+            document.getElementById('product-commission').textContent = '$' + (Math.random() * 10 + 1).toFixed(2);
+            
+            // Open the drive modal
+            openProductModal();
+        });
+    });
+}
+
+// Initialize product click handlers
+document.addEventListener('DOMContentLoaded', handleProductClicks);
+
+// Add special PC enhancements for the carousel
+function enhanceCarouselForPC() {
+    if (window.innerWidth < 992) return; // Only for desktop
+
+    // Add hover effect for product icons
+    const productIcons = document.querySelectorAll('.gdot-product-icon');
+    
+    productIcons.forEach((icon, index) => {
+        // Add subtle animations to icons
+        icon.addEventListener('mouseenter', function() {
+            // Create a slight delay for each icon based on its position
+            setTimeout(() => {
+                // Scale effect for neighboring icons when one is hovered
+                const siblings = [...productIcons];
+                siblings.forEach((sibling, sibIndex) => {
+                    // Skip the hovered icon
+                    if (sibling === icon) return;
+                    
+                    // Calculate distance from hovered icon (adjust for circular effect)
+                    const distance = Math.abs(index - sibIndex);
+                    
+                    // Apply different scale based on distance
+                    if (distance === 1) {
+                        sibling.style.transform = 'scale(1.03)';
+                        sibling.style.opacity = '0.9';
+                    } else if (distance === 2) {
+                        sibling.style.transform = 'scale(1.01)';
+                        sibling.style.opacity = '0.8';
+                    } else {
+                        sibling.style.transform = '';
+                        sibling.style.opacity = '0.7';
+                    }
+                });
+            }, 50);
+        });
+        
+        icon.addEventListener('mouseleave', function() {
+            // Reset all icons when mouse leaves
+            setTimeout(() => {
+                productIcons.forEach(sibling => {
+                    sibling.style.transform = '';
+                    sibling.style.opacity = '1';
+                });
+            }, 50);
+        });
+    });
+
+    // Add improved scroll behavior
+    const inner = document.querySelector('.gdot-carousel-inner');
+    if (inner) {
+        // Smooth scroll with mouse wheel
+        inner.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            carousel.style.animationPlayState = 'paused';
+            
+            const scrollAmount = e.deltaY > 0 ? 100 : -100;
+            inner.scrollLeft += scrollAmount;
+            
+            // Clear any existing timer
+            if (window.carouselScrollTimer) {
+                clearTimeout(window.carouselScrollTimer);
+            }
+            
+            // Resume animation after scrolling
+            window.carouselScrollTimer = setTimeout(() => {
+                carousel.style.animationPlayState = 'running';
+            }, 1500);
+        });
+    }
+}
+
+// Enhance carousel for PC on load
+document.addEventListener('DOMContentLoaded', enhanceCarouselForPC);
+
+// Reapply PC enhancements on window resize
+window.addEventListener('resize', enhanceCarouselForPC);
+
+// Initialize animations and visual effects
+function initAnimations() {
+    console.log('Initializing animations...');
+    
+    // Find elements with animation classes
+    const animatedElements = document.querySelectorAll('.animate-fade-in, .animate-slide-in, .animate-bounce');
+    
+    // Create intersection observer for animations
+    if ('IntersectionObserver' in window) {
+        const observer = new IntersectionObserver(entries => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('animated');
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.1 });
+        
+        animatedElements.forEach(el => observer.observe(el));
+    } else {
+        // Fallback for browsers that don't support IntersectionObserver
+        animatedElements.forEach(el => el.classList.add('animated'));
+    }
+}

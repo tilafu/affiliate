@@ -55,7 +55,7 @@ function initializeTaskPage() {
   // Store auth data globally for use in other functions
   globalAuthData = authData;
     // Get references to key elements
-  window.taskPageElements.autoStartButton = document.getElementById('start-drive-button');
+  window.taskPageElements.searchButton = document.getElementById('show-product-modal-btn');
   window.taskPageElements.productCardContainer = document.getElementById('product-card-container'); // Get reference to the new container
   window.taskPageElements.walletBalanceElement = document.querySelector('.datadrive-balance');  // Select the balance element directly
   window.taskPageElements.driveCommissionElement = document.querySelector('.datadrive-commission'); // Element for drive commission
@@ -85,8 +85,7 @@ function initializeTaskPage() {
     id: window.taskPageElements.tasksProgressElement?.id,
     currentText: window.taskPageElements.tasksProgressElement?.textContent,
     innerHTML: window.taskPageElements.tasksProgressElement?.innerHTML
-  });// Initial UI state: Hide elements by default, will be shown based on drive status
-  if (window.taskPageElements.autoStartButton) window.taskPageElements.autoStartButton.style.display = 'none'; // Don't show until we check drive status
+  });  // Initial UI state: Hide elements by default, will be shown based on drive status
   if (window.taskPageElements.productCardContainer) window.taskPageElements.productCardContainer.style.display = 'none';
   if (window.taskPageElements.orderLoadingOverlay) window.taskPageElements.orderLoadingOverlay.style.display = 'none';
     // Try to restore session data from localStorage first
@@ -148,20 +147,8 @@ function initializeTaskPage() {
       });
   }
   
-  // Attach listener for the Start button
-  if (window.taskPageElements.autoStartButton) {
-      console.log("Found #start-drive-button button, attaching listener.");
-      window.taskPageElements.autoStartButton.addEventListener('click', () => {
-          console.log("#start-drive-button button clicked.");
-          if (!isStartingDrive) { // Only start if not already in the process
-              isStartingDrive = true; // Set flag
-              startDriveProcess(authData.token);
-          } else {
-              console.log("Start Drive button clicked, but process is already starting.");
-          }
-      });  } else {
-      console.error('Could not find #start-drive-button button to attach listener.');
-  }
+  // We'll rely on event delegation for the search button in initializeModalEventDelegation() instead
+  console.log("Using event delegation for the search button via initializeModalEventDelegation()");
 
   // Attach listener for the Refresh Drive button
   const refreshDriveButton = document.getElementById('refresh-drive-button');
@@ -600,11 +587,6 @@ function startDriveProcess(token) {
     }
     console.log("startDriveProcess called.");
     
-    if (window.taskPageElements.autoStartButton) {
-        window.taskPageElements.autoStartButton.innerHTML = '<i class="fas fa-hourglass-half me-2"></i>Starting...';
-        window.taskPageElements.autoStartButton.disabled = true;
-    }
-    
     // Call API directly without countdown
     callStartDriveAPI(token);
 }
@@ -724,7 +706,7 @@ function callStartDriveAPI(token) {
                     currentProductData = data.current_order;
                     renderProductCard(data.current_order);
                     
-                    if (window.taskPageElements.autoStartButton) window.taskPageElements.autoStartButton.style.display = 'none';
+                    // Show product container (no need to hide search button)
                     if (window.taskPageElements.productCardContainer) window.taskPageElements.productCardContainer.style.display = 'block';
                 } else {
                     console.error("callStartDriveAPI: Missing required fields in successful response", {
@@ -2368,6 +2350,13 @@ function initializeModalEventDelegation() {
   document.body.addEventListener('click', function(event) {
     const target = event.target;
     
+    // Handle search button click
+    if (target.id === 'show-product-modal-btn' || target.closest('#show-product-modal-btn')) {
+      event.preventDefault();
+      console.log('Search button clicked, opening product modal');
+      openProductModal();
+    }
+    
     // Handle modal open buttons
     if (target.classList.contains('js-modal-open') || target.closest('.js-modal-open')) {
       event.preventDefault();
@@ -2478,42 +2467,58 @@ function openProductModal() {
     return;
   }
   
-  const productImage = document.getElementById('product-image');
-  const productName = document.getElementById('product-name');
-  const productPrice = document.getElementById('product-price');
-  const productCommission = document.getElementById('product-commission');
-  
-  if (!productImage || !productName || !productPrice || !productCommission) {
-    console.error('Product data elements not found');
-    return;
-  }
-  
-  // Copy data to modal
-  const modalImage = document.getElementById('modal-product-image');
-  const modalName = document.getElementById('modal-product-name');
-  const modalPrice = document.getElementById('modal-product-price');
-  const modalCommission = document.getElementById('modal-product-commission');
-  
-  if (modalImage) modalImage.src = productImage.src;
-  if (modalName) modalName.textContent = productName.textContent;
-  if (modalPrice) modalPrice.textContent = productPrice.textContent;
-  if (modalCommission) modalCommission.textContent = productCommission.textContent;
-  
-  // Set current date and time
-  const now = new Date();
-  const dateElement = document.getElementById('product-date');
-  const timeElement = document.getElementById('product-time');
-  if (dateElement) dateElement.textContent = now.toLocaleDateString('en-GB');
-  if (timeElement) timeElement.textContent = Date.now().toString();
-  
-  // Calculate total return
-  updateTotalReturn();
-  
-  // Show modal
+  // Show modal immediately with loading animation
   modal.classList.add('show');
   document.body.style.overflow = 'hidden';
   
-  console.log('Product modal opened successfully');
+  // Show loading animation, hide content
+  const loadingAnimation = document.getElementById('modal-loading-animation');
+  const modalContent = document.getElementById('modal-content');
+  
+  if (loadingAnimation) loadingAnimation.style.display = 'block';
+  if (modalContent) modalContent.style.display = 'none';
+  
+  // Set timeout to simulate loading and then show content
+  setTimeout(() => {
+    const productImage = document.getElementById('product-image');
+    const productName = document.getElementById('product-name');
+    const productPrice = document.getElementById('product-price');
+    const productCommission = document.getElementById('product-commission');
+    
+    if (!productImage || !productName || !productPrice || !productCommission) {
+      console.error('Product data elements not found');
+      return;
+    }
+    
+    // Copy data to modal
+    const modalImage = document.getElementById('modal-product-image');
+    const modalName = document.getElementById('modal-product-name');
+    const modalPrice = document.getElementById('modal-product-price');
+    const modalCommission = document.getElementById('modal-product-commission');
+    
+    if (modalImage) modalImage.src = productImage.src;
+    if (modalName) modalName.textContent = productName.textContent;
+    if (modalPrice) modalPrice.textContent = productPrice.textContent;
+    if (modalCommission) modalCommission.textContent = productCommission.textContent;
+    
+    // Set current date and time
+    const now = new Date();
+    const dateElement = document.getElementById('product-date');
+    const timeElement = document.getElementById('product-time');
+    if (dateElement) dateElement.textContent = now.toLocaleDateString('en-GB');
+    if (timeElement) timeElement.textContent = Date.now().toString();
+    
+    // Calculate total return
+    updateTotalReturn();
+    
+    // Hide loading animation, show content
+    if (loadingAnimation) loadingAnimation.style.display = 'none';
+    if (modalContent) modalContent.style.display = 'block';
+    
+    console.log('Product content displayed in modal');
+  }, 2000); // 2 seconds delay to show the loading animation
+  
+  console.log('Product modal opened successfully with loading animation');
 }
 
 function closeProductModal() {
@@ -2526,6 +2531,13 @@ function closeProductModal() {
   
   modal.classList.remove('show');
   document.body.style.overflow = '';
+  
+  // Reset loading state for next open
+  const loadingAnimation = document.getElementById('modal-loading-animation');
+  const modalContent = document.getElementById('modal-content');
+  
+  if (loadingAnimation) loadingAnimation.style.display = 'block';
+  if (modalContent) modalContent.style.display = 'none';
   
   // Reset form
   const couponInput = document.getElementById('coupon-code');

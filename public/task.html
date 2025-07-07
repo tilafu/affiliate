@@ -101,14 +101,10 @@
             </div>
         </div>
 
-        <!-- Search Bar -->
+        <!-- Search Button -->
         <div class="gdot-search-container">
-            <div class="gdot-search-input-wrapper">
-                <label for="product-search" class="gdot-search-label">Search product</label>
-                <div class="gdot-search-input-group">
-                    <input type="text" id="product-search" class="gdot-search-input">
-                    <button id="start-drive-button" class="gdot-search-button">Search</button>
-                </div>
+            <div class="gdot-search-btn-wrapper">
+                <button id="show-product-modal-btn" class="gdot-search-button">Search</button>
             </div>
         </div>
         
@@ -160,25 +156,59 @@
         <!-- Trending Products -->
         <div class="gdot-trending-section">
             <h3 class="gdot-section-title">Trending Products</h3>
-            <div class="gdot-products-grid">
-                <div class="gdot-product-icon" data-name="Game Controller">
-                    <img src="./assets/images/products/gamepad.png" alt="Game Controller">
+            <div class="gdot-carousel-container">
+                <div class="gdot-carousel-inner">
+                    <div class="gdot-products-carousel">
+                        <!-- First set of items (for continuous loop) -->
+                        <div class="gdot-product-icon" data-name="Game Controller">
+                            <img src="./assets/images/products/gamepad.png" alt="Game Controller">
+                        </div>
+                        <div class="gdot-product-icon" data-name="Athletic Shoe">
+                            <img src="./assets/images/products/shoe.png" alt="Shoe">
+                        </div>
+                        <div class="gdot-product-icon" data-name="Cooking Pot">
+                            <img src="./assets/images/products/pot.png" alt="Cooking Pot">
+                        </div>
+                        <div class="gdot-product-icon" data-name="Premium Cheese">
+                            <img src="./assets/images/products/cheese.png" alt="Cheese">
+                        </div>
+                        <div class="gdot-product-icon" data-name="Diamond Ring">
+                            <img src="./assets/images/products/ring.png" alt="Ring">
+                        </div>
+                        <div class="gdot-product-icon" data-name="Smart Watch">
+                            <img src="./assets/images/products/watch.png" alt="Watch">
+                            <span class="gdot-product-badge">#07</span>
+                        </div>
+                        
+                        <!-- Duplicate items for seamless scrolling -->
+                        <div class="gdot-product-icon" data-name="Game Controller">
+                            <img src="./assets/images/products/gamepad.png" alt="Game Controller">
+                        </div>
+                        <div class="gdot-product-icon" data-name="Athletic Shoe">
+                            <img src="./assets/images/products/shoe.png" alt="Shoe">
+                        </div>
+                        <div class="gdot-product-icon" data-name="Cooking Pot">
+                            <img src="./assets/images/products/pot.png" alt="Cooking Pot">
+                        </div>
+                        <div class="gdot-product-icon" data-name="Premium Cheese">
+                            <img src="./assets/images/products/cheese.png" alt="Cheese">
+                        </div>
+                        <div class="gdot-product-icon" data-name="Diamond Ring">
+                            <img src="./assets/images/products/ring.png" alt="Ring">
+                        </div>
+                        <div class="gdot-product-icon" data-name="Smart Watch">
+                            <img src="./assets/images/products/watch.png" alt="Watch">
+                            <span class="gdot-product-badge">#07</span>
+                        </div>
+                    </div>
                 </div>
-                <div class="gdot-product-icon" data-name="Athletic Shoe">
-                    <img src="./assets/images/products/shoe.png" alt="Shoe">
-                </div>
-                <div class="gdot-product-icon" data-name="Cooking Pot">
-                    <img src="./assets/images/products/pot.png" alt="Cooking Pot">
-                </div>
-                <div class="gdot-product-icon" data-name="Premium Cheese">
-                    <img src="./assets/images/products/cheese.png" alt="Cheese">
-                </div>
-                <div class="gdot-product-icon" data-name="Diamond Ring">
-                    <img src="./assets/images/products/ring.png" alt="Ring">
-                </div>
-                <div class="gdot-product-icon" data-name="Smart Watch">
-                    <img src="./assets/images/products/watch.png" alt="Watch">
-                    <span class="gdot-product-badge">#07</span>
+                <div class="gdot-carousel-controls">
+                    <button class="gdot-carousel-control" data-direction="prev">
+                        <span>←</span>
+                    </button>
+                    <button class="gdot-carousel-control" data-direction="next">
+                        <span>→</span>
+                    </button>
                 </div>
             </div>
         </div>
@@ -270,7 +300,13 @@
             </button>
         </div>
         <div class="product-modal-body p-4">
-            <div class="row g-4">
+            <!-- Loading Animation -->
+            <div id="modal-loading-animation" class="text-center mb-4">
+                <img src="./assets/uploads/ShoppingLoader-GIFAnimation-ezgif.com-gif-maker.gif" alt="Loading..." class="loading-gif" style="max-width: 150px;">
+                <p class="mt-2">Finding the best product for you...</p>
+            </div>
+            
+            <div id="modal-content" class="row g-4" style="display: none;">
                 <!-- Product Image Gallery -->
                 <div class="col-12 text-center">
                     <div class="position-relative d-inline-block">
