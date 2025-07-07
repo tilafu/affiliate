@@ -1,16 +1,18 @@
-/* Task Page Styles - Extracted from task.html */
-/* 
- * This file contains all styles that were previously inline in task.html:
- * - Debug console styles
- * - Purchase success popup styles  
- * - Animation keyframes and classes
- * - Utility classes for dynamic states
- * - Responsive styles
- * - Print styles
- * - Progress section styles
- * 
- * Last updated: 2025-07-05
- */
+/* Task Page Styles */
+
+/* Global Styles */
+:root {
+    --primary-color: #4f46e5;
+    --secondary-color: #8b5cf6;
+    --success-color: #10b981;
+    --warning-color: #f59e0b;
+    --danger-color: #ef4444;
+    --light-color: #f3f4f6;
+    --dark-color: #1f2937;
+    --border-radius: 0.75rem;
+    --box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --transition-speed: 0.3s;
+}
 
 /* Debug Console Styles */
 #debug-section {
