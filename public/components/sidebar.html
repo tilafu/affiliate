@@ -3,101 +3,138 @@
       <button id="sidebar-close-button" class="close-btn">
          <i class="fas fa-times"></i>
       </button>
-   </div>   <div class="user-profile-section">
-      <div class="profile-card">
-         <div class="profile-avatar">
-            <div class="avatar-circle" id="sidebar-avatar">
-               <span id="sidebar-user-initials">RA</span>
-            </div>
-            <div class="online-indicator"></div>
-         </div>         <div class="profile-info">
-            <h4 class="profile-name" id="dashboard-username">Loading...</h4>
-            <p class="profile-ref clickable-ref" id="dashboard-refcode" title="Click to copy referral code">
-               <span class="ref-text">REF: ------</span>
-               <i class="fas fa-copy ref-copy-icon"></i>
-            </p>
+   </div>
+   
+   <!-- User Profile Section - More Compact -->
+   <div class="user-profile-section">
+      <div class="profile-container">
+         <div class="profile-image">
+            <img id="user-avatar" src="../assets/images/default-avatar.png" alt="User Avatar">
+         </div>
+         <div class="welcome-text">
+            <h2 class="welcome-heading">Welcome, <span id="dashboard-username">Alex</span></h2>
+            <p class="badge-info">PEA Badge No: <span id="user-badge-number">1234</span></p>
+            <p class="verification-status">Verified by <span id="verification-provider">Cdot</span></p>
          </div>
       </div>
    </div>
-   <div class="sidebar-divider"></div>
-      <div class="navigation-menu">
-      <nav class="sidebar-nav">
-         <ul class="nav-list">            <li class="nav-item">
+   
+   <!-- Balance Section - More Compact -->
+   <div class="balance-section">
+      <h3 class="section-label">Available Balance</h3>
+      <p class="balance-amount">$<span id="user-balance">1,234.56</span></p>
+      <button id="change-currency-btn" class="currency-change-btn">Change Currency</button>
+   </div>
+   
+   <!-- Main Navigation -->
+   <div class="navigation-menu">
+      <!-- Wallet & Profile Section -->
+      <div class="menu-section">
+         <h3 class="section-title">Wallet & Profile</h3>
+         <ul class="nav-list">
+            <li class="nav-item">
                <a href="./profile.html" class="nav-link">
-                  <i class="fas fa-user-circle nav-icon"></i>
+                  <div class="nav-icon-container">
+                     <i class="fas fa-user-circle"></i>
+                  </div>
                   <span class="nav-text" data-i18n="sidebarProfileLink">Profile</span>
                </a>
             </li>
             <li class="nav-item">
                <a href="./deposits.html" class="nav-link">
-                  <i class="fas fa-piggy-bank nav-icon"></i>
-                  <span class="nav-text" data-i18n="sidebarDepositsLink">Deposits</span>
+                  <div class="nav-icon-container">
+                     <i class="fas fa-plus"></i>
+                  </div>
+                  <span class="nav-text" data-i18n="sidebarDepositsLink">Cash In</span>
                </a>
             </li>
             <li class="nav-item">
                <a href="./withdraws.html" class="nav-link">
-                  <i class="fas fa-hand-holding-usd nav-icon"></i>
-                  <span class="nav-text" data-i18n="sidebarWithdrawalLink">Withdrawal</span>
+                  <div class="nav-icon-container">
+                     <i class="fas fa-minus"></i>
+                  </div>
+                  <span class="nav-text" data-i18n="sidebarWithdrawalLink">Cash Out</span>
                </a>
             </li>
+         </ul>
+      </div>
+      
+      <!-- Engagement Section -->
+      <div class="menu-section">
+         <h3 class="section-title">Engagement</h3>
+         <ul class="nav-list">
             <li class="nav-item">
                <a href="./certificates.html" class="nav-link">
-                  <i class="fas fa-award nav-icon"></i>
-                  <span class="nav-text" data-i18n="sidebarCertificatesLink">Certificates</span>
+                  <div class="nav-icon-container">
+                     <i class="fas fa-certificate"></i>
+                  </div>
+                  <span class="nav-text" data-i18n="sidebarCertificatesLink">Certificate</span>
                </a>
             </li>
             <li class="nav-item">
                <a href="./events.html" class="nav-link">
-                  <i class="fas fa-calendar-star nav-icon"></i>
-                  <span class="nav-text" data-i18n="sidebarLatestEventsLink">Latest Events</span>
+                  <div class="nav-icon-container">
+                     <i class="fas fa-calendar-alt"></i>
+                  </div>
+                  <span class="nav-text" data-i18n="sidebarLatestEventsLink">Latest Event</span>
                </a>
             </li>
             <li class="nav-item">
                <a href="./memberships.html" class="nav-link">
-                  <i class="fas fa-gem nav-icon"></i>
-                  <span class="nav-text" data-i18n="sidebarMembershipsLink">Memberships</span>
+                  <div class="nav-icon-container">
+                     <i class="fas fa-users"></i>
+                  </div>
+                  <span class="nav-text" data-i18n="sidebarMembershipsLink">Membership</span>
                </a>
             </li>
+         </ul>
+      </div>
+      
+      <!-- Support & Info Section -->
+      <div class="menu-section">
+         <h3 class="section-title">Support & Info</h3>
+         <ul class="nav-list">
             <li class="nav-item">
                <a href="./terms.html" class="nav-link">
-                  <i class="fas fa-file-signature nav-icon"></i>
+                  <div class="nav-icon-container">
+                     <i class="fas fa-file-alt"></i>
+                  </div>
                   <span class="nav-text" data-i18n="sidebarTermsLink">Terms & Conditions</span>
                </a>
             </li>
             <li class="nav-item">
                <a href="./faqs.html" class="nav-link">
-                  <i class="fas fa-lightbulb nav-icon"></i>
-                  <span class="nav-text" data-i18n="sidebarFAQsLink">FAQs</span>
-               </a>
-            </li>
-            <!-- <li class="nav-item">
-               <a href="./company.html" class="nav-link">
-                  <i class="fas fa-info-circle nav-icon"></i>
-                  <span class="nav-text" data-i18n="sidebarAboutUsLink">About Us</span>
-               </a>
-            </li>             -->
-
-            <li class="nav-item logout-item">
-               <a href="#" class="nav-link logout" id="sidebar-logout-btn">
-                  <i class="fas fa-power-off nav-icon"></i>
-                  <span class="nav-text" data-i18n="sidebarLogoutLink">Logout</span>
+                  <div class="nav-icon-container">
+                     <i class="fas fa-question-circle"></i>
+                  </div>
+                  <span class="nav-text" data-i18n="sidebarFAQsLink">FAQ</span>
                </a>
             </li>
          </ul>
-      </nav>
-   </div>   
-   <!-- Language Switcher -->
-   <div class="language-switcher">
-      <div class="switcher-header">
-         <i class="fas fa-globe"></i>
-         <label for="language-switcher" class="switcher-label" data-i18n="languageLabel">Language</label>
       </div>
-      <select id="language-switcher" class="language-select">
-         <option value="en">🇺🇸 English</option>
-         <option value="es">🇪🇸 Español</option>
-         <option value="fr">🇫🇷 Français</option>
-      </select>
-   </div>   <style>
+      
+      <!-- Services Section -->
+      <div class="menu-section">
+         <h3 class="section-title">Services</h3>
+         <ul class="nav-list">
+            <li class="nav-item">
+               <a href="./credit-loan.html" class="nav-link">
+                  <div class="nav-icon-container">
+                     <i class="fas fa-credit-card"></i>
+                  </div>
+                  <span class="nav-text">Request a Credit Loan</span>
+               </a>
+            </li>
+         </ul>
+      </div>
+   </div>
+   
+   <!-- Logout Button -->
+   <div class="logout-container">
+      <button id="sidebar-logout-btn" class="logout-btn">Log Out</button>
+   </div>
+
+   <style>
    :root {
       --primary-blue: #007AFF;
       --secondary-blue: #5AC8FA;
@@ -113,197 +150,139 @@
       --border-color: #E5E5EA;
       --shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
       --shadow-hover: 0 8px 32px rgba(0, 0, 0, 0.15);
-   }   .main-sidebar {
-      background: var(--background);
+   }
+   
+   .main-sidebar {
+      background: var(--card-background);
       color: var(--text-primary);
       height: 100vh;
-      overflow-y: auto;
-      box-shadow: var(--shadow-hover);
+      overflow-y: auto; /* This makes the entire sidebar scrollable */
+      box-shadow: var(--shadow);
       position: fixed;
       top: 0;
       left: -320px;
       width: 320px;
       transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
       z-index: 10001;
-      backdrop-filter: blur(20px);
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       border-right: 1px solid var(--border-color);
-   }.main-sidebar.active {
+      display: flex;
+      flex-direction: column;
+   }
+   
+   .main-sidebar.active {
       left: 0;
    }
 
    .sidebar-header {
-      position: relative;
-      padding: 1.25rem;
+      padding: 0.5rem; /* Reduced padding */
+      text-align: right;
       border-bottom: 1px solid var(--border-color);
-      display: flex;
-      justify-content: flex-end;
-      background: var(--card-background);
-   }
-
-   .sidebar-close-toggler {
-      position: absolute;
-      top: 20px;
-      right: 20px;
-      z-index: 1000;
    }
 
    .close-btn {
-      background: var(--background);
+      background: transparent;
       border: none;
-      border-radius: 50%;
-      width: 40px;
-      height: 40px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      font-size: 1.1rem; /* Slightly smaller */
+      cursor: pointer;
       color: var(--text-secondary);
-      text-decoration: none;
-      transition: all 0.3s ease;
-      box-shadow: var(--shadow);
-   }   .close-btn:hover {
-      background: var(--border-color);
-      color: var(--text-primary);
-      transform: translateY(-1px);
-   }   .user-profile-section {
-      padding: 1.5rem;
+   }
+
+   /* User Profile Section - More compact */
+   .user-profile-section {
+      padding: 0.8rem; /* Reduced padding */
       border-bottom: 1px solid var(--border-color);
    }
 
-   .profile-card {
-      background: linear-gradient(135deg, var(--primary-blue), var(--secondary-blue));
-      border-radius: 20px;
-      padding: 2rem;
-      text-align: center;
-      box-shadow: var(--shadow);
-      position: relative;
-      overflow: hidden;
-   }
-
-   .profile-card::before {
-      content: '';
-      position: absolute;
-      top: -50%;
-      right: -50%;
-      width: 200%;
-      height: 200%;
-      background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
-      pointer-events: none;
-   }   .profile-img-wrapper {
-      position: relative;
-      display: inline-block;
-      margin-bottom: 15px;
-   }
-
-   .profile-avatar {
-      position: relative;
-      display: inline-block;
-      margin-bottom: 1rem;
-   }
-
-   .avatar-circle {
-      width: 80px;
-      height: 80px;
-      background: rgba(255, 255, 255, 0.2);
-      border-radius: 50%;
+   .profile-container {
       display: flex;
       align-items: center;
-      justify-content: center;
-      color: white;
-      font-size: 32px;
-      font-weight: 700;
-      border: 3px solid rgba(255, 255, 255, 0.3);
-      backdrop-filter: blur(10px);
    }
 
-   .online-indicator {
-      position: absolute;
-      bottom: 8px;
-      right: 8px;
-      width: 18px;
-      height: 18px;
-      background: var(--success-green);
+   .profile-image {
+      margin-right: 0.8rem; /* Space between image and text */
+      flex-shrink: 0; /* Prevent the image from shrinking */
+   }
+
+   .profile-image img {
+      width: 60px; /* Smaller profile image */
+      height: 60px;
       border-radius: 50%;
-      border: 3px solid white;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-   }.profile-img {
-      width: 80px;
-      height: 80px;
-      border-radius: 50%;
-      border: 4px solid rgba(255,255,255,0.9);
       object-fit: cover;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.2);
    }
 
-   .online-status {
-      position: absolute;
-      bottom: 8px;
-      right: 8px;
-      width: 18px;
-      height: 18px;
-      background: var(--success-green);
-      border-radius: 50%;
-      border: 3px solid white;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-   }   .username, .profile-name {
-      color: white;
-      font-size: 18px;
+   .welcome-text {
+      text-align: left; /* Left align text */
+      flex-grow: 1; /* Take up remaining space */
+   }
+
+   .welcome-heading {
+      font-size: 1.1rem; /* Smaller heading */
+      margin: 0 0 0.2rem;
       font-weight: 600;
-      margin: 0 0 0.5rem 0;
-      text-shadow: 0 1px 2px rgba(0,0,0,0.1);
-   }   .ref-code, .profile-ref {
-      color: rgba(255,255,255,0.9);
-      font-size: 12px;
+   }
+
+   .badge-info, .verification-status {
+      margin: 0.1rem 0; /* Minimal margin */
+      color: var(--text-secondary);
+      font-size: 0.75rem; /* Smaller font */
+      line-height: 1.2; /* Tighter line height */
+   }
+
+   /* Balance Section - Even more compact */
+   .balance-section {
+      padding: 0.6rem; /* Further reduced padding */
+      text-align: center;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+   }
+
+   .section-label {
+      font-size: 0.8rem; /* Smaller font */
       font-weight: 500;
-      margin: 0;
-      background: rgba(255,255,255,0.2);
-      padding: 4px 12px;
-      border-radius: 16px;
-      display: inline-block;
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(255,255,255,0.3);
-   }   .clickable-ref {
+      margin-bottom: 0.2rem;
+      color: var(--text-secondary);
+   }
+
+   .balance-amount {
+      font-size: 1.3rem; /* Smaller font */
+      font-weight: 700;
+      margin: 0.2rem 0 0.3rem; /* Further reduced margins */
+   }
+
+   .currency-change-btn {
+      background-color: var(--background);
+      border: none;
+      border-radius: 1.2rem;
+      padding: 0.25rem 1rem; /* Further reduced padding */
+      font-size: 0.75rem; /* Smaller font */
       cursor: pointer;
       transition: all 0.3s ease;
-      user-select: none;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
    }
 
-   .clickable-ref:hover {
-      background: rgba(255,255,255,0.3);
-      border-color: rgba(255,255,255,0.5);
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+   .currency-change-btn:hover {
+      background-color: var(--border-color);
    }
 
-   .clickable-ref:active {
-      transform: translateY(0);
-      background: rgba(255,255,255,0.4);
+   /* Navigation Menu - Even more compact */
+   .navigation-menu {
+      padding: 0.25rem 0; /* Further reduced padding */
+      /* No flex: 1 to prevent it from expanding and causing scroll */
    }
 
-   .ref-copy-icon {
-      opacity: 0.7;
-      font-size: 10px;
-      transition: all 0.3s ease;
+   .menu-section {
+      padding: 0.2rem 0.75rem; /* Further reduced padding */
+      margin-bottom: 0.3rem; /* Further reduced margin */
    }
 
-   .clickable-ref:hover .ref-copy-icon {
-      opacity: 1;
-      transform: scale(1.1);
-   }
-
-   .ref-text {
-      flex: 1;
-   }.sidebar-divider {
-      height: 1px;
-      background: var(--border-color);
-      margin: 0;
-   }   .navigation-menu {
-      padding: 1.5rem;
-      flex: 1;
+   .section-title {
+      font-size: 0.8rem; /* Even smaller font */
+      font-weight: 600;
+      margin-bottom: 0.2rem; /* Further reduced margin */
+      color: var(--text-secondary);
+      padding-left: 0.3rem; /* Add a small left padding */
    }
 
    .nav-list {
@@ -313,297 +292,81 @@
    }
 
    .nav-item {
-      margin-bottom: 4px;
+      margin-bottom: 0.1rem; /* Minimal margin between items */
    }
 
    .nav-link {
       display: flex;
       align-items: center;
-      padding: 16px 20px;
-      color: var(--text-primary);
+      padding: 0.35rem 0.5rem; /* Further reduced padding */
       text-decoration: none;
-      border-radius: 16px;
-      transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-      position: relative;
-      overflow: hidden;
-      font-weight: 500;
-      font-size: 16px;
-   }
-
-   .nav-link::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: var(--background);
-      border-radius: 16px;
-      opacity: 0;
-      transition: all 0.3s ease;
-      z-index: -1;
+      color: var(--text-primary);
+      border-radius: 0.4rem;
+      transition: background-color 0.2s ease;
    }
 
    .nav-link:hover {
-      color: var(--primary-blue);
-      text-decoration: none;
-      transform: translateX(4px);
+      background-color: var(--background);
    }
 
-   .nav-link:hover::before {
-      opacity: 1;
-   }
-
-   .nav-link:active {
-      transform: translateX(2px) scale(0.98);
-   }   .nav-icon {
-      width: 24px;
-      height: 24px;
+   .nav-icon-container {
       display: flex;
       align-items: center;
       justify-content: center;
-      text-align: center;
-      margin-right: 16px;
-      font-size: 18px;
-      transition: all 0.3s ease;
-      border-radius: 8px;
-      background: var(--background);
-      color: var(--text-secondary);
+      width: 1.7rem; /* Even smaller icon container */
+      height: 1.7rem;
+      margin-right: 0.5rem; /* Further reduced margin */
+      border-radius: 0.3rem;
+      background-color: var(--background);
    }
 
-   .nav-link:hover .nav-icon {
-      transform: scale(1.1);
-      background: var(--primary-blue);
-      color: white;
+   .nav-link:hover .nav-icon-container {
+      background-color: var(--border-color);
    }
 
-   .nav-text {
-      font-weight: 500;
-      letter-spacing: -0.01em;
-   }
-
-   /* Modern icon colors with subtle backgrounds */
-   .nav-link[href="./profile.html"] .nav-icon {
-      background: linear-gradient(135deg, #667eea, #764ba2);
-      color: white;
-   }
-
-   .nav-link[href="./deposits.html"] .nav-icon {
-      background: linear-gradient(135deg, var(--success-green), #28a745);
-      color: white;
-   }
-
-   .nav-link[href="./withdraws.html"] .nav-icon {
-      background: linear-gradient(135deg, var(--warning-orange), #fd7e14);
-      color: white;
-   }
-
-   .nav-link[href="./certificates.html"] .nav-icon {
-      background: linear-gradient(135deg, var(--purple), #6610f2);
-      color: white;
-   }
-
-   .nav-link[href="./events.html"] .nav-icon {
-      background: linear-gradient(135deg, var(--pink), #e83e8c);
-      color: white;
-   }
-
-   .nav-link[href="./memberships.html"] .nav-icon {
-      background: linear-gradient(135deg, #ffc107, #fd7e14);
-      color: white;
-   }
-
-   .nav-link[href="./terms.html"] .nav-icon {
-      background: linear-gradient(135deg, #6c757d, #495057);
-      color: white;
-   }
-
-   .nav-link[href="./faqs.html"] .nav-icon {
-      background: linear-gradient(135deg, #17a2b8, #138496);
-      color: white;
-   }
-
-   .nav-link[href="./company.html"] .nav-icon {
-      background: linear-gradient(135deg, #28a745, #20c997);
-      color: white;
-   }
-
-   /* Memberships icon */
-   .nav-link[href="./memberships.html"] .nav-icon {
-      color: #EC407A;
-   }
-   .nav-link[href="./memberships.html"]:hover .nav-icon {
-      color: #E91E63;
-   }
-
-   /* Terms icon */
-   .nav-link[href="./terms.html"] .nav-icon {
-      color: #8D6E63;
-   }
-   .nav-link[href="./terms.html"]:hover .nav-icon {
-      color: #795548;
-   }
-
-   /* FAQs icon */
-   .nav-link[href="./faqs.html"] .nav-icon {
-      color: #FFCA28;
-   }
-   .nav-link[href="./faqs.html"]:hover .nav-icon {
-      color: #FFC107;
-   }
-
-   /* About Us icon */
-   .nav-link[href="./company.html"] .nav-icon {
-      color: #42A5F5;
-   }
-   .nav-link[href="./company.html"]:hover .nav-icon {
-      color: #2196F3;
-   }
-
-   /* Logout icon with special styling */
-   .logout-item .nav-icon {
-      color: #FF8A80 !important;
-      animation: pulse 2s infinite;
-   }
-   .logout-item:hover .nav-icon {
-      color: #FF5722 !important;
-      animation: none;
-   }
-
-   @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.7; }
-   }
-
-   .nav-text {
-      font-size: 14px;
-      font-weight: 500;
-      text-transform: capitalize;
-   }   /* Logout section styling */
-   .logout-item {
-      margin-top: 32px;
-      padding-top: 24px;
+   /* Logout Button - Even more compact */
+   .logout-container {
+      padding: 0.5rem; /* Further reduced padding */
       border-top: 1px solid var(--border-color);
+      margin-top: auto; /* Push to bottom when space is available */
    }
 
-   .logout-item .nav-link {
-      background: linear-gradient(135deg, var(--danger-red), #dc3545);
-      color: white;
-      font-weight: 600;
-   }   .logout-item .nav-link:hover {
-      background: linear-gradient(135deg, #dc3545, #c82333);
-      transform: translateX(4px) scale(1.02);
-      color: var(--danger-red) !important;
-   }
-
-   .logout-item .nav-link:hover .nav-text {
-      color: var(--danger-red) !important;
-   }
-
-   .logout-item .nav-icon {
-      background: rgba(255,255,255,0.2) !important;
-      color: white !important;
-   }
-
-   .logout-item .nav-link:hover .nav-icon {
-      background: rgba(255,255,255,0.3) !important;
-      color: white !important;
-   }   .language-switcher {
-      padding: 1.5rem;
-      margin-top: auto;
-      border-top: 1px solid var(--border-color);
-      background: var(--card-background);
-   }
-
-   .switcher-header {
-      display: flex;
-      align-items: center;
-      margin-bottom: 0.75rem;
-      color: var(--text-primary);
-      font-size: 14px;
-      font-weight: 500;
-   }
-
-   .switcher-header i {
-      margin-right: 0.5rem;
-      font-size: 16px;
-      color: var(--primary-blue);
-   }
-
-   .language-select {
+   .logout-btn {
       width: 100%;
-      background: var(--background);
-      border: 1px solid var(--border-color);
-      border-radius: 12px;
-      color: var(--text-primary);
-      padding: 0.75rem 1rem;
-      font-size: 14px;
-      font-weight: 500;
-      transition: all 0.3s ease;
-      cursor: pointer;
-   }
-
-   .language-select:focus {
-      outline: none;
-      border-color: var(--primary-blue);
-      box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
-   }
-
-   .language-select option {
-      background: var(--card-background);
-      color: var(--text-primary);
-      padding: 0.5rem;
-   }
-
-   /* Active state for current page */
-   .nav-link.active {
-      background: rgba(255,255,255,0.2);
+      padding: 0.4rem; /* Further reduced padding */
+      background-color: var(--danger-red);
       color: white;
+      border: none;
+      border-radius: 0.4rem;
+      font-size: 0.85rem; /* Smaller font */
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
    }
 
-   .nav-link.active .nav-icon {
-      color: #FFD700;
+   .logout-btn:hover {
+      background-color: #E02020;
    }
 
-   /* Responsive */
-   @media (max-width: 768px) {
-      .main-sidebar {
-         width: 260px;
-      }
-      
-      .profile-card {
-         padding: 15px;
-      }
-      
-      .nav-link {
-         padding: 10px 12px;
-      }
-   }
-
-   /* Scrollbar styling */
+   /* Scrollbar styling - Applied to the main sidebar */
    .main-sidebar::-webkit-scrollbar {
       width: 4px;
    }
 
    .main-sidebar::-webkit-scrollbar-track {
-      background: rgba(255,255,255,0.1);
+      background: rgba(0,0,0,0.05);
    }
 
    .main-sidebar::-webkit-scrollbar-thumb {
-      background: rgba(255,255,255,0.3);
+      background: rgba(0,0,0,0.15);
       border-radius: 2px;
    }
 
    .main-sidebar::-webkit-scrollbar-thumb:hover {
-      background: rgba(255,255,255,0.5);
+      background: rgba(0,0,0,0.3);
    }
 
-   /* Body scroll lock when sidebar is open */
-   body.sidebar-open {
-      overflow: hidden;
-   }
-
-   /* Enhanced overlay styling */
+   /* Overlay styling */
    .bg-overlay {
       position: fixed;
       width: 100%;
@@ -621,15 +384,46 @@
       opacity: 1;
       visibility: visible;
    }
+
+   /* Responsive adjustments */
+   @media (max-width: 768px) {
+      .main-sidebar {
+         width: 280px;
+      }
+   }
    </style>
 
    <script>
-   // Enhanced sidebar functionality
+   // Polyfill for fetchWithAuth if it doesn't exist
+   if (typeof fetchWithAuth !== 'function') {
+      console.log('Creating fetchWithAuth polyfill');
+      window.fetchWithAuth = async function(url, options = {}) {
+         const token = localStorage.getItem('auth_token') || localStorage.getItem('token');
+         
+         if (!token) {
+            console.error('No auth token available for fetch');
+            throw new Error('Authentication required');
+         }
+         
+         const headers = {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+            ...(options.headers || {})
+         };
+         
+         return fetch(url, {
+            ...options,
+            headers
+         });
+      };
+   }
+   
    document.addEventListener('DOMContentLoaded', function() {
       const sidebar = document.querySelector('.main-sidebar');
       const overlay = document.querySelector('.bg-overlay');
       const body = document.body;
       const closeButton = document.getElementById('sidebar-close-button');
+      const logoutButton = document.getElementById('sidebar-logout-btn');
 
       // Function to open sidebar
       function openSidebar() {
@@ -651,6 +445,52 @@
             e.preventDefault();
             e.stopPropagation();
             closeSidebar();
+         });
+      }
+
+      // Logout button event
+      if (logoutButton) {
+         logoutButton.addEventListener('click', function(e) {
+            e.preventDefault();
+            handleLogout();
+         });
+      }
+
+      // Currency change button
+      const currencyBtn = document.getElementById('change-currency-btn');
+      if (currencyBtn) {
+         currencyBtn.addEventListener('click', function() {
+            // Get available currencies
+            const currencies = ['USD', 'EUR', 'GBP', 'JPY', 'CAD', 'AUD'];
+            const currentCurrency = localStorage.getItem('preferred_currency') || 'USD';
+            
+            // Find the next currency in the rotation
+            let nextIndex = (currencies.indexOf(currentCurrency) + 1) % currencies.length;
+            const newCurrency = currencies[nextIndex];
+            
+            // Save the new currency preference
+            localStorage.setItem('preferred_currency', newCurrency);
+            
+            // Update the displayed currency symbol on the button
+            const currencySymbols = { 'USD': '$', 'EUR': '€', 'GBP': '£', 'JPY': '¥', 'CAD': 'C$', 'AUD': 'A$' };
+            const balanceElement = document.getElementById('user-balance');
+            
+            if (balanceElement) {
+               const currentValue = balanceElement.textContent;
+               const numericValue = parseFloat(currentValue.replace(/[^0-9.]/g, ''));
+               
+               // Update the currency symbol
+               const currencySymbol = currencySymbols[newCurrency] || newCurrency;
+               document.querySelector('.balance-amount').innerHTML = `${currencySymbol}<span id="user-balance">${new Intl.NumberFormat('en-US', { 
+                  minimumFractionDigits: 2, 
+                  maximumFractionDigits: 2 
+               }).format(numericValue)}</span>`;
+               
+               // Update button text to show next available currency
+               currencyBtn.textContent = `Change to ${currencies[(nextIndex + 1) % currencies.length]}`;
+            }
+            
+            console.log(`Currency changed to ${newCurrency}`);
          });
       }
 
@@ -676,115 +516,294 @@
          if (e.key === 'Escape' && sidebar.classList.contains('active')) {
             closeSidebar();
          }
-      });      // Make functions globally available
+      });
+
+      // Make functions globally available
       window.openSidebar = openSidebar;
       window.closeSidebar = closeSidebar;
-      window.refreshSidebarUserData = loadSidebarUserData;
-
+      
       // Load user data for sidebar
       loadSidebarUserData();
-   });   // Function to load user data into sidebar
-   async function loadSidebarUserData() {
-      const authData = isAuthenticated();
-      if (!authData) {
-         console.log('No authentication data for sidebar');
-         return;
-      }
+   });
 
-      const usernameEl = document.getElementById('dashboard-username');
-      const refcodeEl = document.getElementById('dashboard-refcode');
-      const initialsEl = document.getElementById('sidebar-user-initials');
-
-      // Helper function to generate initials
-      function generateInitials(username) {
-         if (!username || typeof username !== 'string') {
-            return 'U'; // Default fallback
+   // Function to handle logout
+   function handleLogout() {
+      // Implement logout logic here
+      console.log('User logging out');
+      
+      try {
+         // Clear all authentication-related data
+         localStorage.removeItem('auth_token');
+         localStorage.removeItem('user_data');
+         
+         // Clear additional tokens if they exist
+         if (localStorage.getItem('token')) {
+            localStorage.removeItem('token');
+         }
+         if (localStorage.getItem('user')) {
+            localStorage.removeItem('user');
          }
          
-         const words = username.trim().split(' ').filter(word => word.length > 0);
-         if (words.length === 0) {
-            return 'U';
-         } else if (words.length === 1) {
-            // Single name: use first two characters or just first if name is short
-            return words[0].substring(0, 2).toUpperCase();
-         } else {
-            // Multiple names: use first character of first two words
-            return words.slice(0, 2).map(word => word[0]).join('').toUpperCase();
-         }
+         console.log('All auth data cleared successfully');
+         
+         // Redirect to login page
+         window.location.href = './login.html';
+      } catch (error) {
+         console.error('Error during logout:', error);
+         
+         // Still try to redirect even if clearing storage fails
+         window.location.href = './login.html';
       }
+   }
 
-      // Try to use cached data first
-      const cachedUserData = localStorage.getItem('user_data');
-      if (cachedUserData) {
-         try {
-            const user = JSON.parse(cachedUserData);
-            if (usernameEl && user.username) {
-               usernameEl.textContent = user.username;
-            }            if (refcodeEl && user.referral_code) {
-               const refTextEl = refcodeEl.querySelector('.ref-text');
-               if (refTextEl) {
-                  refTextEl.textContent = `REF: ${user.referral_code}`;
-               } else {
-                  refcodeEl.textContent = `REF: ${user.referral_code}`;
-               }
-            }if (initialsEl) {
-               const initials = typeof generateUserInitials === 'function' ? 
-                              generateUserInitials(user.username) : 
-                              generateInitials(user.username);
-               initialsEl.textContent = initials;
-               console.log('Updated sidebar initials from cache:', initials);
-            }
-         } catch (e) {
-            console.error('Error parsing cached user data for sidebar:', e);
-         }
-      }
-
-      // Check if fetchWithAuth is available
-      if (typeof fetchWithAuth !== 'function') {
-         console.error('fetchWithAuth function not available for sidebar');
-         return;
-      }
-
-      // Fetch fresh data using the same method as profile.js
+   // Function to load user data into sidebar
+   async function loadSidebarUserData() {
       try {
-         console.log('Fetching sidebar user data...');
-         const data = await fetchWithAuth('/api/user/profile');
-         console.log('Sidebar API response:', data);
-
-         if (data.success && data.user) {
-            const user = data.user;
-            
-            // Update username
-            if (usernameEl && user.username) {
-               usernameEl.textContent = user.username;
-               console.log('Updated sidebar username:', user.username);
-            }            // Update referral code
-            if (refcodeEl && user.referral_code) {
-               const refTextEl = refcodeEl.querySelector('.ref-text');
-               if (refTextEl) {
-                  refTextEl.textContent = `REF: ${user.referral_code}`;
-               } else {
-                  refcodeEl.textContent = `REF: ${user.referral_code}`;
-               }
-               console.log('Updated sidebar referral code:', user.referral_code);
-            }
-              // Update initials
-            if (initialsEl) {
-               const initials = typeof generateUserInitials === 'function' ? 
-                              generateUserInitials(user.username) : 
-                              generateInitials(user.username);
-               initialsEl.textContent = initials;
-               console.log('Updated sidebar initials from API:', initials, 'for username:', user.username);
-            }
-            
-            // Update localStorage cache
-            localStorage.setItem('user_data', JSON.stringify(user));
-            console.log('Sidebar user data updated successfully');
-         } else {
-            console.error('Sidebar API call failed:', data.message);
+         const authData = isAuthenticated();
+         if (!authData) {
+            console.log('No authentication data for sidebar');
+            return;
          }
-      } catch (error) {         console.error('Error loading sidebar user data:', error);
-         // Don't show notification for sidebar errors to avoid spam
+
+         console.log('Loading sidebar user data...');
+
+         // Try to use cached data first
+         const cachedUserData = localStorage.getItem('user_data');
+         if (cachedUserData) {
+            try {
+               const user = JSON.parse(cachedUserData);
+               console.log('Using cached user data:', user);
+               updateSidebarUI(user);
+            } catch (e) {
+               console.error('Error parsing cached user data:', e);
+            }
+         }
+
+         // Determine which fetch function to use
+         let fetchFunction = null;
+         if (typeof SimpleAuth !== 'undefined' && SimpleAuth.authenticatedFetch) {
+            fetchFunction = SimpleAuth.authenticatedFetch.bind(SimpleAuth);
+            console.log('Using SimpleAuth fetch function');
+         } else if (typeof fetchWithAuth === 'function') {
+            fetchFunction = fetchWithAuth;
+            console.log('Using fetchWithAuth function');
+         } else {
+            console.error('No authenticated fetch function available');
+            return;
+         }
+
+         // Fetch fresh user data from API
+         console.log('Fetching user profile data...');
+         const response = await fetchFunction('/api/user/profile');
+         console.log('Profile API raw response:', response);
+         
+         let userData;
+         
+         if (response && typeof response.json === 'function') {
+            userData = await response.json();
+            console.log('Parsed JSON response:', userData);
+         } else if (response && typeof response === 'object') {
+            userData = response;
+            console.log('Already parsed response:', userData);
+         } else {
+            throw new Error('Invalid response format');
+         }
+         
+         // Handle user data properly based on API structure
+         if (userData && userData.success) {
+            // From looking at auth.js middleware, the API returns { success: true, user: {...} }
+            const user = userData.user;
+            console.log('User data from API:', user);
+            
+            // Update the dashboard referral code display if it exists
+            const dashboardRefcodeEl = document.getElementById('dashboard-refcode');
+            if (dashboardRefcodeEl && user.referral_code) {
+               dashboardRefcodeEl.textContent = `REFERRAL CODE: ${user.referral_code}`;
+               console.log('Updated dashboard-refcode element with:', user.referral_code);
+            }
+            
+            // Fetch balance data separately
+            try {
+               console.log('Fetching balance data...');
+               const balanceResponse = await fetchFunction('/api/user/balances');
+               console.log('Balance API raw response:', balanceResponse);
+               
+               let balanceData;
+               
+               if (balanceResponse && typeof balanceResponse.json === 'function') {
+                  balanceData = await balanceResponse.json();
+               } else if (balanceResponse && typeof balanceResponse === 'object') {
+                  balanceData = balanceResponse;
+               }
+               
+               console.log('Parsed balance data:', balanceData);
+               
+               // If balance data is successfully retrieved, add it to the user data
+               if (balanceData && balanceData.success && balanceData.balances) {
+                  user.mainBalance = balanceData.balances.main_balance || 0;
+                  user.commissionBalance = balanceData.balances.commission_balance || 0;
+                  user.totalBalance = parseFloat(user.mainBalance) + parseFloat(user.commissionBalance);
+                  console.log('Added balance data to user:', user);
+               }
+            } catch (balanceError) {
+               console.error('Error fetching balance data:', balanceError);
+            }
+            
+            // Update UI with the combined data
+            updateSidebarUI(user);
+            
+            // Cache the user data
+            localStorage.setItem('user_data', JSON.stringify(user));
+         } else {
+            console.error('API returned unsuccessful response:', userData);
+         }
+      } catch (error) {
+         console.error('Error loading sidebar user data:', error);
       }
-   }   // Referral Code Copy Functionality   </script>
+   }
+
+   // Update sidebar UI with user data
+   function updateSidebarUI(user) {
+      console.log('Updating sidebar UI with user data:', user);
+      
+      // Update username
+      const usernameElement = document.getElementById('dashboard-username');
+      if (usernameElement && user.username) {
+         usernameElement.textContent = user.username;
+         console.log('Username updated to:', user.username);
+      }
+
+      // Update badge number (using referral_code)
+      const badgeElement = document.getElementById('user-badge-number');
+      if (badgeElement) {
+         // Debug log to see if referral_code exists
+         console.log('Referral code from user data:', user.referral_code);
+         
+         if (user.referral_code) {
+            badgeElement.textContent = user.referral_code;
+            console.log('Badge updated with referral code:', user.referral_code);
+         } else {
+            console.log('No referral code found in user data');
+            console.log('User object fields:', Object.keys(user));
+            
+            // Try to get the user data again with a direct API call
+            fetchWithAuth('/api/user/profile')
+               .then(response => {
+                  if (response && typeof response.json === 'function') {
+                     return response.json();
+                  } else {
+                     return response;
+                  }
+               })
+               .then(data => {
+                  if (data && data.success && data.user && data.user.referral_code) {
+                     badgeElement.textContent = data.user.referral_code;
+                     console.log('Badge updated from direct API call:', data.user.referral_code);
+                  }
+               })
+               .catch(error => {
+                  console.error('Error fetching referral code:', error);
+               });
+         }
+      }
+
+      // Update balance
+      const balanceElement = document.getElementById('user-balance');
+      if (balanceElement) {
+         // Debug log to see balance values
+         console.log('Balance data from user object:', user);
+         
+         let displayBalance = 0;
+         
+         // Determine which fetch function to use
+         let fetchFunction = null;
+         if (typeof SimpleAuth !== 'undefined' && SimpleAuth.authenticatedFetch) {
+            fetchFunction = SimpleAuth.authenticatedFetch.bind(SimpleAuth);
+            console.log('Using SimpleAuth fetch function for balance');
+         } else if (typeof fetchWithAuth === 'function') {
+            fetchFunction = fetchWithAuth;
+            console.log('Using fetchWithAuth function for balance');
+         } else {
+            console.error('No authenticated fetch function available for balance');
+            return;
+         }
+         
+         // Fetch balance data using the same approach as dashboard.js
+         fetchFunction('/api/user/balances')
+            .then(response => {
+               // Handle response from different fetch functions
+               if (response && typeof response.json === 'function') {
+                  // This is a Response object (from SimpleAuth)
+                  return response.json();
+               } else {
+                  // This is already parsed data (from fetchWithAuth)
+                  return response;
+               }
+            })
+            .then(data => {
+               console.log('Balance API response data:', data);
+               
+               if (data && data.success && data.balances) {
+                  // Using the exact same field names as in dashboard.js
+                  const mainBalance = parseFloat(data.balances.main_balance || 0);
+                  const commissionBalance = parseFloat(data.balances.commission_balance || 0);
+                  displayBalance = mainBalance + commissionBalance;
+                  
+                  console.log('Balance values from API:', { 
+                     mainBalance, 
+                     commissionBalance, 
+                     total: displayBalance 
+                  });
+                  
+                  // Format with currency
+                  balanceElement.textContent = new Intl.NumberFormat('en-US', { 
+                     style: 'currency',
+                     currency: 'USD',
+                     minimumFractionDigits: 2, 
+                     maximumFractionDigits: 2 
+                  }).format(displayBalance);
+                  
+                  console.log('Balance updated from balances API:', displayBalance);
+               } else if (user.balance !== undefined) {
+                  // Fallback to balance from user object if available
+                  displayBalance = parseFloat(user.balance || 0);
+                  
+                  balanceElement.textContent = new Intl.NumberFormat('en-US', { 
+                     style: 'currency',
+                     currency: 'USD',
+                     minimumFractionDigits: 2, 
+                     maximumFractionDigits: 2 
+                  }).format(displayBalance);
+                  
+                  console.log('Balance updated from user.balance fallback:', displayBalance);
+               } else {
+                  console.log('No balance information found');
+                  balanceElement.textContent = '$0.00';
+               }
+            })
+            .catch(error => {
+               console.error('Error fetching balance:', error);
+               balanceElement.textContent = '$0.00';
+            });
+      }
+
+      // Update avatar if available
+      const avatarElement = document.getElementById('user-avatar');
+      if (avatarElement) {
+         if (user.avatar_url) {
+            avatarElement.src = user.avatar_url;
+         } else if (user.profile_image) {
+            avatarElement.src = user.profile_image;
+         }
+         console.log('Avatar updated');
+      }
+      
+      // Update verification provider if available
+      const verificationElement = document.getElementById('verification-provider');
+      if (verificationElement) {
+         verificationElement.textContent = "Cdot"; // Always use Cdot for now
+         console.log('Verification provider set to Cdot');
+      }
+   }
+   </script>
 </div>

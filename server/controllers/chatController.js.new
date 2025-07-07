@@ -1,0 +1,127 @@
+const pool = require('../config/db');
+const logger = require('../utils/logger');
+
+// Helper function to execute database queries
+const executeQuery = async (query, params = []) => {
+    try {
+        const client = await pool.connect();
+        try {
+            const result = await client.query(query, params);
+            return result.rows;
+        } finally {
+            client.release();
+        }
+    } catch (error) {
+        logger.error(`Database error: ${error.message}`);
+        throw new Error('Database operation failed');
+    }
+};
+
+// Helper function to log admin actions
+const logAdminAction = async (adminId, actionType, entityType, entityId, details = {}) => {
+    try {
+        const query = `
+            INSERT INTO chat_admin_logs 
+            (admin_id, action_type, entity_type, entity_id, details, created_at) 
+            VALUES ($1, $2, $3, $4, $5, NOW())
+        `;
+        await executeQuery(query, [adminId, actionType, entityType, entityId, JSON.stringify(details)]);
+    } catch (error) {
+        logger.error(`Failed to log admin action: ${error.message}`);
+        // Don't throw here to avoid disrupting the main flow
+    }
+};
+
+// Group Controllers
+exports.getUserGroups = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const isAdmin = req.user.role === 'admin';
+        
+        let query;
+        let params;
+        
+        if (isAdmin) {
+            // Admins can see all active groups
+            query = `
+                SELECT g.* 
+                FROM chat_groups g
+                WHERE g.is_active = true
+                ORDER BY g.updated_at DESC
+            `;
+            params = [];
+        } else {
+            // Regular users only see groups they are members of
+            query = `
+                SELECT g.* 
+                FROM chat_groups g
+                JOIN chat_group_members m ON g.id = m.group_id
+                WHERE m.user_id = $1 
+                AND m.is_active = true
+                AND g.is_active = true
+                ORDER BY g.updated_at DESC
+            `;
+            params = [userId];
+        }
+        
+        const groups = await executeQuery(query, params);
+        
+        // Get the last message for each group
+        for (const group of groups) {
+            const messageQuery = `
+                SELECT m.id, m.content, m.created_at, 
+                       COALESCE(u.username, fu.username) as sender_name,
+                       CASE WHEN m.user_id IS NOT NULL THEN false ELSE true END as is_fake_user
+                FROM chat_messages m
+                LEFT JOIN users u ON m.user_id = u.id
+                LEFT JOIN chat_fake_users fu ON m.fake_user_id = fu.id
+                WHERE m.group_id = $1
+                ORDER BY m.created_at DESC
+                LIMIT 1
+            `;
+            const messages = await executeQuery(messageQuery, [group.id]);
+            group.last_message = messages.length > 0 ? messages[0] : null;
+            
+            // Get unread message count
+            if (!isAdmin) {
+                const unreadQuery = `
+                    SELECT COUNT(*) as count
+                    FROM chat_messages m
+                    LEFT JOIN chat_group_members gm ON m.group_id = gm.group_id AND gm.user_id = $1
+                    WHERE m.group_id = $2
+                    AND (m.created_at > gm.last_read_at OR gm.last_read_at IS NULL)
+                `;
+                const unreadResult = await executeQuery(unreadQuery, [userId, group.id]);
+                group.unread_count = unreadResult[0].count;
+            }
+        }
+        
+        res.json(groups);
+    } catch (error) {
+        logger.error(`Error in getUserGroups: ${error.message}`);
+        res.status(500).json({ error: 'Failed to retrieve groups' });
+    }
+};
+
+// Export all other controller methods
+// ...
+exports.getGroupDetails = exports.getGroupDetails;
+exports.createGroup = exports.createGroup;
+exports.updateGroup = exports.updateGroup;
+exports.deleteGroup = exports.deleteGroup;
+exports.getGroupMembers = exports.getGroupMembers;
+exports.addGroupMember = exports.addGroupMember;
+exports.removeGroupMember = exports.removeGroupMember;
+exports.getGroupMessages = exports.getGroupMessages;
+exports.sendMessage = exports.sendMessage;
+exports.updateMessage = exports.updateMessage;
+exports.deleteMessage = exports.deleteMessage;
+exports.markMessageAsRead = exports.markMessageAsRead;
+exports.getFakeUsers = exports.getFakeUsers;
+exports.createFakeUser = exports.createFakeUser;
+exports.updateFakeUser = exports.updateFakeUser;
+exports.deleteFakeUser = exports.deleteFakeUser;
+exports.getScheduledMessages = exports.getScheduledMessages;
+exports.createScheduledMessage = exports.createScheduledMessage;
+exports.updateScheduledMessage = exports.updateScheduledMessage;
+exports.deleteScheduledMessage = exports.deleteScheduledMessage;
