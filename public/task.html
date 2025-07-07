@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <meta http-equiv="X-UA-Compatible" content="IE=Edge"/>
-    <title data-i18n-title="taskPageTitle">Task</title>
+    <title data-i18n-title="taskPageTitle">GDOT Database</title>
     <meta name="csrf-token" content="OMQEMMbTOijuw7VQQjJ3OJfRh0OxIoBZVH9aGGDe">
     <link rel="shortcut icon" href="./assets/uploads/generals/favicon-665b8c8a863b91717275786.png">
     
@@ -29,208 +29,235 @@
     <!-- Task page specific styles -->
     <link rel="stylesheet" href="css/task.css">
 </head>
-<body>
+<body class="gdot-body">
 
-<div class="bg-overlay navbar-btn"></div>
-<!-- Sidebar Placeholder -->
-<div id="sidebar-placeholder"></div>
-<!-- End Sidebar Placeholder -->
-
-<!-- Modern Task Header -->
-<header class="page-header">
-    <div class="container">
-        <div class="d-flex align-items-center justify-content-between">
-            <a href="javascript:history.back()" class="back-btn">
-                <i class="fas fa-arrow-left"></i>
-            </a>
-            <div class="text-center flex-grow-1">
-                <h1 data-i18n="taskPageTitle">Task Center</h1>
-                <p class="subtitle">Complete tasks and earn rewards</p>
-            </div>
-            <div style="width: 44px;"></div> <!-- Spacer for alignment -->
+<div class="gdot-app-container">
+    <!-- Header -->
+    <header class="gdot-header">
+        <div class="gdot-logo-container">
+            <h1 class="gdot-logo">GDOT<span>DATABASE</span></h1>
         </div>
-    </div>
-</header>
+        <div class="gdot-badge">
+            <span class="badge-letter">N</span>
+            <span class="badge-text">PEA BADGE NO - XXX</span>
+        </div>
+        <div class="gdot-profile">
+            <img src="./assets/images/profile-photo.jpg" alt="Profile" class="gdot-profile-img">
+        </div>
+    </header>
 
-<main class="main-content">
-    <div class="container">        
-        
-        <!-- Dashboard Stats -->
-        <div class="stats-grid">
-            <div class="app-card animate-fade-in-up enhanced-hover">
-                <div class="stat-icon">
-                    <i class="fas fa-wallet"></i>
+    <!-- Main Content -->
+    <main class="gdot-main">
+        <!-- Intro Section -->
+        <div class="gdot-intro-section">
+            <h2 class="gdot-title">Smarter Support<br>for Independent Work</h2>
+            <div class="gdot-verification">
+                <i class="fas fa-check-circle verification-icon"></i>
+                <span>Verified by CDOT Database</span>
+            </div>
+            <a href="dashboard.html" class="gdot-button gdot-primary-btn">Go to Dashboard</a>
+        </div>
+
+        <!-- Stats Grid -->
+        <div class="gdot-stats-grid">
+            <div class="gdot-stat-card">
+                <div class="gdot-stat-icon blue">
+                    <i class="fas fa-check-circle"></i>
                 </div>
-                <div class="stat-content">
-                    <div class="stat-label">Wallet Balance</div>
-                    <div class="stat-value">
-                        <span class="datadrive-balance">Loading...</span>
-                    </div>
+                <div class="gdot-stat-content">
+                    <h3 class="gdot-stat-label">Orders Completed</h3>
+                    <p class="gdot-stat-value datadrive-orders">35</p>
                 </div>
-                <button id="refresh-drive-button" class="stat-refresh rotate-on-hover" title="Refresh Balance">
-                    <i class="fas fa-sync-alt"></i>
-                </button>
             </div>
             
-            <div class="app-card animate-fade-in-up enhanced-hover">
-                <div class="stat-icon success">
-                    <i class="fas fa-coins"></i>
+            <div class="gdot-stat-card">
+                <div class="gdot-stat-icon green">
+                    <i class="fas fa-dollar-sign"></i>
                 </div>
-                <div class="stat-content">
-                    <div class="stat-label">Commission Earned</div>
-                    <div class="stat-value gradient-text">
-                        <span class="datadrive-commission">0.00 USDT</span>
-                    </div>
+                <div class="gdot-stat-content">
+                    <h3 class="gdot-stat-label">Total Profit</h3>
+                    <p class="gdot-stat-value datadrive-total-profit">$212.33</p>
+                </div>
+            </div>
+            
+            <div class="gdot-stat-card">
+                <div class="gdot-stat-icon blue">
+                    <i class="fas fa-file-invoice-dollar"></i>
+                </div>
+                <div class="gdot-stat-content">
+                    <h3 class="gdot-stat-label">Balance</h3>
+                    <p class="gdot-stat-value datadrive-balance">$405.01</p>
+                </div>
+            </div>
+            
+            <div class="gdot-stat-card">
+                <div class="gdot-stat-icon blue">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="gdot-stat-content">
+                    <h3 class="gdot-stat-label">Today's Profit</h3>
+                    <p class="gdot-stat-value datadrive-todays-profit">$34.85</p>
                 </div>
             </div>
         </div>
 
-        <!-- Drive Progress Section -->
-        <div class="progress-section animate-fade-in-up" id="progress-section">
-            <div class="app-card">
-                <div class="progress-header">
-                    <div class="progress-info">
-                        <h5 class="progress-title">Drive Progress</h5>
-                        <p class="progress-text" id="progress-text">0 / 0 tasks completed</p>
-                    </div>
-                    <div class="progress-stats">
-                        <span class="tasks-count" id="tasks-count">0 / 0</span>
-                    </div>
-                </div>
-                <div class="progress-container">
-                    <div class="progress">
-                        <div class="progress-bar progress-bar-animated" 
-                             role="progressbar" 
-                             id="drive-progress-bar" 
-                             style="width: 0%" 
-                             aria-valuenow="0" 
-                             aria-valuemin="0" 
-                             aria-valuemax="100">
-                            0%
-                        </div>
-                    </div>
-                </div>
-                <div class="progress-details">
-                    <div class="progress-item">
-                        <span class="label">Tasks Progress:</span>
-                        <div class="mini-progress">
-                            <div class="progress progress-sm">
-                                <div class="progress-bar" 
-                                     role="progressbar" 
-                                     id="tasks-progress-bar" 
-                                     style="width: 0%" 
-                                     aria-valuenow="0" 
-                                     aria-valuemin="0" 
-                                     aria-valuemax="100">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+        <!-- Search Bar -->
+        <div class="gdot-search-container">
+            <div class="gdot-search-input-wrapper">
+                <label for="product-search" class="gdot-search-label">Search product</label>
+                <div class="gdot-search-input-group">
+                    <input type="text" id="product-search" class="gdot-search-input">
+                    <button id="start-drive-button" class="gdot-search-button">Search</button>
                 </div>
             </div>
         </div>
-
-        <!-- Task Controls -->
-        <div class="task-controls animate-bounce-in">
-            <input type="hidden" name="user_status" id="user_status" value="1">
-            <button class="btn-modern btn-primary btn-lg enhanced-focus pulse" id="start-drive-button">
-                <i class="fas fa-play"></i>
-                <span>Start Drive</span>
-                <div class="btn-shine"></div>
-            </button>
-            <a href="./orders.html" class="btn-modern btn-secondary btn-lg enhanced-focus">
-                <i class="fas fa-list"></i>
-                <span>View Records</span>
-                <div class="btn-shine"></div>
-            </a>
-        </div>        <!-- Drive Content Area (Drive Modal/Interface) -->
+        
+        <!-- Hidden original elements needed for drive functionality -->
+        <input type="hidden" name="user_status" id="user_status" value="1">
+        
+        <!-- Drive Content Area (Drive Modal/Interface) -->
         <div id="drive-content-area" style="display: none;">
             <!-- This will be populated by drive.js -->
         </div>
 
-        <!-- Debug Section (hidden by default, toggle with Ctrl+Shift+D) -->
-        <div id="debug-section" style="display: none; margin-top: 20px;">
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h6 class="mb-0">Debug Console</h6>
-                    <button id="clear-debug-btn" class="btn btn-sm btn-outline-secondary">Clear</button>
-                </div>
-                <div class="card-body">
-                    <div id="debug-console" style="height: 200px; overflow-y: auto; font-family: monospace; font-size: 12px; background: #f8f9fa; padding: 10px; border-radius: 4px;">
-                        <!-- Debug messages will appear here -->
-                    </div>
-                </div>
-            </div>
-        </div>
-
         <!-- Product Display Section (hidden by default) -->
-        <div class="product-section animate-fade-in-up" id="product-card-container" style="display: none;">
+        <div class="product-section" id="product-card-container" style="display: none;">
             <div class="product-preview glass-card" id="order-loading-overlay" style="display: none;">
                 <div class="loading-spinner"></div>
                 <p class="loading-text">Loading next product...</p>
             </div>
             
-            <div class="product-card enhanced-hover float" id="product-display">
+            <div class="product-card" id="product-display">
                 <div class="product-image-container">
                     <img id="product-image" src="" alt="Product Image" class="product-image">
                     <div class="product-overlay">
-                        <button class="btn-view-product enhanced-focus js-modal-open" id="open-product-modal-btn">
+                        <button class="btn-view-product js-modal-open" id="open-product-modal-btn">
                             <i class="fas fa-eye"></i>
                             View Details
                         </button>
                     </div>
                 </div>
                 <div class="product-info">
-                    <h3 id="product-name" class="product-title gradient-text text-shadow">Product Name</h3>
+                    <h3 id="product-name" class="product-title">Product Name</h3>
                     <div class="product-stats">
                         <div class="product-stat">
                             <span class="stat-label">Commission</span>
-                            <span id="product-commission" class="stat-value gradient-text">0.00 USDT</span>
+                            <span id="product-commission" class="stat-value">0.00 USDT</span>
                         </div>
                         <div class="product-stat">
                             <span class="stat-label">Price</span>
                             <span id="product-price" class="stat-value">$0.00</span>
                         </div>
-                    </div>                    <button id="purchase-button" class="btn-modern btn-success btn-lg enhanced-focus">
+                    </div>
+                    <button id="purchase-button" class="gdot-button gdot-primary-btn">
                         <i class="fas fa-shopping-cart"></i>
                         <span>Purchase & Earn</span>
-                        <div class="btn-shine"></div>
                     </button>
-                </div>
-            </div>        </div>        <!-- Information Cards -->
-        <div class="info-cards">
-            <div class="info-card enhanced-hover animate-fade-in-up">
-                <div class="info-icon">
-                    <i class="fas fa-clock"></i>
-                </div>
-                <div class="info-content">
-                    <h4 class="text-shadow">Operating Hours</h4>
-                    <p>10:00 AM - 11:00 PM daily</p>
-                </div>
-            </div>
-            
-            <div class="info-card enhanced-hover animate-fade-in-up">
-                <div class="info-icon" style="color: #28a745;">
-                    <i class="fas fa-money-bill-wave"></i>
-                </div>
-                <div class="info-content">
-                    <h4 class="text-shadow">Refund Policy</h4>
-                    <p>All purchase amounts are automatically refunded after task completion</p>
-                </div>
-            </div>
-            
-            <div class="info-card enhanced-hover animate-fade-in-up">
-                <div class="info-icon warning">
-                    <i class="fas fa-exclamation-triangle"></i>
-                </div>
-                <div class="info-content">
-                    <h4 class="text-shadow">Important Notice</h4>
-                    <p>System pauses product distribution during non-operating hours</p>
                 </div>
             </div>
         </div>
-    </div>
-</main>
+
+        <!-- Trending Products -->
+        <div class="gdot-trending-section">
+            <h3 class="gdot-section-title">Trending Products</h3>
+            <div class="gdot-products-grid">
+                <div class="gdot-product-icon" data-name="Game Controller">
+                    <img src="./assets/images/products/gamepad.png" alt="Game Controller">
+                </div>
+                <div class="gdot-product-icon" data-name="Athletic Shoe">
+                    <img src="./assets/images/products/shoe.png" alt="Shoe">
+                </div>
+                <div class="gdot-product-icon" data-name="Cooking Pot">
+                    <img src="./assets/images/products/pot.png" alt="Cooking Pot">
+                </div>
+                <div class="gdot-product-icon" data-name="Premium Cheese">
+                    <img src="./assets/images/products/cheese.png" alt="Cheese">
+                </div>
+                <div class="gdot-product-icon" data-name="Diamond Ring">
+                    <img src="./assets/images/products/ring.png" alt="Ring">
+                </div>
+                <div class="gdot-product-icon" data-name="Smart Watch">
+                    <img src="./assets/images/products/watch.png" alt="Watch">
+                    <span class="gdot-product-badge">#07</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Metrics and Table Container for Desktop Layout -->
+        <div class="gdot-metrics-table-container">
+            <!-- Performance Metrics -->
+            <div class="gdot-metrics-container">
+                <div class="gdot-metric-card">
+                    <div class="gdot-gauge">
+                        <svg width="100" height="70" viewBox="0 0 100 60">
+                            <path class="gdot-gauge-bg" d="M10,50 A40,40 0 1,1 90,50" fill="none" stroke="#e0e0e0" stroke-width="10" />
+                            <path class="gdot-gauge-fill" d="M10,50 A40,40 0 0,1 50,10" fill="none" stroke="#0066ff" stroke-width="10" />
+                            <circle cx="50" cy="50" r="5" fill="#003366" />
+                            <line x1="50" y1="50" x2="30" y2="30" stroke="#003366" stroke-width="3" />
+                        </svg>
+                    </div>
+                    <h3 class="gdot-metric-title">PEA TRAFFIC</h3>
+                </div>
+                
+                <div class="gdot-metric-card">
+                    <div class="gdot-gauge">
+                        <svg width="100" height="70" viewBox="0 0 100 60">
+                            <path class="gdot-gauge-bg" d="M10,50 A40,40 0 1,1 90,50" fill="none" stroke="#e0e0e0" stroke-width="10" />
+                            <path class="gdot-gauge-fill" d="M10,50 A40,40 0 0,1 70,20" fill="none" stroke="#0066ff" stroke-width="10" />
+                            <circle cx="50" cy="50" r="5" fill="#003366" />
+                            <line x1="50" y1="50" x2="70" y2="20" stroke="#003366" stroke-width="3" />
+                        </svg>
+                    </div>
+                    <h3 class="gdot-metric-title">Efficiency Index (EI)</h3>
+                </div>
+            </div>
+
+            <!-- Engagement Table -->
+            <div class="gdot-engagement-section">
+                <div class="gdot-engagement-header">
+                    <div class="gdot-badge-engagement">2025 Top Engagement</div>
+                    <div class="gdot-people-icon">
+                        <i class="fas fa-user"></i>
+                        <i class="fas fa-user"></i>
+                        <i class="fas fa-user"></i>
+                    </div>
+                </div>
+            
+            <div class="gdot-engagement-table">
+                <div class="gdot-table-row">
+                    <div class="gdot-user-info">
+                        <img src="./assets/images/users/user1.jpg" alt="Louis Dupont" class="gdot-user-img">
+                        <span class="gdot-user-name">Louis Dupont</span>
+                    </div>
+                    <div class="gdot-user-score">29.741</div>
+                </div>
+                
+                <div class="gdot-table-row">
+                    <div class="gdot-user-info">
+                        <img src="./assets/images/users/user2.jpg" alt="Monica Barnett" class="gdot-user-img">
+                        <span class="gdot-user-name">Monica Barnett</span>
+                    </div>
+                    <div class="gdot-user-score">25.490</div>
+                </div>
+                
+                <div class="gdot-table-row">
+                    <div class="gdot-user-info">
+                        <img src="./assets/images/users/user3.jpg" alt="Emily Davis" class="gdot-user-img">
+                        <span class="gdot-user-name">Emily Davis</span>
+                    </div>
+                    <div class="gdot-user-score">26.063</div>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <!-- Footer -->
+    <footer class="gdot-footer">
+        <a href="privacy.html" class="gdot-footer-link">Privacy Policy</a>
+        <a href="terms.html" class="gdot-footer-link">Terms of Service</a>
+        <a href="support.html" class="gdot-footer-link">Support</a>
+    </footer>
+</div>
 
 <!-- Professional Ecommerce Product Modal -->
 <div class="product-modal" id="product-modal">

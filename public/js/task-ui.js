@@ -363,6 +363,158 @@ function optimizePerformance() {
     });
 }
 
+/**
+ * GDOT Database UI Functions
+ * These functions handle the redesigned GDOT Database UI interactions
+ */
+
+// Initialize GDOT Database UI elements
+function initGdotUI() {
+    // Update stats with real data if available
+    updateGdotStats();
+    
+    // Initialize search functionality
+    initGdotSearch();
+    
+    // Add animation to gauges
+    animateGdotGauges();
+}
+
+// Update GDOT stats with real data
+function updateGdotStats() {
+    // Get data from the data attributes or API
+    const balance = document.querySelector('.datadrive-balance');
+    const totalProfit = document.querySelector('.datadrive-total-profit');
+    const todaysProfit = document.querySelector('.datadrive-todays-profit');
+    const ordersCompleted = document.querySelector('.datadrive-orders');
+    
+    // If we have session data, use it
+    if (window.sessionData && window.sessionData.user) {
+        const userData = window.sessionData.user;
+        
+        if (balance && userData.balance) {
+            balance.textContent = `$${parseFloat(userData.balance).toFixed(2)}`;
+        }
+        
+        if (totalProfit && userData.totalProfit) {
+            totalProfit.textContent = `$${parseFloat(userData.totalProfit).toFixed(2)}`;
+        }
+        
+        if (todaysProfit && userData.todaysProfit) {
+            todaysProfit.textContent = `$${parseFloat(userData.todaysProfit).toFixed(2)}`;
+        }
+        
+        if (ordersCompleted && userData.completedOrders) {
+            ordersCompleted.textContent = userData.completedOrders;
+        }
+    }
+}
+
+// Initialize search functionality
+function initGdotSearch() {
+    const searchButton = document.getElementById('start-drive-button');
+    const searchInput = document.getElementById('product-search');
+    
+    if (searchButton && searchInput) {
+        // Make enter key in search field trigger search
+        searchInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                searchButton.click();
+            }
+        });
+        
+        // Add focus styles to search input
+        searchInput.addEventListener('focus', function() {
+            this.parentNode.classList.add('focus');
+        });
+        
+        searchInput.addEventListener('blur', function() {
+            this.parentNode.classList.remove('focus');
+        });
+    }
+}
+
+// Animate GDOT gauge elements
+function animateGdotGauges() {
+    const gauges = document.querySelectorAll('.gdot-gauge-fill');
+    
+    gauges.forEach((gauge, index) => {
+        // Set initial state
+        gauge.style.strokeDasharray = '251.2';
+        gauge.style.strokeDashoffset = '251.2';
+        
+        // Animate after a short delay
+        setTimeout(() => {
+            // Different values for different gauges
+            const values = [125.6, 90]; // 50% and 70% filled
+            gauge.style.transition = 'stroke-dashoffset 1.5s ease-in-out';
+            gauge.style.strokeDashoffset = `${251.2 - values[index]}`;
+        }, 300 * index);
+    });
+}
+
+// Add animation to product icons
+function animateProductIcons() {
+    const icons = document.querySelectorAll('.gdot-product-icon');
+    
+    icons.forEach((icon, index) => {
+        icon.style.opacity = '0';
+        icon.style.transform = 'translateY(20px)';
+        icon.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+        
+        setTimeout(() => {
+            icon.style.opacity = '1';
+            icon.style.transform = 'translateY(0)';
+        }, 100 * index);
+    });
+}
+
+// Initialize profile image if available
+function initProfileImage() {
+    const profileImg = document.querySelector('.gdot-profile-img');
+    
+    if (profileImg && window.sessionData && window.sessionData.user && window.sessionData.user.profileImage) {
+        profileImg.src = window.sessionData.user.profileImage;
+    } else if (profileImg) {
+        // Use a placeholder avatar if no profile image is available
+        profileImg.src = './assets/images/avatar-placeholder.jpg';
+    }
+}
+
+// Handle window resize events
+function handleWindowResize() {
+    const isDesktopView = window.innerWidth >= 992;
+    const gdotAppContainer = document.querySelector('.gdot-app-container');
+    
+    if (gdotAppContainer) {
+        if (isDesktopView) {
+            // Apply desktop-specific adjustments
+            gdotAppContainer.style.minHeight = 'auto';
+            
+            // Re-animate gauges and UI elements when switching to desktop
+            animateGdotGauges();
+            animateProductIcons();
+            
+            // Add drop shadow effect to cards
+            const cards = document.querySelectorAll('.gdot-stat-card, .gdot-metric-card');
+            cards.forEach(card => {
+                card.style.boxShadow = '0 5px 15px rgba(0, 0, 0, 0.05)';
+                card.style.transition = 'transform 0.3s ease, box-shadow 0.3s ease';
+            });
+        } else {
+            // Revert to mobile-specific styles
+            gdotAppContainer.style.minHeight = '100vh';
+            
+            // Remove desktop-specific styles
+            const cards = document.querySelectorAll('.gdot-stat-card, .gdot-metric-card');
+            cards.forEach(card => {
+                card.style.boxShadow = '';
+            });
+        }
+    }
+}
+
 // DOM-Ready event handlers
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize animation observer
@@ -589,4 +741,114 @@ document.addEventListener('DOMContentLoaded', function() {
     } catch (error) {
         console.error('Error initializing navigation:', error);
     }
+    
+    // Initialize GDOT UI elements
+    initGdotUI();
+    
+    // Animate product icons when visible
+    animateProductIcons();
+    
+    // Initialize profile image
+    initProfileImage();
+    
+    // Apply desktop-specific enhancements
+    enhanceDesktopExperience();
+    
+    // Handle initial window size
+    handleWindowResize();
+    
+    // Add window resize listener
+    window.addEventListener('resize', handleWindowResize);
 });
+
+/**
+ * Desktop Enhancement Functions
+ * These functions provide improved UX for desktop users
+ */
+
+// Detect if user is on desktop
+function isDesktop() {
+    return window.innerWidth >= 992;
+}
+
+// Apply desktop-specific enhancements
+function enhanceDesktopExperience() {
+    if (!isDesktop()) return;
+    
+    // Add parallax effect to header
+    const header = document.querySelector('.gdot-header');
+    if (header) {
+        window.addEventListener('scroll', function() {
+            const scrolled = window.pageYOffset;
+            if (scrolled < 100) {
+                header.style.transform = `translateY(${scrolled * 0.1}px)`;
+                header.style.opacity = 1 - (scrolled * 0.01);
+            }
+        });
+    }
+    
+    // Add hover animations to stat cards
+    const statCards = document.querySelectorAll('.gdot-stat-card');
+    statCards.forEach(card => {
+        card.addEventListener('mouseenter', function() {
+            const icon = this.querySelector('.gdot-stat-icon');
+            if (icon) {
+                icon.style.transform = 'scale(1.1) rotate(5deg)';
+                setTimeout(() => {
+                    icon.style.transform = 'scale(1) rotate(0deg)';
+                }, 300);
+            }
+        });
+    });
+    
+    // Add tooltip functionality for product icons
+    const productIcons = document.querySelectorAll('.gdot-product-icon');
+    productIcons.forEach(icon => {
+        const tooltip = document.createElement('div');
+        tooltip.className = 'gdot-tooltip';
+        tooltip.textContent = icon.getAttribute('data-name') || 'Product';
+        tooltip.style.position = 'absolute';
+        tooltip.style.bottom = '-30px';
+        tooltip.style.left = '50%';
+        tooltip.style.transform = 'translateX(-50%)';
+        tooltip.style.backgroundColor = '#333';
+        tooltip.style.color = '#fff';
+        tooltip.style.padding = '4px 8px';
+        tooltip.style.borderRadius = '4px';
+        tooltip.style.fontSize = '12px';
+        tooltip.style.opacity = '0';
+        tooltip.style.transition = 'opacity 0.2s ease';
+        tooltip.style.pointerEvents = 'none';
+        tooltip.style.zIndex = '10';
+        
+        icon.appendChild(tooltip);
+        
+        icon.addEventListener('mouseenter', function() {
+            tooltip.style.opacity = '1';
+        });
+        
+        icon.addEventListener('mouseleave', function() {
+            tooltip.style.opacity = '0';
+        });
+    });
+    
+    // Add smooth scrolling behavior
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function(e) {
+            e.preventDefault();
+            const target = document.querySelector(this.getAttribute('href'));
+            if (target) {
+                window.scrollTo({
+                    top: target.offsetTop - 80,
+                    behavior: 'smooth'
+                });
+            }
+        });
+    });
+}
+
+// Enhance desktop experience on load
+document.addEventListener('DOMContentLoaded', enhanceDesktopExperience);
+
+// Handle window resize events
+window.addEventListener('resize', handleWindowResize);
