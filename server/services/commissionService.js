@@ -48,16 +48,18 @@ class CommissionService {
    * @param {number} productId - ID of the product/drive interacted with.
    * @param {number} productPrice - Price of the product.
    * @param {number} commissionRate - Commission rate for the product.
+   * @param {object} client - The database client for transaction consistency.
+   * @param {number} sourceActionId - ID of the source event (e.g., drive session ID).
    * @returns {Promise<void>}
    */
-  static async calculateDirectDriveCommission(userId, productId, productPrice, commissionRate) {
-    const client = await pool.connect();
+  static async calculateDirectDriveCommission(userId, productId, productPrice, commissionRate, client, sourceActionId) {
+    // Removed internal client connection and transaction start
     try {
-      await client.query('BEGIN');
-
       // 1. Calculate commission amount
       const commissionAmount = productPrice * commissionRate;
-      const commissionDescription = `Direct commission from data drive interaction (product ID: ${productId})`;
+      // Use sourceActionId in description for clarity
+      const commissionDescription = `Direct commission from data drive interaction (Session ID: ${sourceActionId}, Product Combo ID: ${productId})`;
+      // Removed duplicate line below
 
       if (commissionAmount <= 0) {
         console.log(`Skipping zero or negative direct commission for user ${userId}, product ${productId}`);
@@ -65,10 +67,10 @@ class CommissionService {
         return;
       }
 
-      // 2. Log the commission in commission_logs table
+      // 2. Log the commission in commission_logs table using sourceActionId
       await client.query(
         'INSERT INTO commission_logs (user_id, source_action_id, account_type, commission_amount, commission_type, description) VALUES ($1, $2, $3, $4, $5, $6)',
-        [userId, productId, 'main', commissionAmount, 'direct_drive', commissionDescription]
+        [userId, sourceActionId, 'main', commissionAmount, 'direct_drive', commissionDescription]
       );
 
       // 3. Credit the commission to the user's main account balance
@@ -84,19 +86,20 @@ class CommissionService {
           userId,
           commissionAmount, // Base amount for upline calculation is the direct commission earned
           'upline_bonus',
-          `Upline bonus based on user ${userId}'s direct drive commission (product ID: ${productId})`,
-          productId,
+          // Update description to use sourceActionId
+          `Upline bonus based on user ${userId}'s direct drive commission (Session ID: ${sourceActionId}, Product Combo ID: ${productId})`,
+          sourceActionId, // Pass sourceActionId
           client // Pass the client for transaction consistency
       );
 
-      await client.query('COMMIT');
+      // Removed COMMIT, ROLLBACK, and client.release() - handled by the caller (completeDrive)
 
     } catch (error) {
-      await client.query('ROLLBACK');
-      console.error(`Error calculating direct drive commission for user ${userId}, product ${productId}:`, error);
+      // Removed ROLLBACK - handled by the caller
+      console.error(`Error calculating direct drive commission for user ${userId}, source action ${sourceActionId}:`, error);
       throw error; // Re-throw the error to be handled by the caller
     } finally {
-      client.release();
+      // Removed client.release()
     }
   }
 

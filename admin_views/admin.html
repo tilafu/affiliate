@@ -1,0 +1,325 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge"/>
+    <title>Admin Panel</title>
+    <link rel="shortcut icon" href="./assets/uploads/generals/favicon-665b8c8a863b91717275786.png">
+    <link rel="stylesheet" href="./assets/frontend/css/bootstrap.min.css" type="text/css" media="all"/>
+    <link rel="stylesheet" type="text/css" href="./assets/frontend/css/fontawesome-all.min.css">
+    <link rel="stylesheet" href="./assets/frontend/css/style.css" type="text/css" media="all"/>
+    <link rel="stylesheet" href="./assets/frontend/main/css/other1.css">
+    <!-- Admin-specific styles -->
+    <style>
+        .admin-header {
+            background-color: #343a40;
+            color: white;
+            padding: 1rem 0;
+            margin-bottom: 2rem;
+        }
+        .admin-header .container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .admin-header .admin-actions a {
+            color: white;
+            margin-left: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Admin Header - Simplified without sidebar toggle -->
+    <header class="admin-header">
+        <div class="container">
+            <h3>Admin Panel</h3>
+            <div class="admin-actions">
+                <span id="admin-username-display">Admin</span>
+                <a href="#" id="admin-logout" class="btn btn-sm btn-outline-light">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-12">
+                    <h4 class="my-3">Admin Dashboard</h4>
+
+                    <!-- User Management Section -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            User Management
+                        </div>
+                        <div class="card-body" id="admin-user-management">
+                            <!-- User Search (Optional - Keep or remove based on preference) -->
+                            <!-- <div class="input-group mb-3">
+                                <input type="text" class="form-control" placeholder="Search users by username or email..." id="admin-user-search-input">
+                                <button class="btn btn-primary" type="button" id="admin-user-search-btn">Search</button>
+                            </div> -->
+                            <h5>All Users</h5>
+                            <div id="user-list-container" style="max-height: 400px; overflow-y: auto;">
+                                <table class="table table-striped table-hover table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Username</th>
+                                            <th>Email</th>
+                                            <th>Current Tier</th>
+                                            <th>Change Tier</th>
+                                            <th>Adjust Balance</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="admin-user-table-body">
+                                        <!-- User rows will be loaded here by admin.js -->
+                                        <tr><td colspan="6" class="text-center"><i>Loading users...</i></td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                             <div id="user-list-message" class="text-center mt-2" style="display: none;"></div>
+
+                            <hr>
+                            <h5>Manual Balance Adjustment</h5>
+                            <form id="manual-balance-form" class="row g-3 align-items-end">
+                                <div class="col-md-3">
+                                    <label for="balance-user-id" class="form-label">User ID</label>
+                                    <input type="number" class="form-control form-control-sm" id="balance-user-id" required>
+                                </div>
+                                <div class="col-md-2">
+                                    <label for="balance-type" class="form-label">Type</label>
+                                    <select id="balance-type" class="form-select form-select-sm" required>
+                                        <option value="deposit" selected>Deposit</option>
+                                        <option value="withdrawal">Withdrawal</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="balance-amount" class="form-label">Amount</label>
+                                    <input type="number" step="0.01" class="form-control form-control-sm" id="balance-amount" required>
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="balance-description" class="form-label">Description (Optional)</label>
+                                    <input type="text" class="form-control form-control-sm" id="balance-description">
+                                </div>
+                                <div class="col-md-1">
+                                    <button type="submit" class="btn btn-success btn-sm w-100">Adjust</button>
+                                </div>
+                            </form>
+                             <div id="balance-adjustment-message" class="mt-2" style="display: none;"></div>
+                        </div>
+                    </div>
+
+                    <!-- Analytics Section -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            Analytics
+                        </div>
+                        <div class="card-body" id="admin-analytics">
+                            <div class="row">
+                                <div class="col-md-4 mb-3">
+                                    <div class="card text-center">
+                                        <div class="card-body">
+                                            <h5 class="card-title">Total Users</h5>
+                                            <p class="card-text fs-4" id="analytics-total-users"><i>Loading...</i></p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <div class="card text-center">
+                                        <div class="card-body">
+                                            <h5 class="card-title">Active Drives Today</h5>
+                                            <p class="card-text fs-4" id="analytics-active-drives"><i>Loading...</i></p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <div class="card text-center">
+                                        <div class="card-body">
+                                            <h5 class="card-title">Commissions (24h)</h5>
+                                            <p class="card-text fs-4" id="analytics-commissions-24h"><i>Loading...</i></p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mt-3">
+                                <h6>User Registration Trend</h6>
+                                <div id="analytics-registration-chart" style="height: 250px; border: 1px dashed #ccc; display: flex; align-items: center; justify-content: center;">
+                                    <i>Chart Placeholder</i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- System Configuration Section -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            Product Management
+                        </div>
+                        <div class="card-body">
+                            <h5>Add New Product</h5>
+                            <form id="add-product-form" class="row g-3 mb-4 border p-3 rounded">
+                                <div class="col-md-4">
+                                    <label for="product-name" class="form-label">Name</label>
+                                    <input type="text" class="form-control form-control-sm" id="product-name" required>
+                                </div>
+                                <div class="col-md-2">
+                                    <label for="product-price" class="form-label">Price ($)</label>
+                                    <input type="number" step="0.01" class="form-control form-control-sm" id="product-price" required>
+                                </div>
+                                <div class="col-md-2">
+                                    <label for="product-commission" class="form-label">Commission Rate (e.g., 0.015)</label>
+                                    <input type="number" step="0.001" class="form-control form-control-sm" id="product-commission" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="product-image-url" class="form-label">Image URL (Optional)</label>
+                                    <input type="text" class="form-control form-control-sm" id="product-image-url">
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="product-min-balance" class="form-label">Min Balance Req. ($)</label>
+                                    <input type="number" step="0.01" class="form-control form-control-sm" id="product-min-balance" placeholder="0">
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="product-min-tier" class="form-label">Min Tier Req.</label>
+                                    <select id="product-min-tier" class="form-select form-select-sm">
+                                        <option value="bronze" selected>Bronze</option>
+                                        <option value="silver">Silver</option>
+                                        <option value="gold">Gold</option>
+                                        <option value="platinum">Platinum</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6 align-self-end">
+                                    <button type="submit" class="btn btn-primary btn-sm">Add Product</button>
+                                </div>
+                            </form>
+                             <div id="add-product-message" class="mb-3" style="display: none;"></div>
+
+                            <hr>
+                            <h5>Existing Products</h5>
+                             <div id="product-list-container" style="max-height: 400px; overflow-y: auto;">
+                                <table class="table table-striped table-hover table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Name</th>
+                                            <th>Price</th>
+                                            <th>Commission</th>
+                                            <th>Min Balance</th>
+                                            <th>Min Tier</th>
+                                            <th>Active</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="admin-product-table-body">
+                                        <!-- Product rows will be loaded here by admin.js -->
+                                        <tr><td colspan="8" class="text-center"><i>Loading products...</i></td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                             <div id="product-list-message" class="text-center mt-2" style="display: none;"></div>
+
+                            <!-- Modal for Editing Product -->
+                            <div class="modal fade" id="editProductModal" tabindex="-1" aria-labelledby="editProductModalLabel" aria-hidden="true">
+                              <div class="modal-dialog modal-lg">
+                                <div class="modal-content">
+                                  <div class="modal-header">
+                                    <h5 class="modal-title" id="editProductModalLabel">Edit Product</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                  </div>
+                                  <div class="modal-body">
+                                    <form id="edit-product-form">
+                                      <input type="hidden" id="edit-product-id">
+                                      <div class="row g-3">
+                                          <div class="col-md-6 mb-3">
+                                              <label for="edit-product-name" class="form-label">Name</label>
+                                              <input type="text" class="form-control form-control-sm" id="edit-product-name" required>
+                                          </div>
+                                          <div class="col-md-3 mb-3">
+                                              <label for="edit-product-price" class="form-label">Price ($)</label>
+                                              <input type="number" step="0.01" class="form-control form-control-sm" id="edit-product-price" required>
+                                          </div>
+                                          <div class="col-md-3 mb-3">
+                                              <label for="edit-product-commission" class="form-label">Commission Rate</label>
+                                              <input type="number" step="0.001" class="form-control form-control-sm" id="edit-product-commission" required>
+                                          </div>
+                                          <div class="col-12 mb-3">
+                                              <label for="edit-product-image-url" class="form-label">Image URL</label>
+                                              <input type="text" class="form-control form-control-sm" id="edit-product-image-url">
+                                          </div>
+                                          <div class="col-md-4 mb-3">
+                                              <label for="edit-product-min-balance" class="form-label">Min Balance Req. ($)</label>
+                                              <input type="number" step="0.01" class="form-control form-control-sm" id="edit-product-min-balance">
+                                          </div>
+                                          <div class="col-md-4 mb-3">
+                                              <label for="edit-product-min-tier" class="form-label">Min Tier Req.</label>
+                                              <select id="edit-product-min-tier" class="form-select form-select-sm">
+                                                  <option value="bronze">Bronze</option>
+                                                  <option value="silver">Silver</option>
+                                                  <option value="gold">Gold</option>
+                                                  <option value="platinum">Platinum</option>
+                                              </select>
+                                          </div>
+                                          <div class="col-md-4 mb-3 align-self-center">
+                                               <div class="form-check form-switch">
+                                                  <input class="form-check-input" type="checkbox" role="switch" id="edit-product-is-active">
+                                                  <label class="form-check-label" for="edit-product-is-active">Is Active</label>
+                                                </div>
+                                          </div>
+                                      </div>
+                                    </form>
+                                  </div>
+                                  <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+                                    <button type="button" class="btn btn-primary btn-sm" id="save-product-changes-btn">Save changes</button>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                             <div id="edit-product-message" class="mt-2" style="display: none;"></div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- No footer needed -->
+
+    <script src="./assets/frontend/js/jquery.min.js"></script>
+    <script src="./assets/frontend/js/bootstrap.bundle.min.js"></script>
+    <script src="./js/main.js"></script>
+    <script src="./js/admin.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check if user is logged in as admin
+            const token = localStorage.getItem('admin_token');
+            if (!token) {
+                window.location.href = '/admin/login'; // Updated path
+                return;
+            }
+            
+            // Initialize admin dashboard
+            if (typeof initializeAdmin === 'function') {
+                initializeAdmin();
+            }
+            
+            // Handle admin logout
+            document.getElementById('admin-logout').addEventListener('click', function(e) {
+                e.preventDefault();
+                localStorage.removeItem('admin_token');
+                localStorage.removeItem('admin_data');
+                window.location.href = '/admin/login'; // Updated path
+            });
+            
+            // Display admin username if available
+            const adminData = JSON.parse(localStorage.getItem('admin_data') || '{}');
+            if (adminData.username) {
+                document.getElementById('admin-username-display').textContent = adminData.username;
+            }
+        });
+    </script>
+</body>
+</html>
