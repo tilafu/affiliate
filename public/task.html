@@ -116,43 +116,6 @@
             <!-- This will be populated by drive.js -->
         </div>
 
-        <!-- Product Display Section (hidden by default) -->
-        <div class="product-section" id="product-card-container" style="display: none;">
-            <div class="product-preview glass-card" id="order-loading-overlay" style="display: none;">
-                <div class="loading-spinner"></div>
-                <p class="loading-text">Loading next product...</p>
-            </div>
-            
-            <div class="product-card" id="product-display">
-                <div class="product-image-container">
-                    <img id="product-image" src="" alt="Product Image" class="product-image">
-                    <div class="product-overlay">
-                        <button class="btn-view-product js-modal-open" id="open-product-modal-btn">
-                            <i class="fas fa-eye"></i>
-                            View Details
-                        </button>
-                    </div>
-                </div>
-                <div class="product-info">
-                    <h3 id="product-name" class="product-title">Product Name</h3>
-                    <div class="product-stats">
-                        <div class="product-stat">
-                            <span class="stat-label">Commission</span>
-                            <span id="product-commission" class="stat-value">0.00 USDT</span>
-                        </div>
-                        <div class="product-stat">
-                            <span class="stat-label">Price</span>
-                            <span id="product-price" class="stat-value">$0.00</span>
-                        </div>
-                    </div>
-                    <button id="purchase-button" class="gdot-button gdot-primary-btn">
-                        <i class="fas fa-shopping-cart"></i>
-                        <span>Purchase & Earn</span>
-                    </button>
-                </div>
-            </div>
-        </div>
-
         <!-- Trending Products -->
         <div class="gdot-trending-section">
             <h3 class="gdot-section-title">Trending Products</h3>
@@ -282,12 +245,9 @@
     </main>
     
     <!-- Footer -->
-    <footer class="gdot-footer">
-        <a href="privacy.html" class="gdot-footer-link">Privacy Policy</a>
-        <a href="terms.html" class="gdot-footer-link">Terms of Service</a>
-        <a href="support.html" class="gdot-footer-link">Support</a>
-    </footer>
+    
 </div>
+
 
 
 
@@ -417,7 +377,7 @@
 <script src="./assets/frontend/js/script.js"></script>
 
 <!-- Load Component Loader -->
-<script src="./js/components.js"></script>
+<!-- <script src="./js/components.js"></script> -->
 <script src="./js/dashboard.js"></script>
 
 <!-- Session data management -->
@@ -437,14 +397,21 @@
 <!-- <script src="./js/drive-product-renderer.js"></script> -->
 
 <!-- Main Drive Script -->
-<script src="./js/drive.js"></script>
+<!-- <script src="./js/drive.js"></script> -->
 
 <!-- Task scripts -->
 <script src="./js/task.js"></script>
-<script src="./js/task-ui.js"></script>
+<!-- <script src="./js/task-ui.js"></script> -->
 
 <!-- Auth script -->
 <script src="./js/auth.js"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Load standard navigation components
+        loadStandardNavigation('orders');
+    });
+    </script>
 
 <!-- Purchase Success Popup Styling -->
 <link rel="stylesheet" href="css/task.css">

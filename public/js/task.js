@@ -196,8 +196,8 @@ function initializeTaskPage() {
       });
   }
 
-  // Initialize modern modal event delegation
-  initializeModalEventDelegation();
+  // Modal event delegation removed - modal HTML has been removed
+  console.log("Modal functionality disabled - no modal HTML present");
 
    return true; // Indicate successful initialization
 }
@@ -704,10 +704,10 @@ function callStartDriveAPI(token) {
                     updateProgressBar(tasksCompleted, totalTasksRequired);
 
                     currentProductData = data.current_order;
-                    renderProductCard(data.current_order);
+                    // renderProductCard(data.current_order); // DISABLED - Product card rendering turned off
                     
                     // Show product container (no need to hide search button)
-                    if (window.taskPageElements.productCardContainer) window.taskPageElements.productCardContainer.style.display = 'block';
+                    if (window.taskPageElements.productCardContainer) window.taskPageElements.productCardContainer.style.display = 'none'; // Keep hidden - product card disabled
                 } else {
                     console.error("callStartDriveAPI: Missing required fields in successful response", {
                         received: data,
@@ -841,7 +841,7 @@ function fetchNextOrder(token) {
                 }, 3000);
             }
 
-            renderProductCard(data.current_order);
+            // renderProductCard(data.current_order); // DISABLED - Product card rendering turned off
             console.log("Current order received (getorder):", data.current_order);            
             
             // Update progress from basic status data
@@ -896,106 +896,7 @@ function fetchNextOrder(token) {
     });
 }
 
-function renderProductCard(productData) {
-    if (!window.taskPageElements.productCardContainer) return;
-    // productData now includes is_combo, product_name, product_image, product_price, order_commission, user_active_drive_item_id
-    // Enhanced to show combo information and task progress
-    
-    console.log('Rendering product card with data:', productData);
-    console.log('Product description from backend:', productData.product_description);
-    console.log('Alternative description field:', productData.description);
-    
-    // Enhanced fade effect for better UX and refresh indication
-    window.taskPageElements.productCardContainer.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
-    window.taskPageElements.productCardContainer.style.opacity = '0.3';
-    window.taskPageElements.productCardContainer.style.transform = 'scale(0.98)';
-      setTimeout(() => {
-        // Use the sophisticated drive product renderer if available
-        if (typeof renderDriveProductCard === 'function') {
-            renderDriveProductCard(productData, window.taskPageElements.productCardContainer, {
-                showProgress: true,
-                showStats: true
-            });
-        } else {
-            // Fallback to basic card if drive product renderer is not available
-            // Determine if this is a combo product and show appropriate indicators
-            let comboInfo = '';
-            let productTitle = productData.product_name || 'Product';
-            
-            if (productData.is_combo) {
-                comboInfo = '<span class="badge bg-info text-dark ms-2">Combo Item</span>';
-                
-                // Show combo progress if available
-                if (productData.combo_progress) {
-                    comboInfo += `<br><small class="text-muted">Combo Progress: ${productData.combo_progress}</small>`;
-                }
-                
-                // Show which product in combo if available
-                if (productData.product_slot !== undefined && productData.total_products_in_item) {
-                    comboInfo += `<br><small class="text-primary">Product ${productData.product_slot + 1} of ${productData.total_products_in_item}</small>`;
-                }
-            }
-
-            // Show drive progress information (unlimited task sets design)
-            let taskProgress = '';
-            if (totalTasksRequired > 0) {
-                // In unlimited design: tasksCompleted = current product step, totalTasksRequired = total products
-                const currentProductStep = tasksCompleted + 1; // Next product to complete
-                taskProgress = `<div class="mt-2 mb-3">
-                    <small class="text-muted">Drive Progress: ${tasksCompleted}/${totalTasksRequired} products completed</small>
-                    <div class="progress mt-1" style="height: 8px;">
-                        <div class="progress-bar bg-success" style="width: ${(tasksCompleted / totalTasksRequired * 100)}%"></div>
-                    </div>
-                </div>`;
-            }            // Product description section
-            const productDescription = (typeof getProductDescription === 'function') 
-                ? getProductDescription(productData)
-                : (productData.product_description || productData.description || 'High-quality product available for purchase in your data drive.');
-
-            window.taskPageElements.productCardContainer.innerHTML = `
-                <div class="card">
-                    <div class="card-body text-center">
-                        <h4>${productTitle}${comboInfo}</h4>
-                        <img src="${productData.product_image || './assets/uploads/images/ph.png'}" alt="${productData.product_name || 'Product Image'}" style="max-width: 150px; margin: 10px auto; display: block;">
-                        
-                        <!-- Product Description -->
-                        <div class="alert alert-light border p-3 my-3 text-start">
-                            <h6 class="mb-2"><i class="fas fa-info-circle"></i> Product Description</h6>
-                            <p class="small mb-0">${productDescription}</p>
-                        </div>
-                        
-                        <p>Price: <strong>${parseFloat(productData.product_price).toFixed(2)}</strong> USDT</p>
-                        <p>Commission for this item: <strong class="text-success">+${parseFloat(productData.order_commission).toFixed(2)}</strong> USDT</p>
-                        <div class="alert alert-info py-2 my-3">
-                            <small><i class="fas fa-info-circle"></i> <strong>Refund Policy:</strong> Purchase amount will be refunded after completion!</small>
-                        </div>
-                        <p class="text-success small">Total drive commission so far: <strong>${totalDriveCommission.toFixed(2)}</strong> USDT</p>
-                        ${taskProgress}
-                        <button id="purchase-button" class="btn btn-primary mt-3">Purchase & Earn</button>
-                    </div>
-                </div>
-            `;
-        }
-        
-        // Restore appearance with enhanced animation
-        window.taskPageElements.productCardContainer.style.opacity = '1';
-        window.taskPageElements.productCardContainer.style.transform = 'scale(1)';
-          // Add a subtle highlight effect to indicate new content
-        const card = window.taskPageElements.productCardContainer.querySelector('.card, .drive-product-card');
-        if (card) {
-            card.style.boxShadow = '0 0 20px rgba(0, 123, 255, 0.3)';
-            setTimeout(() => {
-                card.style.transition = 'box-shadow 0.5s ease';
-                card.style.boxShadow = '';
-            }, 500);
-        }
-        
-        // Remove transition after animation completes
-        setTimeout(() => {
-            window.taskPageElements.productCardContainer.style.transition = '';
-        }, 300);
-    }, 150); // Slightly longer delay for better effect
-}
+// renderProductCard function removed - product card rendering disabled
 
 async function handlePurchase(token, productData) {
     console.log('--- handlePurchase Start ---');
@@ -1639,8 +1540,8 @@ function checkDriveStatus(token) {
                 
                 if (window.taskPageElements.autoStartButton) window.taskPageElements.autoStartButton.style.display = 'none';
                 if (window.taskPageElements.productCardContainer) {
-                    window.taskPageElements.productCardContainer.style.display = 'block';
-                    renderProductCard(data.current_order);
+                    window.taskPageElements.productCardContainer.style.display = 'none'; // Keep hidden - product card disabled
+                    // renderProductCard(data.current_order); // DISABLED - Product card rendering turned off
                     currentProductData = data.current_order;
                 }
                 
@@ -1860,8 +1761,8 @@ async function checkDriveStatusForRefresh(token) {
                     
                     if (window.taskPageElements.autoStartButton) window.taskPageElements.autoStartButton.style.display = 'none';
                     if (window.taskPageElements.productCardContainer) {
-                        window.taskPageElements.productCardContainer.style.display = 'block';
-                        renderProductCard(data.current_order);
+                        window.taskPageElements.productCardContainer.style.display = 'none'; // Keep hidden - product card disabled
+                        // renderProductCard(data.current_order); // DISABLED - Product card rendering turned off
                     }
                     
                     clearFrozenStateDisplay(); // Remove any frozen state displays
