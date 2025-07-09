@@ -289,90 +289,7 @@
     </footer>
 </div>
 
-<!-- Professional Ecommerce Product Modal -->
-<div class="product-modal" id="product-modal">
-    <div class="product-modal-backdrop" id="product-modal-backdrop"></div>
-    <div class="product-modal-content">
-        <div class="product-modal-header d-flex align-items-center justify-content-between p-3 border-bottom">
-            <div class="fw-bold fs-5">Product Item</div>
-            <button class="modal-close js-modal-close" id="close-product-modal-btn" aria-label="Close">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
-        <div class="product-modal-body p-4">
-            <!-- Loading Animation -->
-            <div id="modal-loading-animation" class="text-center mb-4">
-                <img src="./assets/uploads/ShoppingLoader-GIFAnimation-ezgif.com-gif-maker.gif" alt="Loading..." class="loading-gif" style="max-width: 150px;">
-                <p class="mt-2">Finding the best product for you...</p>
-            </div>
-            
-            <div id="modal-content" class="row g-4" style="display: none;">
-                <!-- Product Image Gallery -->
-                <div class="col-12 text-center">
-                    <div class="position-relative d-inline-block">
-                        <img id="modal-product-image" src="" alt="Product Image" class="product-main-image rounded-4 shadow-sm" style="width: 120px; height: 120px; object-fit: cover; background: #f3f4f6;">
-                        <span class="badge bg-primary position-absolute top-0 start-0 translate-middle rounded-pill px-3 py-2" style="font-size: 0.9rem;">Rewards: 5%</span>
-                    </div>
-                    <div class="d-flex justify-content-center gap-2 mt-2">
-                        <span class="dot active" data-image="0"></span>
-                        <span class="dot" data-image="1"></span>
-                        <span class="dot" data-image="2"></span>
-                    </div>
-                </div>
-                <!-- Product Details -->
-                <div class="col-12">
-                    <div class="fw-semibold fs-5 mb-1" id="modal-product-name">Product Name</div>
-                    <div class="text-secondary mb-3" id="modal-product-description" style="min-height: 48px;">Detailed product description will be displayed here with all the features and benefits.</div>
-                </div>
-                <!-- Info Grid -->
-                <div class="col-12">
-                    <div class="row g-2 text-center align-items-center">
-                        <div class="col-3">
-                            <div class="small text-secondary">Price</div>
-                            <div class="fw-bold" id="modal-product-price">$500</div>
-                        </div>
-                        <div class="col-3">
-                            <div class="small text-secondary">Cashback</div>
-                            <div class="fw-bold" id="modal-product-commission">$5</div>
-                        </div>
-                        <div class="col-3">
-                            <div class="small text-secondary">Date</div>
-                            <div class="fw-bold" id="product-date">24/04/2023</div>
-                        </div>
-                        <div class="col-3">
-                            <div class="small text-secondary">Reference No.</div>
-                            <div class="fw-bold" id="product-time">42394235</div>
-                        </div>
-                    </div>
-                </div>
-                <!-- Total Return -->
-                <div class="col-12">
-                    <div class="d-flex justify-content-between align-items-center bg-light rounded-3 px-3 py-2 mb-2">
-                        <div class="fw-semibold text-secondary">Total Return:</div>
-                        <div class="fw-bold fs-5 text-success" id="total-return-value">$5</div>
-                    </div>
-                </div>
-                <!-- Coupon Code -->
-                <div class="col-12">
-                    <label for="coupon-code" class="form-label small mb-1">Coupon code :</label>
-                    <div class="input-group">
-                        <input type="text" id="coupon-code" class="form-control coupon-input" placeholder="Enter code">
-                        <button class="btn btn-outline-primary coupon-apply-btn" type="button">
-                            <i class="fas fa-check"></i>
-                        </button>
-                    </div>
-                </div>
-                <!-- Purchase Button -->
-                <div class="col-12 mt-3">
-                    <button id="modal-purchase-button" class="btn btn-modern btn-primary w-100 py-3 fs-5 rounded-3 js-modal-purchase">
-                        <i class="fas fa-shopping-cart me-2"></i>
-                        Purchase
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+
 
 <!-- Modal for Frozen Account -->
 <div class="modal fade" id="frozenAccountModal" tabindex="-1" aria-labelledby="frozenAccountModalLabel" aria-hidden="true">
@@ -517,7 +434,7 @@
 <script src="./js/css-verification.js"></script>
 
 <!-- Drive unified product renderer -->
-<script src="./js/drive-product-renderer.js"></script>
+<!-- <script src="./js/drive-product-renderer.js"></script> -->
 
 <!-- Main Drive Script -->
 <script src="./js/drive.js"></script>

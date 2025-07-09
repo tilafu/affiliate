@@ -96,7 +96,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (data.current_product_details) {
                         logDebug('New drive started. Rendering first product.', 'info');
                         updateFrontendState(data);
-                        renderProductCard(data.current_product_details);
+                        // renderProductCard(data.current_product_details);
                         updateWalletBalance();
                     } else {
                         logDebug('New drive started, but no product details in response. Fetching next order.', 'warn');
@@ -167,7 +167,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (data.code === 0 && data.product_details) { // Success, product received
                     logDebug('Received next product.', 'info');
                     updateFrontendState(data);
-                    renderProductCard(data.product_details);
+                    // renderProductCard(data.product_details);
                     updateWalletBalance(); 
                 } else if (data.code === 2) { // Drive complete
                     logDebug('Drive complete.', 'info');
@@ -192,7 +192,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Function to render the product details in a card
-    function renderProductCard(productDetails) {
+    /*function renderProductCard(productDetails) {
         logDebug(`Rendering product card for: ${productDetails.product_name}`, 'info');
         if (!productDetails || productDetails.product_id === undefined) {
              logDebug("CRITICAL: product_id is missing in productDetails for renderProductCard!", 'error');
@@ -220,7 +220,7 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
         `;
         document.getElementById('purchase-button').addEventListener('click', () => handlePurchase(productDetails));
-    }
+    }*/
 
     // Function to handle the Purchase button click
     async function handlePurchase(productDataForPurchase) { // Renamed to avoid conflict with global currentProductData
@@ -866,7 +866,7 @@ async function checkDriveStatus() { // Removed token parameter, use global token
                 } // Show progress with multiple approaches
                 if(noDriveMessageSection) noDriveMessageSection.style.display = 'none'; // Hide no-drive message
                 updateFrontendState(data); // Update state with all details
-                renderProductCard(data.current_product_details);
+                // renderProductCard(data.current_product_details);
                 updateWalletBalance();            } else if (data.status === 'frozen') {
                  console.log('Frozen session found. Displaying frozen state.');
                  if(startDriveButton) startDriveButton.style.display = 'none';

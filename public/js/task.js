@@ -2458,101 +2458,15 @@ function initializeModalEventDelegation() {
   console.log('Modal event delegation initialized successfully');
 }
 
-// --- Enhanced Modal Functions ---
+// Modal functions disabled - modal HTML removed
 function openProductModal() {
-  console.log('Opening product modal...');
-  const modal = document.getElementById('product-modal');
-  if (!modal) {
-    console.error('Product modal element not found');
-    return;
-  }
-  
-  // Show modal immediately with loading animation
-  modal.classList.add('show');
-  document.body.style.overflow = 'hidden';
-  
-  // Show loading animation, hide content
-  const loadingAnimation = document.getElementById('modal-loading-animation');
-  const modalContent = document.getElementById('modal-content');
-  
-  if (loadingAnimation) loadingAnimation.style.display = 'block';
-  if (modalContent) modalContent.style.display = 'none';
-  
-  // Set timeout to simulate loading and then show content
-  setTimeout(() => {
-    const productImage = document.getElementById('product-image');
-    const productName = document.getElementById('product-name');
-    const productPrice = document.getElementById('product-price');
-    const productCommission = document.getElementById('product-commission');
-    
-    if (!productImage || !productName || !productPrice || !productCommission) {
-      console.error('Product data elements not found');
-      return;
-    }
-    
-    // Copy data to modal
-    const modalImage = document.getElementById('modal-product-image');
-    const modalName = document.getElementById('modal-product-name');
-    const modalPrice = document.getElementById('modal-product-price');
-    const modalCommission = document.getElementById('modal-product-commission');
-    
-    if (modalImage) modalImage.src = productImage.src;
-    if (modalName) modalName.textContent = productName.textContent;
-    if (modalPrice) modalPrice.textContent = productPrice.textContent;
-    if (modalCommission) modalCommission.textContent = productCommission.textContent;
-    
-    // Set current date and time
-    const now = new Date();
-    const dateElement = document.getElementById('product-date');
-    const timeElement = document.getElementById('product-time');
-    if (dateElement) dateElement.textContent = now.toLocaleDateString('en-GB');
-    if (timeElement) timeElement.textContent = Date.now().toString();
-    
-    // Calculate total return
-    updateTotalReturn();
-    
-    // Hide loading animation, show content
-    if (loadingAnimation) loadingAnimation.style.display = 'none';
-    if (modalContent) modalContent.style.display = 'block';
-    
-    console.log('Product content displayed in modal');
-  }, 2000); // 2 seconds delay to show the loading animation
-  
-  console.log('Product modal opened successfully with loading animation');
+  console.log('Modal functionality disabled - modal HTML has been removed');
+  return;
 }
 
 function closeProductModal() {
-  console.log('Closing product modal...');
-  const modal = document.getElementById('product-modal');
-  if (!modal) {
-    console.error('Product modal element not found');
-    return;
-  }
-  
-  modal.classList.remove('show');
-  document.body.style.overflow = '';
-  
-  // Reset loading state for next open
-  const loadingAnimation = document.getElementById('modal-loading-animation');
-  const modalContent = document.getElementById('modal-content');
-  
-  if (loadingAnimation) loadingAnimation.style.display = 'block';
-  if (modalContent) modalContent.style.display = 'none';
-  
-  // Reset form
-  const couponInput = document.getElementById('coupon-code');
-  if (couponInput) couponInput.value = '';
-  
-  // Reset selected action
-  window.selectedAction = 'buy';
-  
-  // Reset action buttons
-  const actionButtons = document.querySelectorAll('.action-btn');
-  actionButtons.forEach(btn => btn.classList.remove('active'));
-  const buyButton = document.querySelector('[data-action="buy"]');
-  if (buyButton) buyButton.classList.add('active');
-  
-  console.log('Product modal closed successfully');
+  console.log('Modal functionality disabled - modal HTML has been removed');
+  return;
 }
 
 function updateTotalReturn() {
