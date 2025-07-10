@@ -331,6 +331,175 @@
   </div>
 </div>
 
+<!-- Drive Product Modal -->
+<div class="drive-modal-overlay" id="driveProductModal" style="display: none;">
+  <div class="drive-modal">
+    <!-- Modal Header -->
+    <div class="drive-modal-header">
+      <button class="drive-modal-back" id="driveModalBack">
+        <i class="fas fa-arrow-left"></i>
+      </button>
+      <button class="drive-modal-share">
+        <i class="fas fa-share"></i>
+      </button>
+    </div>
+
+    <!-- Product Image Section -->
+    <div class="drive-product-image-section">
+      <div class="drive-product-main-image">
+        <img id="driveProductMainImage" src="./assets/images/products/iphone.jpg" alt="Product">
+      </div>
+      <div class="drive-product-thumbnails">
+        <div class="drive-thumbnail active">
+          <img src="./assets/images/products/iphone.jpg" alt="View 1">
+        </div>
+        <div class="drive-thumbnail">
+          <img src="./assets/images/products/iphone-2.jpg" alt="View 2">
+        </div>
+        <div class="drive-thumbnail">
+          <img src="./assets/images/products/iphone-3.jpg" alt="View 3">
+        </div>
+        <div class="drive-thumbnail-more">
+          <span>+</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Product Info Section -->
+    <div class="drive-product-info">
+      <h2 class="drive-product-title" id="driveProductTitle">Apple iPhone 15, 128GB, Black – Unlocked (Renewed)</h2>
+      
+      <!-- Rating Section -->
+      <div class="drive-product-rating">
+        <div class="drive-rating-stars">
+          <span class="drive-rating-number">4.9</span>
+          <div class="drive-stars">
+            <i class="fas fa-star"></i>
+            <i class="fas fa-star"></i>
+            <i class="fas fa-star"></i>
+            <i class="fas fa-star"></i>
+            <i class="fas fa-star"></i>
+          </div>
+        </div>
+        <div class="drive-rating-breakdown">
+          <div class="drive-rating-bar">
+            <span class="drive-rating-label">5</span>
+            <div class="drive-rating-progress">
+              <div class="drive-rating-fill" style="width: 86%"></div>
+            </div>
+            <span class="drive-rating-percent">86%</span>
+          </div>
+          <div class="drive-rating-bar">
+            <span class="drive-rating-label">4</span>
+            <div class="drive-rating-progress">
+              <div class="drive-rating-fill" style="width: 10%"></div>
+            </div>
+            <span class="drive-rating-percent">10%</span>
+          </div>
+          <div class="drive-rating-bar">
+            <span class="drive-rating-label">3</span>
+            <div class="drive-rating-progress">
+              <div class="drive-rating-fill" style="width: 2%"></div>
+            </div>
+            <span class="drive-rating-percent">2%</span>
+          </div>
+          <div class="drive-rating-bar">
+            <span class="drive-rating-label">2</span>
+            <div class="drive-rating-progress">
+              <div class="drive-rating-fill" style="width: 1%"></div>
+            </div>
+            <span class="drive-rating-percent">1%</span>
+          </div>
+          <div class="drive-rating-bar">
+            <span class="drive-rating-label">1</span>
+            <div class="drive-rating-progress">
+              <div class="drive-rating-fill" style="width: 1%"></div>
+            </div>
+            <span class="drive-rating-percent">1%</span>
+          </div>
+        </div>
+        <p class="drive-reviews-count">437 reviews</p>
+      </div>
+
+      <!-- Product Details Link -->
+      <button class="drive-product-details-btn">
+        View Full Product Details
+      </button>
+
+      <!-- Earnings Section -->
+      <div class="drive-earnings-section">
+        <h3 class="drive-earnings-title">Earnings</h3>
+        
+        <div class="drive-earnings-grid">
+          <div class="drive-earnings-item">
+            <span class="drive-earnings-label">Purchase Price</span>
+            <span class="drive-earnings-value" id="drivePurchasePrice">$24.99 USDT</span>
+          </div>
+          
+          <div class="drive-earnings-item">
+            <span class="drive-earnings-label">Your Commission</span>
+            <span class="drive-earnings-value drive-commission" id="driveCommission">+ $0.50 USDT</span>
+          </div>
+          
+          <div class="drive-earnings-item">
+            <span class="drive-earnings-label">Net Result</span>
+            <span class="drive-earnings-value" id="driveNetResult">$24.49 USDT</span>
+          </div>
+          
+          <div class="drive-earnings-item">
+            <span class="drive-earnings-label">Explanation</span>
+            <span class="drive-earnings-explanation">You will receive a commission of 0.7% for this purchase.</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Purchase Button -->
+      <button class="drive-purchase-btn" id="confirmDriveBtn">
+        Confirm Purchase and Claim $0.50
+      </button>
+
+      <!-- Product Description -->
+      <div class="drive-product-description">
+        <h4>Product Description</h4>
+        <p id="driveProductDescription">This renewed iPhone 15 is fully unlocked and compatible with any carrier. It has been professionally inspected, tested, and cleaned to like-new condition. Backed by a 90-day satisfaction guarantee.</p>
+      </div>
+
+      <!-- Refund Policy -->
+      <div class="drive-refund-policy">
+        <h4>Refund Policy</h4>
+        <p>We process refunds instantly once your purchase order is confirmed. The refunded amount will appear in your account balance within moments.</p>
+        <p class="drive-refund-contact">Refund delayed? <a href="support.html">Contact us now</a></p>
+      </div>
+
+      <!-- Info Tags -->
+      <div class="drive-info-tags">
+        <div class="drive-info-tag drive-tag-operating">
+          <i class="fas fa-clock"></i>
+          <div>
+            <span class="drive-tag-label">Operating Hours</span>
+            <span class="drive-tag-status">OPEN</span>
+          </div>
+        </div>
+        
+        <div class="drive-info-tag drive-tag-refund">
+          <i class="fas fa-undo"></i>
+          <div>
+            <span class="drive-tag-label">Refund Policy</span>
+            <span class="drive-tag-status">ACTIVE</span>
+          </div>
+        </div>
+        
+        <div class="drive-info-tag drive-tag-notice">
+          <i class="fas fa-exclamation-triangle"></i>
+          <div>
+            <span class="drive-tag-label">Important Notice</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Purchase Success Popup -->
 <div id="purchase-success-popup" class="purchase-success-popup">
   <div class="purchase-success-content">

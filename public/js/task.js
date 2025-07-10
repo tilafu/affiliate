@@ -196,8 +196,12 @@ function initializeTaskPage() {
       });
   }
 
-  // Modal event delegation removed - modal HTML has been removed
-  console.log("Modal functionality disabled - no modal HTML present");
+  // Initialize modal event handlers for drive product modal
+  initializeModalEventHandlers();
+  
+  // Initialize modern modal event delegation for search button and modal controls
+  initializeModalEventDelegation();
+  console.log("Drive product modal functionality enabled");
 
    return true; // Indicate successful initialization
 }
@@ -1103,55 +1107,55 @@ async function handlePurchase(token, productData) {
                     }
                       // Refresh wallet balance even if refund failed (commission should still be added)
                     console.log('Refreshing wallet balance after purchase (refund failed)...');
-                    refreshWalletBalance();
-                      // Show success popup even if refund fails
-                    if (typeof showPurchaseSuccessPopup === 'function') {
-                        showPurchaseSuccessPopup(productData.product_name || 'Product', () => {
-                            // Continue with next product
-                            fetchNextOrder(token);
-                        });
-                    } else {
-                        // Fallback to standard success message if refund fails
-                        if (typeof showNotification === 'function') {
-                            showNotification(data.info || "Order Sent successfully!", 'success');
-                        } else { 
-                            alert(data.info || "Order Sent successfully!"); 
+                        refreshWalletBalance();
+                          // Show success popup even if refund fails
+                        if (typeof showPurchaseSuccessPopup === 'function') {
+                            showPurchaseSuccessPopup(productData.product_name || 'Product', () => {
+                                // Continue with next product
+                                fetchNextOrder(token);
+                            });
+                        } else {
+                            // Fallback to standard success message if refund fails
+                            if (typeof showNotification === 'function') {
+                                showNotification(data.info || "Order Sent successfully!", 'success');
+                            } else { 
+                                alert(data.info || "Order Sent successfully!"); 
+                            }
+                            // Continue to next product after showing notification
+                            setTimeout(() => {
+                                fetchNextOrder(token);
+                            }, 2000);
                         }
-                        // Continue to next product after showing notification
-                        setTimeout(() => {
-                            fetchNextOrder(token);
-                        }, 2000);
                     }
-                }
-            } catch (refundError) {
-                console.error('Error processing refund:', refundError);
-                
-                // Commission was already updated from saveOrder response above, no need to add again
-                
-                // Update progress immediately after successful purchase
-                console.log('Updating progress immediately after successful purchase (refund error)...');
-                tasksCompleted += 1; // Increment local progress
-                updateProgressBar(tasksCompleted, totalTasksRequired);
-                
-                // Fetch fresh drive status to get accurate progress and update with detailed data
-                try {
-                    await updateDriveStatus();
-                    console.log('Drive status updated after successful purchase (refund error)');
+                } catch (refundError) {
+                    console.error('Error processing refund:', refundError);
                     
-                    // Also update with detailed progress for most accurate display
-                    updateProgressFromDetailedData().then(detailedData => {
-                        if (detailedData) {
-                            console.log('Progress updated with detailed data after purchase (refund error)');
-                        }
-                    }).catch(error => {
-                        console.warn('Could not fetch detailed progress after purchase:', error.message);
-                    });
-                } catch (statusError) {
-                    console.warn('Failed to update drive status after purchase:', statusError);
-                    // Fallback: progress was already updated locally above
-                    updateDriveCommission();
+                    // Commission was already updated from saveOrder response above, no need to add again
+                    
+                    // Update progress immediately after successful purchase
+                    console.log('Updating progress immediately after successful purchase (refund error)...');
+                    tasksCompleted += 1; // Increment local progress
                     updateProgressBar(tasksCompleted, totalTasksRequired);
-                }
+                    
+                    // Fetch fresh drive status to get accurate progress and update with detailed data
+                    try {
+                        await updateDriveStatus();
+                        console.log('Drive status updated after successful purchase (refund error)');
+                        
+                        // Also update with detailed progress for most accurate display
+                        updateProgressFromDetailedData().then(detailedData => {
+                            if (detailedData) {
+                                console.log('Progress updated with detailed data after purchase (refund error)');
+                            }
+                        }).catch(error => {
+                            console.warn('Could not fetch detailed progress after purchase:', error.message);
+                        });
+                    } catch (statusError) {
+                        console.warn('Failed to update drive status after purchase:', statusError);
+                        // Fallback: progress was already updated locally above
+                        updateDriveCommission();
+                        updateProgressBar(tasksCompleted, totalTasksRequired);
+                    }
                   // Refresh wallet balance even if refund had an error (commission should still be added by backend)
                 console.log('Refreshing wallet balance after purchase (refund error)...');
                 refreshWalletBalance();
@@ -1780,6 +1784,9 @@ async function checkDriveStatusForRefresh(token) {
                     if (window.taskPageElements.autoStartButton) window.taskPageElements.autoStartButton.style.display = 'block';
                     if (window.taskPageElements.productCardContainer) window.taskPageElements.productCardContainer.style.display = 'none';
                     
+                                       
+                    
+                   
                     // Reset state for no session - use backend-provided drive requirements
                     clearSessionData();
                     totalDriveCommission = 0;
@@ -2359,529 +2366,285 @@ function initializeModalEventDelegation() {
   console.log('Modal event delegation initialized successfully');
 }
 
-// Modal functions disabled - modal HTML removed
+// Modal  functions - restored for drive product modal
 function openProductModal() {
-  console.log('Modal functionality disabled - modal HTML has been removed');
-  return;
+  console.log('Opening drive product modal');
+  const modal = document.getElementById('driveProductModal');
+  if (modal) {
+    modal.style.display = 'flex';
+    // Add a slight delay to ensure smooth animation
+    setTimeout(() => {
+      modal.classList.add('show');
+    }, 10);
+    
+    // Prevent body scrolling when modal is open
+    document.body.style.overflow = 'hidden';
+    
+    // Load current product data into modal if available
+    if (currentProductData) {
+      populateModalWithProductData(currentProductData);
+    } else {
+      console.warn('No currentProductData available, fetching from API');
+      // Get the auth token
+      const authToken = globalAuthData?.token;
+      if (authToken) {
+        fetchProductDataForModal(authToken);
+      } else {
+        console.error('No auth token available, cannot fetch product data');
+        // Display a message in the modal
+        const modalContent = document.querySelector('.drive-modal-content');
+        if (modalContent) {
+          modalContent.innerHTML = '<div class="alert alert-warning">Please log in to view product data</div>';
+        }
+      }
+    }
+  } else {
+    console.error('Product modal element not found in DOM');
+  }
 }
 
 function closeProductModal() {
-  console.log('Modal functionality disabled - modal HTML has been removed');
-  return;
-}
-
-function updateTotalReturn() {
-  const commissionElement = document.getElementById('modal-product-commission');
-  const totalReturnElement = document.getElementById('total-return-value');
-  
-  if (!commissionElement || !totalReturnElement) {
-    console.warn('Modal commission or total return elements not found');
-    return;
-  }
-  
-  const commissionText = commissionElement.textContent;
-  const commission = parseFloat(commissionText.replace(/[^0-9.]/g, '')) || 0;
-  
-  let totalReturn = commission;
-  const selectedAction = window.selectedAction || 'buy';
-  
-  // Adjust return based on selected action
-  switch (selectedAction) {
-    case 'buy':
-      totalReturn = commission;
-      break;
-    case 'cashback':
-      totalReturn = commission * 1.1; // 10% bonus for cashback
-      break;
-    case 'gift':
-      totalReturn = commission * 0.9; // 10% less for gift
-      break;
-    case 'reference':
-      totalReturn = commission * 1.05; // 5% bonus for reference
-      break;
-  }
-  
-  totalReturnElement.textContent = '$' + totalReturn.toFixed(2);
-}
-
-function applyCoupon(couponCode) {
-  console.log('Applying coupon:', couponCode);
-  
-  // Mock coupon validation
-  const validCoupons = {
-    'SAVE10': 0.1,
-    'WELCOME': 0.05,
-    'BONUS20': 0.2
-  };
-  
-  const discount = validCoupons[couponCode.toUpperCase()];
-  
-  if (discount) {
-    const totalReturnElement = document.getElementById('total-return-value');
-    if (totalReturnElement) {
-      const currentReturn = parseFloat(totalReturnElement.textContent.replace('$', ''));
-      const newReturn = currentReturn * (1 + discount);
-      totalReturnElement.textContent = '$' + newReturn.toFixed(2);
-    }
-    
-    // Show success feedback
-    const couponInput = document.getElementById('coupon-code');
-    const applyBtn = document.querySelector('.coupon-apply-btn');
-    
-    if (couponInput) {
-      couponInput.style.borderColor = '#10b981';
-      couponInput.style.background = '#ecfdf5';
-    }
-    
-    if (applyBtn) {
-      applyBtn.innerHTML = '<i class="fas fa-check"></i>';
-      applyBtn.style.background = '#10b981';
-    }
-    
+  console.log('Closing drive product modal');
+  const modal = document.getElementById('driveProductModal');
+  if (modal) {
+    modal.classList.remove('show');
+    // Wait for animation to complete before hiding
     setTimeout(() => {
-      if (couponInput) {
-        couponInput.style.borderColor = '';
-        couponInput.style.background = '';
-      }
-      if (applyBtn) {
-        applyBtn.innerHTML = '<i class="fas fa-check"></i>';
-        applyBtn.style.background = '';
-      }
-    }, 3000);
+      modal.style.display = 'none';
+    }, 300);
     
-    console.log('Coupon applied successfully:', couponCode);
-  } else {
-    // Show error feedback
-    const couponInput = document.getElementById('coupon-code');
-    if (couponInput) {
-      couponInput.style.borderColor = '#ef4444';
-      couponInput.style.background = '#fef2f2';
-      
-      setTimeout(() => {
-        couponInput.style.borderColor = '';
-        couponInput.style.background = '';
-      }, 3000);
-    }
-    
-    console.log('Invalid coupon code:', couponCode);
+    // Restore body scrolling
+    document.body.style.overflow = '';
   }
 }
 
-// --- Fetch User Drive Configuration ---
-async function fetchUserDriveConfiguration(token) {
-    try {
-        console.log('Fetching user drive configuration...');
-        const response = await fetch(`${API_BASE_URL}/api/user/drive-config`, {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            }
-        });
-        
-        if (response.ok) {
-            const data = await response.json();
-            if (data.success && data.configuration) {
-                console.log('User drive configuration:', data.configuration);
-                return data.configuration.tasks_required || 45; // Fallback to 45 if not found
-            }
-        }
-        
-        console.warn('Failed to fetch drive configuration, using default');
-        return 45; // Default fallback
-    } catch (error) {
-        console.error('Error fetching drive configuration:', error);
-        return 45; // Default fallback
+// Function to fetch product data for modal when no current data is available
+async function fetchProductDataForModal(authToken) {
+  console.log('Fetching product data for modal from /api/drive/getorder');
+  
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/drive/getorder`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${authToken}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    console.log('fetchProductDataForModal: Response received:', data);
+
+    if (data.code === 0 && data.current_order) {
+      // Update the global current product data
+      currentProductData = data.current_order;
+      
+      // Populate the modal with the fetched data
+      populateModalWithProductData(data.current_order);
+      
+      console.log('fetchProductDataForModal: Successfully populated modal with product data');
+      return data.current_order;
+    } else if (data.code === 2) {
+      // Drive complete
+      console.log('fetchProductDataForModal: Drive complete - no product to display');
+      const modalContent = document.querySelector('.drive-modal .drive-product-info');
+      if (modalContent) {
+        modalContent.innerHTML = '<div class="alert alert-success">Drive completed! All tasks are finished.</div>';
+      }
+      return null;
+    } else {
+      // Error or no data available
+      console.warn('fetchProductDataForModal: No product data available, code:', data.code);
+      const modalContent = document.querySelector('.drive-modal .drive-product-info');
+      if (modalContent) {
+        modalContent.innerHTML = '<div class="alert alert-info">No product data available. Please start a drive session first.</div>';
+      }
+      return null;
+    }
+  } catch (error) {
+    console.error('fetchProductDataForModal: Error fetching product data:', error);
+    const modalContent = document.querySelector('.drive-modal .drive-product-info');
+    if (modalContent) {
+      modalContent.innerHTML = '<div class="alert alert-danger">Error loading product data. Please try again later.</div>';
+    }
+    return null;
+  }
+}
+
+// Function to populate modal with current product data
+function populateModalWithProductData(productData) {
+  console.log('Populating modal with product data:', productData);
+  
+  // Update product image
+  const mainImage = document.getElementById('driveProductMainImage');
+  if (mainImage && productData.product_image) {
+    mainImage.src = productData.product_image;
+    mainImage.alt = productData.product_name || 'Product';
+  }
+  
+  // Update product title
+  const title = document.getElementById('driveProductTitle');
+  if (title && productData.product_name) {
+    title.textContent = productData.product_name;
+  }
+  
+  // Update product description
+  const description = document.getElementById('driveProductDescription');
+  if (description && productData.product_description) {
+    description.textContent = productData.product_description;
+  }
+  
+  // Update purchase price
+  const purchasePrice = document.getElementById('drivePurchasePrice');
+  if (purchasePrice && productData.product_price) {
+    purchasePrice.textContent = `$${productData.product_price} USDT`;
+  }
+  
+  // Update commission
+  const commission = document.getElementById('driveCommission');
+  if (commission && productData.order_commission) {
+    commission.textContent = `+ $${productData.order_commission} USDT`;
+  }
+  
+  // Update net result (purchase price minus commission)
+  const netResult = document.getElementById('driveNetResult');
+  if (netResult && productData.product_price && productData.order_commission) {
+    const net = (parseFloat(productData.product_price) - parseFloat(productData.order_commission)).toFixed(2);
+    netResult.textContent = `$${net} USDT`;
+  }
+  
+  // Update confirm button text
+  const confirmBtn = document.getElementById('confirmDriveBtn');
+  if (confirmBtn && productData.order_commission) {
+    confirmBtn.textContent = `Confirm Purchase and Claim $${productData.order_commission}`;
+  }
+}
+
+// Initialize modal event handlers
+function initializeModalEventHandlers() {
+  // Handle modal back button
+  const backButton = document.getElementById('driveModalBack');
+  if (backButton) {
+    backButton.addEventListener('click', (e) => {
+      e.preventDefault();
+      closeProductModal();
+    });
+  }
+  
+  // Handle modal backdrop clicks
+  const modal = document.getElementById('driveProductModal');
+  if (modal) {
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        closeProductModal();
+      }
+    });
+  }
+  
+  // Handle confirm purchase button
+  const confirmBtn = document.getElementById('confirmDriveBtn');
+  if (confirmBtn) {
+    confirmBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (currentProductData && globalAuthData) {
+        handlePurchase(globalAuthData.token, currentProductData);
+        closeProductModal();
+      } else {
+        console.error('No product data or auth data available for purchase');
+      }
+    });
+  }
+}
+
+// --- Debugging and Testing Utilities ---
+// Simple debug logger
+function debugLog(message, type = 'log') {
+    const timestamp = new Date().toISOString();
+    const formattedMessage = `[${timestamp}] ${message}`;
+    
+    switch (type) {
+        case 'log':
+            console.log(formattedMessage);
+            break;
+        case 'warn':
+            console.warn(formattedMessage);
+            break;
+        case 'error':
+            console.error(formattedMessage);
+            break;
+        case 'info':
+            console.info(formattedMessage);
+            break;
+        default:
+            console.log(formattedMessage);
     }
 }
 
-// --- Fetch Detailed Drive Progress ---
+// --- Update Progress From Detailed Data Function ---
 /**
- * Fetches detailed drive progress including task-level information
- * @returns {Promise<Object|null>} Detailed progress data or null if error
- */
-async function fetchDetailedDriveProgress() {
-    try {
-        const token = getAuthToken();
-        if (!token) {
-            console.error('No auth token available for detailed progress fetch');
-            return null;
-        }
-
-        console.log('Fetching drive progress...');
-        const response = await fetch(`${API_BASE_URL}/api/drive/detailed-progress`, {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            }
-        });
-
-        if (response.ok) {
-            const data = await response.json();
-            console.log('Detailed drive progress received:', data);
-            
-            if (data.code === 0) {
-                return {
-                    sessionId: data.drive_session_id,
-                    configurationName: data.drive_configuration_name,
-                    tasksRequired: data.tasks_required,
-                    tasksCompleted: data.tasks_completed,
-                    completedTaskItems: data.completed_task_items,
-                    completedOriginalTasks: data.completed_original_tasks,
-                    totalTaskItems: data.total_task_items,
-                    totalItemsIncludingCombos: data.total_items_including_combos,
-                    taskItems: data.task_items || [],
-                    currentTask: data.current_task,
-                    nextTask: data.next_task,
-                    progressPercentage: data.progress_percentage || 0,
-                    isCompleted: data.is_completed || false,
-                    canContinue: data.can_continue || false
-                };
-            }
-        } else if (response.status === 404) {
-            console.log('No active drive session found');
-            return null;
-        } else {
-            console.error('Failed to fetch detailed drive progress:', response.status, response.statusText);
-        }
-        
-        return null;
-    } catch (error) {
-        console.error('Error fetching detailed drive progress:', error);
-        return null;
-    }
-}
-
-// --- Update Progress Bar with Detailed Data ---
-/**
- * Updates the progress bar using data from the detailed progress endpoint
- * This provides the most accurate progress information including combo tasks
+ * Fetch detailed progress data from the /api/drive/getorder endpoint
+ * This provides more accurate task set and combo progress information
  */
 async function updateProgressFromDetailedData() {
+    const token = getAuthToken();
+    if (!token) {
+        console.warn('updateProgressFromDetailedData: No token found');
+        return null;
+    }
+
     try {
-        const progressData = await fetchDetailedDriveProgress();
-        
-        if (!progressData) {
-            console.log('No detailed progress data available - hiding progress section');
-            // Hide progress section when no active session
-            const progressSection = window.taskPageElements?.progressSection;
-            if (progressSection) {
-                progressSection.style.display = 'none';
-                progressSection.classList.remove('show');
-                progressSection.classList.add('d-none');
+        const response = await fetch(`${API_BASE_URL}/api/drive/getorder`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
             }
-            return null;
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
 
-        // Update progress bar with detailed data
-        // Use completedOriginalTasks/totalTaskItems for the main progress (excludes combos from denominator)
-        const completed = progressData.completedOriginalTasks || 0;
-        const total = progressData.totalTaskItems || 0;
-        
-        console.log(`Updating progress from detailed data: ${completed}/${total} tasks (${progressData.progressPercentage.toFixed(1)}%)`);
-        
-        // Update global variables to keep in sync
-        tasksCompleted = completed;
-        totalTasksRequired = total;
-        
-        // Update the progress bar UI
-        updateProgressBar(completed, total);
-        
-        // Update commission if available
-        if (progressData.taskItems && progressData.taskItems.length > 0) {
-            // Calculate commission from completed tasks
-            const completedItems = progressData.taskItems.filter(item => item.user_status === 'COMPLETED');
-            let totalCommissionFromItems = 0;
-            completedItems.forEach(item => {
-                if (item.product_1_price) totalCommissionFromItems += parseFloat(item.product_1_price) * 0.045; // 4.5% commission estimate
-            });
+        const data = await response.json();
+        console.log('updateProgressFromDetailedData: Response received:', data);
+
+        if (data.code === 0 && data.current_order) {
+            // Update current product data for modal functionality
+            currentProductData = data.current_order;
             
-            if (totalCommissionFromItems > 0) {
-                totalDriveCommission = totalCommissionFromItems;
+            // Update progress data with more detailed information
+            if (data.all_tasks_completed !== undefined && data.all_tasks_total !== undefined) {
+                // Use the more detailed task progress if available
+                console.log('updateProgressFromDetailedData: Using detailed task progress:', data.all_tasks_completed, '/', data.all_tasks_total);
+                // Store detailed progress but don't override the main display unless needed
+                window.detailedTaskProgress = {
+                    completed: data.all_tasks_completed,
+                    total: data.all_tasks_total
+                };
+            }
+
+            // Update commission data
+            if (data.total_commission !== undefined) {
+                totalDriveCommission = parseFloat(data.total_commission);
                 updateDriveCommission();
             }
+
+            return data;
+        } else if (data.code === 2) {
+            // Drive complete
+            console.log('updateProgressFromDetailedData: Drive complete detected');
+            return data;
+        } else {
+            console.warn('updateProgressFromDetailedData: Unexpected response code:', data.code);
+            return null;
         }
-        
-        return progressData;
-        
     } catch (error) {
-        console.error('Error updating progress from detailed data:', error);
+        console.error('updateProgressFromDetailedData: Error fetching detailed progress:', error);
         return null;
     }
 }
 
-// --- Display Detailed Progress (for debugging/testing) ---
-/**
- * Displays detailed progress information in the debug console
- * Call this function from browser console for testing: window.showDetailedProgress()
- */
-window.showDetailedProgress = async function() {
-    try {
-        const progressData = await fetchDetailedDriveProgress();
-        
-        if (!progressData) {
-            console.log('❌ No detailed progress data available');
-            debugLog('No active drive session or error fetching progress', 'warn');
-            return;
-        }
-
-        console.log('📊 DETAILED DRIVE PROGRESS:');
-        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-        console.log(`🚗 Session ID: ${progressData.sessionId}`);
-        console.log(`📋 Configuration: ${progressData.configurationName}`);
-        console.log(`📈 Progress: ${progressData.completedOriginalTasks}/${progressData.totalTaskItems} tasks (${progressData.progressPercentage.toFixed(1)}%)`);
-        console.log(`📦 Total Items: ${progressData.totalItemsIncludingCombos} (including ${progressData.totalItemsIncludingCombos - progressData.totalTaskItems} combos)`);
-        console.log(`✅ Completed: ${progressData.isCompleted}`);
-        console.log(`▶️ Can Continue: ${progressData.canContinue}`);
-        
-        if (progressData.currentTask) {
-            console.log(`🎯 Current Task: ${progressData.currentTask.task_name || 'Task'} (Order ${progressData.currentTask.order_in_drive})`);
-            console.log(`   Product: ${progressData.currentTask.product_1_name || 'N/A'}`);
-        }
-        
-        if (progressData.nextTask) {
-            console.log(`⏭️ Next Task: ${progressData.nextTask.task_name || 'Task'} (Order ${progressData.nextTask.order_in_drive})`);
-            console.log(`   Product: ${progressData.nextTask.product_1_name || 'N/A'}`);
-        }
-
-        console.log('\n📋 TASK BREAKDOWN:');
-        progressData.taskItems.forEach((task, index) => {
-            const status = task.user_status;
-            const emoji = status === 'COMPLETED' ? '✅' : status === 'CURRENT' ? '🎯' : '⏳';
-            const type = task.is_combo || task.task_type === 'combo_order' ? '[COMBO]' : '[REGULAR]';
-            const productName = task.product_1_name || 'N/A';
-            const price = task.product_1_price ? `$${parseFloat(task.product_1_price).toFixed(2)}` : 'N/A';
-            
-            console.log(`${emoji} ${task.order_in_drive}. ${type} ${task.task_name || 'Task'}`);
-            console.log(`   Product: ${productName} (${price}) - Status: ${status}`);
-        });
-
-        // Also log to debug console if available
-        debugLog(`Detailed progress loaded: ${progressData.completedOriginalTasks}/${progressData.totalTaskItems} tasks completed`, 'info');
-        
-        return progressData;
-    } catch (error) {
-        console.error('❌ Error displaying detailed progress:', error);
-        debugLog(`Error displaying detailed progress: ${error.message}`, 'error');
-        return null;
-    }
-};
-
-// --- Integration Helper: Update Progress Display ---
-/**
- * Updates the task page progress display using detailed progress data
- * @param {Object} progressData - Detailed progress data from API
- */
-function updateProgressDisplayFromDetailedData(progressData) {
-    if (!progressData) return;
-
-    try {
-        // Update progress percentage and text
-        if (typeof updateProgressBar === 'function') {
-            updateProgressBar(progressData.progressPercentage);
-        }
-
-        // Update task completion counts
-        if (window.taskPageElements.progressTextElement) {
-            window.taskPageElements.progressTextElement.textContent = `${progressData.completedOriginalTasks}/${progressData.totalTaskItems}`;
-        }
-
-        // Update global variables for compatibility
-        totalTasksRequired = progressData.totalTaskItems;
-        tasksCompleted = progressData.completedOriginalTasks;
-
-        console.log(`Progress display updated: ${progressData.completedOriginalTasks}/${progressData.totalTaskItems} (${progressData.progressPercentage.toFixed(1)}%)`);
-        
-    } catch (error) {
-        console.error('Error updating progress display:', error);
-    }
-}
-
-/**
- * Test function to simulate a successful purchase and progress update
- * Call this from browser console: window.testProgressAfterPurchase()
- */
-window.testProgressAfterPurchase = async function() {
-    console.log('🧪 Testing progress update after simulated purchase...');
-    
-    const originalCompleted = tasksCompleted;
-    const originalTotal = totalTasksRequired;
-    const originalCommission = totalDriveCommission;
-    
-    console.log(`📊 BEFORE: ${originalCompleted}/${originalTotal} tasks, ${originalCommission} USDT`);
-    
-    try {
-        // Simulate a successful purchase by incrementing progress
-        tasksCompleted += 1;
-        totalDriveCommission += 0.50; // Add sample commission
-        
-        console.log('📈 Simulating progress update...');
-        updateProgressBar(tasksCompleted, totalTasksRequired);
-        updateDriveCommission();
-        
-        // Test detailed progress update
-        console.log('📊 Fetching detailed progress...');
-        const detailedData = await updateProgressFromDetailedData();
-        
-        console.log(`📊 AFTER: ${tasksCompleted}/${totalTasksRequired} tasks, ${totalDriveCommission} USDT`);
-        
-        if (detailedData) {
-            console.log('✅ Detailed progress data available');
-            console.log(`   Original Tasks: ${detailedData.completedOriginalTasks}/${detailedData.totalTaskItems}`);
-            console.log(`   All Tasks: ${detailedData.completedTaskItems}/${detailedData.totalItemsIncludingCombos}`);
-        } else {
-            console.log('ℹ️ No detailed progress data (no active session or error)');
-        }
-        
-        // Wait a moment to see the update, then restore original values
-        setTimeout(() => {
-            console.log('🔄 Restoring original values...');
-            tasksCompleted = originalCompleted;
-            totalTasksRequired = originalTotal;
-            totalDriveCommission = originalCommission;
-            updateProgressBar(tasksCompleted, totalTasksRequired);
-            updateDriveCommission();
-            console.log('✅ Test completed - values restored');
-        }, 3000);
-        
-    } catch (error) {
-        console.error('❌ Error in progress update test:', error);
-        // Restore original values on error
-        tasksCompleted = originalCompleted;
-        totalTasksRequired = originalTotal;
-        totalDriveCommission = originalCommission;
-        updateProgressBar(tasksCompleted, totalTasksRequired);
-        updateDriveCommission();
-    }
-};
-
-// --- Test Progress Update Functions ---
-/**
- * Test function to manually update progress from detailed endpoint
- * Call this from browser console: window.testDetailedProgress()
- */
-window.testDetailedProgress = async function() {
-    console.log('🧪 Testing detailed progress update...');
-    try {
-        const result = await updateProgressFromDetailedData();
-        if (result) {
-            console.log('✅ Detailed progress update successful');
-            console.log('📊 Progress Data:', result);
-        } else {
-            console.log('❌ No detailed progress data available');
-        }
-    } catch (error) {
-        console.error('❌ Error testing detailed progress:', error);
-    }
-};
-
-/**
- * Compare basic vs detailed progress data
- * Call this from browser console: window.compareProgressData()
- */
-window.compareProgressData = async function() {
-    console.log('🔍 Comparing basic vs detailed progress data...');
-    
-    try {
-        // Get basic progress from /api/drive/status
-        const token = getAuthToken();
-        const statusResponse = await fetch(`${API_BASE_URL}/api/drive/status`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-        const statusData = await statusResponse.json();
-        
-        // Get detailed progress from /api/drive/detailed-progress
-        const detailedData = await fetchDetailedDriveProgress();
-        
-        console.log('📋 BASIC PROGRESS (/api/drive/status):');
-        if (statusData.code === 0) {
-            console.log(`   Tasks: ${statusData.tasks_completed || 0}/${statusData.tasks_required || 0}`);
-            console.log(`   Commission: ${statusData.total_commission || '0.00'} USDT`);
-            console.log(`   Status: ${statusData.status}`);
-        } else {
-            console.log('   ❌ No valid status data');
-        }
-        
-        console.log('\n📊 DETAILED PROGRESS (/api/drive/detailed-progress):');
-        if (detailedData) {
-            console.log(`   Original Tasks: ${detailedData.completedOriginalTasks}/${detailedData.totalTaskItems}`);
-            console.log(`   All Tasks: ${detailedData.completedTaskItems}/${detailedData.totalItemsIncludingCombos}`);
-            console.log(`   Progress: ${detailedData.progressPercentage.toFixed(1)}%`);
-            console.log(`   Session ID: ${detailedData.sessionId}`);
-            console.log(`   Configuration: ${detailedData.configurationName}`);
-        } else {
-            console.log('   ❌ No detailed progress data');
-        }
-        
-        // Show which one is being used for the UI
-        console.log('\n🎯 CURRENT UI STATE:');
-        console.log(`   Global tasksCompleted: ${tasksCompleted}`);
-        console.log(`   Global totalTasksRequired: ${totalTasksRequired}`);
-        console.log(`   Global totalDriveCommission: ${totalDriveCommission}`);
-        
-    } catch (error) {
-        console.error('❌ Error comparing progress data:', error);
-    }
-};
-
-// Test function to verify progress section is working
-window.testProgressSection = function() {
-    console.log('Testing progress section...');
-    // Use global progressSection variable from taskPageElements
-    const progressSection = window.taskPageElements?.progressSection || document.getElementById('progress-section');
-    if (window.taskPageElements.progressSection) {
-        console.log('Progress section found:', window.taskPageElements.progressSection);
-        console.log('Current display:', getComputedStyle(window.taskPageElements.progressSection).display);
-        console.log('Current visibility:', getComputedStyle(window.taskPageElements.progressSection).visibility);
-        
-        // Try to show it
-        window.taskPageElements.progressSection.style.display = 'block';
-        window.taskPageElements.progressSection.style.visibility = 'visible';
-        progressSection.style.opacity = '1';
-        progressSection.classList.add('show');
-        progressSection.classList.remove('d-none');
-        
-        console.log('After manual show - display:', getComputedStyle(progressSection).display);
-        console.log('Progress section manually shown with test data');
-        
-        // Update with test data
-        updateProgressBar(3, 5); // Show 3 of 5 tasks completed
-        updateDriveCommission(); // Update commission display
-    } else {
-        console.log('Progress section not found in taskPageElements');
-    }
-};
-
-// Enhanced test function to force show progress section regardless of drive status
-window.forceShowProgressSection = function() {
-    console.log('=== FORCE SHOWING PROGRESS SECTION ===');
-    const progressSection = document.getElementById('progress-section');
-    if (progressSection) {
-        // Override all CSS with inline styles
-        progressSection.style.cssText = `
-            display: block !important;
-            visibility: visible !important;
-            opacity: 1 !important;
-            position: relative !important;
-            z-index: 10 !important;
-        `;
-        progressSection.classList.add('show');
-        progressSection.classList.remove('d-none');
-        
-        console.log('Progress section forced to show');
-        console.log('Current computed display:', getComputedStyle(progressSection).display);
-        
-        // Set some test data
-        totalDriveCommission = 25.50;
-        tasksCompleted = 3;
-        totalTasksRequired = 5;
-        
-        updateProgressBar(tasksCompleted, totalTasksRequired);
-        updateDriveCommission();
-        
-        console.log('Test data applied: 3/5 tasks, 25.50 USDT commission');
-    } else {
-        console.log('ERROR: Progress section element not found!');
-    }
-};
+// --- End of File ---

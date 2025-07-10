@@ -1283,18 +1283,6 @@
     backdrop-filter: blur(8px);
 }
 
-.product-modal-content {
-    position: relative;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background: white;
-    border-radius: 16px;
-    max-width: 600px;
-    width: 90%;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-}
-
 /* Loading Animation in Modal */
 #modal-loading-animation {
     padding: 30px 0;
@@ -1415,4 +1403,302 @@
     background-color: var(--gdot-primary);
     color: white;
     transform: scale(1.1);
+}
+
+/* Drive Product Modal Styles */
+.drive-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.8);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.drive-modal-overlay.show {
+    opacity: 1;
+}
+
+.drive-modal {
+    background: white;
+    border-radius: 16px;
+    max-width: 420px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+    transform: scale(0.9);
+    transition: transform 0.3s ease;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+}
+
+.drive-modal-overlay.show .drive-modal {
+    transform: scale(1);
+}
+
+.drive-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.drive-modal-back,
+.drive-modal-share {
+    background: none;
+    border: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #6b7280;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.drive-modal-back:hover,
+.drive-modal-share:hover {
+    background-color: #f3f4f6;
+    color: #374151;
+}
+
+.drive-product-image-section {
+    padding: 20px;
+    text-align: center;
+}
+
+.drive-product-main-image img {
+    width: 100%;
+    max-width: 300px;
+    height: auto;
+    border-radius: 12px;
+    object-fit: cover;
+}
+
+.drive-product-thumbnails {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 16px;
+}
+
+.drive-thumbnail {
+    width: 60px;
+    height: 60px;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: border-color 0.2s ease;
+}
+
+.drive-thumbnail.active {
+    border-color: var(--gdot-primary);
+}
+
+.drive-thumbnail img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.drive-product-info {
+    padding: 0 20px 20px;
+}
+
+.drive-product-title {
+    font-size: 20px;
+    font-weight: 600;
+    color: #111827;
+    margin-bottom: 16px;
+    line-height: 1.3;
+}
+
+.drive-earnings-section {
+    background-color: #f9fafb;
+    border-radius: 12px;
+    padding: 16px;
+    margin: 16px 0;
+}
+
+.drive-earnings-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #111827;
+    margin-bottom: 12px;
+}
+
+.drive-earnings-grid {
+    display: grid;
+    gap: 12px;
+}
+
+.drive-earnings-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 14px;
+}
+
+.drive-earnings-label {
+    color: #6b7280;
+}
+
+.drive-earnings-value {
+    font-weight: 600;
+    color: #111827;
+}
+
+.drive-earnings-value.drive-commission {
+    color: var(--gdot-green);
+}
+
+.drive-purchase-btn {
+    width: 100%;
+    background: linear-gradient(135deg, var(--gdot-primary) 0%, #5b21b6 100%);
+    color: white;
+    border: none;
+    padding: 16px;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin: 16px 0;
+}
+
+.drive-purchase-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 20px rgba(79, 70, 229, 0.3);
+}
+
+.drive-product-description,
+.drive-refund-policy {
+    margin: 16px 0;
+}
+
+.drive-product-description h4,
+.drive-refund-policy h4 {
+    font-size: 16px;
+    font-weight: 600;
+    color: #111827;
+    margin-bottom: 8px;
+}
+
+.drive-product-description p,
+.drive-refund-policy p {
+    font-size: 14px;
+    color: #6b7280;
+    line-height: 1.5;
+    margin-bottom: 8px;
+}
+
+.drive-info-tags {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 16px;
+}
+
+.drive-info-tag {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background-color: #f3f4f6;
+    border-radius: 8px;
+    font-size: 12px;
+}
+
+.drive-info-tag i {
+    color: var(--gdot-primary);
+}
+
+.drive-tag-label {
+    color: #6b7280;
+}
+
+.drive-tag-status {
+    font-weight: 600;
+    color: var(--gdot-green);
+}
+
+/* Rating styles */
+.drive-product-rating {
+    margin: 16px 0;
+}
+
+.drive-rating-stars {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.drive-rating-number {
+    font-size: 18px;
+    font-weight: 600;
+    color: #111827;
+}
+
+.drive-stars {
+    display: flex;
+    gap: 2px;
+}
+
+.drive-stars i {
+    color: #fbbf24;
+    font-size: 14px;
+}
+
+.drive-rating-breakdown {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.drive-rating-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+}
+
+.drive-rating-label {
+    width: 10px;
+    color: #6b7280;
+}
+
+.drive-rating-progress {
+    flex: 1;
+    height: 4px;
+    background-color: #e5e7eb;
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.drive-rating-fill {
+    height: 100%;
+    background-color: #fbbf24;
+    transition: width 0.3s ease;
+}
+
+.drive-rating-percent {
+    width: 30px;
+    text-align: right;
+    color: #6b7280;
+}
+
+.drive-reviews-count {
+    font-size: 12px;
+    color: #6b7280;
+    margin-top: 8px;
 }
