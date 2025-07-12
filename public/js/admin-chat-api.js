@@ -5,53 +5,53 @@
 
 const AdminChatAPI = (() => {
   // Base API URL
-  const API_BASE = '/api/admin/chat';
+  const API_BASE = '/api/admin-chat';
   
   // Helper function for API calls
   const apiCall = async (endpoint, method = 'GET', data = null) => {
     try {
-      // Check if admin token exists before making the call
-      const adminToken = localStorage.getItem('adminToken');
-      if (!adminToken) {
-        console.error('No admin token found');
-        redirectToLogin();
-        return null;
-      }
-      
-      const options = {
+      // Use DualAuth for a unified authentication approach
+      const response = await DualAuth.fetchWithAuth(`/api/admin-chat${endpoint}`, {
         method,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${adminToken}`,
-          'X-CSRF-Token': getCSRFToken()
-        },
-        credentials: 'same-origin'
-      };
-      
-      if (data && (method === 'POST' || method === 'PUT')) {
-        options.body = JSON.stringify(data);
+        body: data ? JSON.stringify(data) : null,
+      }, 'admin');
+
+      // Check for non-JSON responses which may indicate an error or redirect
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await response.text();
+        // If we get HTML, it's likely a server-side redirect or error page
+        if (text.includes('<!DOCTYPE html>')) {
+            console.error('Received HTML response instead of JSON. This could be an auth issue or server error.');
+            showError('An unexpected server response was received. Please try logging in again.');
+            // DualAuth's fetchWithAuth will handle the redirect on 401, but this is a fallback.
+            // if (!response.ok) {
+            //      window.location.href = '/admin.html';
+            // }
+            // return null;
+        }
+        // For other non-JSON, non-OK responses
+        if (!response.ok) {
+            throw new Error(`Server returned a non-JSON error: ${response.status} ${response.statusText}`);
+        }
+        // If response is OK but not JSON (e.g., 204 No Content)
+        return text; // Or handle as needed
       }
-      
-      const response = await fetch(`${API_BASE}${endpoint}`, options);
-      
-      // Handle unauthorized or forbidden
-      if (response.status === 401 || response.status === 403) {
-        console.error('Authentication error:', response.status);
-        showError('Authentication error. Please ensure you are logged in as an admin.');
-        redirectToLogin();
-        return null;
-      }
-      
+
       const result = await response.json();
       
       if (!response.ok) {
-        throw new Error(result.error || 'API call failed');
+        throw new Error(result.error || result.message || 'API call failed');
       }
       
       return result;
     } catch (error) {
-      console.error('API error:', error);
-      showError(error.message);
+      console.error('API error in apiCall:', error);
+      // Avoid showing generic error if DualAuth is already handling a redirect.
+      // We can check if the error message is 'Unauthorized' which is what we throw in DualAuth.
+      if (error.message !== 'Unauthorized') {
+        showError(error.message);
+      }
       return null;
     }
   };
@@ -77,40 +77,18 @@ const AdminChatAPI = (() => {
     alert(`Error: ${message}`);
   };
   
-  // Redirect to login page
+  // Redirect to admin dashboard
   const redirectToLogin = () => {
-    // Get the current URL to use as a return URL after login
-    const currentUrl = encodeURIComponent(window.location.href);
+    // Clear the tokens since they're invalid or expired
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('user_data');
     
-    // Clear the token since it's invalid or expired
-    localStorage.removeItem('adminToken');
-    
-    // Redirect to the login page with a return URL
-    window.location.href = `/admin-login.html?returnUrl=${currentUrl}`;
+    // Redirect to the admin panel
+    // window.location.href = '/admin.html';
   };
   
   // API methods
   return {
-    // Initialize and check authentication
-    init: () => {
-      // Check if admin token exists
-      const adminToken = localStorage.getItem('adminToken');
-      if (!adminToken) {
-        console.warn('No admin token found, redirecting to login');
-        redirectToLogin();
-        return false;
-      }
-      
-      // Verify token with a simple API call
-      return apiCall('/groups?page=1&limit=1')
-        .then(result => {
-          return !!result; // Return true if API call succeeded
-        })
-        .catch(() => {
-          return false; // Return false if API call failed
-        });
-    },
-    
     // Groups
     getGroups: (page = 1, limit = 50, search = '') => {
       return apiCall(`/groups?page=${page}&limit=${limit}&search=${encodeURIComponent(search)}`);
@@ -121,7 +99,8 @@ const AdminChatAPI = (() => {
     },
     
     getGroupUsers: (groupId, userType = 'fake', page = 1, limit = 50) => {
-      return apiCall(`/groups/${groupId}/users?userType=${userType}&page=${page}&limit=${limit}`);
+      // Corrected route to be more specific and avoid conflicts
+      return apiCall(`/users/group/${groupId}?userType=${userType}&page=${page}&limit=${limit}`);
     },
     
     // Fake Users

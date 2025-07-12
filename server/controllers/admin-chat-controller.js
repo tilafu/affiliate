@@ -28,7 +28,7 @@ const getAllGroups = async (req, res) => {
     });
     
     // Log admin action
-    await logAdminAction(req.admin.id, 'VIEW_GROUPS', null, null, null, { search, page, limit });
+    await logAdminAction(req.user.id, 'VIEW_GROUPS', null, null, null, { search, page, limit });
   } catch (error) {
     console.error('Error getting groups:', error);
     res.status(500).json({ error: 'Failed to retrieve groups' });
@@ -40,7 +40,7 @@ const getAllGroups = async (req, res) => {
  */
 const getGroupDetails = async (req, res) => {
   try {
-    const { groupId } = req.params;
+    const groupId = req.params.id; // Fixed: use 'id' parameter from route
     const group = await adminChatModel.getGroupById(groupId);
     
     if (!group) {
@@ -49,8 +49,8 @@ const getGroupDetails = async (req, res) => {
     
     res.json(group);
     
-    // Log admin action
-    await logAdminAction(req.admin.id, 'VIEW_GROUP_DETAILS', groupId, null, null);
+    // Log admin action - using req.user instead of req.user
+    await logAdminAction(req.user.id, 'VIEW_GROUP_DETAILS', groupId, null, null);
   } catch (error) {
     console.error('Error getting group details:', error);
     res.status(500).json({ error: 'Failed to retrieve group details' });
@@ -62,7 +62,7 @@ const getGroupDetails = async (req, res) => {
  */
 const getGroupUsers = async (req, res) => {
   try {
-    const { groupId } = req.params;
+    const groupId = req.params.id; // Fixed: use 'id' parameter from route
     const { page = 1, limit = 50, userType = 'fake' } = req.query;
     const offset = (page - 1) * limit;
     
@@ -86,7 +86,7 @@ const getGroupUsers = async (req, res) => {
     });
     
     // Log admin action
-    await logAdminAction(req.admin.id, 'VIEW_GROUP_USERS', groupId, null, null, { userType });
+    await logAdminAction(req.user.id, 'VIEW_GROUP_USERS', groupId, null, null, { userType });
   } catch (error) {
     console.error('Error getting group users:', error);
     res.status(500).json({ error: 'Failed to retrieve group users' });
@@ -115,7 +115,7 @@ const getAllFakeUsers = async (req, res) => {
     });
     
     // Log admin action
-    await logAdminAction(req.admin.id, 'VIEW_FAKE_USERS', null, null, null, { search });
+    await logAdminAction(req.user.id, 'VIEW_FAKE_USERS', null, null, null, { search });
   } catch (error) {
     console.error('Error getting fake users:', error);
     res.status(500).json({ error: 'Failed to retrieve fake users' });
@@ -141,7 +141,7 @@ const getFakeUserDetails = async (req, res) => {
     res.json(user);
     
     // Log admin action
-    await logAdminAction(req.admin.id, 'VIEW_FAKE_USER_DETAILS', null, userId, null);
+    await logAdminAction(req.user.id, 'VIEW_FAKE_USER_DETAILS', null, userId, null);
   } catch (error) {
     console.error('Error getting fake user details:', error);
     res.status(500).json({ error: 'Failed to retrieve fake user details' });
@@ -173,7 +173,7 @@ const postAsFakeUser = async (req, res) => {
       content: message,
       messageType,
       isAdminGenerated: true,
-      adminId: req.admin.id
+      adminId: req.user.id
     });
     
     // Broadcast message via Socket.io
@@ -191,7 +191,7 @@ const postAsFakeUser = async (req, res) => {
     
     // Log admin action
     await logAdminAction(
-      req.admin.id, 
+      req.user.id, 
       'POST_AS_FAKE_USER', 
       groupId, 
       fakeUserId, 
@@ -246,7 +246,7 @@ const scheduleMessage = async (req, res) => {
       messageType,
       scheduledAt: scheduledTime,
       isAdminGenerated: true,
-      adminId: req.admin.id,
+      adminId: req.user.id,
       isRecurring,
       recurringPattern
     });
@@ -255,7 +255,7 @@ const scheduleMessage = async (req, res) => {
     
     // Log admin action
     await logAdminAction(
-      req.admin.id, 
+      req.user.id, 
       'SCHEDULE_MESSAGE', 
       groupId, 
       fakeUserId, 
@@ -292,7 +292,7 @@ const cancelScheduledMessage = async (req, res) => {
     
     // Log admin action
     await logAdminAction(
-      req.admin.id, 
+      req.user.id, 
       'CANCEL_SCHEDULED_MESSAGE', 
       message.groupId, 
       message.fakeUserId, 
@@ -336,7 +336,7 @@ const getScheduledMessages = async (req, res) => {
     
     // Log admin action
     await logAdminAction(
-      req.admin.id, 
+      req.user.id, 
       'VIEW_SCHEDULED_MESSAGES', 
       groupId || null, 
       fakeUserId || null, 
@@ -391,7 +391,7 @@ const previewConversation = async (req, res) => {
     
     // Log admin action
     await logAdminAction(
-      req.admin.id, 
+      req.user.id, 
       'PREVIEW_CONVERSATION', 
       groupId, 
       null, 
@@ -486,12 +486,12 @@ const getTemplates = async (req, res) => {
     const offset = (page - 1) * limit;
     
     const templates = await adminChatModel.getTemplates({ 
-      adminId: req.admin.id, 
+      adminId: req.user.id, 
       limit, 
       offset 
     });
     
-    const totalCount = await adminChatModel.getTemplatesCount(req.admin.id);
+    const totalCount = await adminChatModel.getTemplatesCount(req.user.id);
     
     res.json({
       templates,
@@ -523,14 +523,14 @@ const createTemplate = async (req, res) => {
       name,
       description,
       content,
-      adminId: req.admin.id
+      adminId: req.user.id
     });
     
     res.status(201).json(template);
     
     // Log admin action
     await logAdminAction(
-      req.admin.id, 
+      req.user.id, 
       'CREATE_TEMPLATE', 
       null, 
       null, 
@@ -558,7 +558,7 @@ const updateTemplate = async (req, res) => {
       return res.status(404).json({ error: 'Template not found' });
     }
     
-    if (template.adminId !== req.admin.id) {
+    if (template.adminId !== req.user.id) {
       return res.status(403).json({ error: 'Not authorized to modify this template' });
     }
     
@@ -572,7 +572,7 @@ const updateTemplate = async (req, res) => {
     
     // Log admin action
     await logAdminAction(
-      req.admin.id, 
+      req.user.id, 
       'UPDATE_TEMPLATE', 
       null, 
       null, 
@@ -599,7 +599,7 @@ const deleteTemplate = async (req, res) => {
       return res.status(404).json({ error: 'Template not found' });
     }
     
-    if (template.adminId !== req.admin.id) {
+    if (template.adminId !== req.user.id) {
       return res.status(403).json({ error: 'Not authorized to delete this template' });
     }
     
@@ -609,7 +609,7 @@ const deleteTemplate = async (req, res) => {
     
     // Log admin action
     await logAdminAction(
-      req.admin.id, 
+      req.user.id, 
       'DELETE_TEMPLATE', 
       null, 
       null, 
@@ -666,3 +666,4 @@ module.exports = {
   updateTemplate,
   deleteTemplate
 };
+

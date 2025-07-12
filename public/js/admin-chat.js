@@ -4,6 +4,12 @@
  */
 
 document.addEventListener('DOMContentLoaded', () => {
+  // Check if user is authenticated as admin
+  const authData = requireAuth(true); // true for admin required
+  if (!authData) {
+    return; // requireAuth will handle redirect
+  }
+  
   // DOM Elements - Groups Panel
   const groupsList = document.getElementById('groupsList');
   const groupSearch = document.getElementById('groupSearch');
@@ -97,12 +103,8 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // Initialize the application
   async function init() {
-    // Verify authentication first
-    const isAuthenticated = await AdminChatAPI.init();
-    if (!isAuthenticated) {
-      console.error('Authentication failed during initialization');
-      return; // Stop initialization if authentication failed
-    }
+    // Use same auth check as admin.js - just proceed, let API calls handle auth
+    console.log('Initializing admin chat...');
     
     // Load initial data
     loadGroups();

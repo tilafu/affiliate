@@ -1,15 +1,20 @@
 /**
  * Admin Chat API Routes
  * Handles all admin-specific chat management endpoints
+ * 
+ * NOTE: This file is being deprecated in favor of admin-chat-api-integrated.js
+ * It remains for backward compatibility, but all new development should use
+ * the integrated version at /api/admin/chat
  */
 
 const express = require('express');
 const router = express.Router();
 const adminChatController = require('../controllers/admin-chat-controller');
-const adminChatAuth = require('../middleware/admin-chat-auth');
+const { protect, admin } = require('../middlewares/auth'); // Use standardized auth middleware
 
 // Apply admin authentication middleware to all routes
-router.use(adminChatAuth.verifyAdminChatAccess);
+router.use(protect); // JWT authentication
+router.use(admin);   // Admin role check
 
 // Group management
 router.get('/groups', adminChatController.getAllGroups);

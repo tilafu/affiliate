@@ -1,0 +1,3 @@
+@echo off
+echo Starting affiliate server in production mode...
+node server/server.js

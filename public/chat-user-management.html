@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="csrf-token" content="">
+  <title>Chat User Management</title>
+  <link rel="stylesheet" href="css/admin.css">
+  <link rel="stylesheet" href="css/admin-chat.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+  <style>
+    .tab-content {
+      display: none;
+    }
+    .tab-content.active {
+      display: block;
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: 600;
+    }
+    .form-control {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    .btn-group {
+      margin-top: 20px;
+    }
+    .checkbox-group {
+      margin-top: 10px;
+    }
+    .checkbox-group label {
+      font-weight: normal;
+      display: inline-block;
+      margin-right: 15px;
+    }
+    .search-results {
+      margin-top: 20px;
+      max-height: 300px;
+      overflow-y: auto;
+      border: 1px solid #eee;
+    }
+    .user-card {
+      display: flex;
+      align-items: center;
+      padding: 10px;
+      border-bottom: 1px solid #eee;
+    }
+    .user-card:hover {
+      background-color: #f9f9f9;
+    }
+    .user-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      margin-right: 10px;
+    }
+    .user-details {
+      flex: 1;
+    }
+    .user-actions {
+      display: flex;
+    }
+  </style>
+</head>
+<body>
+  <div class="admin-container">
+    <!-- Admin Header -->
+    <header class="admin-header">
+      <div class="logo">
+        <img src="images/logo.png" alt="Logo">
+        <span>Admin Panel</span>
+      </div>
+      <div class="user-info">
+        <span id="adminUsername">Admin</span>
+        <a href="#" onclick="logoutAdmin(); return false;" class="logout-btn">Logout</a>
+      </div>
+    </header>
+    
+    <!-- Admin Navigation -->
+    <nav class="admin-nav">
+      <ul>
+        <li><a href="admin.html"><i class="fas fa-tachometer-alt"></i> Admin Dashboard</a></li>
+        <li><a href="admin-chat.html"><i class="fas fa-comments"></i> Chat Dashboard</a></li>
+        <li class="active"><a href="chat-user-management.html"><i class="fas fa-users-cog"></i> Chat User Management</a></li>
+      </ul>
+    </nav>
+    
+    <!-- Main Content -->
+    <main class="admin-content">
+      <div class="page-header">
+        <h1><i class="fas fa-users-cog"></i> Chat User Management</h1>
+        <div class="actions">
+          <button id="refreshBtn" class="btn"><i class="fas fa-sync-alt"></i> Refresh</button>
+          <button id="viewLogsBtn" class="btn"><i class="fas fa-history"></i> View Logs</button>
+        </div>
+      </div>
+      
+      <!-- Tab Navigation -->
+      <div class="tabs">
+        <button class="tab-button active" data-tab="users">Manage Users</button>
+        <button class="tab-button" data-tab="groups">Manage Groups</button>
+        <button class="tab-button" data-tab="assignments">Group Assignments</button>
+      </div>
+      
+      <!-- Users Tab Content -->
+      <div id="users-tab" class="tab-content active">
+        <div class="card">
+          <div class="card-header">
+            <h2>Chat Users</h2>
+            <div class="search-box">
+              <input type="text" id="user-search" placeholder="Search users...">
+              <button id="search-user-btn" class="btn"><i class="fas fa-search"></i></button>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="action-buttons">
+              <button id="add-user-btn" class="btn primary"><i class="fas fa-user-plus"></i> Add New User</button>
+              <button id="import-users-btn" class="btn"><i class="fas fa-file-import"></i> Import Users</button>
+              <button id="export-users-btn" class="btn"><i class="fas fa-file-export"></i> Export Users</button>
+            </div>
+            
+            <!-- User Search Results -->
+            <div class="search-results" id="user-results">
+              <!-- Users will be loaded here dynamically -->
+            </div>
+            
+            <!-- Add/Edit User Form (initially hidden) -->
+            <div id="user-form" style="display: none;">
+              <h3 id="user-form-title">Add New User</h3>
+              <form id="chat-user-form">
+                <input type="hidden" id="user-id" name="id">
+                
+                <div class="form-group">
+                  <label for="username">Username</label>
+                  <input type="text" id="username" name="username" class="form-control" required>
+                </div>
+                
+                <div class="form-group">
+                  <label for="display-name">Display Name</label>
+                  <input type="text" id="display-name" name="display_name" class="form-control" required>
+                </div>
+                
+                <div class="form-group">
+                  <label for="avatar-url">Avatar URL</label>
+                  <input type="text" id="avatar-url" name="avatar_url" class="form-control">
+                </div>
+                
+                <div class="form-group">
+                  <label for="bio">Bio</label>
+                  <textarea id="bio" name="bio" class="form-control" rows="3"></textarea>
+                </div>
+                
+                <div class="form-group">
+                  <label for="is-active">Status</label>
+                  <select id="is-active" name="is_active" class="form-control">
+                    <option value="true">Active</option>
+                    <option value="false">Inactive</option>
+                  </select>
+                </div>
+                
+                <div class="btn-group">
+                  <button type="submit" class="btn primary">Save User</button>
+                  <button type="button" class="btn" id="cancel-user-form">Cancel</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Groups Tab Content -->
+      <div id="groups-tab" class="tab-content">
+        <div class="card">
+          <div class="card-header">
+            <h2>Chat Groups</h2>
+            <div class="search-box">
+              <input type="text" id="group-search" placeholder="Search groups...">
+              <button id="search-group-btn" class="btn"><i class="fas fa-search"></i></button>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="action-buttons">
+              <button id="add-group-btn" class="btn primary"><i class="fas fa-plus-circle"></i> Add New Group</button>
+            </div>
+            
+            <!-- Group Search Results -->
+            <div class="search-results" id="group-results">
+              <!-- Groups will be loaded here dynamically -->
+            </div>
+            
+            <!-- Add/Edit Group Form (initially hidden) -->
+            <div id="group-form" style="display: none;">
+              <h3 id="group-form-title">Add New Group</h3>
+              <form id="chat-group-form">
+                <input type="hidden" id="group-id" name="id">
+                
+                <div class="form-group">
+                  <label for="group-name">Group Name</label>
+                  <input type="text" id="group-name" name="name" class="form-control" required>
+                </div>
+                
+                <div class="form-group">
+                  <label for="group-description">Description</label>
+                  <textarea id="group-description" name="description" class="form-control" rows="3"></textarea>
+                </div>
+                
+                <div class="form-group">
+                  <label for="group-type">Group Type</label>
+                  <select id="group-type" name="group_type" class="form-control">
+                    <option value="standard">Standard</option>
+                    <option value="support">Support</option>
+                    <option value="announcement">Announcement</option>
+                    <option value="vip">VIP</option>
+                    <option value="technical">Technical</option>
+                  </select>
+                </div>
+                
+                <div class="form-group">
+                  <label for="group-is-active">Status</label>
+                  <select id="group-is-active" name="is_active" class="form-control">
+                    <option value="true">Active</option>
+                    <option value="false">Inactive</option>
+                  </select>
+                </div>
+                
+                <div class="btn-group">
+                  <button type="submit" class="btn primary">Save Group</button>
+                  <button type="button" class="btn" id="cancel-group-form">Cancel</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Group Assignments Tab Content -->
+      <div id="assignments-tab" class="tab-content">
+        <div class="card">
+          <div class="card-header">
+            <h2>Group Assignments</h2>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="assignment-group">Select Group</label>
+                  <select id="assignment-group" class="form-control">
+                    <option value="">-- Select Group --</option>
+                    <!-- Groups will be loaded here dynamically -->
+                  </select>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="assignment-user">Select User</label>
+                  <select id="assignment-user" class="form-control">
+                    <option value="">-- Select User --</option>
+                    <!-- Users will be loaded here dynamically -->
+                  </select>
+                </div>
+              </div>
+            </div>
+            
+            <div class="action-buttons">
+              <button id="add-to-group-btn" class="btn primary"><i class="fas fa-user-plus"></i> Add User to Group</button>
+              <button id="remove-from-group-btn" class="btn danger"><i class="fas fa-user-minus"></i> Remove User from Group</button>
+            </div>
+            
+            <h3>Current Group Members</h3>
+            <div class="search-results" id="group-members">
+              <!-- Group members will be loaded here dynamically -->
+              <p>Please select a group to view its members.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Scripts -->
+  <script src="js/simple-auth.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/auth-check.js"></script>
+  <script src="js/dual-auth.js"></script>
+  <script src="js/admin-error-handler.js"></script>
+  <script src="js/admin-auth.js"></script>
+  <script src="js/admin-chat-api-integrated.js"></script>
+  <script src="js/chat-user-management.js"></script>
+
+  <script>
+    // Basic tab functionality
+    document.addEventListener('DOMContentLoaded', function() {
+      const tabButtons = document.querySelectorAll('.tab-button');
+      const tabContents = document.querySelectorAll('.tab-content');
+      
+      tabButtons.forEach(button => {
+        button.addEventListener('click', function() {
+          // Remove active class from all buttons
+          tabButtons.forEach(btn => btn.classList.remove('active'));
+          // Add active class to clicked button
+          this.classList.add('active');
+          
+          // Hide all tab contents
+          tabContents.forEach(content => content.classList.remove('active'));
+          // Show the selected tab content
+          document.getElementById(`${this.dataset.tab}-tab`).classList.add('active');
+        });
+      });
+      
+      // Initialize user management functionality
+      // This will be implemented in the chat-user-management.js file
+    });
+  </script>
+</body>
+</html>

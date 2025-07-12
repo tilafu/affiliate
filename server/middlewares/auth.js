@@ -6,6 +6,9 @@ const protect = async (req, res, next) => {
     
     console.log(`[AUTH MIDDLEWARE] Request to: ${req.method} ${req.originalUrl}, IP: ${req.ip || req.connection.remoteAddress}`);
 
+    // Check if the request is for an API route
+    const isApiRequest = req.originalUrl.startsWith('/api/');
+
     if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
         try {
             // Get token from header
@@ -56,6 +59,7 @@ const admin = (req, res, next) => {
         next();
     } else {
         console.log(`[ADMIN MIDDLEWARE] Admin access denied for user: ${req.user?.username}, Role: ${req.user?.role}`);
+        // Always return JSON for API routes
         return res.status(403).json({ success: false, message: 'Not authorized as an admin' });
     }
 };

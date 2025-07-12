@@ -66,5 +66,5 @@ function updateAdminUsername() {
  * Redirect to admin panel
  */
 function redirectToAdminPanel() {
-  window.location.href = '/admin.html';
+  // window.location.href = '/admin.html';
 }

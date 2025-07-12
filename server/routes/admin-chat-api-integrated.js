@@ -6,47 +6,12 @@
 const express = require('express');
 const router = express.Router();
 const adminChatController = require('../controllers/admin-chat-controller');
+const { protect, admin } = require('../middlewares/auth'); // Use existing auth middleware
 const db = require('../db');
 
-// Middleware to check if user is authenticated as admin
-// This middleware works with the existing admin session
-const checkAdminAuth = async (req, res, next) => {
-  try {
-    // Get admin ID from session (from the main admin authentication)
-    // This assumes the admin user ID is stored in req.user.id by the protect+admin middleware
-    const adminId = req.user?.id;
-    
-    if (!adminId) {
-      console.error('Admin auth check failed: No admin ID in session');
-      return res.status(401).json({ error: 'Authentication required' });
-    }
-
-    // Verify admin exists and has proper role
-    const admin = await db.query(
-      'SELECT id, username, role FROM users WHERE id = $1 AND role = $2',
-      [adminId, 'admin']
-    );
-
-    if (admin.rows.length === 0) {
-      console.error(`Admin auth check failed: User ${adminId} not found or not admin`);
-      return res.status(403).json({ error: 'Admin access required' });
-    }
-
-    // Add admin info to request for controllers to use
-    req.admin = admin.rows[0];
-    
-    console.log(`Admin authenticated: ${req.admin.username} (ID: ${req.admin.id})`);
-    
-    // Continue to the route handler
-    next();
-  } catch (error) {
-    console.error('Admin auth check error:', error);
-    res.status(500).json({ error: 'Authentication error' });
-  }
-};
-
-// Apply admin authentication to all routes
-router.use(checkAdminAuth);
+// Apply the same authentication middleware that main admin routes use
+router.use(protect); // JWT authentication
+router.use(admin);   // Admin role check
 
 // === CHAT GROUPS ===
 router.get('/groups', adminChatController.getAllGroups);
@@ -54,6 +19,9 @@ router.get('/groups/:id', adminChatController.getGroupDetails);
 router.post('/groups', adminChatController.postAsFakeUser); // Create group
 router.put('/groups/:id', adminChatController.updateTemplate); // Update group
 router.delete('/groups/:id', adminChatController.deleteTemplate); // Delete group
+
+// Route for getting users in a specific group
+router.get('/users/group/:groupId', adminChatController.getGroupUsers);
 
 // === FAKE USERS ===
 router.get('/fake-users', adminChatController.getAllFakeUsers);

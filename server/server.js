@@ -27,18 +27,12 @@ app.use(session({
   }
 }));
 
-// Initialize Socket.io
-const io = socketIo(server, {
-  cors: {
-    origin: process.env.CLIENT_URL || '*',
-    methods: ['GET', 'POST'],
-    credentials: true
-  }
-});
+// Initialize Socket.io with enhanced chat functionality
+const setupSocketServer = require('./socket-chat');
+const io = setupSocketServer(server);
 
-// Set up chat socket handlers
-const socketHandlers = require('./socketHandlers');
-socketHandlers.initializeSocketIO(io);
+// Store io instance on app for routes to access
+app.set('io', io);
 
 // Middleware
 app.use(cors({
@@ -123,7 +117,8 @@ const adminRoutes = require('./routes/admin'); // Import admin routes
 const notificationRoutes = require('./routes/notificationRoutes'); // Import notification routes
 const adminDriveRoutes = require('./routes/adminDriveRoutes'); // Import admin drive routes
 const adminChatRoutes = require('./routes/admin-chat-api-integrated'); // Import integrated admin chat routes
-const chatRoutes = require('./routes/chatRoutes'); // Import chat routes
+const chatUserManagementRoutes = require('./routes/chat-user-management-api'); // Import chat user management routes
+const chatRoutes = require('./routes/chat'); // Import chat routes
 const usersRoutes = require('./routes/users'); // Import users routes
 
 // Apply routes
@@ -135,7 +130,8 @@ app.use('/api/chat', chatRoutes); // Mount chat routes
 app.use('/api/admin', adminRoutes); // Mount admin routes
 app.use('/api/admin', notificationRoutes); // Mount notification routes under /api/admin
 app.use('/api/admin/drive-management', adminDriveRoutes); // Mount admin drive routes
-app.use('/api/admin/chat', adminChatRoutes); // Mount admin chat routes
+app.use('/api/admin/chat', adminChatRoutes); // Mount admin chat routes - Standardized route pattern
+app.use('/api/admin/chat', chatUserManagementRoutes); // Mount chat user management routes
 
 // Start server (using HTTP server instead of Express)
 server.listen(PORT, () => {

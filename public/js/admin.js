@@ -80,7 +80,15 @@ async function fetchWithAuth(endpoint, options = {}) {
         token = DualAuth.getToken('admin');
         console.log('Admin token from DualAuth:', token ? 'exists' : 'not found');
     } else {
-        token = localStorage.getItem('auth_token');
+        token = localStorage.getItem('admin_auth_token'); // Try standardized key first
+        if (!token) {
+            token = localStorage.getItem('auth_token'); // Fallback for backward compatibility
+            // Migrate to standardized location if found
+            if (token) {
+                localStorage.setItem('admin_auth_token', token);
+                console.log('Migrated admin token to standardized location');
+            }
+        }
         console.log('Token from localStorage:', token ? 'exists' : 'not found');
     }
     
@@ -222,9 +230,15 @@ function initializeSidebar() {
             // Preserve drive session data before clearing localStorage
             const driveSessionData = localStorage.getItem('current_drive_session');
             
-            // Clear authentication data
-            localStorage.removeItem('auth_token');
-            localStorage.removeItem('user_data');
+            // Use DualAuth system if available
+            if (typeof DualAuth !== 'undefined') {
+                DualAuth.clearAuth('admin');
+            } else {
+                // Clear authentication data (both standardized and legacy)
+                localStorage.removeItem('admin_auth_token');
+                localStorage.removeItem('auth_token');
+                localStorage.removeItem('user_data');
+            }
             
             // Restore drive session data after clearing auth data
             if (driveSessionData) {

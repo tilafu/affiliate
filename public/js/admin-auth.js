@@ -1,14 +1,11 @@
 /**
- * Admin Authentication Module
- * Handles admin authentication, session management, and security
+ * Admin Authentication Helper - Simplified to match admin.js
  */
 
 // Immediately check if user is authenticated
 document.addEventListener('DOMContentLoaded', () => {
   // Check if this is an admin page that requires authentication
-  if (!window.location.pathname.includes('admin-login.html')) {
-    checkAdminAuth();
-  }
+  checkAdminAuth();
   
   // Set up logout functionality if the button exists
   const logoutBtn = document.querySelector('.logout-btn') || document.getElementById('logout-btn');
@@ -33,51 +30,43 @@ document.addEventListener('DOMContentLoaded', () => {
  * If not, redirect to login page
  */
 function checkAdminAuth() {
-  try {
-    const adminToken = localStorage.getItem('adminToken');
+  // Use DualAuth system consistently
+  let token;
+  if (typeof DualAuth !== 'undefined') {
+    token = DualAuth.getToken('admin');
+  } else {
+    // Fall back to the standardized admin token key
+    token = localStorage.getItem('admin_auth_token');
     
-    if (!adminToken) {
-      console.warn('No admin token found');
-      redirectToLogin();
-      return;
+    // For backward compatibility, check old token location
+    if (!token) {
+      token = localStorage.getItem('auth_token');
+      // If found in old location, migrate it to the new standardized location
+      if (token) {
+        localStorage.setItem('admin_auth_token', token);
+        console.log('Migrated admin token to standardized location');
+      }
     }
-    
-    // Verify token with backend
-    fetch('/api/admin/verify-token', {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${adminToken}`,
-        'Content-Type': 'application/json'
+  }
+  
+  if (!token) {
+    // Redirect to main admin page instead of login
+    window.location.href = '/admin.html';
+    return;
+  }
+
+  // Update the UI with the admin's username if available
+  const adminUsernameEl = document.getElementById('adminUsername');
+  if (adminUsernameEl) {
+    const userData = localStorage.getItem('user_data');
+    if (userData) {
+      try {
+        const user = JSON.parse(userData);
+        adminUsernameEl.textContent = user.username || 'Admin';
+      } catch (e) {
+        adminUsernameEl.textContent = 'Admin';
       }
-    })
-    .then(response => {
-      if (!response.ok) {
-        console.warn('Token verification failed:', response.status);
-        redirectToLogin();
-        return null;
-      }
-      return response.json();
-    })
-    .then(data => {
-      if (!data || !data.authenticated) {
-        console.warn('Session not authenticated or expired');
-        redirectToLogin();
-        return;
-      }
-      
-      // Update admin username if element exists
-      const usernameElement = document.getElementById('adminUsername');
-      if (usernameElement && data.username) {
-        usernameElement.textContent = data.username;
-      }
-    })
-    .catch(error => {
-      console.error('Auth check failed:', error);
-      redirectToLogin();
-    });
-  } catch (error) {
-    console.error('Error in checkAdminAuth:', error);
-    redirectToLogin();
+    }
   }
 }
 
@@ -85,37 +74,32 @@ function checkAdminAuth() {
  * Logout admin user
  */
 function logoutAdmin() {
-  const adminToken = localStorage.getItem('adminToken');
+  // Use DualAuth system if available
+  if (typeof DualAuth !== 'undefined') {
+    DualAuth.clearAuth('admin');
+  } else {
+    // Otherwise clear both token locations
+    localStorage.removeItem('admin_auth_token');
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('user_data');
+  }
   
-  // Call logout endpoint
-  fetch('/api/admin/logout', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${adminToken}`,
-      'Content-Type': 'application/json'
-    }
-  })
-  .finally(() => {
-    // Clear local storage and redirect to login
-    localStorage.removeItem('adminToken');
-    redirectToLogin();
-  });
+  // Redirect to the main admin page
+  window.location.href = '/admin.html';
 }
 
 /**
- * Redirect to login page with return URL
+ * Redirect to admin dashboard
  */
 function redirectToLogin() {
-  console.error('Authentication required');
+  console.warn('Authentication required. Redirecting to admin panel.');
   
-  // Get the current URL to use as a return URL after login
-  const currentUrl = encodeURIComponent(window.location.href);
+  // Clear the tokens since they're invalid or expired
+  localStorage.removeItem('auth_token');
+  localStorage.removeItem('user_data');
   
-  // Clear the token since it's invalid or expired
-  localStorage.removeItem('adminToken');
-  
-  // Redirect to the login page with a return URL
-  window.location.href = `/admin-login.html?returnUrl=${currentUrl}`;
+  // Redirect to the admin panel
+  window.location.href = '/admin.html';
 }
 
 /**

@@ -64,7 +64,21 @@ function checkAuthentication(options = {}) {
     console.log('checkAuthentication: Using legacy authentication system');
 
     // Legacy authentication system (fallback)
-    const token = localStorage.getItem('auth_token');
+    let token = localStorage.getItem('admin_auth_token'); // Try standardized admin token first
+    
+    // Fallback to regular auth token if no admin token found
+    if (!token && adminRequired) {
+        token = localStorage.getItem('auth_token');
+        // If found in old location, migrate it for admin users
+        if (token) {
+            localStorage.setItem('admin_auth_token', token);
+            console.log('Migrated admin token to standardized location');
+        }
+    } else if (!adminRequired) {
+        // For non-admin users, use the regular auth token
+        token = localStorage.getItem('auth_token');
+    }
+    
     console.log(`Legacy token: ${token ? `found (${token.length} chars)` : 'not found'}`);
       if (!token) {
         if (!silent && typeof showNotification === 'function') {
