@@ -205,6 +205,17 @@ const AdminChatAPI = (() => {
   const sendMessage = (groupId, messageData) => apiCall(`/groups/${groupId}/messages`, 'POST', messageData);
   const deleteMessage = (messageId) => apiCall(`/messages/${messageId}`, 'DELETE');
   
+  // Post message as fake user
+  const postAsFakeUser = (groupId, fakeUserId, content, messageType = 'text') => {
+    const messageData = {
+      user_id: fakeUserId,
+      user_type: 'fake_user',
+      content,
+      message_type: messageType
+    };
+    return apiCall(`/groups/${groupId}/messages`, 'POST', messageData);
+  };
+  
   // Scheduled Messages
   const getScheduledMessages = () => apiCall('/scheduled-messages');
   const getGroupScheduledMessages = (groupId) => apiCall(`/groups/${groupId}/scheduled-messages`);
@@ -249,6 +260,7 @@ const AdminChatAPI = (() => {
     getGroupMessages,
     sendMessage,
     deleteMessage,
+    postAsFakeUser,
     
     // Scheduled Messages
     getScheduledMessages,

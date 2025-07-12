@@ -318,7 +318,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     // Get group details
-    const group = await AdminChatAPI.getGroupDetails(groupId);
+    const group = await AdminChatAPI.getGroupById(groupId);
     
     if (group) {
       // Update state
@@ -349,21 +349,24 @@ document.addEventListener('DOMContentLoaded', () => {
     usersList.innerHTML = '<div class="loading">Loading users...</div>';
     
     const { page, limit, search } = state.users;
-    const result = await AdminChatAPI.getGroupUsers(groupId, 'fake', page, limit);
+    const result = await AdminChatAPI.getGroupMembers(groupId);
     
     if (result) {
-      state.users.data = result.users;
-      state.users.total = result.pagination.total;
+      state.users.data = result;
+      state.users.total = result.length;
       
       renderUsers();
-      renderPagination(usersPagination, state.users, () => loadUsersForGroup(groupId));
+      // We don't need pagination for this simple implementation
+      // renderPagination(usersPagination, state.users, () => loadUsersForGroup(groupId));
+    } else {
+      usersList.innerHTML = '<div class="empty-state">No users found in this group</div>';
     }
   }
   
   // Render users
   function renderUsers() {
-    if (state.users.data.length === 0) {
-      usersList.innerHTML = '<div class="empty-state">No users found</div>';
+    if (!state.users.data || state.users.data.length === 0) {
+      usersList.innerHTML = '<div class="empty-state">No users found in this group</div>';
       return;
     }
     
@@ -378,8 +381,11 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="user-avatar">
             <img src="${avatarUrl}" alt="${escapeHtml(user.display_name)}">
           </div>
-          <div class="user-name">${escapeHtml(user.display_name)}</div>
-          <div class="user-username">@${escapeHtml(user.username)}</div>
+          <div class="user-info">
+            <div class="user-name">${escapeHtml(user.display_name)}</div>
+            <div class="user-username">@${escapeHtml(user.username)}</div>
+            ${user.bio ? `<div class="user-bio">${escapeHtml(user.bio.substring(0, 50))}${user.bio.length > 50 ? '...' : ''}</div>` : ''}
+          </div>
         </div>
       `;
     });

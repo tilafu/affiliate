@@ -118,6 +118,7 @@ const notificationRoutes = require('./routes/notificationRoutes'); // Import not
 const adminDriveRoutes = require('./routes/adminDriveRoutes'); // Import admin drive routes
 const adminChatRoutes = require('./routes/admin-chat-api-integrated'); // Import integrated admin chat routes
 const chatUserManagementRoutes = require('./routes/chat-user-management-api'); // Import chat user management routes
+const chatMessageRoutes = require('./routes/chat-message-api'); // Import chat message routes
 const chatRoutes = require('./routes/chat'); // Import chat routes
 const usersRoutes = require('./routes/users'); // Import users routes
 
@@ -132,6 +133,7 @@ app.use('/api/admin', notificationRoutes); // Mount notification routes under /a
 app.use('/api/admin/drive-management', adminDriveRoutes); // Mount admin drive routes
 app.use('/api/admin/chat', adminChatRoutes); // Mount admin chat routes - Standardized route pattern
 app.use('/api/admin/chat', chatUserManagementRoutes); // Mount chat user management routes
+app.use('/api/admin/chat', chatMessageRoutes); // Mount chat message routes
 
 // Start server (using HTTP server instead of Express)
 server.listen(PORT, () => {
