@@ -25,3 +25,4 @@ VALUES
 ('tracy_wong', 'Tracy Wong', 'https://randomuser.me/api/portraits/women/72.jpg', 'Etsy shop owner | Handcrafted jewelry | Supporting small businesses', true, 1, NOW() - INTERVAL '38 days', NOW()),
 ('kevin_jackson', 'Kevin Jackson', 'https://randomuser.me/api/portraits/men/85.jpg', 'Podcast host | Digital marketing | Building my personal brand online', false, 1, NOW() - INTERVAL '143 days', NOW() - INTERVAL '40 days'),
 ('zoe_miller', 'Zoe Miller', 'https://randomuser.me/api/portraits/women/95.jpg', 'Interior designer | Home renovation tips | Before and after transformations', false, 1, NOW() - INTERVAL '156 days', NOW() - INTERVAL '30 days');
+ 

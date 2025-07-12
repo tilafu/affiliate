@@ -63,7 +63,7 @@ const getGroupDetails = async (req, res) => {
 const getGroupUsers = async (req, res) => {
   try {
     const groupId = req.params.id; // Fixed: use 'id' parameter from route
-    const { page = 1, limit = 50, userType = 'fake' } = req.query;
+    const { page = 1, limit = 50, userType = 'fake_user' } = req.query;
     const offset = (page - 1) * limit;
     
     // Verify group exists
@@ -309,19 +309,21 @@ const cancelScheduledMessage = async (req, res) => {
  */
 const getScheduledMessages = async (req, res) => {
   try {
-    const { groupId, fakeUserId, page = 1, limit = 50 } = req.query;
+    const { groupId, userId, userType, page = 1, limit = 50 } = req.query;
     const offset = (page - 1) * limit;
     
     const messages = await adminChatModel.getScheduledMessages({ 
       groupId, 
-      fakeUserId, 
+      userId, 
+      userType,
       limit, 
       offset 
     });
     
     const totalCount = await adminChatModel.getScheduledMessagesCount({ 
       groupId, 
-      fakeUserId 
+      userId,
+      userType 
     });
     
     res.json({
@@ -339,8 +341,9 @@ const getScheduledMessages = async (req, res) => {
       req.user.id, 
       'VIEW_SCHEDULED_MESSAGES', 
       groupId || null, 
-      fakeUserId || null, 
-      null
+      userId || null, 
+      null,
+      { userType }
     );
   } catch (error) {
     console.error('Error getting scheduled messages:', error);

@@ -438,9 +438,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!state.groups.selected) return;
     
     const groupId = state.groups.selected.id;
-    const fakeUserId = state.users.selected ? state.users.selected.id : null;
+    const userId = state.users.selected ? state.users.selected.id : null;
+    const userType = state.users.selected ? 'fake_user' : null;
     
-    const result = await AdminChatAPI.getScheduledMessages(groupId, fakeUserId);
+    const result = await AdminChatAPI.getScheduledMessages(groupId, userId, userType);
     
     if (result) {
       state.scheduledMessages.data = result.messages;

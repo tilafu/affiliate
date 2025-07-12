@@ -217,7 +217,14 @@ const AdminChatAPI = (() => {
   };
   
   // Scheduled Messages
-  const getScheduledMessages = () => apiCall('/scheduled-messages');
+  const getScheduledMessages = (groupId, userId, userType) => {
+    const queryParams = new URLSearchParams();
+    if (groupId) queryParams.append('groupId', groupId);
+    if (userId) queryParams.append('userId', userId);
+    if (userType) queryParams.append('userType', userType);
+    
+    return apiCall(`/scheduled-messages?${queryParams.toString()}`);
+  };
   const getGroupScheduledMessages = (groupId) => apiCall(`/groups/${groupId}/scheduled-messages`);
   const scheduleMessage = (messageData) => apiCall('/scheduled-messages', 'POST', messageData);
   const updateScheduledMessage = (messageId, messageData) => apiCall(`/scheduled-messages/${messageId}`, 'PUT', messageData);
