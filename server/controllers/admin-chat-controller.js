@@ -629,21 +629,33 @@ const deleteTemplate = async (req, res) => {
  * Log admin action helper function
  */
 const logAdminAction = async (
-  adminId, 
-  actionType, 
-  groupId = null, 
-  fakeUserId = null, 
-  messageId = null, 
+  adminId,
+  actionType,
+  groupId = null,
+  fakeUserId = null,
+  messageId = null,
   actionDetails = {}
 ) => {
+  // Determine entityType and entityId based on actionType
+  let entityType = null;
+  let entityId = null;
+  if (actionType.includes('GROUP')) {
+    entityType = 'GROUP';
+    entityId = groupId;
+  } else if (actionType.includes('FAKE_USER')) {
+    entityType = 'FAKE_USER';
+    entityId = fakeUserId;
+  } else if (actionType.includes('MESSAGE')) {
+    entityType = 'MESSAGE';
+    entityId = messageId;
+  }
   try {
     await adminChatModel.logAdminAction({
       adminId,
       actionType,
-      groupId,
-      fakeUserId,
-      messageId,
-      actionDetails
+      entityType,
+      entityId,
+      details: actionDetails
     });
   } catch (error) {
     console.error('Error logging admin action:', error);

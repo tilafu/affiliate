@@ -1,12 +1,8 @@
-/**
- * Admin Chat API Routes - Fake User Management
- * This file contains the server-side routes for managing fake chat users
- */
-
 const express = require('express');
 const router = express.Router();
 const pool = require('../db');
 const { authenticateAdmin } = require('../middleware/admin-auth');
+const adminChatModel = require('../models/admin-chat-model');
 
 // Error handling middleware
 const handleErrors = (err, req, res, next) => {
@@ -16,6 +12,26 @@ const handleErrors = (err, req, res, next) => {
 
 // Apply admin authentication middleware to all routes
 router.use(authenticateAdmin);
+
+/**
+ * Get all scheduled messages
+ * GET /api/admin/chat/scheduled-messages
+ */
+router.get('/scheduled-messages', async (req, res, next) => {
+  try {
+    const { groupId, userId, userType, limit = 50, offset = 0 } = req.query;
+    const messages = await adminChatModel.getScheduledMessages({
+      groupId,
+      userId,
+      userType,
+      limit: parseInt(limit),
+      offset: parseInt(offset)
+    });
+    res.json(messages);
+  } catch (err) {
+    next(err);
+  }
+});
 
 /**
  * Get all fake chat users with optional search filter
@@ -190,22 +206,19 @@ router.delete('/fake-users/:id', async (req, res, next) => {
 router.get('/groups/:groupId/members', async (req, res, next) => {
   try {
     const { groupId } = req.params;
-    
     // Check if group exists
     const groupExists = await pool.query('SELECT id FROM chat_groups WHERE id = $1', [groupId]);
     if (groupExists.rows.length === 0) {
       return res.status(404).json({ error: 'Group not found' });
     }
-    
-    // Get fake user members
+    // Get fake user members (schema uses fake_user_id)
     const query = `
       SELECT fu.* 
       FROM chat_group_members cgm
-      JOIN chat_fake_users fu ON cgm.user_id = fu.id
-      WHERE cgm.group_id = $1 AND cgm.user_type = 'fake_user'
+      JOIN chat_fake_users fu ON cgm.fake_user_id = fu.id
+      WHERE cgm.group_id = $1 AND cgm.fake_user_id IS NOT NULL
       ORDER BY fu.display_name ASC
     `;
-    
     const { rows } = await pool.query(query, [groupId]);
     res.json(rows);
   } catch (err) {
@@ -220,50 +233,38 @@ router.get('/groups/:groupId/members', async (req, res, next) => {
 router.post('/groups/:groupId/members', async (req, res, next) => {
   try {
     const { groupId } = req.params;
-    const { fake_user_id, user_type } = req.body;
-    
-    if (!fake_user_id || !user_type) {
-      return res.status(400).json({ error: 'User ID and user type are required' });
+    const { fake_user_id } = req.body;
+    if (!fake_user_id) {
+      return res.status(400).json({ error: 'Fake user ID is required' });
     }
-    
-    if (user_type !== 'fake_user') {
-      return res.status(400).json({ error: 'Only fake_user type is supported currently' });
-    }
-    
     // Check if group exists
     const groupExists = await pool.query('SELECT id FROM chat_groups WHERE id = $1', [groupId]);
     if (groupExists.rows.length === 0) {
       return res.status(404).json({ error: 'Group not found' });
     }
-    
-    // Check if user exists
+    // Check if fake user exists
     const userExists = await pool.query('SELECT id FROM chat_fake_users WHERE id = $1', [fake_user_id]);
     if (userExists.rows.length === 0) {
-      return res.status(404).json({ error: 'User not found' });
+      return res.status(404).json({ error: 'Fake user not found' });
     }
-    
     // Check if already a member
     const memberExists = await pool.query(
-      'SELECT id FROM chat_group_members WHERE group_id = $1 AND user_id = $2 AND user_type = $3',
-      [groupId, fake_user_id, user_type]
+      'SELECT id FROM chat_group_members WHERE group_id = $1 AND fake_user_id = $2',
+      [groupId, fake_user_id]
     );
     if (memberExists.rows.length > 0) {
-      return res.status(409).json({ error: 'User is already a member of this group' });
+      return res.status(409).json({ error: 'Fake user is already a member of this group' });
     }
-    
     // Add member
     const query = `
-      INSERT INTO chat_group_members (group_id, user_id, user_type)
-      VALUES ($1, $2, $3)
+      INSERT INTO chat_group_members (group_id, fake_user_id)
+      VALUES ($1, $2)
       RETURNING *
     `;
-    
-    const { rows } = await pool.query(query, [groupId, fake_user_id, user_type]);
-    
+    const { rows } = await pool.query(query, [groupId, fake_user_id]);
     // Get user details
     const userQuery = 'SELECT * FROM chat_fake_users WHERE id = $1';
     const userResult = await pool.query(userQuery, [fake_user_id]);
-    
     res.status(201).json({
       member: rows[0],
       user: userResult.rows[0]
@@ -281,20 +282,45 @@ router.delete('/groups/:groupId/members/:userId', async (req, res, next) => {
   try {
     const { groupId, userId } = req.params;
     
-    // Delete the member
+    // Delete the member (for fake users)
     const query = `
       DELETE FROM chat_group_members
-      WHERE group_id = $1 AND user_id = $2 AND user_type = 'fake_user'
+      WHERE group_id = $1 AND fake_user_id = $2
       RETURNING *
     `;
-    
     const { rows } = await pool.query(query, [groupId, userId]);
-    
     if (rows.length === 0) {
       return res.status(404).json({ error: 'Group member not found' });
     }
-    
     res.json({ message: 'Member removed successfully', member: rows[0] });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * Force populate chat_group_members with all fake users for all groups
+ * POST /api/admin/chat/groups/force-populate-fake-users
+ */
+router.post('/groups/force-populate-fake-users', async (req, res, next) => {
+  try {
+    // Get all group IDs
+    const groupsResult = await pool.query('SELECT id FROM chat_groups');
+    const groupIds = groupsResult.rows.map(row => row.id);
+    // Get all fake user IDs
+    const usersResult = await pool.query('SELECT id FROM chat_fake_users');
+    const userIds = usersResult.rows.map(row => row.id);
+    let addedCount = 0;
+    for (const groupId of groupIds) {
+      for (const fakeUserId of userIds) {
+        await pool.query(
+          'INSERT INTO chat_group_members (group_id, fake_user_id) VALUES ($1, $2)',
+          [groupId, fakeUserId]
+        );
+        addedCount++;
+      }
+    }
+    res.json({ message: `Force-populated ${addedCount} fake user memberships.` });
   } catch (err) {
     next(err);
   }

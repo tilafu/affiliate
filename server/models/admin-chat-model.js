@@ -471,7 +471,7 @@ const getScheduledMessages = async ({
     JOIN 
       chat_fake_users cfu ON cfu.id = csm.fake_user_id
     LEFT JOIN 
-      admins a ON a.id = csm.scheduled_by
+      users a ON a.id = csm.scheduled_by AND a.role = 'admin'
     WHERE 
       csm.is_sent = false
   `;
@@ -526,110 +526,102 @@ const getScheduledMessagesCount = async ({ groupId, userId, userType }) => {
  * Log an admin action
  */
 const logAdminAction = async ({
-  adminId, 
-  actionType, 
-  groupId = null, 
-  fakeUserId = null, 
-  messageId = null, 
-  actionDetails = {}
+  adminId,
+  actionType,
+  entityType = null,
+  entityId = null,
+  details = {}
 }) => {
+  console.log('[logAdminAction] adminId:', adminId, 'actionType:', actionType, 'entityType:', entityType, 'entityId:', entityId, 'details:', details);
   const query = `
     INSERT INTO chat_admin_logs (
-      admin_id, 
-      action_type, 
-      group_id, 
-      fake_user_id, 
-      message_id, 
-      action_details
+      admin_id,
+      action_type,
+      entity_type,
+      entity_id,
+      details
     )
-    VALUES ($1, $2, $3, $4, $5, $6)
+    VALUES ($1, $2, $3, $4, $5)
     RETURNING id
   `;
-  
   const result = await db.query(query, [
-    adminId, 
-    actionType, 
-    groupId, 
-    fakeUserId, 
-    messageId, 
-    JSON.stringify(actionDetails)
+    adminId,
+    actionType,
+    entityType,
+    entityId,
+    JSON.stringify(details)
   ]);
-  
   return result.rows[0].id;
 };
 
 /**
  * Get admin logs with filtering and pagination
  */
-const getAdminLogs = async ({ 
-  adminId, 
-  actionType, 
-  groupId, 
+const getAdminLogs = async ({
+  adminId,
+  actionType,
+  groupId,
   fakeUserId,
   startDate,
   endDate,
-  limit, 
-  offset 
+  limit,
+  offset
 }) => {
   let query = `
     SELECT 
       cal.id, 
       cal.admin_id, 
       cal.action_type, 
-      cal.group_id, 
-      cal.fake_user_id, 
-      cal.message_id, 
-      cal.action_details,
+      cal.entity_type, 
+      cal.entity_id, 
+      cal.details, 
       cal.created_at,
       a.username AS admin_username,
       cg.name AS group_name,
       cfu.display_name AS fake_user_name
     FROM 
       chat_admin_logs cal
-    LEFT JOIN 
-      admins a ON a.id = cal.admin_id
-    LEFT JOIN 
-      chat_groups cg ON cg.id = cal.group_id
-    LEFT JOIN 
-      chat_fake_users cfu ON cfu.id = cal.fake_user_id
+    LEFT JOIN users a ON a.id = cal.admin_id AND a.role = 'admin'
+    LEFT JOIN chat_groups cg ON cg.id = cal.entity_id AND cal.entity_type = 'GROUP'
+    LEFT JOIN chat_fake_users cfu ON cfu.id = cal.entity_id AND cal.entity_type = 'FAKE_USER'
     WHERE 1=1
   `;
-  
+
   const values = [];
-  
+
   if (adminId) {
     query += ` AND cal.admin_id = $${values.length + 1}`;
     values.push(adminId);
   }
-  
+
   if (actionType) {
     query += ` AND cal.action_type = $${values.length + 1}`;
     values.push(actionType);
   }
-  
+
   if (groupId) {
-    query += ` AND cal.group_id = $${values.length + 1}`;
+    query += ` AND cal.entity_id = $${values.length + 1} AND cal.entity_type = 'GROUP'`;
     values.push(groupId);
   }
-  
+
   if (fakeUserId) {
-    query += ` AND cal.fake_user_id = $${values.length + 1}`;
+    query += ` AND cal.entity_id = $${values.length + 1} AND cal.entity_type = 'FAKE_USER'`;
     values.push(fakeUserId);
   }
-  
+
   if (startDate) {
     query += ` AND cal.created_at >= $${values.length + 1}`;
     values.push(startDate);
   }
-  
+
   if (endDate) {
     query += ` AND cal.created_at <= $${values.length + 1}`;
     values.push(endDate);
   }
-  
+
   query += ` ORDER BY cal.created_at DESC LIMIT $${values.length + 1} OFFSET $${values.length + 2}`;
   values.push(limit, offset);
-  
+
   const result = await db.query(query, values);
   return result.rows;
 };
@@ -704,7 +696,7 @@ const getLogById = async (logId) => {
     FROM 
       chat_admin_logs cal
     LEFT JOIN 
-      admins a ON a.id = cal.admin_id
+      users a ON a.id = cal.admin_id AND a.role = 'admin'
     LEFT JOIN 
       chat_groups cg ON cg.id = cal.group_id
     LEFT JOIN 

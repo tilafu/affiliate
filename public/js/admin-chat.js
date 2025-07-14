@@ -95,6 +95,9 @@ document.addEventListener('DOMContentLoaded', () => {
       limit: 50,
       total: 0,
       filters: {}
+    },
+    ui: {
+      fakeUserSearchInput: null // Reference to the fake user search input element
     }
   };
   
@@ -784,6 +787,28 @@ document.addEventListener('DOMContentLoaded', () => {
         callback();
       });
     });
+  }
+  
+  // When the fake users tab is activated, load all users
+  function showFakeUsersTab() {
+    // Optionally clear any search input
+    if (state.ui.fakeUserSearchInput) {
+      state.ui.fakeUserSearchInput.value = '';
+    }
+    // Fetch all users (no search filter)
+    loadFakeUsers();
+  }
+  
+  // Load fake users, optionally with a search filter
+  async function loadFakeUsers(search = '') {
+    let url = '/api/admin/chat/fake-users';
+    if (search && search.trim()) {
+      url += `?search=${encodeURIComponent(search.trim())}`;
+    }
+    const response = await fetch(url);
+    const users = await response.json();
+    state.fakeUsers.data = users;
+    renderFakeUsersList();
   }
   
   // Helper Functions

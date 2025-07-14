@@ -98,9 +98,9 @@ const AdminChatAPI = (() => {
       return apiCall(`/groups/${groupId}`);
     },
     
-    getGroupUsers: (groupId, userType = 'fake', page = 1, limit = 50) => {
-      // Corrected route to be more specific and avoid conflicts
-      return apiCall(`/users/group/${groupId}?userType=${userType}&page=${page}&limit=${limit}`);
+    getGroupUsers: (groupId) => {
+      // Use correct backend route for group members (fake users)
+      return apiCall(`/groups/${groupId}/members`);
     },
     
     // Fake Users
