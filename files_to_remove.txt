@@ -1,0 +1,84 @@
+# Files to Remove - Migration Scripts, Test Files, and Clutter
+# This file lists all unnecessary files that should be removed to clean up the project
+
+# Migration and SQL Scripts
+sql/direct_message_migration.sql
+sql/dm_enhancements_migration.sql
+add_wallet_address_migration.sql
+database_migration_optional.sql
+qr_code_system_migration.sql
+setup_chat_system_ordered.sql
+setup_dm_system.sql
+manual_fix_notification_categories.sql
+debug_chat_data.sql
+
+# Test and Development Scripts
+run_tier_migration.js
+check_and_fix_schema.js
+check_constraints.js
+check_db.js
+check_users.js
+create_admin_user.js
+create_admin.js
+setup_notifications.js
+server-update.js
+update-admin-chat-controller.js
+server/run-dm-migration.js
+server/switch-dm-controller.js
+server/find_chat_controller.js
+
+# Configuration Assignment Scripts
+assign_drive_config.js
+assign_eli_config.js
+assign_eli_drive_config.js
+
+# Database Export/Import Files
+affiliate_db_backup1.csv
+affiliate_db_complete_schema.sql
+affiliate_db_relations.txt
+affiliate_db_schema.sql
+data-1751864221865.csv
+data-1752138354510.csv
+db_with_chat_mgmnt.csv
+schema_only.sql
+exports/affiliate_data_only.sql
+exports/affiliate_db_export.sql
+exports/affiliate_db_export.zip
+exports/affiliate_schema_only.sql
+
+# Product/Scraper Files
+product_scraper.py
+products_backup.json
+products.json
+scraper.js
+urls.csv
+
+# Batch/Shell Scripts
+deploy.sh
+import_database.sh
+setup-ubuntu.sh
+start-production.bat
+start-production.sh
+start-server.bat
+update-chat-integration.sh
+
+# PowerShell Scripts  
+fix-controller.ps1
+fix-drivecontroller.ps1
+Prepare-Upload.ps1
+update-controller.ps1
+
+# Log Files
+exceptions.log
+rejections.log
+server.log
+
+# Documentation/Notes
+admin-chat-auth-readme.md
+admin-chat-consolidation-plan.md
+affiliate_db_relations.txt
+dm.md
+mark.md
+
+# Temp/Misc Files
+Untitled-1.txt

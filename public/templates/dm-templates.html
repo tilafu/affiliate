@@ -1,0 +1,155 @@
+<!-- Direct Messages UI Components -->
+
+<!-- DM Conversation List Template -->
+<template id="dm-conversation-list-template">
+    <div class="dm-conversations">
+        <div class="dm-header">
+            <h3>Direct Messages</h3>
+            <button class="new-dm-btn" id="new-dm-btn">
+                <i class="fas fa-plus"></i> New Chat
+            </button>
+        </div>
+        <div class="dm-search">
+            <input type="text" id="dm-search-input" placeholder="Search conversations...">
+            <i class="fas fa-search"></i>
+        </div>
+        <div class="dm-list" id="dm-conversation-list">
+            <!-- Conversations will be inserted here -->
+        </div>
+    </div>
+</template>
+
+<!-- DM Conversation Item Template -->
+<template id="dm-conversation-item-template">
+    <div class="dm-conversation-item" data-conversation-id="">
+        <div class="dm-user-avatar">
+            <img src="/img/default-avatar.png" alt="User Avatar">
+            <span class="user-status"></span>
+        </div>
+        <div class="dm-conversation-details">
+            <div class="dm-user-info">
+                <h4 class="dm-username"></h4>
+                <span class="dm-timestamp"></span>
+            </div>
+            <p class="dm-last-message"></p>
+        </div>
+        <div class="dm-conversation-meta">
+            <span class="dm-unread-badge"></span>
+            <div class="dm-options">
+                <i class="fas fa-ellipsis-v"></i>
+                <div class="dm-options-menu">
+                    <button class="dm-delete-btn">Delete Conversation</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</template>
+
+<!-- DM Chat Window Template -->
+<template id="dm-chat-window-template">
+    <div class="dm-chat-window">
+        <div class="dm-chat-header">
+            <div class="dm-chat-user-info">
+                <button class="dm-back-btn" id="dm-back-btn">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <div class="dm-user-avatar">
+                    <img src="/img/default-avatar.png" alt="User Avatar">
+                    <span class="user-status"></span>
+                </div>
+                <h4 class="dm-chat-username"></h4>
+            </div>
+            <div class="dm-chat-actions">
+                <button class="dm-refresh-btn" title="Refresh conversation">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+                <button class="dm-options-btn">
+                    <i class="fas fa-ellipsis-v"></i>
+                </button>
+                <div class="dm-options-menu">
+                    <button class="dm-delete-conversation-btn">Delete Conversation</button>
+                </div>
+            </div>
+        </div>
+        <div class="dm-chat-messages" id="dm-chat-messages">
+            <!-- Messages will be inserted here -->
+        </div>
+        <div class="dm-chat-input">
+            <div class="dm-attachment-preview" id="dm-attachment-preview">
+                <!-- Attachment preview will be shown here -->
+            </div>
+            <div class="dm-input-container">
+                <button class="dm-attachment-btn" id="dm-attachment-btn">
+                    <i class="fas fa-paperclip"></i>
+                </button>
+                <input type="file" id="dm-attachment-input" style="display: none;">
+                <textarea id="dm-message-input" placeholder="Type a message..."></textarea>
+                <button class="dm-send-btn" id="dm-send-btn">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+            <!-- Admin impersonation selector -->
+            <div class="dm-admin-controls" id="dm-admin-controls" style="display: none;">
+                <select id="dm-impersonate-select">
+                    <option value="">Send as yourself</option>
+                    <!-- Fake users will be populated here -->
+                </select>
+            </div>
+        </div>
+    </div>
+</template>
+
+<!-- DM Message Item Template -->
+<template id="dm-message-item-template">
+    <div class="dm-message-item">
+        <div class="dm-message-avatar">
+            <img src="/img/default-avatar.png" alt="User Avatar">
+        </div>
+        <div class="dm-message-content">
+            <div class="dm-message-header">
+                <span class="dm-message-username"></span>
+                <span class="dm-message-timestamp"></span>
+            </div>
+            <div class="dm-message-text"></div>
+            <div class="dm-message-attachment">
+                <!-- Attachment will be inserted here if exists -->
+            </div>
+        </div>
+    </div>
+</template>
+
+<!-- New DM Modal Template -->
+<template id="new-dm-modal-template">
+    <div class="dm-modal" id="new-dm-modal">
+        <div class="dm-modal-content">
+            <div class="dm-modal-header">
+                <h3>Start a New Conversation</h3>
+                <button class="dm-modal-close" id="dm-modal-close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="dm-modal-body">
+                <div class="dm-user-search">
+                    <input type="text" id="dm-user-search-input" placeholder="Search for a user...">
+                    <i class="fas fa-search"></i>
+                </div>
+                <div class="dm-user-list" id="dm-user-list">
+                    <!-- Users will be inserted here -->
+                </div>
+            </div>
+        </div>
+    </div>
+</template>
+
+<!-- User Item Template for New DM Modal -->
+<template id="dm-user-item-template">
+    <div class="dm-user-item" data-user-id="">
+        <div class="dm-user-avatar">
+            <img src="/img/default-avatar.png" alt="User Avatar">
+        </div>
+        <div class="dm-user-details">
+            <h4 class="dm-user-name"></h4>
+            <p class="dm-user-role"></p>
+        </div>
+    </div>
+</template>

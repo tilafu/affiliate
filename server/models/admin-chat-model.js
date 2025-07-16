@@ -63,8 +63,8 @@ const getGroupById = async (groupId) => {
       cg.description,
       cg.created_at,
       (SELECT COUNT(*) FROM chat_group_members cgm WHERE cgm.group_id = cg.id) AS member_count,
-      (SELECT COUNT(*) FROM chat_group_members cgm WHERE cgm.group_id = cg.id AND cgm.user_type = 'real_user') AS real_user_count,
-      (SELECT COUNT(*) FROM chat_group_members cgm WHERE cgm.group_id = cg.id AND cgm.user_type = 'fake') AS fake_user_count,
+      (SELECT COUNT(*) FROM chat_group_members cgm WHERE cgm.group_id = cg.id AND cgm.user_id IS NOT NULL) AS real_user_count,
+      (SELECT COUNT(*) FROM chat_group_members cgm WHERE cgm.group_id = cg.id AND cgm.fake_user_id IS NOT NULL) AS fake_user_count,
       (SELECT COUNT(*) FROM chat_messages cm WHERE cm.group_id = cg.id) AS message_count,
       (SELECT MAX(cm.created_at) FROM chat_messages cm WHERE cm.group_id = cg.id) AS last_activity
     FROM 
@@ -102,8 +102,8 @@ const getUsersInGroup = async (groupId, userType, { limit, offset }) => {
         cfu.avatar_url,
         cfu.created_at,
         cgm.join_date as joined_at,
-        (SELECT COUNT(*) FROM chat_messages cm WHERE cm.group_id = $1 AND cm.user_id = cfu.id AND cm.user_type = 'fake_user') AS message_count,
-        (SELECT MAX(cm.created_at) FROM chat_messages cm WHERE cm.group_id = $1 AND cm.user_id = cfu.id AND cm.user_type = 'fake_user') AS last_message_at
+        (SELECT COUNT(*) FROM chat_messages cm WHERE cm.group_id = $1 AND cm.fake_user_id = cfu.id) AS message_count,
+        (SELECT MAX(cm.created_at) FROM chat_messages cm WHERE cm.group_id = $1 AND cm.fake_user_id = cfu.id) AS last_message_at
       FROM 
         chat_fake_users cfu
       JOIN 
@@ -123,8 +123,8 @@ const getUsersInGroup = async (groupId, userType, { limit, offset }) => {
         u.email,
         u.created_at,
         cgm.join_date as joined_at,
-        (SELECT COUNT(*) FROM chat_messages cm WHERE cm.group_id = $1 AND cm.user_id = u.id AND cm.user_type = 'real_user') AS message_count,
-        (SELECT MAX(cm.created_at) FROM chat_messages cm WHERE cm.group_id = $1 AND cm.user_id = u.id AND cm.user_type = 'real_user') AS last_message_at
+        (SELECT COUNT(*) FROM chat_messages cm WHERE cm.group_id = $1 AND cm.user_id = u.id) AS message_count,
+        (SELECT MAX(cm.created_at) FROM chat_messages cm WHERE cm.group_id = $1 AND cm.user_id = u.id) AS last_message_at
       FROM 
         users u
       JOIN 
@@ -137,21 +137,40 @@ const getUsersInGroup = async (groupId, userType, { limit, offset }) => {
     `;
     values.push(limit, offset);
   } else {
+    // Combined query for both real and fake users
     query = `
       SELECT 
-        cgm.user_id, 
-        CASE 
-          WHEN cgm.fake_user_id IS NOT NULL THEN 'fake_user'
-          ELSE 'real_user'
-        END as user_type,
+        'real_user' as user_type,
+        u.id,
+        u.username,
+        u.email,
         cgm.join_date as joined_at,
-        (SELECT COUNT(*) FROM chat_messages cm WHERE cm.group_id = $1 AND cm.user_id = cgm.user_id AND cm.user_type = cgm.user_type) AS message_count
+        (SELECT COUNT(*) FROM chat_messages cm WHERE cm.group_id = $1 AND cm.user_id = u.id) AS message_count
       FROM 
-        chat_group_members cgm
+        users u
+      JOIN 
+        chat_group_members cgm ON cgm.user_id = u.id
       WHERE 
-        cgm.group_id = $1
+        cgm.group_id = $1 AND cgm.user_id IS NOT NULL
+      
+      UNION ALL
+      
+      SELECT 
+        'fake_user' as user_type,
+        cfu.id,
+        cfu.username,
+        cfu.display_name as email,
+        cgm.join_date as joined_at,
+        (SELECT COUNT(*) FROM chat_messages cm WHERE cm.group_id = $1 AND cm.fake_user_id = cfu.id) AS message_count
+      FROM 
+        chat_fake_users cfu
+      JOIN 
+        chat_group_members cgm ON cgm.fake_user_id = cfu.id
+      WHERE 
+        cgm.group_id = $1 AND cgm.fake_user_id IS NOT NULL
+      
       ORDER BY 
-        cgm.join_date DESC
+        joined_at DESC
       LIMIT $2 OFFSET $3
     `;
     values.push(limit, offset);
@@ -165,13 +184,19 @@ const getUsersInGroup = async (groupId, userType, { limit, offset }) => {
  * Count users in a group
  */
 const getUsersInGroupCount = async (groupId, userType) => {
-  let query = 'SELECT COUNT(*) FROM chat_group_members WHERE group_id = $1';
+  let query;
   const values = [groupId];
   
   if (userType === 'fake_user') {
-    query += ' AND fake_user_id IS NOT NULL';
+    query = 'SELECT COUNT(*) FROM chat_group_members WHERE group_id = $1 AND fake_user_id IS NOT NULL';
   } else if (userType === 'real_user') {
-    query += ' AND user_id IS NOT NULL';
+    query = 'SELECT COUNT(*) FROM chat_group_members WHERE group_id = $1 AND user_id IS NOT NULL';
+  } else {
+    // Count both real and fake users
+    query = `
+      SELECT COUNT(*) as count FROM chat_group_members 
+      WHERE group_id = $1 AND (user_id IS NOT NULL OR fake_user_id IS NOT NULL)
+    `;
   }
   
   const result = await db.query(query, values);
@@ -211,8 +236,8 @@ const getFakeUsers = async ({ limit, offset, search }) => {
       cfu.display_name,
       cfu.avatar_url,
       cfu.created_at,
-      (SELECT COUNT(*) FROM chat_group_members cgm WHERE cgm.user_id = cfu.id AND cgm.user_type = 'fake') AS group_count,
-      (SELECT COUNT(*) FROM chat_messages cm WHERE cm.user_id = cfu.id AND cm.user_type = 'fake_user') AS message_count
+      (SELECT COUNT(*) FROM chat_group_members cgm WHERE cgm.fake_user_id = cfu.id) AS group_count,
+      (SELECT COUNT(*) FROM chat_messages cm WHERE cm.fake_user_id = cfu.id) AS message_count
     FROM 
       chat_fake_users cfu
   `;
@@ -258,8 +283,8 @@ const getFakeUserById = async (userId) => {
       display_name,
       avatar_url,
       created_at,
-      (SELECT COUNT(*) FROM chat_group_members WHERE user_id = $1 AND user_type = 'fake') AS group_count,
-      (SELECT COUNT(*) FROM chat_messages WHERE user_id = $1 AND user_type = 'fake') AS message_count
+      (SELECT COUNT(*) FROM chat_group_members WHERE fake_user_id = $1) AS group_count,
+      (SELECT COUNT(*) FROM chat_messages WHERE fake_user_id = $1) AS message_count
     FROM 
       chat_fake_users
     WHERE 
@@ -280,12 +305,12 @@ const getGroupsForFakeUser = async (userId) => {
       cg.name, 
       cg.description,
       cgm.join_date as joined_at,
-      (SELECT COUNT(*) FROM chat_messages cm WHERE cm.group_id = cg.id AND cm.user_id = $1 AND cm.user_type = 'fake_user') AS message_count,
-      (SELECT MAX(cm.created_at) FROM chat_messages cm WHERE cm.group_id = cg.id AND cm.user_id = $1 AND cm.user_type = 'fake_user') AS last_message_at
+      (SELECT COUNT(*) FROM chat_messages cm WHERE cm.group_id = cg.id AND cm.fake_user_id = $1) AS message_count,
+      (SELECT MAX(cm.created_at) FROM chat_messages cm WHERE cm.group_id = cg.id AND cm.fake_user_id = $1) AS last_message_at
     FROM 
       chat_groups cg
     JOIN 
-      chat_group_members cgm ON cgm.group_id = cg.id AND cgm.user_id = $1 AND cgm.user_type = 'fake'
+      chat_group_members cgm ON cgm.group_id = cg.id AND cgm.fake_user_id = $1
     ORDER BY 
       cgm.join_date DESC
   `;
@@ -302,7 +327,7 @@ const isFakeUserInGroup = async (userId, groupId) => {
     SELECT EXISTS(
       SELECT 1 
       FROM chat_group_members 
-      WHERE user_id = $1 AND group_id = $2 AND user_type = 'fake'
+      WHERE fake_user_id = $1 AND group_id = $2
     )
   `;
   
@@ -324,15 +349,14 @@ const createMessage = async ({
   const query = `
     INSERT INTO chat_messages (
       group_id, 
-      user_id, 
-      user_type, 
+      fake_user_id, 
       content, 
-      message_type, 
-      is_admin_generated, 
+      media_type, 
+      sent_by_admin, 
       admin_id
     )
-    VALUES ($1, $2, 'fake', $3, $4, $5, $6)
-    RETURNING id, group_id, user_id, user_type, content, message_type, created_at
+    VALUES ($1, $2, $3, $4, $5, $6)
+    RETURNING id, group_id, fake_user_id, content, media_type, created_at
   `;
   
   const result = await db.query(query, [

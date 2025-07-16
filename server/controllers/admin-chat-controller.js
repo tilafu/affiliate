@@ -4,7 +4,6 @@
  */
 
 const adminChatModel = require('../models/admin-chat-model');
-const socketManager = require('../chat-server'); // Import your Socket.io manager
 
 /**
  * Get all chat groups
@@ -165,8 +164,7 @@ const postAsFakeUser = async (req, res) => {
     if (!userInGroup) {
       return res.status(400).json({ error: 'User is not a member of this group' });
     }
-    
-    // Create message in database
+      // Create message in database
     const newMessage = await adminChatModel.createMessage({
       groupId,
       fakeUserId,
@@ -175,17 +173,20 @@ const postAsFakeUser = async (req, res) => {
       isAdminGenerated: true,
       adminId: req.user.id
     });
-    
+
     // Broadcast message via Socket.io
-    socketManager.emitMessageToGroup(groupId, {
-      id: newMessage.id,
-      groupId,
-      userId: fakeUserId,
-      userType: 'fake',
-      content: message,
-      messageType,
-      createdAt: newMessage.createdAt
-    });
+    const io = req.app.get('io');
+    if (io && io.emitMessageToGroup) {
+      io.emitMessageToGroup(groupId, {
+        id: newMessage.id,
+        groupId,
+        userId: fakeUserId,
+        userType: 'fake',
+        content: message,
+        messageType,
+        createdAt: newMessage.created_at
+      });
+    }
     
     res.status(201).json(newMessage);
     

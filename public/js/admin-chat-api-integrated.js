@@ -208,10 +208,10 @@ const AdminChatAPI = (() => {
   // Post message as fake user
   const postAsFakeUser = (groupId, fakeUserId, content, messageType = 'text') => {
     const messageData = {
-      user_id: fakeUserId,
-      user_type: 'fake_user',
-      content,
-      message_type: messageType
+      groupId,
+      fakeUserId,
+      message: content,
+      messageType
     };
     return apiCall(`/groups/${groupId}/messages`, 'POST', messageData);
   };

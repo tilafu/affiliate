@@ -203,6 +203,16 @@ function setupSocketServer(server) {
     }
   }
 
+  // Function to emit a message to a group from the server (for admin-generated messages)
+  function emitMessageToGroup(groupId, message) {
+    const roomName = `group:${groupId}`;
+    io.to(roomName).emit('new-message', message);
+    console.log(`Admin sent message to group ${groupId}`);
+  }
+
+  // Attach helper functions to io object for access by other modules
+  io.emitMessageToGroup = emitMessageToGroup;
+
   return io;
 }
 

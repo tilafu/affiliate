@@ -354,9 +354,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const { page, limit, search } = state.users;
     const result = await AdminChatAPI.getGroupMembers(groupId);
     
-    if (result) {
-      state.users.data = result;
-      state.users.total = result.length;
+    if (result && result.users) {
+      state.users.data = result.users;
+      state.users.total = result.pagination ? result.pagination.total : result.users.length;
       
       renderUsers();
       // We don't need pagination for this simple implementation
