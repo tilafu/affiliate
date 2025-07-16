@@ -267,7 +267,7 @@ const startDrive = async (req, res) => {
             tasks_in_configuration: unlimitedProgress.totalProducts, // Total products across all task sets  
             tasks_completed_in_session: unlimitedProgress.currentStep, // Current product step completed
             total_session_commission: "0.00",            
-                current_order: { // Details of the first sub-product to process
+            current_order: { // Details of the first sub-product to process
                 user_active_drive_item_id: firstItemData.uadi_id, // ID of the parent user_active_drive_item
                 task_set_id: firstItemData.task_set_id,
                 product_id: firstSubProduct.product_id,
