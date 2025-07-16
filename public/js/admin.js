@@ -38,6 +38,9 @@ document.addEventListener('DOMContentLoaded', () => {
         return; // requireAuth will handle redirect
     }
     
+    // Initialize notification system
+    createAlertsContainer();
+    
     // Initialize sidebar navigation
     initializeSidebar();
     
@@ -171,33 +174,70 @@ async function fetchWithAuth(endpoint, options = {}) {
     }
 }
 
-function showNotification(message, type = 'success') { // type can be 'success', 'error', 'notice', 'confirm' for dialog
-    // Use $(document).dialog for notifications
-    let dialogType = 'notice'; // Default dialog type
-    if (type === 'success') {
-        dialogType = 'success';
-    } else if (type === 'error') {
-        dialogType = 'error';
+function showNotification(message, type = 'success') {
+    // Create enhanced notification system
+    const alertsContainer = document.getElementById('alerts-container') || createAlertsContainer();
+    
+    // Create alert element
+    const alertId = 'alert-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5);
+    const alertElement = document.createElement('div');
+    alertElement.id = alertId;
+    alertElement.className = `admin-alert admin-alert-${type}`;
+    
+    // Get appropriate icon for the type
+    const icons = {
+        'success': 'fas fa-check-circle',
+        'error': 'fas fa-exclamation-circle',
+        'warning': 'fas fa-exclamation-triangle',
+        'info': 'fas fa-info-circle'
+    };
+    
+    const icon = icons[type] || icons['info'];
+    
+    alertElement.innerHTML = `
+        <i class="${icon} admin-alert-icon"></i>
+        <span>${message}</span>
+        <button type="button" class="admin-alert-close" onclick="closeAlert('${alertId}')">
+            <i class="fas fa-times"></i>
+        </button>
+    `;
+    
+    // Add to container
+    alertsContainer.appendChild(alertElement);
+    
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+        closeAlert(alertId);
+    }, 5000);
+    
+    return alertId;
+}
+
+function createAlertsContainer() {
+    let container = document.getElementById('alerts-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'alerts-container';
+        document.body.appendChild(container);
     }
-    // This uses a jQuery dialog plugin, ensure it's loaded and configured.
-    // Example: $(document).dialog({ type: dialogType, infoText: message, autoClose: 2500 });
-    // For now, we'll assume the dialog plugin is available and works with these options.
-    if (typeof $ !== 'undefined' && $.dialog) {
-        $(document).dialog({
-            type: dialogType,
-            infoText: message,
-            autoClose: 2500
-        });
-    } else {
-        console.warn('jQuery dialog plugin not available. Using console for notification:', type, message);
-        // Fallback to a simpler browser alert or console log if jQuery dialog is not present
-        if (type === 'error') {
-            alert(`Error: ${message}`);
-        } else {
-            alert(message);
-        }
+    return container;
+}
+
+function closeAlert(alertId) {
+    const alertElement = document.getElementById(alertId);
+    if (alertElement) {
+        alertElement.classList.add('fade-out');
+        setTimeout(() => {
+            if (alertElement.parentNode) {
+                alertElement.parentNode.removeChild(alertElement);
+            }
+        }, 300);
     }
 }
+
+// Make these functions globally accessible
+window.showNotification = showNotification;
+window.closeAlert = closeAlert;
 
 function initializeSidebar() {
     // Handle submenu toggles
@@ -2111,3 +2151,27 @@ window.previewQRCode = previewQRCode;
 window.uploadQRCode = uploadQRCode;
 window.activateQRCode = activateQRCode;
 window.deleteQRCode = deleteQRCode;
+
+// Handle chat navigation with authentication check
+function handleChatNavigation(event) {
+    event.preventDefault();
+    
+    // Check if user is authenticated
+    const token = localStorage.getItem('admin_auth_token') || localStorage.getItem('auth_token') || localStorage.getItem('authToken');
+    
+    if (!token) {
+        showNotification('Please log in to access chat management', 'error');
+        window.location.href = '/admin-login.html';
+        return false;
+    }
+    
+    // Show loading notification
+    showNotification('Loading chat management...', 'info');
+    
+    // Navigate to admin chat page
+    window.location.href = '/admin-chat.html';
+    return false;
+}
+
+// Make function globally accessible
+window.handleChatNavigation = handleChatNavigation;

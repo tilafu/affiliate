@@ -386,20 +386,18 @@ const scheduleMessage = async ({
   recurringPattern = null
 }) => {
   const query = `
-    INSERT INTO chat_messages (
+    INSERT INTO chat_scheduled_messages (
       group_id, 
-      user_id, 
-      user_type, 
+      fake_user_id, 
       content, 
-      message_type, 
-      is_admin_generated, 
-      admin_id,
-      scheduled_at,
+      media_type, 
+      scheduled_time,
       is_recurring,
-      recurring_pattern
+      recurrence_pattern,
+      scheduled_by
     )
-    VALUES ($1, $2, 'fake', $3, $4, $5, $6, $7, $8, $9)
-    RETURNING id, group_id, user_id, user_type, content, message_type, scheduled_at, is_recurring, recurring_pattern
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+    RETURNING id, group_id, fake_user_id, content, media_type, scheduled_time, is_recurring, recurrence_pattern, scheduled_by, created_at
   `;
   
   const result = await db.query(query, [
@@ -407,11 +405,10 @@ const scheduleMessage = async ({
     fakeUserId, 
     content, 
     messageType, 
-    isAdminGenerated, 
-    adminId,
     scheduledAt,
     isRecurring,
-    recurringPattern ? JSON.stringify(recurringPattern) : null
+    recurringPattern,
+    adminId
   ]);
   
   return result.rows[0];
@@ -425,21 +422,19 @@ const getScheduledMessageById = async (messageId) => {
     SELECT 
       id, 
       group_id, 
-      user_id, 
-      user_type, 
+      fake_user_id,
       content, 
-      message_type, 
-      is_admin_generated, 
-      admin_id,
-      scheduled_at,
+      media_type, 
+      scheduled_time,
       is_recurring,
-      recurring_pattern
+      recurrence_pattern,
+      scheduled_by,
+      is_sent
     FROM 
-      chat_messages
+      chat_scheduled_messages
     WHERE 
       id = $1 
-      AND scheduled_at IS NOT NULL 
-      AND created_at IS NULL
+      AND is_sent = false
   `;
   
   const result = await db.query(query, [messageId]);
@@ -451,11 +446,10 @@ const getScheduledMessageById = async (messageId) => {
  */
 const cancelScheduledMessage = async (messageId) => {
   const query = `
-    DELETE FROM chat_messages
+    DELETE FROM chat_scheduled_messages
     WHERE 
       id = $1 
-      AND scheduled_at IS NOT NULL 
-      AND created_at IS NULL
+      AND is_sent = false
   `;
   
   await db.query(query, [messageId]);

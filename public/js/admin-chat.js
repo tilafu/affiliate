@@ -625,6 +625,12 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // Schedule a message
   async function scheduleMessage() {
+    // Check if group and user are selected
+    if (!state.groups.selected || !state.users.selected) {
+      alert('Please select a group and a user first');
+      return;
+    }
+    
     const message = messageContent.value.trim();
     
     if (!message) {
@@ -666,15 +672,17 @@ document.addEventListener('DOMContentLoaded', () => {
     confirmScheduleBtn.disabled = true;
     
     // Schedule message
-    const result = await AdminChatAPI.scheduleMessage(
-      state.groups.selected.id,
-      state.users.selected.id,
-      message,
-      messageType.value,
-      scheduledAt.toISOString(),
-      recurring,
-      recurringPattern
-    );
+    const messageData = {
+      groupId: state.groups.selected.id,
+      fakeUserId: state.users.selected.id,
+      message: message,
+      messageType: messageType.value,
+      scheduledAt: scheduledAt.toISOString(),
+      isRecurring: recurring,
+      recurringPattern: recurringPattern
+    };
+    
+    const result = await AdminChatAPI.scheduleMessage(messageData);
     
     if (result) {
       // Clear message input

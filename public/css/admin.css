@@ -638,34 +638,145 @@ body, .card, .table, th, td, .btn, input, select, textarea, .nav-link, h1, h2, h
 .admin-alert {
     border: none !important;
     border-radius: var(--admin-border-radius) !important;
-    padding: 1rem 1.5rem !important;
+    padding: 1.25rem 1.75rem !important;
     margin-bottom: 1.5rem !important;
     font-weight: 500 !important;
-    box-shadow: var(--admin-shadow) !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1) !important;
+    position: relative !important;
+    overflow: hidden !important;
+    animation: slideInDown 0.3s ease-out !important;
+}
+
+.admin-alert::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: currentColor;
+    opacity: 0.8;
 }
 
 .admin-alert-success {
-    background: linear-gradient(45deg, rgba(40, 167, 69, 0.1), rgba(32, 201, 151, 0.1)) !important;
-    border-left: 4px solid #28a745 !important;
+    background: linear-gradient(135deg, rgba(40, 167, 69, 0.12), rgba(32, 201, 151, 0.08)) !important;
+    border: 1px solid rgba(40, 167, 69, 0.2) !important;
     color: #155724 !important;
 }
 
+.admin-alert-success::before {
+    background: #28a745 !important;
+}
+
 .admin-alert-danger {
-    background: linear-gradient(45deg, rgba(220, 53, 69, 0.1), rgba(231, 76, 60, 0.1)) !important;
-    border-left: 4px solid #dc3545 !important;
+    background: linear-gradient(135deg, rgba(220, 53, 69, 0.12), rgba(231, 76, 60, 0.08)) !important;
+    border: 1px solid rgba(220, 53, 69, 0.2) !important;
     color: #721c24 !important;
 }
 
+.admin-alert-danger::before {
+    background: #dc3545 !important;
+}
+
 .admin-alert-warning {
-    background: linear-gradient(45deg, rgba(255, 193, 7, 0.1), rgba(253, 126, 20, 0.1)) !important;
-    border-left: 4px solid #ffc107 !important;
+    background: linear-gradient(135deg, rgba(255, 193, 7, 0.12), rgba(253, 126, 20, 0.08)) !important;
+    border: 1px solid rgba(255, 193, 7, 0.2) !important;
     color: #856404 !important;
 }
 
+.admin-alert-warning::before {
+    background: #ffc107 !important;
+}
+
 .admin-alert-info {
-    background: linear-gradient(45deg, rgba(0, 123, 255, 0.1), rgba(0, 86, 179, 0.1)) !important;
-    border-left: 4px solid #007bff !important;
+    background: linear-gradient(135deg, rgba(0, 123, 255, 0.12), rgba(0, 86, 179, 0.08)) !important;
+    border: 1px solid rgba(0, 123, 255, 0.2) !important;
     color: #004085 !important;
+}
+
+.admin-alert-info::before {
+    background: #007bff !important;
+}
+
+/* Alert Icons */
+.admin-alert-icon {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    margin-right: 10px;
+    vertical-align: text-top;
+    font-size: 16px;
+}
+
+/* Alert Close Button */
+.admin-alert-close {
+    position: absolute;
+    top: 50%;
+    right: 15px;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    font-size: 18px;
+    color: currentColor;
+    opacity: 0.6;
+    cursor: pointer;
+    transition: opacity 0.2s ease;
+    padding: 0;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.admin-alert-close:hover {
+    opacity: 1;
+}
+
+/* Animation */
+@keyframes slideInDown {
+    from {
+        transform: translateY(-20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes fadeOut {
+    from {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+}
+
+.admin-alert.fade-out {
+    animation: fadeOut 0.3s ease-out forwards !important;
+}
+
+/* Alerts Container */
+#alerts-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+    max-width: 400px;
+    width: 100%;
+}
+
+@media (max-width: 768px) {
+    #alerts-container {
+        top: 10px;
+        right: 10px;
+        left: 10px;
+        max-width: none;
+    }
 }
 
 /* Enhanced Mobile Navigation */
