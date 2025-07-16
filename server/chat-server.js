@@ -28,7 +28,7 @@ module.exports = (io) => {
           // Check if user exists
           const userResult = await db.query(
             'SELECT id, username, role FROM users WHERE id = $1',
-            [decoded.id]
+            [decoded.userId]
           );
           
           if (userResult.rows.length > 0) {

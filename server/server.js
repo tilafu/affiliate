@@ -122,10 +122,12 @@ const chatMessageRoutes = require('./routes/chat-message-api'); // Import chat m
 const chatRoutes = require('./routes/chat'); // Import chat routes
 const usersRoutes = require('./routes/users'); // Import users routes
 const dmRoutes = require('./routes/dm'); // Import direct message routes
+const userChatRoutes = require('./routes/user-chat-api'); // Import user chat routes
 
 // Apply routes
 app.use('/api/auth', authRoutes);
 app.use('/api/user', userRoutes);
+app.use('/api/user/chat', userChatRoutes); // Mount user chat routes
 app.use('/api/users', usersRoutes); // Mount users routes
 app.use('/api/drive', driveRoutes);
 app.use('/api/chat', chatRoutes); // Mount chat routes

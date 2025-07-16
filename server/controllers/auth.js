@@ -2,6 +2,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const pool = require('../config/db');
 const { generateReferralCode } = require('../utils/helpers'); // We'll create this later
+const { setupNewUser } = require('../services/user-group-service');
 
 const register = async (req, res) => {
   const { username, email, password, referralCode, revenueSource } = req.body;
@@ -93,7 +94,18 @@ const register = async (req, res) => {
       { expiresIn: process.env.JWT_EXPIRES_IN || '1h' }
     );
 
-    await client.query('COMMIT');    res.status(201).json({
+    await client.query('COMMIT');
+
+    // 8. Set up user groups (personal group + common groups)
+    try {
+      const groupSetup = await setupNewUser(newUser.id, newUser.username);
+      console.log(`User ${newUser.username} group setup completed:`, groupSetup);
+    } catch (groupError) {
+      console.error('Error setting up user groups (non-critical):', groupError);
+      // Don't fail registration if group setup fails
+    }
+
+    res.status(201).json({
       success: true,
       token,
       user: {

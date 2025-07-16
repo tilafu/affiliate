@@ -38,7 +38,7 @@ const authMiddleware = async (socket, next) => {
             
             // Get user from database
             const userQuery = 'SELECT id, username, role FROM users WHERE id = $1';
-            const users = await executeQuery(userQuery, [decoded.id]);
+            const users = await executeQuery(userQuery, [decoded.userId]);
             
             if (users.length === 0) {
                 return next(new Error('User not found'));

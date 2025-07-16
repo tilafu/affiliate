@@ -35,10 +35,11 @@ function setupSocketServer(server) {
       const decoded = jwt.verify(token, process.env.JWT_SECRET || 'affiliate-admin-secret');
       
       // Get user details from database
-    const userResult = await db.query(
+      // Note: JWT payload uses 'userId', not 'id'
+      const userResult = await db.query(
         'SELECT id, username, role FROM users WHERE id = $1',
-        [decoded.id]
-    );
+        [decoded.userId]
+      );
       
       if (userResult.rows.length === 0) {
         return next(new Error('User not found'));
