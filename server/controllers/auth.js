@@ -7,8 +7,11 @@ const { setupNewUser } = require('../services/user-group-service');
 const register = async (req, res) => {
   const { username, email, password, referralCode, revenueSource } = req.body;
 
+  console.log('[REGISTRATION] Starting registration process for:', { username, email, referralCode, revenueSource });
+
   // Basic validation
   if (!username || !email || !password || !referralCode) {
+    console.log('[REGISTRATION ERROR] Missing required fields');
     return res.status(400).json({ success: false, message: 'Missing required fields' });
   }
 
@@ -46,10 +49,25 @@ const register = async (req, res) => {
 
     while (!userInserted && attempts < MAX_ATTEMPTS) {
       attempts++;
-      const newUserReferralCode = generateReferralCode(); // Generate code
+      const newUserReferralCode = generateReferralCode(); // Generate code synchronously
 
       try {
-        // 5. Attempt to insert the user with the generated code
+        // 5. Check if this referral code already exists
+        const existingCodeResult = await client.query(
+          'SELECT id FROM users WHERE referral_code = $1', 
+          [newUserReferralCode]
+        );
+        
+        if (existingCodeResult.rows.length > 0) {
+          // Code already exists, try again
+          console.warn(`Referral code collision detected (${newUserReferralCode}). Retrying... Attempt ${attempts}`);
+          if (attempts >= MAX_ATTEMPTS) {
+            throw new Error('Failed to generate a unique referral code after multiple attempts.');
+          }
+          continue; // Try again with a new code
+        }
+
+        // 6. Attempt to insert the user with the generated code
         const newUserResult = await client.query(
           'INSERT INTO users (username, email, password_hash, referral_code, upliner_id, revenue_source) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, username, referral_code, tier',
           [username, email, passwordHash, newUserReferralCode, uplinerId, revenueSource]
@@ -60,7 +78,7 @@ const register = async (req, res) => {
         // Check if it's a unique constraint violation on referral_code (PostgreSQL code '23505')
         if (insertError.code === '23505' && insertError.constraint && insertError.constraint.includes('referral_code')) {
            // Collision detected, loop will continue to generate a new code
-           console.warn(`Referral code collision detected (${newUserReferralCode}). Retrying... Attempt ${attempts}`);
+           console.warn(`Referral code collision detected during insert (${newUserReferralCode}). Retrying... Attempt ${attempts}`);
            if (attempts >= MAX_ATTEMPTS) {
              throw new Error('Failed to generate a unique referral code after multiple attempts.');
            }
@@ -77,7 +95,8 @@ const register = async (req, res) => {
         throw new Error('User creation failed unexpectedly after referral code generation attempts.');
     }
 
-    // 6. Create accounts (main and training)
+    // 7. Create accounts (main and training)
+    console.log('[REGISTRATION] Creating accounts for user:', newUser.id);
     await client.query(
       'INSERT INTO accounts (user_id, type, balance) VALUES ($1, $2, $3)',
       [newUser.id, 'main', 15]
@@ -87,7 +106,8 @@ const register = async (req, res) => {
       [newUser.id, 'training', 500, 200, true]
     );
 
-    // 7. Generate JWT token
+    // 8. Generate JWT token
+    console.log('[REGISTRATION] Generating JWT token for user:', newUser.username);
     const token = jwt.sign(
       { userId: newUser.id, username: newUser.username },
       process.env.JWT_SECRET,
@@ -95,6 +115,7 @@ const register = async (req, res) => {
     );
 
     await client.query('COMMIT');
+    console.log('[REGISTRATION] Transaction committed successfully for user:', newUser.username);
 
     // 8. Set up user groups (personal group + common groups)
     try {
