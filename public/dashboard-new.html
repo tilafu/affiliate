@@ -471,9 +471,9 @@
                     <p id="membershipTier">Premium Member</p>
                 </div>
             </div>
-            <button class="notification-btn" onclick="window.location.href='./notifications.html'">
+            <button class="notification-btn" onclick="window.location.href='./chat/'">
                 <i class="far fa-bell"></i>
-                <span class="notification-badge" id="notificationCount">3</span>
+                <span class="notification-badge" id="notificationCount">0</span>
             </button>
         </div>
     </header>
@@ -611,6 +611,8 @@
             
             // Load user data
             loadUserDashboardData();
+            // Also load chat unread count
+            updateChatNotificationCount();
         });
 
         async function loadUserDashboardData() {
@@ -635,6 +637,49 @@
                 }
             } catch (error) {
                 console.error('Error loading dashboard data:', error);
+            }
+        }
+
+        // Function to fetch and update chat unread count
+        async function updateChatNotificationCount() {
+            try {
+                const token = localStorage.getItem('authToken');
+                if (!token) {
+                    // Hide notification badge for unauthenticated users
+                    const badge = document.getElementById('notificationCount');
+                    if (badge) {
+                        badge.style.display = 'none';
+                    }
+                    return;
+                }
+                
+                // Fetch unread chat count
+                const response = await fetch('/api/chat/unread-count', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    const unreadData = await response.json();
+                    console.log('Chat unread count response:', unreadData);
+                    
+                    // Update notification badge
+                    const badge = document.getElementById('notificationCount');
+                    if (badge && typeof unreadData.unread_count === 'number') {
+                        if (unreadData.unread_count > 0) {
+                            badge.textContent = unreadData.unread_count;
+                            badge.style.display = 'flex';
+                        } else {
+                            badge.style.display = 'none';
+                        }
+                    }
+                }
+                
+            } catch (error) {
+                console.error('Error fetching chat unread count:', error);
+                // Don't show error to user, just log it
             }
         }
 
@@ -678,6 +723,22 @@
                 });
             });
         });
+        
+        // Set up periodic chat notification updates
+        setInterval(function() {
+            updateChatNotificationCount();
+        }, 30000);
+        
+        // Also update when page becomes visible (user switches back to tab)
+        document.addEventListener('visibilitychange', function() {
+            if (!document.hidden) {
+                updateChatNotificationCount();
+            }
+        });
     </script>
+
+    <!-- Chat Widget -->
+    <link rel="stylesheet" href="./css/chat-widget.css">
+    <script src="./js/chat-widget.js"></script>
 </body>
 </html>

@@ -1056,7 +1056,7 @@ router.get('/conversations/direct/:id/messages', protect, async (req, res) => {
     const offset = parseInt(req.query.offset) || 0;
     
     const messagesResult = await db.query(
-      `SELECT dmsg.id, dmsg.content, dmsg.created_at, dmsg.sender_id,
+      `SELECT dmsg.id, dmsg.content, dmsg.media_url, dmsg.media_type, dmsg.created_at, dmsg.sender_id,
               u.username as sender_username
        FROM direct_message_texts dmsg
        JOIN users u ON dmsg.sender_id = u.id
@@ -1078,10 +1078,11 @@ router.post('/conversations/direct/:id/messages', protect, messageLimiter, async
   try {
     const conversationId = req.params.id;
     const userId = req.user.id;
-    const { content } = req.body;
+    const { content, media_url, media_type } = req.body;
     
-    if (!content) {
-      return res.status(400).json({ error: 'Message content is required' });
+    // Check if we have either content or media
+    if (!content && !media_url) {
+      return res.status(400).json({ error: 'Message content or media is required' });
     }
     
     // Verify user is part of this conversation
@@ -1096,10 +1097,10 @@ router.post('/conversations/direct/:id/messages', protect, messageLimiter, async
     
     // Insert the message
     const messageResult = await db.query(
-      `INSERT INTO direct_message_texts (conversation_id, sender_id, content, created_at) 
-       VALUES ($1, $2, $3, NOW())
-       RETURNING id, content, created_at, sender_id`,
-      [conversationId, userId, content]
+      `INSERT INTO direct_message_texts (conversation_id, sender_id, content, media_url, media_type, created_at) 
+       VALUES ($1, $2, $3, $4, $5, NOW())
+       RETURNING id, content, media_url, media_type, created_at, sender_id`,
+      [conversationId, userId, content, media_url, media_type]
     );
     
     const message = messageResult.rows[0];
@@ -1117,6 +1118,47 @@ router.post('/conversations/direct/:id/messages', protect, messageLimiter, async
   } catch (error) {
     console.error('Error sending direct message:', error);
     res.status(500).json({ error: 'Failed to send direct message' });
+  }
+});
+
+// Get unread message count for dashboard notification
+router.get('/unread-count', protect, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    
+    // Get unread count from groups
+    const groupUnreadResult = await db.query(
+      `SELECT COALESCE(SUM(
+        (SELECT COUNT(*) FROM chat_messages cm 
+         WHERE cm.group_id = g.id 
+         AND cm.created_at > COALESCE(gm.last_read_at, '1970-01-01')
+         AND cm.user_id != $1  -- Don't count own messages
+        )
+      ), 0) as unread_count
+       FROM chat_groups g
+       JOIN chat_group_members gm ON g.id = gm.group_id
+       WHERE gm.user_id = $1`,
+      [userId]
+    );
+    
+    // Get unread count from direct messages
+    const directUnreadResult = await db.query(
+      `SELECT COALESCE(COUNT(*), 0) as unread_count
+       FROM direct_message_texts dmsg
+       JOIN direct_messages dm ON dmsg.conversation_id = dm.id
+       WHERE (dm.user1_id = $1 OR dm.user2_id = $1)
+         AND dmsg.sender_id != $1  -- Don't count own messages
+         AND dmsg.is_read = false`,
+      [userId]
+    );
+    
+    const totalUnread = parseInt(groupUnreadResult.rows[0].unread_count) + 
+                       parseInt(directUnreadResult.rows[0].unread_count);
+    
+    res.json({ unread_count: totalUnread });
+  } catch (error) {
+    console.error('Error fetching unread count:', error);
+    res.status(500).json({ error: 'Failed to fetch unread count' });
   }
 });
 

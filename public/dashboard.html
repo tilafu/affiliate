@@ -1220,9 +1220,9 @@
                 </div>
             </div>
             <div class="header-actions">
-                <button class="notification-btn" onclick="window.location.href='./notifications.html'">
+                <button class="notification-btn" onclick="window.location.href='./chat/'">
                     <i class="far fa-bell"></i>
-                    <span class="notification-badge" id="notificationCount">3</span>
+                    <span class="notification-badge" id="notificationCount">0</span>
                 </button>
                 <button class="login-btn" id="loginBtn" onclick="window.location.href='./login.html'" style="display: none;">
                     <i class="fas fa-sign-in-alt"></i>
@@ -1468,6 +1468,8 @@
             // Load user data (with error handling)
             try {
                 loadUserDashboardData();
+                // Also load chat unread count
+                updateChatNotificationCount();
             } catch (error) {
                 console.error('Error loading user dashboard data:', error);
                 // Show default dashboard if user data loading fails
@@ -1763,7 +1765,76 @@
                 // On error, show default dashboard instead of redirecting
                 showDefaultDashboard();
             }
-        }        function showDefaultDashboard() {
+        }
+
+        // Function to fetch and update chat unread count
+        async function updateChatNotificationCount() {
+            try {
+                // Check if user is authenticated
+                let isUserAuthenticated = false;
+                
+                if (typeof SimpleAuth !== 'undefined') {
+                    isUserAuthenticated = SimpleAuth.isAuthenticated();
+                } else if (typeof isAuthenticated === 'function') {
+                    const authData = isAuthenticated();
+                    isUserAuthenticated = authData && authData.token;
+                } else {
+                    const token = localStorage.getItem('auth_token');
+                    isUserAuthenticated = !!token;
+                }
+                
+                if (!isUserAuthenticated) {
+                    // Hide notification badge for unauthenticated users
+                    const badge = document.getElementById('notificationCount');
+                    if (badge) {
+                        badge.style.display = 'none';
+                    }
+                    return;
+                }
+                
+                // Get fetch function
+                let fetchFunction = null;
+                if (typeof SimpleAuth !== 'undefined' && SimpleAuth.authenticatedFetch) {
+                    fetchFunction = SimpleAuth.authenticatedFetch.bind(SimpleAuth);
+                } else if (typeof fetchWithAuth === 'function') {
+                    fetchFunction = fetchWithAuth;
+                } else {
+                    console.warn('No authenticated fetch function available for chat unread count');
+                    return;
+                }
+                
+                // Fetch unread chat count
+                const response = await fetchFunction('/api/chat/unread-count');
+                let unreadData;
+                
+                if (response && typeof response.json === 'function') {
+                    unreadData = await response.json();
+                } else if (response && typeof response === 'object') {
+                    unreadData = response;
+                } else {
+                    throw new Error('Invalid unread count response format');
+                }
+                
+                console.log('Chat unread count response:', unreadData);
+                
+                // Update notification badge
+                const badge = document.getElementById('notificationCount');
+                if (badge && unreadData && typeof unreadData.unread_count === 'number') {
+                    if (unreadData.unread_count > 0) {
+                        badge.textContent = unreadData.unread_count;
+                        badge.style.display = 'flex';
+                    } else {
+                        badge.style.display = 'none';
+                    }
+                }
+                
+            } catch (error) {
+                console.error('Error fetching chat unread count:', error);
+                // Don't show error to user, just log it
+            }
+        }
+
+        function showDefaultDashboard() {
             // Update with default/demo data - add null checks
             const userInitialsEl = document.getElementById('userInitials');
             if (userInitialsEl) {
@@ -2235,4 +2306,25 @@
   console.log(`Partners animation duration set to: ${animationDuration}s for ${partners.length} partners`);
   
 })();
+
+// Set up periodic chat notification updates
+(function() {
+    // Update chat notification count every 30 seconds
+    setInterval(function() {
+        updateChatNotificationCount();
+    }, 30000);
+    
+    // Also update when page becomes visible (user switches back to tab)
+    document.addEventListener('visibilitychange', function() {
+        if (!document.hidden) {
+            updateChatNotificationCount();
+        }
+    });
+})();
 </script>
+
+<!-- Chat Widget -->
+<link rel="stylesheet" href="./css/chat-widget.css">
+<script src="./js/chat-widget.js"></script>
+</body>
+</html>

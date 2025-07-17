@@ -586,12 +586,14 @@ function initializeChat() {
         }
     }
     
-    async function sendDirectMessageToServer(conversationId, content) {
+    async function sendDirectMessageToServer(conversationId, content, mediaUrl = null, mediaType = null) {
         try {
             const token = getAuthToken();
             
             const messageData = {
-                content
+                content,
+                media_url: mediaUrl,
+                media_type: mediaType
             };
             
             const response = await fetch(`/api/chat/conversations/direct/${conversationId}/messages`, {
@@ -865,19 +867,31 @@ function initializeChat() {
         mediaContainer.className = 'message-media';
         
         if (mediaType && mediaType.startsWith('image/')) {
+            const imageContainer = document.createElement('div');
+            imageContainer.className = 'image-container';
+            
             const img = document.createElement('img');
             img.src = mediaUrl;
             img.alt = 'Image attachment';
+            img.className = 'message-image';
             img.addEventListener('click', () => {
                 // Implement lightbox or preview
                 window.open(mediaUrl, '_blank');
             });
-            mediaContainer.appendChild(img);
+            
+            imageContainer.appendChild(img);
+            mediaContainer.appendChild(imageContainer);
         } else if (mediaType && mediaType.startsWith('video/')) {
+            const videoContainer = document.createElement('div');
+            videoContainer.className = 'video-container';
+            
             const video = document.createElement('video');
             video.src = mediaUrl;
             video.controls = true;
-            mediaContainer.appendChild(video);
+            video.className = 'message-video';
+            
+            videoContainer.appendChild(video);
+            mediaContainer.appendChild(videoContainer);
         } else {
             // File attachment
             const fileLink = document.createElement('a');
@@ -975,14 +989,40 @@ function initializeChat() {
         const messageElement = document.createElement('div');
         messageElement.className = `message ${messageClass}`;
         
-        messageElement.innerHTML = `
-            <div class="message-content">
-                ${!isOwnMessage ? `<div class="message-sender">${senderName}</div>` : ''}
-                <div class="message-text">${message.content}</div>
-                <div class="message-time">${messageTime}</div>
-            </div>
-        `;
+        const messageContent = document.createElement('div');
+        messageContent.className = 'message-content';
         
+        // Add sender name for received messages
+        if (!isOwnMessage) {
+            const senderElement = document.createElement('div');
+            senderElement.className = 'message-sender';
+            senderElement.textContent = senderName;
+            messageContent.appendChild(senderElement);
+        }
+        
+        // Add media if present
+        if (message.media_url) {
+            const mediaElement = createMediaElement(message.media_url, message.media_type);
+            if (mediaElement) {
+                messageContent.appendChild(mediaElement);
+            }
+        }
+        
+        // Add text content if present
+        if (message.content) {
+            const textElement = document.createElement('div');
+            textElement.className = 'message-text';
+            textElement.textContent = message.content;
+            messageContent.appendChild(textElement);
+        }
+        
+        // Add timestamp
+        const timeElement = document.createElement('div');
+        timeElement.className = 'message-time';
+        timeElement.textContent = messageTime;
+        messageContent.appendChild(timeElement);
+        
+        messageElement.appendChild(messageContent);
         return messageElement;
     }
     
@@ -1130,8 +1170,8 @@ function initializeChat() {
             let mediaUrl = null;
             let mediaType = null;
             
-            // If we have a file, upload it first (only for group chats for now)
-            if (selectedFile && activeChatType === 'group') {
+            // If we have a file, upload it first (for both group chats and direct messages)
+            if (selectedFile) {
                 const formData = new FormData();
                 formData.append('file', selectedFile);
                 
@@ -1151,12 +1191,12 @@ function initializeChat() {
                 
                 const uploadData = await response.json();
                 mediaUrl = uploadData.url;
-                mediaType = selectedFile.type.startsWith('image/') ? 'image' : 'file';
+                mediaType = selectedFile.type;
             }
             
             // Send the message based on chat type
             if (activeChatType === 'direct') {
-                await sendDirectMessageToServer(activeGroupId, content);
+                await sendDirectMessageToServer(activeGroupId, content, mediaUrl, mediaType);
             } else {
                 await sendMessageToServer(activeGroupId, content, mediaUrl, mediaType);
             }
@@ -1384,6 +1424,15 @@ function initializeChat() {
             filePreview.parentNode.removeChild(filePreview);
         }
         filePreview = null;
+    }
+    
+    // Clear selected file
+    function clearSelectedFile() {
+        selectedFile = null;
+        clearFilePreview();
+        if (fileInput) {
+            fileInput.value = '';
+        }
     }
     
     // Admin-specific functions
