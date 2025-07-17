@@ -24,9 +24,11 @@ function initializeChat() {
     let socket;
     let currentUser = null;
     let activeGroupId = null;
+    let activeChatType = 'group'; // 'group' or 'direct'
     let groups = [];
     let activeGroup = null;
     let messages = {};
+    let typingTimeout = null; // For debouncing typing events
     
     // Error handling and notifications
     function showNotification(message, type = 'info') {
@@ -34,6 +36,10 @@ function initializeChat() {
         if (type === 'error') {
             console.error(message);
             alert(`Error: ${message}`);
+        } else if (type === 'warning') {
+            console.warn(message);
+            // For warnings, show a brief console message but don't interrupt user
+            // In production, you might want to show a toast notification
         } else {
             console.log(message);
             // For non-error notifications, we might not want to show alerts
@@ -134,7 +140,16 @@ function initializeChat() {
             
             socket.on('error', (error) => {
                 console.error('Socket error:', error);
-                showNotification('Error connecting to chat server: ' + error.message, 'error');
+                // Only show critical errors, not rate limiting or auth errors
+                if (error.message && !error.message.includes('Rate limit') && !error.message.includes('authorized')) {
+                    showNotification('Chat error: ' + error.message, 'warning');
+                }
+            });
+            
+            socket.on('rate-limit-warning', (data) => {
+                console.warn('Rate limit warning:', data);
+                // Show a brief, non-intrusive message
+                showNotification(data.message, 'warning');
             });
             
             socket.on('connect_error', (error) => {
@@ -173,6 +188,14 @@ function initializeChat() {
             
             socket.on('message-read', (data) => {
                 updateReadReceipts(data);
+            });
+            
+            // Direct message events
+            socket.on('new-direct-message', (message) => {
+                addDirectMessageToChat(message);
+                
+                // Update the conversation list with the latest message
+                updateConversationWithLatestMessage(message);
             });
             
         } catch (error) {
@@ -297,7 +320,8 @@ function initializeChat() {
             let data;
             
             try {
-                response = await fetch('/api/chat/groups', {
+                // Fetch all conversations (groups + direct messages) for the All tab
+                response = await fetch('/api/chat/conversations', {
                     method: 'GET',
                     headers: {
                         'Authorization': `Bearer ${token}`,
@@ -309,13 +333,11 @@ function initializeChat() {
                     data = await response.json();
                 }
             } catch (err) {
-                console.warn('Failed to fetch user groups from /api/chat/groups, trying alternative endpoint');
-            }
-            
-            // Try alternative endpoint
-            if (!data) {
+                console.warn('Failed to fetch conversations, trying groups endpoint');
+                
+                // Fallback to groups only
                 try {
-                    response = await fetch('/api/chat', {
+                    response = await fetch('/api/chat/groups', {
                         method: 'GET',
                         headers: {
                             'Authorization': `Bearer ${token}`,
@@ -325,9 +347,11 @@ function initializeChat() {
                     
                     if (response.ok) {
                         data = await response.json();
+                        // Mark all as group type for consistency
+                        data = data.map(item => ({ ...item, type: 'group' }));
                     }
-                } catch (err) {
-                    console.warn('Failed to fetch user groups from /api/chat');
+                } catch (err2) {
+                    console.warn('Failed to fetch from both endpoints');
                 }
             }
             
@@ -338,11 +362,11 @@ function initializeChat() {
             
             if (data) {
                 groups = Array.isArray(data) ? data : (data.groups || []);
-                console.log(`Fetched ${groups.length} groups`);
+                console.log(`Fetched ${groups.length} conversations (groups + direct messages)`);
                 renderChatsList(groups);
             } else {
                 // If no data, create sample groups for testing
-                console.warn('No groups data received, using sample data for testing');
+                console.warn('No conversations data received, using sample data for testing');
                 groups = createSampleGroups();
                 renderChatsList(groups);
             }
@@ -501,10 +525,123 @@ function initializeChat() {
         }
     }
     
+    // Direct message functions
+    async function fetchDirectConversationDetails(conversationId) {
+        try {
+            const token = getAuthToken();
+            
+            const response = await fetch(`/api/chat/conversations/direct/${conversationId}`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            activeGroup = data;
+            
+            updateChatHeader(data);
+            
+        } catch (error) {
+            handleApiError(error, 'Failed to fetch direct conversation details');
+        }
+    }
+    
+    async function fetchDirectMessages(conversationId) {
+        try {
+            const token = getAuthToken();
+            
+            // Show loading indicator
+            const loadingIndicator = showMessageLoading();
+            
+            const response = await fetch(`/api/chat/conversations/direct/${conversationId}/messages`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            // Remove loading indicator
+            if (loadingIndicator && loadingIndicator.parentNode) {
+                loadingIndicator.parentNode.removeChild(loadingIndicator);
+            }
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            messages[conversationId] = data;
+            
+            renderDirectMessages(conversationId);
+            
+        } catch (error) {
+            handleApiError(error, 'Failed to fetch direct messages');
+        }
+    }
+    
+    async function sendDirectMessageToServer(conversationId, content) {
+        try {
+            const token = getAuthToken();
+            
+            const messageData = {
+                content
+            };
+            
+            const response = await fetch(`/api/chat/conversations/direct/${conversationId}/messages`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(messageData)
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            // The message will be added to the UI via the socket.io event
+            
+        } catch (error) {
+            handleApiError(error, 'Failed to send direct message');
+        }
+    }
+    
+    function renderDirectMessages(conversationId) {
+        const conversationMessages = messages[conversationId] || [];
+        
+        messagesContainer.innerHTML = conversationMessages.map(msg => {
+            const isOwnMessage = msg.sender_id === currentUser?.id;
+            const messageClass = isOwnMessage ? 'message-sent' : 'message-received';
+            const senderName = msg.sender_username || 'Unknown';
+            const messageTime = formatMessageTime(new Date(msg.created_at));
+            
+            return `
+                <div class="message ${messageClass}">
+                    <div class="message-content">
+                        ${!isOwnMessage ? `<div class="message-sender">${senderName}</div>` : ''}
+                        <div class="message-text">${msg.content}</div>
+                        <div class="message-time">${messageTime}</div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+        
+        // Scroll to bottom
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+
     // UI Updates
     function renderChatsList(chats = []) {
         if (!chats.length) {
-            chatsList.innerHTML = '<div class="no-chats">No chats available</div>';
+            chatsList.innerHTML = '<div class="no-chats">No conversations available</div>';
             return;
         }
         
@@ -517,11 +654,17 @@ function initializeChat() {
             
             const unreadBadge = chat.unread_count > 0 ? 
                 `<span class="unread-badge">${chat.unread_count}</span>` : '';
+            
+            // Different icons for different conversation types
+            const icon = chat.type === 'direct' ? 
+                '<i class="fas fa-user"></i>' : 
+                '<i class="fas fa-users"></i>';
                 
             return `
-                <div class="chat-item" data-chat-id="${chat.id}">
+                <div class="chat-item" data-chat-id="${chat.id}" data-chat-type="${chat.type || 'group'}">
                     <div class="chat-item-avatar">
                         <img src="${chat.avatar_url || '../assets/uploads/user.jpg'}" alt="${chat.name}">
+                        <div class="chat-type-indicator">${icon}</div>
                     </div>
                     <div class="chat-item-content">
                         <div class="chat-item-header">
@@ -541,7 +684,8 @@ function initializeChat() {
         document.querySelectorAll('.chat-item').forEach(item => {
             item.addEventListener('click', () => {
                 const chatId = item.dataset.chatId;
-                openChat(chatId);
+                const chatType = item.dataset.chatType;
+                openChat(chatId, chatType);
                 
                 // Mark as active
                 document.querySelectorAll('.chat-item').forEach(el => {
@@ -558,13 +702,37 @@ function initializeChat() {
         });
     }
     
-    function openChat(groupId) {
-        // Update active group ID
-        activeGroupId = groupId;
+    function openChat(chatId, chatType = 'group') {
+        // Leave previous room if active
+        if (socket && activeGroupId) {
+            if (activeChatType === 'direct') {
+                socket.emit('leave-conversation', activeGroupId);
+            } else {
+                socket.emit('leave-group', activeGroupId);
+            }
+        }
         
-        // Fetch group details and messages
-        fetchGroupDetails(groupId);
-        fetchGroupMessages(groupId);
+        // Update active chat ID and type
+        activeGroupId = chatId;
+        activeChatType = chatType;
+        
+        // Join new room
+        if (socket) {
+            if (chatType === 'direct') {
+                socket.emit('join-conversation', chatId);
+            } else {
+                socket.emit('join-group', chatId);
+            }
+        }
+        
+        // Fetch chat details and messages based on type
+        if (chatType === 'direct') {
+            fetchDirectConversationDetails(chatId);
+            fetchDirectMessages(chatId);
+        } else {
+            fetchGroupDetails(chatId);
+            fetchGroupMessages(chatId);
+        }
         
         // Update UI
         chatDefaultState.classList.add('hidden');
@@ -580,15 +748,31 @@ function initializeChat() {
         
         // Set status text
         const statusElement = document.getElementById('contactStatus');
-        statusElement.textContent = `${group.member_count || 0} members`;
+        if (activeChatType === 'direct') {
+            statusElement.textContent = 'Direct Message';
+        } else {
+            statusElement.textContent = `${group.member_count || 0} members`;
+        }
         
         // Add admin actions if user is admin
         const headerActions = document.querySelector('.chat-header-actions');
         
         // Remove any existing admin buttons
-        const existingAdminBtn = document.getElementById('switchUserBtn');
-        if (existingAdminBtn) {
-            existingAdminBtn.remove();
+        const existingSwitchBtn = document.getElementById('switchUserBtn');
+        const existingMembersBtn = document.getElementById('viewMembersBtn');
+        if (existingSwitchBtn) existingSwitchBtn.remove();
+        if (existingMembersBtn) existingMembersBtn.remove();
+        
+        // Add view members button for groups (not direct messages)
+        if (activeChatType === 'group') {
+            const viewMembersBtn = document.createElement('button');
+            viewMembersBtn.className = 'btn-icon';
+            viewMembersBtn.id = 'viewMembersBtn';
+            viewMembersBtn.title = 'View group members';
+            viewMembersBtn.innerHTML = '<i class="fas fa-users"></i>';
+            viewMembersBtn.addEventListener('click', () => showGroupMembers(activeGroupId));
+            
+            headerActions.insertBefore(viewMembersBtn, headerActions.firstChild);
         }
         
         // Add switch user button for admins
@@ -762,6 +946,69 @@ function initializeChat() {
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
     }
     
+    function addDirectMessageToChat(message) {
+        // Only add if it's for the active conversation
+        if (activeChatType !== 'direct' || message.conversation_id !== activeGroupId) return;
+        
+        // Add to messages array
+        if (!messages[activeGroupId]) {
+            messages[activeGroupId] = [];
+        }
+        messages[activeGroupId].push(message);
+        
+        // Add message to UI if we're viewing direct messages
+        if (activeChatType === 'direct') {
+            const messageElement = createDirectMessageElement(message);
+            messagesContainer.appendChild(messageElement);
+            
+            // Scroll to bottom
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+    }
+    
+    function createDirectMessageElement(message) {
+        const isOwnMessage = message.sender_id === currentUser?.id;
+        const messageClass = isOwnMessage ? 'message-sent' : 'message-received';
+        const senderName = message.sender_username || 'Unknown';
+        const messageTime = formatMessageTime(new Date(message.created_at));
+        
+        const messageElement = document.createElement('div');
+        messageElement.className = `message ${messageClass}`;
+        
+        messageElement.innerHTML = `
+            <div class="message-content">
+                ${!isOwnMessage ? `<div class="message-sender">${senderName}</div>` : ''}
+                <div class="message-text">${message.content}</div>
+                <div class="message-time">${messageTime}</div>
+            </div>
+        `;
+        
+        return messageElement;
+    }
+    
+    function updateConversationWithLatestMessage(message) {
+        // Find and update the conversation in the groups array
+        const conversationIndex = groups.findIndex(g => 
+            g.type === 'direct' && g.id === message.conversation_id
+        );
+        
+        if (conversationIndex !== -1) {
+            groups[conversationIndex].last_message = {
+                content: message.content,
+                created_at: message.created_at
+            };
+            
+            // If message is not from current user, increment unread count
+            if (message.sender_id !== currentUser?.id) {
+                groups[conversationIndex].unread_count = 
+                    (groups[conversationIndex].unread_count || 0) + 1;
+            }
+            
+            // Re-render the chat list to show updated conversation
+            renderChatsList(groups);
+        }
+    }
+    
     function showTypingIndicator(data) {
         // Only show for active group
         if (data.group_id !== activeGroupId) return;
@@ -883,8 +1130,8 @@ function initializeChat() {
             let mediaUrl = null;
             let mediaType = null;
             
-            // If we have a file, upload it first
-            if (selectedFile) {
+            // If we have a file, upload it first (only for group chats for now)
+            if (selectedFile && activeChatType === 'group') {
                 const formData = new FormData();
                 formData.append('file', selectedFile);
                 
@@ -902,40 +1149,47 @@ function initializeChat() {
                     throw new Error('Failed to upload file');
                 }
                 
-                const fileData = await response.json();
-                mediaUrl = fileData.url;
-                mediaType = fileData.type;
+                const uploadData = await response.json();
+                mediaUrl = uploadData.url;
+                mediaType = selectedFile.type.startsWith('image/') ? 'image' : 'file';
             }
             
-            // Send message with media if applicable and handle fake user selection for admins
-            if (isUserAdmin() && window.activeFakeUserId) {
-                await sendMessageToServer(activeGroupId, content, mediaUrl, mediaType, window.activeFakeUserId);
+            // Send the message based on chat type
+            if (activeChatType === 'direct') {
+                await sendDirectMessageToServer(activeGroupId, content);
             } else {
                 await sendMessageToServer(activeGroupId, content, mediaUrl, mediaType);
             }
             
             // Clear input and file
             messageInput.value = '';
-            clearFileSelection();
+            clearSelectedFile();
             
         } catch (error) {
-            handleApiError(error, 'Failed to send message');
+            console.error('Error sending message:', error);
+            showNotification('Failed to send message. Please try again.', 'error');
         } finally {
             // Remove sending indicator
-            if (sendingIndicator.parentNode) {
+            if (sendingIndicator && sendingIndicator.parentNode) {
                 sendingIndicator.parentNode.removeChild(sendingIndicator);
             }
         }
-        
-        // No need to add to UI as it will come back via socket event
     }
     
     function notifyTyping() {
         if (!socket || !activeGroupId) return;
         
-        socket.emit('typing', {
-            group_id: activeGroupId
-        });
+        // Clear existing timeout
+        if (typingTimeout) {
+            clearTimeout(typingTimeout);
+        }
+        
+        // Set new timeout to limit typing events
+        typingTimeout = setTimeout(() => {
+            socket.emit('typing', {
+                group_id: activeGroupId
+            });
+        }, 500); // Wait 500ms before sending typing event
     }
     
     // Filter chats
@@ -967,10 +1221,15 @@ function initializeChat() {
                 const tabText = tab.textContent.trim().toLowerCase();
                 let filteredGroups = [...groups];
                 
-                if (tabText === 'unread') {
+                if (tabText === 'all') {
+                    // Show all conversations (both groups and direct messages)
+                    filteredGroups = groups;
+                } else if (tabText === 'unread') {
                     filteredGroups = groups.filter(group => group.unread_count > 0);
                 } else if (tabText === 'groups') {
-                    filteredGroups = groups.filter(group => group.group_type === 'GROUP');
+                    filteredGroups = groups.filter(group => group.type === 'group' || !group.type);
+                } else if (tabText === 'direct') {
+                    filteredGroups = groups.filter(group => group.type === 'direct');
                 } else if (tabText === 'favorites') {
                     // Implement favorites logic if needed
                     filteredGroups = groups.filter(group => group.is_favorite);
@@ -1301,4 +1560,122 @@ function initializeChat() {
         console.log('==================================');
     }
     init();
+    
+    // Show group members in a modal
+    async function showGroupMembers(groupId) {
+        try {
+            const token = getAuthToken();
+            
+            const response = await fetch(`/api/chat/groups/${groupId}/members`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const members = await response.json();
+            
+            // Create modal
+            const modal = document.createElement('div');
+            modal.className = 'modal-overlay';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>Group Members</h3>
+                        <button class="btn-close">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="members-list">
+                            ${members.map(member => `
+                                <div class="member-item" data-user-id="${member.id}">
+                                    <div class="member-avatar">
+                                        <img src="${member.avatar_url || '../assets/uploads/user.jpg'}" 
+                                             alt="${member.name}" />
+                                    </div>
+                                    <div class="member-info">
+                                        <div class="member-name">${member.name}</div>
+                                        <div class="member-role">${member.role || 'Member'}</div>
+                                    </div>
+                                    <div class="member-actions">
+                                        <button class="btn-message" 
+                                                onclick="startDirectConversation(${member.id}, '${member.name}')">
+                                            <i class="fas fa-comment"></i> Message
+                                        </button>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Add close functionality
+            modal.querySelector('.btn-close').addEventListener('click', () => {
+                modal.remove();
+            });
+            
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.remove();
+                }
+            });
+            
+            document.body.appendChild(modal);
+            
+        } catch (error) {
+            handleApiError(error, 'Failed to fetch group members');
+        }
+    }
+    
+    // Start a direct conversation with a user
+    async function startDirectConversation(userId, userName) {
+        try {
+            const token = getAuthToken();
+            
+            // First, create or get existing conversation
+            const response = await fetch('/api/chat/conversations/direct', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ recipient_id: userId })
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const conversation = await response.json();
+            
+            // Close members modal if open
+            const modal = document.querySelector('.modal-overlay');
+            if (modal) {
+                modal.remove();
+            }
+            
+            // Switch to direct message chat
+            openChat(conversation.id, 'direct');
+            
+            // Update the conversations list to show the new direct message
+            await loadChatGroups(); // This will refresh the sidebar with the new conversation
+            
+            // Mark the new conversation as active in the sidebar
+            setTimeout(() => {
+                const chatItem = document.querySelector(`[data-chat-id="${conversation.id}"][data-chat-type="direct"]`);
+                if (chatItem) {
+                    document.querySelectorAll('.chat-item').forEach(el => el.classList.remove('active'));
+                    chatItem.classList.add('active');
+                }
+            }, 100);
+            
+        } catch (error) {
+            handleApiError(error, 'Failed to start direct conversation');
+        }
+    }
 }

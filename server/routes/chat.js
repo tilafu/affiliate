@@ -841,4 +841,313 @@ router.delete('/admin/fake-users/:id', authenticateAdmin, async (req, res) => {
   }
 });
 
+// Get available users for direct messaging (from user's groups)
+router.get('/users', protect, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    
+    // Get all users from groups the current user is a member of
+    const result = await db.query(
+      `SELECT DISTINCT u.id, u.username, u.email, 
+              COALESCE(u.full_name, u.username) as display_name,
+              u.avatar_url,
+              'user' as type,
+              -- Check if there's an existing direct conversation
+              (SELECT dm.id FROM direct_messages dm 
+               WHERE (dm.user1_id = $1 AND dm.user2_id = u.id) 
+                  OR (dm.user1_id = u.id AND dm.user2_id = $1)
+               LIMIT 1) as conversation_id,
+              -- Get last message in direct conversation
+              (SELECT json_build_object(
+                  'content', dmsg.content,
+                  'created_at', dmsg.created_at,
+                  'sender_id', dmsg.sender_id
+               )
+               FROM direct_messages dm
+               JOIN direct_message_texts dmsg ON dm.id = dmsg.conversation_id
+               WHERE (dm.user1_id = $1 AND dm.user2_id = u.id) 
+                  OR (dm.user1_id = u.id AND dm.user2_id = $1)
+               ORDER BY dmsg.created_at DESC
+               LIMIT 1
+              ) as last_message
+       FROM users u
+       JOIN chat_group_members gm1 ON u.id = gm1.user_id
+       JOIN chat_group_members gm2 ON gm1.group_id = gm2.group_id
+       WHERE gm2.user_id = $1 
+         AND u.id != $1
+         AND u.is_active = true
+       ORDER BY u.username`,
+      [userId]
+    );
+    
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error fetching available users:', error);
+    res.status(500).json({ error: 'Failed to fetch available users' });
+  }
+});
+
+// Get all conversations (groups + direct messages) for the "All" tab
+router.get('/conversations', protect, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    
+    // Get all groups
+    const groupsResult = await db.query(
+      `SELECT g.id, g.name, g.group_type, g.avatar_url, g.created_at,
+              'group' as type,
+              COUNT(DISTINCT gm.user_id) as member_count,
+              (SELECT COUNT(*) FROM chat_messages cm 
+               WHERE cm.group_id = g.id 
+               AND cm.created_at > COALESCE((SELECT last_read_at FROM chat_group_members 
+                                    WHERE group_id = g.id AND user_id = $1), '1970-01-01')
+              ) as unread_count,
+              (SELECT json_build_object(
+                  'id', cm.id,
+                  'content', cm.content,
+                  'created_at', cm.created_at,
+                  'user_id', cm.user_id,
+                  'fake_user_id', cm.fake_user_id
+               )
+               FROM chat_messages cm
+               WHERE cm.group_id = g.id
+               ORDER BY cm.created_at DESC
+               LIMIT 1
+              ) as last_message
+       FROM chat_groups g
+       JOIN chat_group_members gm ON g.id = gm.group_id
+       WHERE gm.user_id = $1
+       GROUP BY g.id`,
+      [userId]
+    );
+    
+    // Get direct message conversations
+    const directMessagesResult = await db.query(
+      `SELECT dm.id, 
+              CASE 
+                WHEN dm.user1_id = $1 THEN u2.username 
+                ELSE u1.username 
+              END as name,
+              CASE 
+                WHEN dm.user1_id = $1 THEN u2.avatar_url 
+                ELSE u1.avatar_url 
+              END as avatar_url,
+              dm.created_at,
+              'direct' as type,
+              2 as member_count,
+              0 as unread_count, -- TODO: Implement unread count for DMs
+              (SELECT json_build_object(
+                  'id', dmsg.id,
+                  'content', dmsg.content,
+                  'created_at', dmsg.created_at,
+                  'sender_id', dmsg.sender_id
+               )
+               FROM direct_message_texts dmsg
+               WHERE dmsg.conversation_id = dm.id
+               ORDER BY dmsg.created_at DESC
+               LIMIT 1
+              ) as last_message
+       FROM direct_messages dm
+       JOIN users u1 ON dm.user1_id = u1.id
+       JOIN users u2 ON dm.user2_id = u2.id
+       WHERE dm.user1_id = $1 OR dm.user2_id = $1`,
+      [userId]
+    );
+    
+    // Combine and sort by last activity
+    const allConversations = [
+      ...groupsResult.rows,
+      ...directMessagesResult.rows
+    ].sort((a, b) => {
+      const aTime = a.last_message ? new Date(a.last_message.created_at) : new Date(a.created_at);
+      const bTime = b.last_message ? new Date(b.last_message.created_at) : new Date(b.created_at);
+      return bTime - aTime;
+    });
+    
+    res.json(allConversations);
+  } catch (error) {
+    console.error('Error fetching conversations:', error);
+    res.status(500).json({ error: 'Failed to fetch conversations' });
+  }
+});
+
+// Start or get a direct conversation with a user
+router.post('/conversations/direct', protect, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { targetUserId } = req.body;
+    
+    if (!targetUserId) {
+      return res.status(400).json({ error: 'Target user ID is required' });
+    }
+    
+    if (targetUserId == userId) {
+      return res.status(400).json({ error: 'Cannot start conversation with yourself' });
+    }
+    
+    // Check if conversation already exists
+    let conversationResult = await db.query(
+      `SELECT id FROM direct_messages 
+       WHERE (user1_id = $1 AND user2_id = $2) 
+          OR (user1_id = $2 AND user2_id = $1)`,
+      [userId, targetUserId]
+    );
+    
+    let conversationId;
+    
+    if (conversationResult.rows.length > 0) {
+      conversationId = conversationResult.rows[0].id;
+    } else {
+      // Create new conversation
+      const newConversationResult = await db.query(
+        'INSERT INTO direct_messages (user1_id, user2_id, created_at) VALUES ($1, $2, NOW()) RETURNING id',
+        [Math.min(userId, targetUserId), Math.max(userId, targetUserId)]
+      );
+      conversationId = newConversationResult.rows[0].id;
+    }
+    
+    // Get conversation details with the other user's info
+    const conversationDetails = await db.query(
+      `SELECT dm.id, 
+              CASE 
+                WHEN dm.user1_id = $1 THEN u2.username 
+                ELSE u1.username 
+              END as name,
+              CASE 
+                WHEN dm.user1_id = $1 THEN u2.avatar_url 
+                ELSE u1.avatar_url 
+              END as avatar_url,
+              CASE 
+                WHEN dm.user1_id = $1 THEN dm.user2_id 
+                ELSE dm.user1_id 
+              END as other_user_id
+       FROM direct_messages dm
+       JOIN users u1 ON dm.user1_id = u1.id
+       JOIN users u2 ON dm.user2_id = u2.id
+       WHERE dm.id = $2`,
+      [userId, conversationId]
+    );
+    
+    res.json(conversationDetails.rows[0]);
+  } catch (error) {
+    console.error('Error creating/getting direct conversation:', error);
+    res.status(500).json({ error: 'Failed to create direct conversation' });
+  }
+});
+
+// Get messages from a direct conversation
+router.get('/conversations/direct/:id/messages', protect, async (req, res) => {
+  try {
+    const conversationId = req.params.id;
+    const userId = req.user.id;
+    
+    // Verify user is part of this conversation
+    const conversationCheck = await db.query(
+      'SELECT 1 FROM direct_messages WHERE id = $1 AND (user1_id = $2 OR user2_id = $2)',
+      [conversationId, userId]
+    );
+    
+    if (conversationCheck.rows.length === 0) {
+      return res.status(403).json({ error: 'You are not part of this conversation' });
+    }
+    
+    // Get messages
+    const limit = parseInt(req.query.limit) || 50;
+    const offset = parseInt(req.query.offset) || 0;
+    
+    const messagesResult = await db.query(
+      `SELECT dmsg.id, dmsg.content, dmsg.created_at, dmsg.sender_id,
+              u.username as sender_username
+       FROM direct_message_texts dmsg
+       JOIN users u ON dmsg.sender_id = u.id
+       WHERE dmsg.conversation_id = $1
+       ORDER BY dmsg.created_at DESC
+       LIMIT $2 OFFSET $3`,
+      [conversationId, limit, offset]
+    );
+    
+    res.json(messagesResult.rows.reverse());
+  } catch (error) {
+    console.error('Error fetching direct messages:', error);
+    res.status(500).json({ error: 'Failed to fetch direct messages' });
+  }
+});
+
+// Send a direct message
+router.post('/conversations/direct/:id/messages', protect, messageLimiter, async (req, res) => {
+  try {
+    const conversationId = req.params.id;
+    const userId = req.user.id;
+    const { content } = req.body;
+    
+    if (!content) {
+      return res.status(400).json({ error: 'Message content is required' });
+    }
+    
+    // Verify user is part of this conversation
+    const conversationCheck = await db.query(
+      'SELECT user1_id, user2_id FROM direct_messages WHERE id = $1 AND (user1_id = $2 OR user2_id = $2)',
+      [conversationId, userId]
+    );
+    
+    if (conversationCheck.rows.length === 0) {
+      return res.status(403).json({ error: 'You are not part of this conversation' });
+    }
+    
+    // Insert the message
+    const messageResult = await db.query(
+      `INSERT INTO direct_message_texts (conversation_id, sender_id, content, created_at) 
+       VALUES ($1, $2, $3, NOW())
+       RETURNING id, content, created_at, sender_id`,
+      [conversationId, userId, content]
+    );
+    
+    const message = messageResult.rows[0];
+    
+    // Add sender username
+    const userResult = await db.query('SELECT username FROM users WHERE id = $1', [userId]);
+    if (userResult.rows.length > 0) {
+      message.sender_username = userResult.rows[0].username;
+    }
+    
+    // Emit the message via Socket.IO
+    req.app.get('io').to(`dm:${conversationId}`).emit('new-direct-message', message);
+    
+    res.status(201).json(message);
+  } catch (error) {
+    console.error('Error sending direct message:', error);
+    res.status(500).json({ error: 'Failed to send direct message' });
+  }
+});
+
+// Get group members
+router.get('/groups/:groupId/members', protect, async (req, res) => {
+    try {
+        const { groupId } = req.params;
+        
+        const query = `
+            SELECT 
+                u.id,
+                u.first_name || ' ' || u.last_name as name,
+                u.email,
+                CASE 
+                    WHEN cgm.is_admin = true THEN 'Admin'
+                    ELSE 'Member'
+                END as role,
+                u.profile_image as avatar_url
+            FROM chat_group_members cgm
+            JOIN users u ON cgm.user_id = u.id
+            WHERE cgm.group_id = $1
+            ORDER BY cgm.is_admin DESC, u.first_name ASC
+        `;
+        
+        const result = await db.query(query, [groupId]);
+        
+        res.json(result.rows);
+    } catch (error) {
+        console.error('Error fetching group members:', error);
+        res.status(500).json({ error: 'Failed to fetch group members' });
+    }
+});
+
 module.exports = router;

@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS chat_groups (
     created_by INTEGER REFERENCES users(id),
     created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
+);  
 
 -- Create chat_fake_users table
 CREATE TABLE IF NOT EXISTS chat_fake_users (
