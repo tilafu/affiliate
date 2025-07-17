@@ -29,6 +29,7 @@ function initializeChat() {
     let activeGroup = null;
     let messages = {};
     let typingTimeout = null; // For debouncing typing events
+    let isDataLoaded = false; // Add flag to track if data is loaded
     
     // Error handling and notifications
     function showNotification(message, type = 'info') {
@@ -308,20 +309,17 @@ function initializeChat() {
             
             if (!token) {
                 console.warn('No authentication token found for groups fetch');
-                // Show an empty groups list with a message
+                groups = [];
+                isDataLoaded = true; // Mark as loaded even if empty
                 renderChatsList([]);
                 return;
             }
             
-            // Show loading indicator
-            const loadingIndicator = showGroupsLoading();
+            console.log('Fetching conversations...');
             
-            let response;
-            let data;
-            
+            // Try conversations endpoint first (includes both groups and DMs)
             try {
-                // Fetch all conversations (groups + direct messages) for the All tab
-                response = await fetch('/api/chat/conversations', {
+                const response = await fetch('/api/chat/conversations', {
                     method: 'GET',
                     headers: {
                         'Authorization': `Bearer ${token}`,
@@ -330,83 +328,66 @@ function initializeChat() {
                 });
                 
                 if (response.ok) {
-                    data = await response.json();
+                    const data = await response.json();
+                    if (Array.isArray(data)) {
+                        groups = data;
+                        isDataLoaded = true; // Mark as loaded
+                        console.log(`Loaded ${groups.length} conversations`);
+                        
+                        // Show groups by default (since Groups tab is active by default)
+                        const groupsOnly = groups.filter(group => group.type === 'group' || !group.type);
+                        renderChatsList(groupsOnly);
+                        
+                        // After groups load, check for welcome message
+                        setTimeout(() => ensureWelcomeDirectMessage(), 1000);
+                        return;
+                    }
                 }
             } catch (err) {
-                console.warn('Failed to fetch conversations, trying groups endpoint');
-                
-                // Fallback to groups only
-                try {
-                    response = await fetch('/api/chat/groups', {
-                        method: 'GET',
-                        headers: {
-                            'Authorization': `Bearer ${token}`,
-                            'Content-Type': 'application/json'
-                        }
-                    });
-                    
-                    if (response.ok) {
-                        data = await response.json();
-                        // Mark all as group type for consistency
-                        data = data.map(item => ({ ...item, type: 'group' }));
+                console.warn('Conversations endpoint failed, trying groups endpoint');
+            }
+            
+            // Fallback to groups endpoint
+            try {
+                const response = await fetch('/api/chat/groups', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
                     }
-                } catch (err2) {
-                    console.warn('Failed to fetch from both endpoints');
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (Array.isArray(data)) {
+                        groups = data.map(item => ({ ...item, type: 'group' }));
+                        isDataLoaded = true; // Mark as loaded
+                        console.log(`Loaded ${groups.length} groups as fallback`);
+                        
+                        // Show groups by default
+                        renderChatsList(groups);
+                        
+                        // After groups load, check for welcome message
+                        setTimeout(() => ensureWelcomeDirectMessage(), 1000);
+                        return;
+                    }
                 }
+            } catch (err) {
+                console.error('Both endpoints failed');
             }
             
-            // Remove loading indicator
-            if (loadingIndicator && loadingIndicator.parentNode) {
-                loadingIndicator.parentNode.removeChild(loadingIndicator);
-            }
-            
-            if (data) {
-                groups = Array.isArray(data) ? data : (data.groups || []);
-                console.log(`Fetched ${groups.length} conversations (groups + direct messages)`);
-                renderChatsList(groups);
-            } else {
-                // If no data, create sample groups for testing
-                console.warn('No conversations data received, using sample data for testing');
-                groups = createSampleGroups();
-                renderChatsList(groups);
-            }
+            // If we get here, everything failed
+            groups = [];
+            isDataLoaded = true; // Mark as loaded even if failed
+            renderChatsList([]);
             
         } catch (error) {
-            handleApiError(error, 'Failed to fetch chat groups');
-            // Provide sample data as fallback
-            groups = createSampleGroups();
-            renderChatsList(groups);
+            console.error('Error in fetchUserGroups:', error);
+            groups = [];
+            isDataLoaded = true; // Mark as loaded even if error
+            renderChatsList([]);
         }
-    }
-    
-    // Creates sample groups for testing when API fails
-    function createSampleGroups() {
-        return [
-            {
-                id: 1,
-                name: 'Support Team',
-                avatar_url: '../assets/uploads/user.jpg',
-                last_message: {
-                    content: 'Welcome to the chat!',
-                    created_at: new Date().toISOString()
-                },
-                unread_count: 1,
-                group_type: 'SUPPORT'
-            },
-            {
-                id: 2,
-                name: 'Marketing Group',
-                avatar_url: '../assets/uploads/user.jpg',
-                last_message: {
-                    content: 'Check out our new campaign',
-                    created_at: new Date(Date.now() - 86400000).toISOString() // Yesterday
-                },
-                unread_count: 0,
-                group_type: 'GROUP'
-            }
-        ];
-    }
-    
+    }    
     async function fetchGroupDetails(groupId) {
         try {
             const token = getAuthToken();
@@ -640,8 +621,61 @@ function initializeChat() {
         messagesContainer.scrollTop = messagesContainer.scrollHeight;
     }
 
+    // Called when switching back to All tab to ensure data is loaded
+    async function loadChatGroups() {
+        return fetchUserGroups();
+    }
+    
+    // Ensure user has a welcome direct message from admin
+    async function ensureWelcomeDirectMessage() {
+        try {
+            // Only proceed if user is authenticated and not an admin
+            if (!currentUser || currentUser.role === 'admin') {
+                return;
+            }
+            
+            // Check if user already has any direct messages
+            const hasDirectMessages = groups.some(group => group.type === 'direct');
+            
+            if (!hasDirectMessages) {
+                console.log('No direct messages found, creating welcome message...');
+                
+                const token = getAuthToken();
+                
+                // Create a welcome direct message from admin
+                const response = await fetch('/api/chat/welcome-message', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    const welcomeConversation = await response.json();
+                    console.log('Welcome direct message created:', welcomeConversation);
+                    
+                    // Add the new conversation to our groups list
+                    groups.push(welcomeConversation);
+                } else {
+                    console.warn('Failed to create welcome message:', response.status);
+                }
+            }
+        } catch (error) {
+            console.error('Error creating welcome message:', error);
+            // Don't show error to user as this is not critical
+        }
+    }
+    
     // UI Updates
     function renderChatsList(chats = []) {
+        console.log('renderChatsList called with:', chats.length, 'conversations');
+        
+        if (!Array.isArray(chats)) {
+            console.warn('renderChatsList called with non-array data:', chats);
+            chats = [];
+        }
+        
         if (!chats.length) {
             chatsList.innerHTML = '<div class="no-chats">No conversations available</div>';
             return;
@@ -654,23 +688,25 @@ function initializeChat() {
             const lastMessageContent = chat.last_message ? 
                 chat.last_message.content : 'No messages yet';
             
-            const unreadBadge = chat.unread_count > 0 ? 
-                `<span class="unread-badge">${chat.unread_count}</span>` : '';
+            // Simplified unread badge - don't rely on complex unread_count logic
+            const unreadBadge = '';
             
-            // Different icons for different conversation types
-            const icon = chat.type === 'direct' ? 
-                '<i class="fas fa-user"></i>' : 
-                '<i class="fas fa-users"></i>';
+            // Rename all group chats to "PEA communication" for client view
+            // Keep direct messages with their original names
+            const displayName = chat.type === 'direct' ? chat.name : 'PEA communication';
+            
+            // Simple user icon for all chat types
+            const icon = '<i class="fas fa-user"></i>';
                 
             return `
                 <div class="chat-item" data-chat-id="${chat.id}" data-chat-type="${chat.type || 'group'}">
                     <div class="chat-item-avatar">
-                        <img src="${chat.avatar_url || '../assets/uploads/user.jpg'}" alt="${chat.name}">
+                        <img src="${chat.avatar_url || '../assets/uploads/user.jpg'}" alt="${displayName}">
                         <div class="chat-type-indicator">${icon}</div>
                     </div>
                     <div class="chat-item-content">
                         <div class="chat-item-header">
-                            <span class="chat-item-name">${chat.name}</span>
+                            <span class="chat-item-name">${displayName}</span>
                             <span class="chat-item-time">${lastMessageTime}</span>
                         </div>
                         <div class="chat-item-message">
@@ -690,9 +726,7 @@ function initializeChat() {
                 openChat(chatId, chatType);
                 
                 // Mark as active
-                document.querySelectorAll('.chat-item').forEach(el => {
-                    el.classList.remove('active');
-                });
+                document.querySelectorAll('.chat-item').forEach(el => el.classList.remove('active'));
                 item.classList.add('active');
                 
                 // Remove unread badge
@@ -742,7 +776,9 @@ function initializeChat() {
     }
     
     function updateChatHeader(group) {
-        document.getElementById('contactName').textContent = group.name;
+        // Show "PEA communication" for groups, original name for direct messages
+        const displayName = activeChatType === 'direct' ? group.name : 'PEA communication';
+        document.getElementById('contactName').textContent = displayName;
         
         // Set avatar if available
         const avatarElement = document.getElementById('contactAvatar');
@@ -820,13 +856,20 @@ function initializeChat() {
         
         messageElement.className = `message ${isSentByMe ? 'sent' : 'received'}`;
         
-        // Add sender info for received messages in groups
+        // Add sender info for received messages in groups - make it more human
         if (!isSentByMe) {
-            const senderName = isFakeUser ? 
-                (message.fake_user_display_name || message.fake_user_username) : 
-                message.user_username;
-                
-            if (senderName) {
+            let senderName;
+            
+            if (isFakeUser) {
+                // For fake users (admin responses), use human-like names
+                senderName = message.fake_user_display_name || 'Support Agent';
+            } else {
+                // For real users, use their username or a generic name
+                senderName = message.user_username || 'Team Member';
+            }
+            
+            // Only show sender name if it's not a bot-like name
+            if (senderName && !senderName.toLowerCase().includes('bot')) {
                 const senderElement = document.createElement('div');
                 senderElement.className = 'message-sender';
                 senderElement.textContent = senderName;
@@ -1110,14 +1153,24 @@ function initializeChat() {
     
     // Refresh the chat interface
     function refreshChat() {
+        console.log('Manual chat refresh triggered');
+        
         // If we have an active group, refresh it
         if (activeGroupId) {
-            fetchGroupDetails(activeGroupId);
-            fetchGroupMessages(activeGroupId);
+            if (activeChatType === 'direct') {
+                fetchDirectConversationDetails(activeGroupId);
+                fetchDirectMessages(activeGroupId);
+            } else {
+                fetchGroupDetails(activeGroupId);
+                fetchGroupMessages(activeGroupId);
+            }
         }
         
-        // Refresh the groups list
+        // Always refresh the groups list to get latest conversations
         fetchUserGroups();
+        
+        // Show notification that refresh is happening
+        showNotification('Refreshing chat data...', 'info');
     }
     
     // Add refresh button to the sidebar
@@ -1172,26 +1225,35 @@ function initializeChat() {
             
             // If we have a file, upload it first (for both group chats and direct messages)
             if (selectedFile) {
+                console.log('Uploading file:', selectedFile.name);
+                
                 const formData = new FormData();
                 formData.append('file', selectedFile);
                 
                 const token = getAuthToken();
                 
-                const response = await fetch('/api/chat/upload', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: formData
-                });
-                
-                if (!response.ok) {
-                    throw new Error('Failed to upload file');
+                try {
+                    const response = await fetch('/api/chat/upload', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: formData
+                    });
+                    
+                    if (!response.ok) {
+                        const errorData = await response.json().catch(() => ({}));
+                        throw new Error(errorData.error || `Upload failed with status ${response.status}`);
+                    }
+                    
+                    const uploadData = await response.json();
+                    mediaUrl = uploadData.url;
+                    mediaType = selectedFile.type;
+                    console.log('File uploaded successfully:', mediaUrl);
+                } catch (uploadError) {
+                    console.error('File upload error:', uploadError);
+                    throw new Error(`Failed to upload file: ${uploadError.message}`);
                 }
-                
-                const uploadData = await response.json();
-                mediaUrl = uploadData.url;
-                mediaType = selectedFile.type;
             }
             
             // Send the message based on chat type
@@ -1251,30 +1313,33 @@ function initializeChat() {
     function setupTabEvents() {
         tabButtons.forEach(tab => {
             tab.addEventListener('click', () => {
+                const tabText = tab.textContent.trim().toLowerCase();
+                console.log('Tab clicked:', tabText);
+                
                 // Remove active class from all tabs
                 tabButtons.forEach(t => t.classList.remove('active'));
                 
                 // Add active class to clicked tab
                 tab.classList.add('active');
                 
-                // Filter chats based on tab
-                const tabText = tab.textContent.trim().toLowerCase();
-                let filteredGroups = [...groups];
-                
-                if (tabText === 'all') {
-                    // Show all conversations (both groups and direct messages)
-                    filteredGroups = groups;
-                } else if (tabText === 'unread') {
-                    filteredGroups = groups.filter(group => group.unread_count > 0);
-                } else if (tabText === 'groups') {
-                    filteredGroups = groups.filter(group => group.type === 'group' || !group.type);
-                } else if (tabText === 'direct') {
-                    filteredGroups = groups.filter(group => group.type === 'direct');
-                } else if (tabText === 'favorites') {
-                    // Implement favorites logic if needed
-                    filteredGroups = groups.filter(group => group.is_favorite);
+                // Check if data is loaded before filtering
+                if (!isDataLoaded) {
+                    console.log('Data not loaded yet, waiting...');
+                    return;
                 }
                 
+                // Simple filtering - only groups or direct
+                let filteredGroups = [];
+                
+                if (tabText === 'groups') {
+                    // Show only group chats
+                    filteredGroups = groups.filter(group => group.type === 'group' || !group.type);
+                } else if (tabText === 'direct') {
+                    // Show only direct messages
+                    filteredGroups = groups.filter(group => group.type === 'direct');
+                }
+                
+                console.log(`Showing ${tabText} conversations:`, filteredGroups.length, 'from total:', groups.length);
                 renderChatsList(filteredGroups);
             });
         });
@@ -1300,19 +1365,18 @@ function initializeChat() {
         });
         
         // Attach file button
-        attachFileButton.addEventListener('click', () => {
-            // Create file input if it doesn't exist
-            if (!fileInput) {
-                createFileInput();
-            }
-            fileInput.click();
-        });
-        
-        // Emoji button
-        document.getElementById('emojiButton').addEventListener('click', () => {
-            // Implement emoji selector
-            alert('Emoji selector coming soon');
-        });
+        if (attachFileButton) {
+            attachFileButton.addEventListener('click', () => {
+                console.log('Attach file button clicked');
+                // Create file input if it doesn't exist
+                if (!fileInput) {
+                    createFileInput();
+                }
+                fileInput.click();
+            });
+        } else {
+            console.warn('Attach file button not found');
+        }
     }
     
     // Create a hidden file input element
@@ -1559,9 +1623,36 @@ function initializeChat() {
         debugStorageAndCookies();
         
         connectToSocketServer();
-        setupTabEvents();
+        
+        // Set up event listeners first
         setupEventListeners();
         setupRefreshButton();
+        
+        // Set up tab events BEFORE connecting to avoid race conditions
+        setupTabEvents();
+        
+        // Ensure "Groups" tab is active on init (but don't trigger click event)
+        const groupsTab = document.querySelector('.tab');
+        if (groupsTab && !groupsTab.classList.contains('active')) {
+            // Remove active from any other tabs
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            // Set first tab (Groups) as active
+            groupsTab.classList.add('active');
+        }
+        
+        // Set up periodic refresh to keep data fresh (every 30 seconds)
+        setInterval(() => {
+            if (document.visibilityState === 'visible') {
+                // Only refresh if page is visible and we haven't refreshed recently
+                const lastRefresh = window.lastChatRefresh || 0;
+                const now = Date.now();
+                if (now - lastRefresh > 30000) { // 30 seconds
+                    window.lastChatRefresh = now;
+                    console.log('Periodic refresh: refreshing chat data');
+                    fetchUserGroups();
+                }
+            }
+        }, 30000); // 30 seconds
     }
     
     // Debug function to inspect what's in localStorage and cookies

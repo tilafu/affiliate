@@ -74,10 +74,18 @@ const upload = multer({
 router.get('/groups', protect, async (req, res) => {
   try {
     const userId = req.user.id;
+    const isAdmin = req.user.role === 'admin';
     
     // Get all groups where the user is a member
     const result = await db.query(
-      `SELECT g.id, g.name, g.group_type, g.avatar_url, g.created_at,
+      `SELECT g.id, 
+              CASE 
+                WHEN $2 = true THEN g.name
+                ELSE 'Affiliates Community'
+              END as name,
+              g.group_type, 
+              COALESCE(g.avatar_url, '/assets/uploads/user.jpg') as avatar_url, 
+              g.created_at,
               COUNT(DISTINCT gm.user_id) as member_count,
               (SELECT COUNT(*) FROM chat_messages cm 
                WHERE cm.group_id = g.id 
@@ -102,7 +110,7 @@ router.get('/groups', protect, async (req, res) => {
        GROUP BY g.id
        ORDER BY (SELECT MAX(created_at) FROM chat_messages WHERE group_id = g.id) DESC NULLS LAST,
                 g.created_at DESC`,
-      [userId]
+      [userId, isAdmin]
     );
     
     res.json(result.rows);
@@ -117,6 +125,7 @@ router.get('/groups/:id', protect, async (req, res) => {
   try {
     const groupId = req.params.id;
     const userId = req.user.id;
+    const isAdmin = req.user.role === 'admin';
     
     // Check if user is a member of the group
     const memberCheck = await db.query(
@@ -128,15 +137,23 @@ router.get('/groups/:id', protect, async (req, res) => {
       return res.status(403).json({ error: 'You are not a member of this group' });
     }
     
-    // Get group details
+    // Get group details with conditional naming
     const result = await db.query(
-      `SELECT g.id, g.name, g.description, g.group_type, g.avatar_url, g.created_at,
+      `SELECT g.id, 
+              CASE 
+                WHEN $3 = true THEN g.name
+                ELSE 'Affiliates Community'
+              END as name,
+              g.description, 
+              g.group_type, 
+              COALESCE(g.avatar_url, '/assets/uploads/user.jpg') as avatar_url, 
+              g.created_at,
               COUNT(DISTINCT gm.user_id) as member_count
        FROM chat_groups g
        JOIN chat_group_members gm ON g.id = gm.group_id
        WHERE g.id = $1
        GROUP BY g.id`,
-      [groupId]
+      [groupId, userId, isAdmin]
     );
     
     if (result.rows.length === 0) {
@@ -355,6 +372,7 @@ router.get('/groups/:id/members', protect, async (req, res) => {
   try {
     const groupId = req.params.id;
     const userId = req.user.id;
+    const isAdmin = req.user.role === 'admin';
     
     // Check if user is a member of the group
     const memberCheck = await db.query(
@@ -368,27 +386,36 @@ router.get('/groups/:id/members', protect, async (req, res) => {
     
     // Get real members
     const realMembers = await db.query(
-      `SELECT u.id, u.username, u.full_name, u.avatar_url, gm.role as group_role
+      `SELECT u.id, u.username, u.full_name, 
+              COALESCE(u.avatar_url, '/assets/uploads/user.jpg') as avatar_url, 
+              gm.role as group_role,
+              COALESCE(u.full_name, u.username) as name,
+              'real' as type
        FROM chat_group_members gm
        JOIN users u ON gm.user_id = u.id
        WHERE gm.group_id = $1`,
       [groupId]
     );
     
-    // Get fake members
-    const fakeMembers = await db.query(
-      `SELECT fu.id, fu.display_name as username, fu.avatar_url, 'fake' as type
-       FROM chat_fake_users fu
-       JOIN chat_group_fake_members gfm ON fu.id = gfm.fake_user_id
-       WHERE gfm.group_id = $1`,
-      [groupId]
-    );
+    let members = realMembers.rows;
     
-    // Combine real and fake members
-    const members = [
-      ...realMembers.rows.map(m => ({ ...m, type: 'real' })),
-      ...fakeMembers.rows
-    ];
+    // Only include fake members for admins
+    if (isAdmin) {
+      const fakeMembers = await db.query(
+        `SELECT fu.id, 
+                REPLACE(fu.display_name, 'bot_', '') as username,
+                REPLACE(fu.display_name, 'bot_', '') as name,
+                COALESCE(fu.avatar_url, '/assets/uploads/user.jpg') as avatar_url, 
+                'fake' as type,
+                'fake' as group_role
+         FROM chat_fake_users fu
+         JOIN chat_group_fake_members gfm ON fu.id = gfm.fake_user_id
+         WHERE gfm.group_id = $1`,
+        [groupId]
+      );
+      
+      members = [...members, ...fakeMembers.rows];
+    }
     
     res.json(members);
   } catch (error) {
@@ -891,10 +918,18 @@ router.get('/users', protect, async (req, res) => {
 router.get('/conversations', protect, async (req, res) => {
   try {
     const userId = req.user.id;
+    const isAdmin = req.user.role === 'admin';
     
-    // Get all groups
+    // Get all groups with conditional naming based on user role
     const groupsResult = await db.query(
-      `SELECT g.id, g.name, g.group_type, g.avatar_url, g.created_at,
+      `SELECT g.id, 
+              CASE 
+                WHEN $2 = true THEN g.name
+                ELSE 'Affiliates Community'
+              END as name,
+              g.group_type, 
+              COALESCE(g.avatar_url, '/assets/uploads/user.jpg') as avatar_url, 
+              g.created_at,
               'group' as type,
               COUNT(DISTINCT gm.user_id) as member_count,
               (SELECT COUNT(*) FROM chat_messages cm 
@@ -918,7 +953,7 @@ router.get('/conversations', protect, async (req, res) => {
        JOIN chat_group_members gm ON g.id = gm.group_id
        WHERE gm.user_id = $1
        GROUP BY g.id`,
-      [userId]
+      [userId, isAdmin]
     );
     
     // Get direct message conversations
@@ -929,8 +964,8 @@ router.get('/conversations', protect, async (req, res) => {
                 ELSE u1.username 
               END as name,
               CASE 
-                WHEN dm.user1_id = $1 THEN u2.avatar_url 
-                ELSE u1.avatar_url 
+                WHEN dm.user1_id = $1 THEN COALESCE(u2.avatar_url, '/assets/uploads/user.jpg')
+                ELSE COALESCE(u1.avatar_url, '/assets/uploads/user.jpg')
               END as avatar_url,
               dm.created_at,
               'direct' as type,
@@ -1166,21 +1201,22 @@ router.get('/unread-count', protect, async (req, res) => {
 router.get('/groups/:groupId/members', protect, async (req, res) => {
     try {
         const { groupId } = req.params;
+        const isAdmin = req.user.role === 'admin';
         
         const query = `
             SELECT 
                 u.id,
-                u.first_name || ' ' || u.last_name as name,
+                COALESCE(u.first_name || ' ' || u.last_name, u.username) as name,
                 u.email,
                 CASE 
-                    WHEN cgm.is_admin = true THEN 'Admin'
+                    WHEN cgm.role = 'admin' THEN 'Admin'
                     ELSE 'Member'
                 END as role,
-                u.profile_image as avatar_url
+                COALESCE(u.profile_image, '/assets/uploads/user.jpg') as avatar_url
             FROM chat_group_members cgm
             JOIN users u ON cgm.user_id = u.id
             WHERE cgm.group_id = $1
-            ORDER BY cgm.is_admin DESC, u.first_name ASC
+            ORDER BY (CASE WHEN cgm.role = 'admin' THEN 0 ELSE 1 END), u.first_name ASC
         `;
         
         const result = await db.query(query, [groupId]);
@@ -1190,6 +1226,88 @@ router.get('/groups/:groupId/members', protect, async (req, res) => {
         console.error('Error fetching group members:', error);
         res.status(500).json({ error: 'Failed to fetch group members' });
     }
+});
+
+// Create welcome direct message for new users
+router.post('/welcome-message', protect, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    
+    // Check if user already has any direct messages
+    const existingConversations = await db.query(
+      'SELECT id FROM direct_messages WHERE user1_id = $1 OR user2_id = $1 LIMIT 1',
+      [userId]
+    );
+    
+    if (existingConversations.rows.length > 0) {
+      return res.status(400).json({ error: 'User already has direct messages' });
+    }
+    
+    // Find an admin user to send the welcome message from
+    const adminResult = await db.query(
+      'SELECT id, username FROM users WHERE role = $1 ORDER BY created_at ASC LIMIT 1',
+      ['admin']
+    );
+    
+    if (adminResult.rows.length === 0) {
+      return res.status(500).json({ error: 'No admin user found' });
+    }
+    
+    const admin = adminResult.rows[0];
+    
+    // Create the direct conversation
+    const conversationResult = await db.query(
+      `INSERT INTO direct_messages (user1_id, user2_id, created_at, updated_at) 
+       VALUES ($1, $2, NOW(), NOW())
+       RETURNING id`,
+      [admin.id, userId]
+    );
+    
+    const conversationId = conversationResult.rows[0].id;
+    
+    // Send the welcome message
+    const welcomeText = "Hey, welcome to the platform! These are the main groups we'll be using for our communication. Feel free to reach out if you have any questions.";
+    
+    const messageResult = await db.query(
+      `INSERT INTO direct_message_texts (conversation_id, sender_id, content, created_at) 
+       VALUES ($1, $2, $3, NOW())
+       RETURNING id, content, created_at`,
+      [conversationId, admin.id, welcomeText]
+    );
+    
+    const message = messageResult.rows[0];
+    
+    // Get user details for the response
+    const userResult = await db.query('SELECT username FROM users WHERE id = $1', [userId]);
+    const otherUser = userResult.rows[0];
+    
+    // Format response like other conversation endpoints
+    const conversation = {
+      id: conversationId,
+      name: `Admin Support`,
+      type: 'direct',
+      avatar_url: '/assets/uploads/user.jpg',
+      last_message: {
+        content: message.content,
+        created_at: message.created_at
+      },
+      unread_count: 1
+    };
+    
+    // Emit the message via Socket.IO to both users
+    if (req.app.get('io')) {
+      req.app.get('io').to(`dm:${conversationId}`).emit('new-direct-message', {
+        ...message,
+        conversation_id: conversationId,
+        sender_username: admin.username
+      });
+    }
+    
+    res.status(201).json(conversation);
+  } catch (error) {
+    console.error('Error creating welcome message:', error);
+    res.status(500).json({ error: 'Failed to create welcome message' });
+  }
 });
 
 module.exports = router;
