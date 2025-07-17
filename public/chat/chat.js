@@ -19,7 +19,7 @@ function initializeChat() {
     let fileInput = null;
     let selectedFile = null;
     let filePreview = null;
-    
+
     // Socket.IO connection
     let socket;
     let currentUser = null;
@@ -691,9 +691,19 @@ function initializeChat() {
             // Simplified unread badge - don't rely on complex unread_count logic
             const unreadBadge = '';
             
-            // Rename all group chats to "PEA communication" for client view
-            // Keep direct messages with their original names
-            const displayName = chat.type === 'direct' ? chat.name : 'PEA communication';
+            // Show different names based on user role:
+            // - Admins see original names like "Jacob Juma's Community" 
+            // - Clients see "Main PEA Channel" for groups
+            // - Direct messages keep their original names for both
+            let displayName;
+            if (chat.type === 'direct') {
+                displayName = chat.name;
+            } else {
+                // For group chats: admins see original name, clients see generic name
+                const isAdmin = isUserAdmin();
+                displayName = isAdmin ? chat.name : 'Main PEA Channel';
+                console.log('Group name display:', { isAdmin, originalName: chat.name, displayName }); // Debug logging
+            }
             
             // Simple user icon for all chat types
             const icon = '<i class="fas fa-user"></i>';
@@ -720,7 +730,14 @@ function initializeChat() {
 
         // Add click handlers to chat items
         document.querySelectorAll('.chat-item').forEach(item => {
-            item.addEventListener('click', () => {
+            const handleChatItemTap = (e) => {
+                e.preventDefault();
+                console.log('Chat item clicked/tapped:', { 
+                    chatId: item.dataset.chatId, 
+                    chatType: item.dataset.chatType,
+                    eventType: e.type 
+                });
+                
                 const chatId = item.dataset.chatId;
                 const chatType = item.dataset.chatType;
                 openChat(chatId, chatType);
@@ -734,11 +751,28 @@ function initializeChat() {
                 if (unreadBadge) {
                     unreadBadge.remove();
                 }
+            };
+            
+            // Support both click and touch events for mobile
+            item.addEventListener('click', handleChatItemTap);
+            item.addEventListener('touchend', handleChatItemTap);
+            
+            // Prevent double-tap zoom on mobile
+            item.addEventListener('touchstart', (e) => {
+                item.style.transform = 'scale(0.98)';
+            });
+            
+            item.addEventListener('touchend', () => {
+                setTimeout(() => {
+                    item.style.transform = '';
+                }, 150);
             });
         });
     }
     
     function openChat(chatId, chatType = 'group') {
+        console.log('openChat called:', { chatId, chatType, windowWidth: window.innerWidth });
+        
         // Leave previous room if active
         if (socket && activeGroupId) {
             if (activeChatType === 'direct') {
@@ -770,14 +804,73 @@ function initializeChat() {
             fetchGroupMessages(chatId);
         }
         
-        // Update UI
+        // Update UI for mobile and desktop
         chatDefaultState.classList.add('hidden');
         chatActiveState.classList.remove('hidden');
+        
+        // Mobile-specific navigation: hide sidebar and show chat
+        if (window.innerWidth <= 768) {
+            console.log('Mobile view detected, applying mobile navigation');
+            const sidebar = document.querySelector('.chat-sidebar');
+            const main = document.querySelector('.chat-main');
+            
+            if (sidebar && main) {
+                sidebar.classList.add('hidden-mobile');
+                main.classList.add('active-mobile');
+                console.log('Mobile classes applied:', { 
+                    sidebarHidden: sidebar.classList.contains('hidden-mobile'),
+                    mainActive: main.classList.contains('active-mobile')
+                });
+            } else {
+                console.error('Could not find sidebar or main elements');
+            }
+        }
+    }
+    
+    // Mobile navigation: go back to chat list
+    function goBackToChatList() {
+        // Hide active chat and show default state
+        chatActiveState.classList.add('hidden');
+        chatDefaultState.classList.remove('hidden');
+        
+        // Mobile-specific navigation: show sidebar and hide chat
+        if (window.innerWidth <= 768) {
+            const sidebar = document.querySelector('.chat-sidebar');
+            const main = document.querySelector('.chat-main');
+            
+            sidebar.classList.remove('hidden-mobile');
+            main.classList.remove('active-mobile');
+        }
+        
+        // Clear active chat
+        activeGroupId = null;
+        activeChatType = 'group';
+        
+        // Remove active state from chat items
+        document.querySelectorAll('.chat-item').forEach(el => el.classList.remove('active'));
+        
+        // Leave socket room if connected
+        if (socket && activeGroupId) {
+            if (activeChatType === 'direct') {
+                socket.emit('leave-conversation', activeGroupId);
+            } else {
+                socket.emit('leave-group', activeGroupId);
+            }
+        }
     }
     
     function updateChatHeader(group) {
-        // Show "PEA communication" for groups, original name for direct messages
-        const displayName = activeChatType === 'direct' ? group.name : 'PEA communication';
+        // Show different names based on user role:
+        // - Admins see original names like "Jacob Juma's Community"
+        // - Clients see "Main PEA Channel" for groups  
+        // - Direct messages keep their original names for both
+        let displayName;
+        if (activeChatType === 'direct') {
+            displayName = group.name;
+        } else {
+            // For group chats: admins see original name, clients see generic name
+            displayName = isUserAdmin() ? group.name : 'Main PEA Channel';
+        }
         document.getElementById('contactName').textContent = displayName;
         
         // Set avatar if available
@@ -789,7 +882,9 @@ function initializeChat() {
         if (activeChatType === 'direct') {
             statusElement.textContent = 'Direct Message';
         } else {
-            statusElement.textContent = `${group.member_count || 0} members`;
+            // Show "800+ members" for all groups regardless of actual count
+            statusElement.textContent = '800+ members';
+            console.log('Member count display: 800+ members (fake count)'); // Debug logging
         }
         
         // Add admin actions if user is admin
@@ -1364,6 +1459,12 @@ function initializeChat() {
             filterChats(e.target.value);
         });
         
+        // Mobile back button
+        const mobileBackBtn = document.getElementById('mobileBackBtn');
+        if (mobileBackBtn) {
+            mobileBackBtn.addEventListener('click', goBackToChatList);
+        }
+        
         // Attach file button
         if (attachFileButton) {
             attachFileButton.addEventListener('click', () => {
@@ -1376,6 +1477,32 @@ function initializeChat() {
             });
         } else {
             console.warn('Attach file button not found');
+        }
+        
+        // Handle window resize for responsive behavior
+        window.addEventListener('resize', handleWindowResize);
+    }
+    
+    // Handle window resize for responsive behavior
+    function handleWindowResize() {
+        const sidebar = document.querySelector('.chat-sidebar');
+        const main = document.querySelector('.chat-main');
+        
+        if (window.innerWidth > 768) {
+            // Desktop view: reset mobile classes
+            sidebar.classList.remove('hidden-mobile');
+            main.classList.remove('active-mobile');
+        } else {
+            // Mobile view: maintain current state
+            if (activeGroupId) {
+                // If chat is active, keep mobile navigation state
+                sidebar.classList.add('hidden-mobile');
+                main.classList.add('active-mobile');
+            } else {
+                // If no chat active, show sidebar
+                sidebar.classList.remove('hidden-mobile');
+                main.classList.remove('active-mobile');
+            }
         }
     }
     
@@ -1503,7 +1630,9 @@ function initializeChat() {
     
     // Function to check if current user is admin
     function isUserAdmin() {
-        return currentUser && currentUser.role === 'admin';
+        const isAdmin = currentUser && currentUser.role === 'admin';
+        console.log('isUserAdmin check:', { currentUser, isAdmin }); // Debug logging
+        return isAdmin;
     }
     
     // Fetch fake users for a group (admin only)
@@ -1640,6 +1769,9 @@ function initializeChat() {
             groupsTab.classList.add('active');
         }
         
+        // Initialize mobile layout
+        initializeMobileLayout();
+        
         // Set up periodic refresh to keep data fresh (every 30 seconds)
         setInterval(() => {
             if (document.visibilityState === 'visible') {
@@ -1653,6 +1785,18 @@ function initializeChat() {
                 }
             }
         }, 30000); // 30 seconds
+    }
+    
+    // Initialize mobile layout on page load
+    function initializeMobileLayout() {
+        if (window.innerWidth <= 768) {
+            const sidebar = document.querySelector('.chat-sidebar');
+            const main = document.querySelector('.chat-main');
+            
+            // On mobile, start with sidebar visible and chat hidden
+            sidebar.classList.remove('hidden-mobile');
+            main.classList.remove('active-mobile');
+        }
     }
     
     // Debug function to inspect what's in localStorage and cookies
@@ -1706,6 +1850,92 @@ function initializeChat() {
         try {
             const token = getAuthToken();
             
+            // If user is not admin, show fake member list with 800+ members
+            if (!isUserAdmin()) {
+                // Create fake member list to simulate 800+ members
+                const fakeMembers = [];
+                const memberNames = [
+                    'Alex Johnson', 'Sarah Williams', 'Michael Brown', 'Emma Davis', 'James Wilson',
+                    'Olivia Miller', 'William Moore', 'Sophia Taylor', 'Benjamin Anderson', 'Isabella Thomas',
+                    'Lucas Jackson', 'Mia White', 'Henry Harris', 'Charlotte Martin', 'Alexander Thompson',
+                    'Amelia Garcia', 'Daniel Martinez', 'Harper Robinson', 'Matthew Clark', 'Evelyn Rodriguez',
+                    'Anthony Lewis', 'Abigail Lee', 'Mark Walker', 'Emily Hall', 'Steven Allen',
+                    'Elizabeth Young', 'Andrew King', 'Sofia Wright', 'Joshua Lopez', 'Avery Hill',
+                    'Christopher Green', 'Ella Adams', 'David Baker', 'Scarlett Nelson', 'Joseph Carter',
+                    'Grace Mitchell', 'Ryan Perez', 'Chloe Roberts', 'Nathan Turner', 'Victoria Phillips',
+                    'Caleb Campbell', 'Madison Parker', 'Gabriel Evans', 'Luna Edwards', 'Isaac Collins',
+                    'Penelope Stewart', 'Owen Sanchez', 'Layla Morris', 'Eli Rogers', 'Riley Reed'
+                ];
+                
+                // Generate 50 visible members (first page) and indicate there are 800+ total
+                for (let i = 0; i < 50; i++) {
+                    const name = memberNames[i % memberNames.length];
+                    const userId = 1000 + i; // Fake user IDs
+                    fakeMembers.push({
+                        id: userId,
+                        name: `${name} ${i > 49 ? Math.floor(i/50) + 1 : ''}`.trim(),
+                        avatar_url: '../assets/uploads/user.jpg',
+                        role: i < 5 ? 'Moderator' : 'Member'
+                    });
+                }
+                
+                // Create modal with fake members
+                const modal = document.createElement('div');
+                modal.className = 'modal-overlay';
+                modal.innerHTML = `
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3>Group Members (800+ members)</h3>
+                            <button class="btn-close">&times;</button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="members-count-info">
+                                <p><strong>Showing first 50 of 800+ active members</strong></p>
+                            </div>
+                            <div class="members-list">
+                                ${fakeMembers.map(member => `
+                                    <div class="member-item" data-user-id="${member.id}">
+                                        <div class="member-avatar">
+                                            <img src="${member.avatar_url}" alt="${member.name}" />
+                                        </div>
+                                        <div class="member-info">
+                                            <div class="member-name">${member.name}</div>
+                                            <div class="member-role">${member.role}</div>
+                                        </div>
+                                        <div class="member-actions">
+                                            <button class="btn-message" disabled style="opacity: 0.5;">
+                                                <i class="fas fa-comment"></i> Message
+                                            </button>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                            <div class="members-pagination">
+                                <p style="text-align: center; color: #666; margin-top: 20px;">
+                                    <i class="fas fa-users"></i> And 750+ more members...
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                // Add close functionality
+                modal.querySelector('.btn-close').addEventListener('click', () => {
+                    modal.remove();
+                });
+                
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) {
+                        modal.remove();
+                    }
+                });
+                
+                // Add to page
+                document.body.appendChild(modal);
+                return;
+            }
+            
+            // For admin users, show real member list
             const response = await fetch(`/api/chat/groups/${groupId}/members`, {
                 method: 'GET',
                 headers: {

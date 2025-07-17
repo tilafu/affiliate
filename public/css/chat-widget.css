@@ -95,28 +95,29 @@
 /* Responsive adjustments */
 @media (max-width: 768px) {
     .floating-chat-widget {
-        bottom: 15px;
+        bottom: 80px; /* Move higher to avoid potential bottom navigation/account icons */
         right: 15px;
     }
     
     .chat-widget-button {
-        width: 55px;
-        height: 55px;
+        width: 50px; /* Smaller on mobile to be less intrusive */
+        height: 50px;
     }
     
     .chat-widget-button i {
-        font-size: 22px;
+        font-size: 20px; /* Smaller icon on mobile */
     }
     
     .chat-notification-badge {
-        min-width: 18px;
-        height: 18px;
-        font-size: 11px;
+        min-width: 16px;
+        height: 16px;
+        font-size: 10px;
     }
     
     .chat-widget-tooltip {
-        font-size: 13px;
-        padding: 6px 10px;
+        font-size: 12px;
+        padding: 5px 8px;
+        bottom: 60px; /* Adjust tooltip position */
     }
 }
 
