@@ -55,255 +55,183 @@ async function loadComponent(componentPath, targetElementId) {
 // Example of how to initialize scripts specific to the sidebar after it's loaded
 // You might need to move sidebar-specific JS initializations here from other files
 async function initializeSidebarScripts() {
-    console.log('Initializing sidebar scripts...');    // Attach logout handlers defined in auth.js to any .logout elements within the sidebar
-    if (typeof window.attachLogoutHandlers === 'function') {
-        console.log('Attaching logout handlers from auth.js...');
-        window.attachLogoutHandlers();
-    } else if (typeof attachLogoutHandlers === 'function') {
-        console.log('Attaching logout handlers from auth.js (global scope)...');
-        attachLogoutHandlers();
-    } else {
-        console.warn('attachLogoutHandlers function from auth.js is not available yet. Will retry after a delay.');
-        // Retry after a short delay to allow auth.js to load
-        setTimeout(() => {
-            if (typeof window.attachLogoutHandlers === 'function') {                console.log('Attaching logout handlers from auth.js (delayed)...');
-                window.attachLogoutHandlers();
-            } else if (typeof attachLogoutHandlers === 'function') {
-                console.log('Attaching logout handlers from auth.js (delayed, global scope)...');
-                attachLogoutHandlers();
-            } else {
-                console.warn('attachLogoutHandlers function is still not available after delay. Using fallback.');
-                // Fallback: manually attach logout handlers
-                console.log('Attempting fallback logout handler attachment...');
-                const logoutElements = document.querySelectorAll('.logout, [data-action="logout"]');
-                logoutElements.forEach(function(el) {
-                    el.addEventListener('click', async function(e) {
-                        e.preventDefault();
-                        console.log('Fallback logout clicked...');
-                        // Simple logout implementation
-                        try {
-                            localStorage.removeItem('authToken');
-                            sessionStorage.removeItem('authToken');
-                            window.location.href = './login.html';
-                        } catch (error) {
-                            console.error('Fallback logout error:', error);
-                            window.location.href = './login.html';
-                        }
-                    });
-                });
-            }
-        }, 500);
-    }
-    
-    // Additional specific handler for sidebar logout button
-    const sidebarLogoutBtn = document.getElementById('sidebar-logout-btn');
-    if (sidebarLogoutBtn) {
-        console.log('Found sidebar logout button, adding specific handler...');
-        sidebarLogoutBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            console.log('Sidebar logout clicked...');
-            if (typeof performLogoutProcess === 'function') {
-                performLogoutProcess();
-            } else {
-                performLogout();
-            }
-        });
-    }    // Initialize sidebar user data population
+    console.log('Initializing sidebar scripts...');
+    attachSidebarEventListeners();
     await populateSidebarUserData();
 
-    // Set up a periodic refresh for sidebar data (every 30 seconds)
-    const sidebarRefreshInterval = setInterval(async () => {
-        try {
-            await populateSidebarUserData();
-        } catch (error) {
-            console.error('Error during periodic sidebar refresh:', error);
-        }
-    }, 30000);
-
-    // Clean up interval when page is hidden
+    // --- Periodic Data Refresh ---
+    let sidebarRefreshInterval;
+    const startRefreshInterval = () => {
+        clearInterval(sidebarRefreshInterval);
+        sidebarRefreshInterval = setInterval(async () => {
+            try {
+                if (!document.hidden) {
+                    await populateSidebarUserData();
+                }
+            } catch (error) {
+                console.error('Error during periodic sidebar refresh:', error);
+            }
+        }, 30000);
+        console.log('Sidebar refresh interval started.');
+    };
+    const stopRefreshInterval = () => {
+        clearInterval(sidebarRefreshInterval);
+        console.log('Sidebar refresh interval stopped.');
+    };
     document.addEventListener('visibilitychange', () => {
         if (document.hidden) {
-            clearInterval(sidebarRefreshInterval);
+            stopRefreshInterval();
+        } else {
+            populateSidebarUserData();
+            startRefreshInterval();
         }
-    });// Apply i18n translations to the newly loaded sidebar
-    if (typeof updateContent === 'function') {
-        console.log('Applying i18n translations to sidebar...');
-        updateContent();
-    } else if (typeof i18next !== 'undefined' && i18next.isInitialized) {
-        console.log('Applying i18n translations to sidebar (direct approach)...');
-        // Apply translations directly if updateContent is not available
-        document.querySelectorAll('[data-i18n]').forEach(element => {
-            const key = element.getAttribute('data-i18n');
-            if (i18next.exists(key)) {
-                element.innerHTML = i18next.t(key);
-            }
-        });
-    } else {
-        console.log('i18n completely disabled for sidebar, skipping translations...');
-    }
+    });
+    startRefreshInterval();
+}
 
-    // Explicitly add close button functionality after sidebar loads
+function attachSidebarEventListeners() {
+    // Logout Button
+    const logoutButton = document.getElementById('sidebar-logout-btn');
+    if (logoutButton) {
+        logoutButton.onclick = (e) => {
+            e.preventDefault();
+            if (typeof performLogout === 'function') {
+                performLogout();
+            } else {
+                console.error('performLogout function not found!');
+            }
+        };
+    }
+    // Close Button
     const closeButton = document.getElementById('sidebar-close-button');
     const sidebarElement = document.querySelector('.main-sidebar');
     const overlayElement = document.querySelector('.bg-overlay');
-
     if (closeButton && sidebarElement && overlayElement) {
-        closeButton.addEventListener('click', (event) => {
-            event.preventDefault(); // Prevent default anchor behavior
-            event.stopPropagation(); // Stop the event from bubbling up to the document handler
-            console.log('Sidebar close button clicked (handler in components.js)');
+        closeButton.onclick = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
             sidebarElement.classList.remove('active');
             overlayElement.classList.remove('active');
-        });
-    } else {
-        console.warn('Could not find sidebar close button, sidebar element, or overlay element during initialization.');
+        };
     }
+    // Currency Change Button
+    const currencyBtn = document.getElementById('change-currency-btn');
+    if (currencyBtn) {
+        currencyBtn.onclick = () => {
+            const currencies = ['USD', 'EUR', 'GBP', 'JPY', 'CAD', 'AUD'];
+            const currentCurrency = localStorage.getItem('preferred_currency') || 'USD';
+            const nextIndex = (currencies.indexOf(currentCurrency) + 1) % currencies.length;
+            const newCurrency = currencies[nextIndex];
+            localStorage.setItem('preferred_currency', newCurrency);
+            populateSidebarUserData();
+            console.log(`Currency changed to ${newCurrency}`);
+        };
+    }
+}
 
-    // Add any other sidebar-specific initializations below
-    // ...
+async function fetchSidebarData() {
+    let fetchFunction;
+    if (typeof SimpleAuth !== 'undefined' && SimpleAuth.authenticatedFetch) {
+        fetchFunction = SimpleAuth.authenticatedFetch.bind(SimpleAuth);
+    } else if (typeof fetchWithAuth === 'function') {
+        fetchFunction = fetchWithAuth;
+    } else {
+        console.error('No authenticated fetch function available for sidebar.');
+        return null;
+    }
+    try {
+        const [profileRes, balanceRes] = await Promise.all([
+            fetchFunction('/api/user/profile'),
+            fetchFunction('/api/user/balances')
+        ]);
+        const profileData = profileRes.json ? await profileRes.json() : profileRes;
+        const balanceData = balanceRes.json ? await balanceRes.json() : balanceRes;
+        if (!profileData.success || !balanceData.success) {
+            console.error('One or more sidebar API calls were unsuccessful.');
+            return null;
+        }
+        return {
+            user: profileData.user,
+            balances: balanceData.balances
+        };
+    } catch (error) {
+        console.error('Error fetching sidebar data:', error);
+        return null;
+    }
+}
+
+function updateSidebarUI(data) {
+    if (!data || !data.user || !data.balances) {
+        console.error('Invalid data provided to updateSidebarUI.');
+        return;
+    }
+    const { user, balances } = data;
+    // Username
+    const usernameElement = document.getElementById('dashboard-username');
+    if (usernameElement) {
+        usernameElement.textContent = user.username || 'User';
+    }
+    // Badge Number (Referral Code)
+    const badgeElement = document.getElementById('user-badge-number');
+    if (badgeElement) {
+        badgeElement.textContent = user.referral_code || 'N/A';
+    }
+    // Balance
+    const balanceElement = document.getElementById('user-balance');
+    if (balanceElement) {
+        const mainBalance = parseFloat(balances.main_balance || 0);
+        const commissionBalance = parseFloat(balances.commission_balance || 0);
+        const totalBalance = mainBalance + commissionBalance;
+        const preferredCurrency = localStorage.getItem('preferred_currency') || 'USD';
+        balanceElement.textContent = new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: preferredCurrency,
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        }).format(totalBalance);
+    }
+    // Avatar
+    const avatarElement = document.getElementById('user-avatar');
+    if (avatarElement) {
+        if (user.avatar_url) {
+            avatarElement.src = user.avatar_url;
+        } else if (user.profile_image) {
+            avatarElement.src = user.profile_image;
+        }
+    }
+    // Verification Provider
+    const verificationElement = document.getElementById('verification-provider');
+    if (verificationElement) {
+        verificationElement.textContent = "Cdot";
+    }
 }
 
 // Function to populate sidebar user data across all pages
 async function populateSidebarUserData() {
     console.log('Populating sidebar user data...');
-    
-    // First check if sidebar elements exist
     const usernameEl = document.getElementById('dashboard-username');
-    const refcodeEl = document.getElementById('dashboard-refcode');
-    const userInitialsEl = document.getElementById('sidebar-user-initials');
-    
-    if (!usernameEl && !refcodeEl && !userInitialsEl) {
-        console.log('Sidebar elements not found, skipping data population');
+    if (!usernameEl) {
+        console.log('Sidebar elements not found, skipping data population.');
         return;
     }
-    
-    // Check if user is authenticated using multiple methods
-    let authData = null;
-    
-    // Try isAuthenticated first (silent check)
-    if (typeof isAuthenticated === 'function') {
-        authData = isAuthenticated();
-        console.log('Auth check via isAuthenticated:', authData);
-    }
-    
-    // If that fails, try to get token directly
+    const authData = (typeof isAuthenticated === 'function') ? isAuthenticated() : null;
     if (!authData || !authData.token) {
-        const token = localStorage.getItem('auth_token');
-        if (token) {
-            authData = { token: token };
-            console.log('Auth check via localStorage token found');
-        }
-    }
-    
-    if (!authData || !authData.token) {
-        console.warn('User not authenticated, skipping sidebar data population');
-        // Set loading state
-        if (usernameEl) usernameEl.textContent = 'Not logged in';
-        if (userInitialsEl) userInitialsEl.textContent = 'GL'; // Guest Login
-        if (refcodeEl) {
-            const refcodeSpan = refcodeEl.querySelector('.ref-text');
-            if (refcodeSpan) {
-                refcodeSpan.textContent = 'REF: ------';
-            }
-        }
+        console.warn('User not authenticated, skipping sidebar data population.');
+        usernameEl.textContent = 'Not logged in';
         return;
     }
-
     try {
-        console.log('Fetching user profile for sidebar...');
-        
-        // Check what authentication methods are available
-        const hasSimpleAuth = typeof SimpleAuth !== 'undefined' && typeof SimpleAuth.authenticatedFetch === 'function';
-        const hasFetchWithAuth = typeof fetchWithAuth === 'function';
-        
-        let data;
-        
-        if (hasSimpleAuth) {
-            // Use SimpleAuth if available
-            console.log('Using SimpleAuth for sidebar profile fetch');
-            const response = await SimpleAuth.authenticatedFetch('/api/user/profile');
-            data = await response.json();
-        } else if (hasFetchWithAuth) {
-            // Use fetchWithAuth if available
-            console.log('Using fetchWithAuth for sidebar profile fetch');
-            data = await fetchWithAuth('/api/user/profile');
+        const sidebarData = await fetchSidebarData();
+        if (sidebarData) {
+            updateSidebarUI(sidebarData);
+            localStorage.setItem('user_data', JSON.stringify(sidebarData.user));
+            console.log('Sidebar user data populated successfully.');
         } else {
-            // Fallback to manual fetch with token
-            console.log('Using manual fetch with token for sidebar profile');
-            const token = authData.token;
-            const baseUrl = window.API_BASE_URL || window.baseurl || '.';
-            const response = await fetch(`${baseUrl}/api/user/profile`, {
-                method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                }
-            });
-            
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
-            
-            data = await response.json();
-        }
-        
-        console.log('Sidebar profile API response:', data);
-
-        if (data.success && data.user) {
-            const user = data.user;
-            
-            // Update username
-            if (usernameEl) {
-                usernameEl.textContent = user.username || 'N/A';
-                console.log('Updated sidebar username:', user.username);
-            }
-            
-            // Update user initials
-            if (userInitialsEl && user.username) {
-                const initials = generateUserInitials(user.username);
-                userInitialsEl.textContent = initials;
-                console.log('Updated sidebar initials:', initials);
-            }
-
-            if (refcodeEl && user.referral_code) {
-                // Update the referral code span content
-                const refcodeSpan = refcodeEl.querySelector('.ref-text');
-                if (refcodeSpan) {
-                    refcodeSpan.textContent = `REF: ${user.referral_code}`;
-                    console.log('Updated sidebar referral code:', user.referral_code);
-                } else {
-                    // Fallback if span structure not found
-                    refcodeEl.textContent = `REFERRAL CODE: ${user.referral_code}`;
-                }
-                
-                // Initialize copy functionality after data is loaded
-                initializeReferralCodeCopy(user.referral_code);
-            }
-            
-            console.log('Sidebar user data populated successfully');} else {
-            console.error('Failed to fetch user profile for sidebar:', data.message);
-            if (usernameEl) usernameEl.textContent = 'Error';
-            if (userInitialsEl) userInitialsEl.textContent = 'ER';
-            if (refcodeEl) {
-                const refcodeSpan = refcodeEl.querySelector('.ref-text');
-                if (refcodeSpan) {
-                    refcodeSpan.textContent = 'REF: Error';
-                } else {
-                    refcodeEl.textContent = 'REFERRAL CODE: Error';
-                }
-            }
-        }    } catch (error) {
+            throw new Error('Failed to fetch sidebar data.');
+        } 
+    } catch (error) {
         console.error('Error populating sidebar user data:', error);
-        if (usernameEl) usernameEl.textContent = 'Error';
-        if (userInitialsEl) userInitialsEl.textContent = 'ER';
-        if (refcodeEl) {
-            const refcodeSpan = refcodeEl.querySelector('.ref-text');
-            if (refcodeSpan) {
-                refcodeSpan.textContent = 'REF: Error';
-            } else {
-                refcodeEl.textContent = 'REFERRAL CODE: Error';
-            }
-        }
+        usernameEl.textContent = 'Error loading data';
     }
 }
 

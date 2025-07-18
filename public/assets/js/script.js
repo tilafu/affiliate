@@ -13,8 +13,14 @@
             e.preventDefault();
         }
         
-        // Use enhanced sidebar functions if available
-        if (typeof window.openSidebar === 'function' && typeof window.closeSidebar === 'function') {
+        // Use centralized sidebar manager first, then enhanced functions
+        if (window.SidebarManager) {
+            if (window.SidebarManager.isOpen) {
+                window.SidebarManager.close();
+            } else {
+                window.SidebarManager.open();
+            }
+        } else if (typeof window.openSidebar === 'function' && typeof window.closeSidebar === 'function') {
             const sidebar = $('.main-sidebar');
             if (sidebar.hasClass('active')) {
                 window.closeSidebar();
@@ -25,14 +31,20 @@
             // Fallback to original functionality
             $('.main-sidebar').toggleClass("active"); 
             $('.bg-overlay').toggleClass("active");
-            // Add body class for scroll prevention
-            $('body').toggleClass('sidebar-open');
+            // Add body class for scroll prevention - but check if it's already there
+            if (!$('body').hasClass('sidebar-open')) {
+                $('body').addClass('sidebar-open');
+            } else {
+                $('body').removeClass('sidebar-open');
+            }
         }
     });
     
     // Close sidebar when clicking the overlay
     $(document).on('click', '.bg-overlay', function () {
-        if (typeof window.closeSidebar === 'function') {
+        if (window.SidebarManager) {
+            window.SidebarManager.close();
+        } else if (typeof window.closeSidebar === 'function') {
             window.closeSidebar();
         } else {
             $('.main-sidebar').removeClass("active");
@@ -47,7 +59,9 @@
         if ($(this).is('a') || $(this).find('a').length) {
             e.preventDefault();
         }
-        if (typeof window.closeSidebar === 'function') {
+        if (window.SidebarManager) {
+            window.SidebarManager.close();
+        } else if (typeof window.closeSidebar === 'function') {
             window.closeSidebar();
         } else {
             $('.main-sidebar').removeClass("active");
@@ -59,7 +73,9 @@
     // ESC key to close sidebar
     $(document).on('keydown', function(e) {
         if (e.key === 'Escape' && $('.main-sidebar').hasClass('active')) {
-            if (typeof window.closeSidebar === 'function') {
+            if (window.SidebarManager) {
+                window.SidebarManager.close();
+            } else if (typeof window.closeSidebar === 'function') {
                 window.closeSidebar();
             } else {
                 $('.main-sidebar').removeClass("active");
