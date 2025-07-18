@@ -56,8 +56,65 @@ async function loadComponent(componentPath, targetElementId) {
 // You might need to move sidebar-specific JS initializations here from other files
 async function initializeSidebarScripts() {
     console.log('Initializing sidebar scripts...');
+    
+    // Add CSS for sidebar functionality if not already present
+    if (!document.getElementById('sidebar-functionality-css')) {
+        const style = document.createElement('style');
+        style.id = 'sidebar-functionality-css';
+        style.textContent = `
+            /* Prevent body scroll when sidebar is open */
+            body.sidebar-open {
+                overflow: hidden;
+            }
+            
+            /* Ensure sidebar is above overlay */
+            .main-sidebar {
+                z-index: 10001;
+            }
+            
+            /* Overlay styles for dynamically created overlay */
+            .bg-overlay {
+                position: fixed;
+                width: 100%;
+                height: 100vh;
+                top: 0;
+                left: 0;
+                background-color: rgba(0, 0, 0, 0.5);
+                opacity: 0;
+                visibility: hidden;
+                z-index: 10000;
+                transition: opacity 0.3s ease, visibility 0.3s ease;
+            }
+            
+            .bg-overlay.active {
+                opacity: 1;
+                visibility: visible;
+            }
+        `;
+        document.head.appendChild(style);
+        console.log('Added sidebar functionality CSS');
+    }
+    
     attachSidebarEventListeners();
     await populateSidebarUserData();
+    
+    // Add global event listeners for any menu buttons
+    // This ensures hamburger buttons work even if they don't have specific handlers
+    document.addEventListener('click', function(e) {
+        // Check for various menu button classes/IDs
+        if (e.target.matches('.menu-btn, .navbar-btn, #menuBtn') || 
+            e.target.closest('.menu-btn, .navbar-btn, #menuBtn')) {
+            
+            console.log('Menu button clicked, toggling sidebar');
+            e.preventDefault();
+            e.stopPropagation();
+            
+            // Use our global toggle function
+            if (typeof window.toggleSidebar === 'function') {
+                window.toggleSidebar();
+            }
+        }
+    });
 
     // --- Periodic Data Refresh ---
     let sidebarRefreshInterval;
@@ -589,4 +646,134 @@ window.debugSidebarRefresh = async function() {
     await populateSidebarUserData();
     
     console.log('=== DEBUG: Manual sidebar refresh completed ===');
+};
+
+// Global sidebar toggle functions for header navigation
+window.toggleSidebar = function() {
+    console.log('toggleSidebar called');
+    const sidebar = document.querySelector('.main-sidebar');
+    let overlay = document.querySelector('.bg-overlay');
+    
+    if (!sidebar) {
+        console.error('Sidebar element not found');
+        return;
+    }
+    
+    // Create overlay if it doesn't exist
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.className = 'bg-overlay';
+        
+        // Add CSS styles for the overlay
+        overlay.style.cssText = `
+            position: fixed;
+            width: 100%;
+            height: 100vh;
+            top: 0;
+            left: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            opacity: 0;
+            visibility: hidden;
+            z-index: 10000;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        `;
+        
+        document.body.appendChild(overlay);
+        
+        // Add click handler to close sidebar when overlay is clicked
+        overlay.addEventListener('click', function() {
+            closeSidebar();
+        });
+        
+        console.log('Created bg-overlay element with styles');
+    }
+    
+    // Check if sidebar is currently active
+    const isActive = sidebar.classList.contains('active');
+    
+    if (isActive) {
+        // Close sidebar
+        sidebar.classList.remove('active');
+        overlay.classList.remove('active');
+        overlay.style.opacity = '0';
+        overlay.style.visibility = 'hidden';
+        document.body.classList.remove('sidebar-open');
+        console.log('Sidebar closed');
+    } else {
+        // Open sidebar
+        sidebar.classList.add('active');
+        overlay.classList.add('active');
+        overlay.style.opacity = '1';
+        overlay.style.visibility = 'visible';
+        document.body.classList.add('sidebar-open');
+        console.log('Sidebar opened');
+    }
+};
+
+// Separate functions for explicit open/close
+window.openSidebar = function() {
+    console.log('openSidebar called');
+    const sidebar = document.querySelector('.main-sidebar');
+    let overlay = document.querySelector('.bg-overlay');
+    
+    if (!sidebar) {
+        console.error('Sidebar element not found');
+        return;
+    }
+    
+    // Create overlay if it doesn't exist
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.className = 'bg-overlay';
+        
+        // Add CSS styles for the overlay
+        overlay.style.cssText = `
+            position: fixed;
+            width: 100%;
+            height: 100vh;
+            top: 0;
+            left: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            opacity: 0;
+            visibility: hidden;
+            z-index: 10000;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        `;
+        
+        document.body.appendChild(overlay);
+        
+        // Add click handler to close sidebar when overlay is clicked
+        overlay.addEventListener('click', function() {
+            closeSidebar();
+        });
+        
+        console.log('Created bg-overlay element with styles');
+    }
+    
+    sidebar.classList.add('active');
+    overlay.classList.add('active');
+    overlay.style.opacity = '1';
+    overlay.style.visibility = 'visible';
+    document.body.classList.add('sidebar-open');
+    console.log('Sidebar opened');
+};
+
+window.closeSidebar = function() {
+    console.log('closeSidebar called');
+    const sidebar = document.querySelector('.main-sidebar');
+    const overlay = document.querySelector('.bg-overlay');
+    
+    if (!sidebar) {
+        console.error('Sidebar element not found');
+        return;
+    }
+    
+    sidebar.classList.remove('active');
+    if (overlay) {
+        overlay.classList.remove('active');
+        overlay.style.opacity = '0';
+        overlay.style.visibility = 'hidden';
+    }
+    document.body.classList.remove('sidebar-open');
+    console.log('Sidebar closed');
 };

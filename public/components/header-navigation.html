@@ -86,9 +86,21 @@ function setHeaderContent(title, subtitle = '') {
 
 // Function to toggle sidebar
 function toggleSidebar() {
-    const sidebar = document.querySelector('.main-sidebar');
-    if (sidebar) {
-        sidebar.classList.toggle('active');
+    // Use the global toggleSidebar function if available, otherwise fallback
+    if (typeof window.toggleSidebar === 'function') {
+        window.toggleSidebar();
+    } else {
+        // Fallback implementation
+        const sidebar = document.querySelector('.main-sidebar');
+        if (sidebar) {
+            sidebar.classList.toggle('active');
+            
+            // Also toggle overlay if it exists
+            const overlay = document.querySelector('.bg-overlay');
+            if (overlay) {
+                overlay.classList.toggle('active');
+            }
+        }
     }
 }
 
