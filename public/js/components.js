@@ -82,6 +82,7 @@ async function initializeSidebarScripts() {
                 background-color: rgba(0, 0, 0, 0.5);
                 opacity: 0;
                 visibility: hidden;
+                pointer-events: none;
                 z-index: 10000;
                 transition: opacity 0.3s ease, visibility 0.3s ease;
             }
@@ -89,6 +90,7 @@ async function initializeSidebarScripts() {
             .bg-overlay.active {
                 opacity: 1;
                 visibility: visible;
+                pointer-events: auto;
             }
         `;
         document.head.appendChild(style);
@@ -161,14 +163,28 @@ function attachSidebarEventListeners() {
     }
     // Close Button
     const closeButton = document.getElementById('sidebar-close-button');
-    const sidebarElement = document.querySelector('.main-sidebar');
-    const overlayElement = document.querySelector('.bg-overlay');
-    if (closeButton && sidebarElement && overlayElement) {
+    if (closeButton) {
         closeButton.onclick = (e) => {
             e.preventDefault();
             e.stopPropagation();
-            sidebarElement.classList.remove('active');
-            overlayElement.classList.remove('active');
+            
+            // Use the global closeSidebar function to ensure proper cleanup
+            if (typeof window.closeSidebar === 'function') {
+                window.closeSidebar();
+            } else {
+                // Fallback to direct manipulation
+                const sidebarElement = document.querySelector('.main-sidebar');
+                const overlayElement = document.querySelector('.bg-overlay');
+                if (sidebarElement) {
+                    sidebarElement.classList.remove('active');
+                }
+                if (overlayElement) {
+                    overlayElement.classList.remove('active');
+                    overlayElement.style.opacity = '0';
+                    overlayElement.style.visibility = 'hidden';
+                }
+                document.body.classList.remove('sidebar-open');
+            }
         };
     }
     // Currency Change Button
@@ -674,6 +690,7 @@ window.toggleSidebar = function() {
             background-color: rgba(0, 0, 0, 0.5);
             opacity: 0;
             visibility: hidden;
+            pointer-events: none;
             z-index: 10000;
             transition: opacity 0.3s ease, visibility 0.3s ease;
         `;
@@ -697,6 +714,7 @@ window.toggleSidebar = function() {
         overlay.classList.remove('active');
         overlay.style.opacity = '0';
         overlay.style.visibility = 'hidden';
+        overlay.style.pointerEvents = 'none';
         document.body.classList.remove('sidebar-open');
         console.log('Sidebar closed');
     } else {
@@ -705,6 +723,7 @@ window.toggleSidebar = function() {
         overlay.classList.add('active');
         overlay.style.opacity = '1';
         overlay.style.visibility = 'visible';
+        overlay.style.pointerEvents = 'auto';
         document.body.classList.add('sidebar-open');
         console.log('Sidebar opened');
     }
@@ -736,6 +755,7 @@ window.openSidebar = function() {
             background-color: rgba(0, 0, 0, 0.5);
             opacity: 0;
             visibility: hidden;
+            pointer-events: none;
             z-index: 10000;
             transition: opacity 0.3s ease, visibility 0.3s ease;
         `;
@@ -754,6 +774,7 @@ window.openSidebar = function() {
     overlay.classList.add('active');
     overlay.style.opacity = '1';
     overlay.style.visibility = 'visible';
+    overlay.style.pointerEvents = 'auto';
     document.body.classList.add('sidebar-open');
     console.log('Sidebar opened');
 };
@@ -771,8 +792,11 @@ window.closeSidebar = function() {
     sidebar.classList.remove('active');
     if (overlay) {
         overlay.classList.remove('active');
+        // Force overlay to be hidden using inline styles
+        // This ensures it works whether overlay was created dynamically or exists in HTML
         overlay.style.opacity = '0';
         overlay.style.visibility = 'hidden';
+        overlay.style.pointerEvents = 'none';
     }
     document.body.classList.remove('sidebar-open');
     console.log('Sidebar closed');
