@@ -981,6 +981,171 @@ const deleteTemplate = async (templateId) => {
   return true;
 };
 
+/**
+ * Get all conversations where fake users are active
+ */
+const getConversations = async ({ limit, offset, search }) => {
+  let query = `
+    SELECT 
+      cg.id,
+      cg.name,
+      cg.description,
+      cg.is_personal_group,
+      cg.created_at,
+      COUNT(DISTINCT cgm.user_id) as real_user_count,
+      COUNT(DISTINCT cgm.fake_user_id) as fake_user_count,
+      COUNT(cm.id) as message_count,
+      MAX(cm.created_at) as last_activity,
+      (
+        SELECT cm2.content 
+        FROM chat_messages cm2 
+        WHERE cm2.group_id = cg.id 
+        ORDER BY cm2.created_at DESC 
+        LIMIT 1
+      ) as last_message,
+      (
+        SELECT COALESCE(u.username, cfu.display_name)
+        FROM chat_messages cm2
+        LEFT JOIN users u ON cm2.user_id = u.id
+        LEFT JOIN chat_fake_users cfu ON cm2.fake_user_id = cfu.id
+        WHERE cm2.group_id = cg.id 
+        ORDER BY cm2.created_at DESC 
+        LIMIT 1
+      ) as last_sender_name
+    FROM chat_groups cg
+    LEFT JOIN chat_group_members cgm ON cg.id = cgm.group_id
+    LEFT JOIN chat_messages cm ON cg.id = cm.group_id
+  `;
+
+  const values = [];
+  
+  if (search) {
+    query += ` WHERE cg.name ILIKE $1 OR cg.description ILIKE $1`;
+    values.push(`%${search}%`);
+  }
+  
+  query += `
+    GROUP BY cg.id, cg.name, cg.description, cg.is_personal_group, cg.created_at
+    ORDER BY last_activity DESC NULLS LAST, cg.created_at DESC
+    LIMIT $${values.length + 1} OFFSET $${values.length + 2}
+  `;
+  
+  values.push(limit, offset);
+  
+  const result = await db.query(query, values);
+  return result.rows;
+};
+
+/**
+ * Count total conversations matching search criteria
+ */
+const getConversationsCount = async (search) => {
+  let query = 'SELECT COUNT(DISTINCT cg.id) FROM chat_groups cg';
+  const values = [];
+  
+  if (search) {
+    query += ` WHERE cg.name ILIKE $1 OR cg.description ILIKE $1`;
+    values.push(`%${search}%`);
+  }
+  
+  const result = await db.query(query, values);
+  return parseInt(result.rows[0].count);
+};
+
+/**
+ * Get conversation by ID with details
+ */
+const getConversationById = async (conversationId) => {
+  const query = `
+    SELECT 
+      cg.id,
+      cg.name,
+      cg.description,
+      cg.is_personal_group,
+      cg.created_at,
+      COUNT(DISTINCT cgm.user_id) as real_user_count,
+      COUNT(DISTINCT cgm.fake_user_id) as fake_user_count,
+      COUNT(cm.id) as message_count
+    FROM chat_groups cg
+    LEFT JOIN chat_group_members cgm ON cg.id = cgm.group_id
+    LEFT JOIN chat_messages cm ON cg.id = cm.group_id
+    WHERE cg.id = $1
+    GROUP BY cg.id, cg.name, cg.description, cg.is_personal_group, cg.created_at
+  `;
+  
+  const result = await db.query(query, [conversationId]);
+  return result.rows[0];
+};
+
+/**
+ * Get messages in a conversation with sender details
+ */
+const getConversationMessages = async (conversationId, { limit, offset }) => {
+  const query = `
+    SELECT 
+      cm.id,
+      cm.group_id,
+      cm.content,
+      cm.media_url,
+      cm.media_type,
+      cm.created_at,
+      cm.updated_at,
+      cm.is_pinned,
+      cm.admin_id,
+      cm.sent_by_admin,
+      CASE 
+        WHEN cm.user_id IS NOT NULL THEN 'real_user'
+        WHEN cm.fake_user_id IS NOT NULL THEN 'fake_user'
+        ELSE 'unknown'
+      END as sender_type,
+      COALESCE(u.username, cfu.display_name) as sender_name,
+      COALESCE(u.id, cfu.id) as sender_id,
+      cfu.avatar_url as sender_avatar,
+      a.username as admin_username
+    FROM chat_messages cm
+    LEFT JOIN users u ON cm.user_id = u.id
+    LEFT JOIN chat_fake_users cfu ON cm.fake_user_id = cfu.id
+    LEFT JOIN users a ON cm.admin_id = a.id
+    WHERE cm.group_id = $1
+    ORDER BY cm.created_at DESC
+    LIMIT $2 OFFSET $3
+  `;
+
+  const result = await db.query(query, [conversationId, limit, offset]);
+  return result.rows.reverse(); // Return in chronological order
+};
+
+/**
+ * Count messages in a conversation
+ */
+const getConversationMessagesCount = async (conversationId) => {
+  const query = 'SELECT COUNT(*) FROM chat_messages WHERE group_id = $1';
+  const result = await db.query(query, [conversationId]);
+  return parseInt(result.rows[0].count);
+};
+
+/**
+ * Send message as persona (fake user) with admin attribution
+ */
+const sendMessageAsPersona = async ({ groupId, fakeUserId, content, messageType = 'text', adminId }) => {
+  const query = `
+    INSERT INTO chat_messages (
+      group_id, 
+      fake_user_id, 
+      content, 
+      media_type, 
+      admin_id, 
+      sent_by_admin,
+      created_at,
+      updated_at
+    ) VALUES ($1, $2, $3, $4, $5, true, NOW(), NOW())
+    RETURNING *
+  `;
+
+  const result = await db.query(query, [groupId, fakeUserId, content, messageType, adminId]);
+  return result.rows[0];
+};
+
 module.exports = {
   getGroups,
   getGroupsCount,
@@ -1009,5 +1174,11 @@ module.exports = {
   getTemplateById,
   createTemplate,
   updateTemplate,
-  deleteTemplate
+  deleteTemplate,
+  getConversations,
+  getConversationsCount,
+  getConversationById,
+  getConversationMessages,
+  getConversationMessagesCount,
+  sendMessageAsPersona
 };

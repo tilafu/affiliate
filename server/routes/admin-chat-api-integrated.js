@@ -59,6 +59,14 @@ router.get('/direct-messages', adminChatController.getAllDirectMessages);
 // Get messages in a specific DM conversation
 router.get('/direct-messages/:conversationId/messages', adminChatController.getDirectMessageConversation);
 
+// === CONVERSATIONS (ADMIN VIEW) ===
+// Get all conversations for admin overview
+router.get('/conversations', adminChatController.getAllConversations);
+// Get messages in a specific conversation
+router.get('/conversations/:conversationId/messages', adminChatController.getConversationMessages);
+// Send message as persona in conversation
+router.post('/conversations/:conversationId/messages', adminChatController.sendConversationMessage);
+
 // === SCHEDULED MESSAGES ===
 router.get('/scheduled-messages', adminChatController.getScheduledMessages);
 router.post('/scheduled-messages', adminChatController.scheduleMessage);

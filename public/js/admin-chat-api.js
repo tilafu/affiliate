@@ -187,6 +187,11 @@ const AdminChatAPI = (() => {
       return apiCall(`/groups/${groupId}`);
     },
     
+    // Alias for backward compatibility
+    getGroupById: (groupId) => {
+      return apiCall(`/groups/${groupId}`);
+    },
+
     getGroupUsers: (groupId) => {
       // Use correct backend route for group members (fake users)
       return apiCall(`/groups/${groupId}/members`);
@@ -284,6 +289,23 @@ const AdminChatAPI = (() => {
     
     deleteTemplate: (templateId) => {
       return apiCall(`/templates/${templateId}`, 'DELETE');
+    },
+    
+    // Conversations (Admin View)
+    getConversations: (page = 1, limit = 50, search = '') => {
+      return apiCall(`/conversations?page=${page}&limit=${limit}&search=${encodeURIComponent(search)}`);
+    },
+    
+    getConversationMessages: (conversationId, page = 1, limit = 50) => {
+      return apiCall(`/conversations/${conversationId}/messages?page=${page}&limit=${limit}`);
+    },
+    
+    sendConversationMessage: (conversationId, fakeUserId, content, messageType = 'text') => {
+      return apiCall(`/conversations/${conversationId}/messages`, 'POST', {
+        fakeUserId,
+        content,
+        messageType
+      });
     }
   };
 })();

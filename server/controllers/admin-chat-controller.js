@@ -1053,6 +1053,195 @@ const getDirectMessageConversation = async (req, res) => {
   }
 };
 
+/**
+ * Get all conversations where fake users are active (for admin overview)
+ */
+const getAllConversations = async (req, res) => {
+  try {
+    const { page = 1, limit = 50, search = '' } = req.query;
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+    const offset = (pageNum - 1) * limitNum;
+
+    const conversations = await adminChatModel.getConversations({ 
+      limit: limitNum, 
+      offset, 
+      search 
+    });
+    
+    const totalCount = await adminChatModel.getConversationsCount(search);
+    
+    await logAdminAction(req.user.id, 'VIEW_CONVERSATIONS', null, null, null, { 
+      search, 
+      page: pageNum, 
+      limit: limitNum 
+    });
+
+    res.json({
+      success: true,
+      conversations,
+      pagination: {
+        total: totalCount,
+        page: pageNum,
+        limit: limitNum,
+        pages: Math.ceil(totalCount / limitNum)
+      }
+    });
+
+  } catch (error) {
+    console.error('Error getting conversations:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to retrieve conversations' 
+    });
+  }
+};
+
+/**
+ * Get messages in a specific conversation
+ */
+const getConversationMessages = async (req, res) => {
+  try {
+    const { conversationId } = req.params;
+    const { page = 1, limit = 50 } = req.query;
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+    const offset = (pageNum - 1) * limitNum;
+
+    // Validate conversation exists
+    const conversation = await adminChatModel.getConversationById(conversationId);
+    if (!conversation) {
+      return res.status(404).json({
+        success: false,
+        error: 'CONVERSATION_NOT_FOUND',
+        message: 'Conversation not found'
+      });
+    }
+
+    const messages = await adminChatModel.getConversationMessages(conversationId, {
+      limit: limitNum,
+      offset
+    });
+
+    const totalCount = await adminChatModel.getConversationMessagesCount(conversationId);
+
+    await logAdminAction(req.user.id, 'VIEW_CONVERSATION_MESSAGES', null, null, conversationId, {
+      page: pageNum,
+      limit: limitNum
+    });
+
+    res.json({
+      success: true,
+      messages,
+      conversation,
+      pagination: {
+        total: totalCount,
+        page: pageNum,
+        limit: limitNum,
+        pages: Math.ceil(totalCount / limitNum)
+      }
+    });
+
+  } catch (error) {
+    console.error('Error getting conversation messages:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to retrieve conversation messages' 
+    });
+  }
+};
+
+/**
+ * Send message as fake user in conversation
+ */
+const sendConversationMessage = async (req, res) => {
+  try {
+    const { conversationId } = req.params;
+    const { fakeUserId, content, messageType = 'text' } = req.body;
+
+    // Validate required fields
+    if (!fakeUserId) {
+      return res.status(400).json({
+        success: false,
+        error: 'MISSING_FAKE_USER_ID',
+        message: 'Fake user ID is required'
+      });
+    }
+
+    if (!content || content.trim().length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'MISSING_CONTENT',
+        message: 'Message content is required'
+      });
+    }
+
+    // Validate conversation exists
+    const conversation = await adminChatModel.getConversationById(conversationId);
+    if (!conversation) {
+      return res.status(404).json({
+        success: false,
+        error: 'CONVERSATION_NOT_FOUND',
+        message: 'Conversation not found'
+      });
+    }
+
+    // Validate fake user exists
+    const fakeUser = await adminChatModel.getFakeUserById(fakeUserId);
+    if (!fakeUser) {
+      return res.status(404).json({
+        success: false,
+        error: 'FAKE_USER_NOT_FOUND',
+        message: 'Fake user not found'
+      });
+    }
+
+    // Send message
+    const message = await adminChatModel.sendMessageAsPersona({
+      groupId: conversationId,
+      fakeUserId,
+      content: content.trim(),
+      messageType,
+      adminId: req.user.id
+    });
+
+    await logAdminAction(req.user.id, 'SEND_MESSAGE_AS_PERSONA', conversationId, fakeUserId, null, {
+      messageType,
+      contentLength: content.trim().length
+    });
+
+    // TODO: Broadcast via Socket.io to clients and other admins
+    // const io = req.app.get('io');
+    // if (io) {
+    //   const messageWithSender = {
+    //     ...message,
+    //     sender_type: 'fake_user',
+    //     sender_name: fakeUser.display_name,
+    //     sender_avatar: fakeUser.avatar_url
+    //   };
+    //   io.to(`group_${conversationId}`).emit('new_message', messageWithSender);
+    //   io.of('/admin-chat').to('admins').emit('admin_message', messageWithSender);
+    // }
+
+    res.status(201).json({
+      success: true,
+      message: {
+        ...message,
+        sender_type: 'fake_user',
+        sender_name: fakeUser.display_name,
+        sender_avatar: fakeUser.avatar_url
+      }
+    });
+
+  } catch (error) {
+    console.error('Error sending conversation message:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to send message' 
+    });
+  }
+};
+
 module.exports = {
   getAllGroups,
   getGroupDetails,
@@ -1073,6 +1262,9 @@ module.exports = {
   getGroupMessages,
   replyToGroupMessage,
   getAllDirectMessages,
-  getDirectMessageConversation
+  getDirectMessageConversation,
+  getAllConversations,
+  getConversationMessages,
+  sendConversationMessage
 };
 
