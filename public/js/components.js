@@ -200,6 +200,18 @@ function attachSidebarEventListeners() {
             console.log(`Currency changed to ${newCurrency}`);
         };
     }
+    
+    // User avatar click handler - navigate to profile page
+    const userAvatar = document.getElementById('user-avatar');
+    if (userAvatar) {
+        userAvatar.style.cursor = 'pointer';
+        userAvatar.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('User avatar clicked - navigating to profile page');
+            window.location.href = './profile.html';
+        });
+    }
 }
 
 async function fetchSidebarData() {

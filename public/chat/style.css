@@ -246,7 +246,7 @@ body, .chat-dark-bg {
     z-index: 2;
 }
 
-/* Mobile back button - hidden by default */
+/* Mobile back button - hidden by default, shown on mobile */
 .mobile-back-btn {
     display: none;
     background: none;
@@ -262,6 +262,9 @@ body, .chat-dark-bg {
     height: 40px;
     align-items: center;
     justify-content: center;
+    /* Improve touch target size for mobile */
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
 }
 
 .mobile-back-btn:hover {
@@ -667,7 +670,7 @@ body, .chat-dark-bg {
         left: 0;
         z-index: 1;
         transform: translateX(100%);
-        transition: transform 0.3s ease;
+        transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
     }
     
     .chat-main.active-mobile {
@@ -682,6 +685,9 @@ body, .chat-dark-bg {
     
     .chat-header {
         padding: 12px 16px;
+        /* Ensure header doesn't get cut off on mobile */
+        min-height: 60px;
+        box-sizing: border-box;
     }
     
     .chat-contact-info {
@@ -701,17 +707,28 @@ body, .chat-dark-bg {
     .chat-messages {
         height: calc(100vh - 140px);
         padding: 8px;
+        /* Better scrolling on mobile */
+        -webkit-overflow-scrolling: touch;
+        overflow-y: auto;
     }
     
     .chat-input-area {
         padding: 12px;
         background: #202c33;
         border-top: 1px solid #222d34;
+        /* Ensure input area stays at bottom on mobile keyboards */
+        position: relative;
+        min-height: 60px;
+        box-sizing: border-box;
     }
     
     .chat-input-area input {
         padding: 12px 16px;
         font-size: 16px; /* Prevents zoom on iOS */
+        /* Better mobile keyboard handling */
+        -webkit-appearance: none;
+        appearance: none;
+        border-radius: 20px;
     }
     
     /* Chat item improvements for mobile */
@@ -720,9 +737,16 @@ body, .chat-dark-bg {
         border-bottom: 1px solid #222d34;
         cursor: pointer;
         transition: background-color 0.2s;
+        /* Better touch targets */
+        min-height: 60px;
+        display: flex;
+        align-items: center;
+        -webkit-tap-highlight-color: transparent;
+        touch-action: manipulation;
     }
     
-    .chat-item:hover {
+    .chat-item:hover,
+    .chat-item:active {
         background: rgba(255, 255, 255, 0.05);
     }
     
@@ -806,6 +830,28 @@ body, .chat-dark-bg {
     
     .contact-status {
         font-size: 0.8rem;
+    }
+    
+    /* Additional mobile optimizations */
+    .btn-icon {
+        min-height: 44px;
+        min-width: 44px;
+        -webkit-tap-highlight-color: transparent;
+    }
+    
+    /* Improve scrolling performance on mobile */
+    .chats-list {
+        -webkit-overflow-scrolling: touch;
+        transform: translateZ(0);
+    }
+    
+    /* Handle safe area for devices with notches */
+    .chat-header {
+        padding-top: max(12px, env(safe-area-inset-top));
+    }
+    
+    .chat-input-area {
+        padding-bottom: max(12px, env(safe-area-inset-bottom));
     }
 }
 

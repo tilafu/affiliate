@@ -75,9 +75,21 @@
             background-image: none !important;
         }
         
-        /* Main content area should also have white background */
-        .main-content, .container {
+        /* Main content area should have white background */
+        .main-content {
             background-color: white !important;
+            background-image: none !important;
+        }
+        
+        /* Regular containers should have white background, but not in hero section */
+        .container {
+            background-color: white !important;
+            background-image: none !important;
+        }
+        
+        /* Override: Hero section container should be transparent */
+        .profile-hero-section .container {
+            background-color: transparent !important;
             background-image: none !important;
         }
         
@@ -397,12 +409,20 @@
     }
 </style>
 
-<main class="main-content py-5" style="background-color: white !important; background-image: none !important;">
-    <div class="container" style="background-color: white !important; background-image: none !important;">
+<main class="main-content py-5">
+    <div class="container">
         <!-- Profile Image Card -->
         <div class="profile-card" style="background-color: white !important; background-image: none !important;">
             <div class="profile-item text-center" style="background-color: white !important; background-image: none !important;">
-                <img src="./assets/uploads/user.jpg" class="profile-image mb-3" alt="Profile Picture" id="profile-image">
+                <div class="position-relative d-inline-block">
+                    <img src="./assets/uploads/user.jpg" class="profile-image mb-3" alt="Profile Picture" id="profile-image">
+                    <button type="button" class="btn btn-sm btn-primary position-absolute" 
+                            style="bottom: 10px; right: -10px; border-radius: 50%; width: 30px; height: 30px; padding: 0;"
+                            id="change-avatar-btn" title="Change Profile Picture">
+                        <i class="fas fa-camera" style="font-size: 12px;"></i>
+                    </button>
+                    <input type="file" id="avatar-upload" accept="image/*" style="display: none;">
+                </div>
                 <h4 class="mb-2" id="profile-username">Loading...</h4>
                 <p class="text-muted mb-0" id="profile-email">Loading...</p>
                 <div class="mt-3">
@@ -652,7 +672,119 @@ document.addEventListener('DOMContentLoaded', function() {
     // Load standard navigation components
     document.addEventListener('DOMContentLoaded', function() {
         loadStandardNavigation('profile');
+        
+        // Initialize profile picture upload functionality
+        initializeProfilePictureUpload();
     });
+    
+    function initializeProfilePictureUpload() {
+        const changeAvatarBtn = document.getElementById('change-avatar-btn');
+        const avatarUpload = document.getElementById('avatar-upload');
+        const profileImage = document.getElementById('profile-image');
+        
+        if (changeAvatarBtn && avatarUpload && profileImage) {
+            // Click handler for change avatar button
+            changeAvatarBtn.addEventListener('click', function() {
+                avatarUpload.click();
+            });
+            
+            // File input change handler
+            avatarUpload.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    handleProfilePictureUpload(file);
+                }
+            });
+        }
+    }
+    
+    async function handleProfilePictureUpload(file) {
+        // Validate file
+        if (!file.type.startsWith('image/')) {
+            alert('Please select a valid image file.');
+            return;
+        }
+        
+        // Check file size (limit to 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+            alert('Please select an image smaller than 5MB.');
+            return;
+        }
+        
+        try {
+            // Show loading state
+            const changeBtn = document.getElementById('change-avatar-btn');
+            const originalContent = changeBtn.innerHTML;
+            changeBtn.innerHTML = '<i class="fas fa-spinner fa-spin" style="font-size: 12px;"></i>';
+            changeBtn.disabled = true;
+            
+            // Create form data for upload
+            const formData = new FormData();
+            formData.append('avatar', file);
+            
+            // Get auth token
+            let token = null;
+            if (typeof SimpleAuth !== 'undefined') {
+                token = SimpleAuth.getToken();
+            } else {
+                token = localStorage.getItem('auth_token');
+            }
+            
+            if (!token) {
+                throw new Error('Authentication token not found. Please log in again.');
+            }
+            
+            // Upload the image
+            const response = await fetch(`${window.API_BASE_URL}/api/user/upload-avatar`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                },
+                body: formData
+            });
+            
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.message || `Upload failed: ${response.status}`);
+            }
+            
+            const result = await response.json();
+            
+            // Update the profile image
+            if (result.avatarUrl) {
+                const profileImage = document.getElementById('profile-image');
+                const sidebarAvatar = document.getElementById('user-avatar');
+                
+                profileImage.src = result.avatarUrl;
+                if (sidebarAvatar) {
+                    sidebarAvatar.src = result.avatarUrl;
+                }
+                
+                // Update cached user data
+                const userData = localStorage.getItem('user_data');
+                if (userData) {
+                    try {
+                        const user = JSON.parse(userData);
+                        user.avatar_url = result.avatarUrl;
+                        localStorage.setItem('user_data', JSON.stringify(user));
+                    } catch (e) {
+                        console.error('Error updating cached user data:', e);
+                    }
+                }
+                
+                alert('Profile picture updated successfully!');
+            }
+            
+        } catch (error) {
+            console.error('Profile picture upload error:', error);
+            alert(`Failed to upload profile picture: ${error.message}`);
+        } finally {
+            // Restore button state
+            const changeBtn = document.getElementById('change-avatar-btn');
+            changeBtn.innerHTML = '<i class="fas fa-camera" style="font-size: 12px;"></i>';
+            changeBtn.disabled = false;
+        }
+    }
 </script>
 
 <script>
@@ -902,14 +1034,14 @@ window.debugUpdateUI = function() {
 };
 
 // Add debug button to manually update UI
-const debugBtn = document.createElement('button');
-debugBtn.innerText = 'Debug: Update UI';
-debugBtn.style.cssText = 'position: fixed; bottom: 10px; right: 10px; z-index: 9999; padding: 10px; background: red; color: white; border: none; border-radius: 5px;';
-debugBtn.onclick = () => {
-    const result = window.debugUpdateUI();
-    alert(result);
-};
-document.body.appendChild(debugBtn);
+// const debugBtn = document.createElement('button');
+// debugBtn.innerText = 'Debug: Update UI';
+// debugBtn.style.cssText = 'position: fixed; bottom: 10px; right: 10px; z-index: 9999; padding: 10px; background: red; color: white; border: none; border-radius: 5px;';
+// debugBtn.onclick = () => {
+//     const result = window.debugUpdateUI();
+//     alert(result);
+// };
+// document.body.appendChild(debugBtn);
 
 console.log('=========================================');
 console.log('Debug function added! Use window.debugUpdateUI() in console to manually update UI from cache.');

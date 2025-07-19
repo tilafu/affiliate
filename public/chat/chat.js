@@ -1,35 +1,31 @@
 // Chat Application with Socket.IO Integration
+// This file now serves as a secondary support system for user-chat.js
+// Most core functionality has been moved to user-chat.js to prevent conflicts
+
 document.addEventListener('DOMContentLoaded', function() {
-    initializeChat();
+    // Check if user-chat.js has already initialized
+    if (window.userChatAppInitialized) {
+        console.log('User chat app already initialized, skipping chat.js initialization');
+        return;
+    }
+    
+    // If user-chat.js didn't initialize for some reason, mark that main chat app is trying
+    window.chatAppInitialized = true;
+    console.warn('user-chat.js failed to initialize, falling back to basic chat.js functionality');
+    
+    // Minimal fallback initialization - most functionality is now in user-chat.js
+    initializeBasicChat();
 });
 
-function initializeChat() {
-    // DOM Elements
-    const chatsList = document.getElementById('chatsList');
-    const chatDefaultState = document.getElementById('chatDefaultState');
-    const chatActiveState = document.getElementById('chatActiveState');
-    const messageInput = document.getElementById('messageInput');
-    const sendButton = document.getElementById('sendMessage');
-    const messagesContainer = document.getElementById('chatMessages');
-    const searchInput = document.getElementById('searchInput');
-    const tabButtons = document.querySelectorAll('.sidebar-tabs .tab');
-    const attachFileButton = document.getElementById('attachFileButton');
+function initializeBasicChat() {
+    console.log('Initializing basic chat fallback (user-chat.js should handle main functionality)');
     
-    // File upload elements (to be created dynamically)
-    let fileInput = null;
-    let selectedFile = null;
-    let filePreview = null;
-
-    // Socket.IO connection
-    let socket;
-    let currentUser = null;
-    let activeGroupId = null;
-    let activeChatType = 'group'; // 'group' or 'direct'
-    let groups = [];
-    let activeGroup = null;
-    let messages = {};
-    let typingTimeout = null; // For debouncing typing events
-    let isDataLoaded = false; // Add flag to track if data is loaded
+    // Basic error handling for cases where user-chat.js fails
+    const chatsList = document.getElementById('chatsList');
+    if (chatsList && chatsList.innerHTML.trim() === '') {
+        chatsList.innerHTML = '<div class="no-chats">Loading chats... If this persists, please refresh the page.</div>';
+    }
+}
     
     // Error handling and notifications
     function showNotification(message, type = 'info') {
@@ -670,6 +666,7 @@ function initializeChat() {
     // UI Updates
     function renderChatsList(chats = []) {
         console.log('renderChatsList called with:', chats.length, 'conversations');
+        console.log('Sample chat data:', chats.slice(0, 2)); // Show first 2 items for debugging
         
         if (!Array.isArray(chats)) {
             console.warn('renderChatsList called with non-array data:', chats);
@@ -732,14 +729,25 @@ function initializeChat() {
         document.querySelectorAll('.chat-item').forEach(item => {
             const handleChatItemTap = (e) => {
                 e.preventDefault();
+                e.stopPropagation();
+                
                 console.log('Chat item clicked/tapped:', { 
                     chatId: item.dataset.chatId, 
                     chatType: item.dataset.chatType,
-                    eventType: e.type 
+                    eventType: e.type,
+                    isMobile: isMobileView(),
+                    target: e.target
                 });
                 
                 const chatId = item.dataset.chatId;
                 const chatType = item.dataset.chatType;
+                
+                if (!chatId) {
+                    console.error('No chatId found on clicked item');
+                    return;
+                }
+                
+                console.log('Calling openChat with:', { chatId, chatType });
                 openChat(chatId, chatType);
                 
                 // Mark as active
@@ -753,25 +761,49 @@ function initializeChat() {
                 }
             };
             
-            // Support both click and touch events for mobile
+            // Add click event for desktop and all devices as fallback
             item.addEventListener('click', handleChatItemTap);
-            item.addEventListener('touchend', handleChatItemTap);
             
-            // Prevent double-tap zoom on mobile
-            item.addEventListener('touchstart', (e) => {
-                item.style.transform = 'scale(0.98)';
-            });
-            
-            item.addEventListener('touchend', () => {
-                setTimeout(() => {
-                    item.style.transform = '';
-                }, 150);
-            });
+            // Add simple touch event for mobile devices
+            if ('ontouchstart' in window) {
+                // Simple tap event that works alongside click
+                item.addEventListener('touchend', (e) => {
+                    // Only prevent default and stop propagation for touchend
+                    // Let the click event handle the actual logic
+                    console.log('Touch end detected on chat item');
+                });
+                
+                // Visual feedback for touch
+                item.addEventListener('touchstart', (e) => {
+                    item.style.transform = 'scale(0.98)';
+                    item.style.transition = 'transform 0.1s ease';
+                });
+                
+                item.addEventListener('touchend', (e) => {
+                    setTimeout(() => {
+                        item.style.transform = '';
+                        item.style.transition = '';
+                    }, 150);
+                });
+                
+                console.log('Added touch events to chat item:', item.dataset.chatId);
+            }
         });
     }
     
     function openChat(chatId, chatType = 'group') {
-        console.log('openChat called:', { chatId, chatType, windowWidth: window.innerWidth });
+        console.log('openChat called:', { 
+            chatId, 
+            chatType, 
+            windowWidth: window.innerWidth,
+            isMobile: isMobileView(),
+            activeGroupId: activeGroupId
+        });
+        
+        if (!chatId) {
+            console.error('openChat called with invalid chatId:', chatId);
+            return;
+        }
         
         // Leave previous room if active
         if (socket && activeGroupId) {
@@ -805,22 +837,58 @@ function initializeChat() {
         }
         
         // Update UI for mobile and desktop
+        console.log('Showing chat interface:', {
+            chatDefaultState: chatDefaultState,
+            chatActiveState: chatActiveState,
+            isMobile: isMobileView(),
+            windowWidth: window.innerWidth
+        });
+        
+        if (!chatDefaultState || !chatActiveState) {
+            console.error('Missing chat state elements!', {
+                chatDefaultState: !!chatDefaultState,
+                chatActiveState: !!chatActiveState
+            });
+            return;
+        }
+        
         chatDefaultState.classList.add('hidden');
         chatActiveState.classList.remove('hidden');
         
+        console.log('Chat state classes updated:', {
+            defaultHidden: chatDefaultState.classList.contains('hidden'),
+            activeVisible: !chatActiveState.classList.contains('hidden')
+        });
+        
         // Mobile-specific navigation: hide sidebar and show chat
-        if (window.innerWidth <= 768) {
+        if (isMobileView()) {
             console.log('Mobile view detected, applying mobile navigation');
             const sidebar = document.querySelector('.chat-sidebar');
             const main = document.querySelector('.chat-main');
             
+            console.log('Elements found:', { 
+                sidebar: !!sidebar, 
+                main: !!main,
+                sidebarClasses: sidebar ? Array.from(sidebar.classList) : 'null',
+                mainClasses: main ? Array.from(main.classList) : 'null'
+            });
+            
             if (sidebar && main) {
+                // Force the mobile classes
                 sidebar.classList.add('hidden-mobile');
                 main.classList.add('active-mobile');
+                
                 console.log('Mobile classes applied:', { 
                     sidebarHidden: sidebar.classList.contains('hidden-mobile'),
-                    mainActive: main.classList.contains('active-mobile')
+                    mainActive: main.classList.contains('active-mobile'),
+                    sidebarClasses: Array.from(sidebar.classList),
+                    mainClasses: Array.from(main.classList)
                 });
+                
+                // Force a reflow to ensure CSS animations work
+                sidebar.offsetHeight;
+                main.offsetHeight;
+                
             } else {
                 console.error('Could not find sidebar or main elements');
             }
@@ -834,12 +902,14 @@ function initializeChat() {
         chatDefaultState.classList.remove('hidden');
         
         // Mobile-specific navigation: show sidebar and hide chat
-        if (window.innerWidth <= 768) {
+        if (isMobileView()) {
             const sidebar = document.querySelector('.chat-sidebar');
             const main = document.querySelector('.chat-main');
             
-            sidebar.classList.remove('hidden-mobile');
-            main.classList.remove('active-mobile');
+            if (sidebar && main) {
+                sidebar.classList.remove('hidden-mobile');
+                main.classList.remove('active-mobile');
+            }
         }
         
         // Clear active chat
@@ -1445,14 +1515,36 @@ function initializeChat() {
         // Send button
         sendButton.addEventListener('click', sendMessage);
         
-        // Enter key in input
+        // Enter key in input with better mobile handling
         messageInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
+                e.preventDefault();
                 sendMessage();
             } else {
                 notifyTyping();
             }
         });
+        
+        // Handle mobile keyboard behavior
+        if (isMobileView()) {
+            messageInput.addEventListener('focus', () => {
+                // Delay to ensure keyboard is visible
+                setTimeout(() => {
+                    if (messagesContainer) {
+                        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                    }
+                }, 300);
+            });
+            
+            messageInput.addEventListener('blur', () => {
+                // Small delay to handle keyboard hiding
+                setTimeout(() => {
+                    if (messagesContainer) {
+                        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                    }
+                }, 100);
+            });
+        }
         
         // Search input
         searchInput.addEventListener('input', (e) => {
@@ -1479,31 +1571,59 @@ function initializeChat() {
             console.warn('Attach file button not found');
         }
         
-        // Handle window resize for responsive behavior
+        // Handle window resize and orientation change for responsive behavior
         window.addEventListener('resize', handleWindowResize);
+        window.addEventListener('orientationchange', () => {
+            // Delay to allow orientation change to complete
+            setTimeout(() => {
+                handleWindowResize();
+                // Scroll to bottom of messages after orientation change
+                if (messagesContainer && activeGroupId) {
+                    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                }
+            }, 100);
+        });
     }
     
-    // Handle window resize for responsive behavior
+    // Improved mobile detection
+    function isMobileView() {
+        const width = window.innerWidth;
+        const isMobile = width <= 768;
+        console.log('Mobile detection:', { width, isMobile });
+        return isMobile;
+    }
+    
+    // Handle window resize for responsive behavior with debouncing
+    let resizeTimeout;
     function handleWindowResize() {
-        const sidebar = document.querySelector('.chat-sidebar');
-        const main = document.querySelector('.chat-main');
-        
-        if (window.innerWidth > 768) {
-            // Desktop view: reset mobile classes
-            sidebar.classList.remove('hidden-mobile');
-            main.classList.remove('active-mobile');
-        } else {
-            // Mobile view: maintain current state
-            if (activeGroupId) {
-                // If chat is active, keep mobile navigation state
-                sidebar.classList.add('hidden-mobile');
-                main.classList.add('active-mobile');
-            } else {
-                // If no chat active, show sidebar
+        // Debounce resize events to prevent excessive calls
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(() => {
+            const sidebar = document.querySelector('.chat-sidebar');
+            const main = document.querySelector('.chat-main');
+            
+            if (!sidebar || !main) {
+                console.warn('Sidebar or main element not found during resize');
+                return;
+            }
+            
+            if (!isMobileView()) {
+                // Desktop view: reset mobile classes
                 sidebar.classList.remove('hidden-mobile');
                 main.classList.remove('active-mobile');
+            } else {
+                // Mobile view: maintain current state based on active chat
+                if (activeGroupId) {
+                    // If chat is active, keep mobile navigation state
+                    sidebar.classList.add('hidden-mobile');
+                    main.classList.add('active-mobile');
+                } else {
+                    // If no chat active, show sidebar
+                    sidebar.classList.remove('hidden-mobile');
+                    main.classList.remove('active-mobile');
+                }
             }
-        }
+        }, 100); // 100ms debounce
     }
     
     // Create a hidden file input element
@@ -1787,15 +1907,27 @@ function initializeChat() {
         }, 30000); // 30 seconds
     }
     
-    // Initialize mobile layout on page load
+    // Initialize mobile layout on page load with better error handling
     function initializeMobileLayout() {
-        if (window.innerWidth <= 768) {
+        if (isMobileView()) {
             const sidebar = document.querySelector('.chat-sidebar');
             const main = document.querySelector('.chat-main');
             
-            // On mobile, start with sidebar visible and chat hidden
-            sidebar.classList.remove('hidden-mobile');
-            main.classList.remove('active-mobile');
+            if (sidebar && main) {
+                // On mobile, start with sidebar visible and chat hidden
+                sidebar.classList.remove('hidden-mobile');
+                main.classList.remove('active-mobile');
+                
+                // Add iOS-specific fixes
+                if (navigator.userAgent.includes('iPhone') || navigator.userAgent.includes('iPad')) {
+                    document.body.style.webkitTextSizeAdjust = '100%';
+                    document.body.style.webkitTouchCallout = 'none';
+                }
+                
+                console.log('Mobile layout initialized');
+            } else {
+                console.warn('Could not find sidebar or main elements for mobile initialization');
+            }
         }
     }
     
@@ -1843,6 +1975,48 @@ function initializeChat() {
         
         console.log('==================================');
     }
+    
+    // Test function for debugging mobile navigation (can be called from console)
+    window.testMobileNavigation = function() {
+        console.log('Testing mobile navigation...');
+        const sidebar = document.querySelector('.chat-sidebar');
+        const main = document.querySelector('.chat-main');
+        const chatDefaultState = document.getElementById('chatDefaultState');
+        const chatActiveState = document.getElementById('chatActiveState');
+        
+        console.log('Elements:', {
+            sidebar: !!sidebar,
+            main: !!main,
+            chatDefaultState: !!chatDefaultState,
+            chatActiveState: !!chatActiveState
+        });
+        
+        if (sidebar && main && chatDefaultState && chatActiveState) {
+            // Hide default state, show active state
+            chatDefaultState.classList.add('hidden');
+            chatActiveState.classList.remove('hidden');
+            
+            // Apply mobile classes
+            sidebar.classList.add('hidden-mobile');
+            main.classList.add('active-mobile');
+            
+            console.log('Classes applied:', {
+                sidebarClasses: Array.from(sidebar.classList),
+                mainClasses: Array.from(main.classList),
+                defaultStateClasses: Array.from(chatDefaultState.classList),
+                activeStateClasses: Array.from(chatActiveState.classList)
+            });
+        } else {
+            console.error('Missing elements for mobile navigation test');
+        }
+    };
+    
+    // Simple test function to test openChat directly
+    window.testOpenChat = function(testChatId = 'test123', testChatType = 'group') {
+        console.log('Testing openChat function directly...');
+        openChat(testChatId, testChatType);
+    };
+    
     init();
     
     // Show group members in a modal

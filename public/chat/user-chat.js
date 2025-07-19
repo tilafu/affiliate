@@ -14,6 +14,11 @@ class UserChatApp {
     this.init();
   }
 
+  // Helper method to detect mobile view
+  isMobileView() {
+    return window.innerWidth <= 768;
+  }
+
   async init() {
     try {
       console.log('Initializing chat app...');
@@ -121,6 +126,12 @@ class UserChatApp {
       });
     }
 
+    // Mobile back button functionality
+    const mobileBackBtn = document.getElementById('mobileBackBtn');
+    if (mobileBackBtn) {
+      mobileBackBtn.addEventListener('click', () => this.goBackToChatList());
+    }
+
     // Tab functionality
     document.querySelectorAll('.tab').forEach(tab => {
       tab.addEventListener('click', (e) => {
@@ -222,6 +233,19 @@ class UserChatApp {
     this.chatDefaultState.classList.add('hidden');
     this.chatActiveState.classList.remove('hidden');
     
+    // Mobile navigation: Hide sidebar and show chat
+    if (this.isMobileView()) {
+      console.log('Mobile view detected, applying mobile navigation');
+      const sidebar = document.querySelector('.chat-sidebar');
+      const main = document.querySelector('.chat-main');
+      
+      if (sidebar && main) {
+        sidebar.classList.add('hidden-mobile');
+        main.classList.add('active-mobile');
+        console.log('Mobile classes applied for WhatsApp-style navigation');
+      }
+    }
+    
     // Update chat header
     this.contactName.textContent = group.name;
     this.contactStatus.textContent = `${group.member_count} members`;
@@ -232,6 +256,43 @@ class UserChatApp {
     // Join socket room for real-time updates
     if (this.socket) {
       this.socket.emit('join_group', group.id);
+    }
+  }
+
+  // Mobile navigation: go back to chat list
+  goBackToChatList() {
+    console.log('Going back to chat list');
+    
+    // Hide active chat and show default state
+    if (this.chatActiveState) {
+      this.chatActiveState.classList.add('hidden');
+    }
+    if (this.chatDefaultState) {
+      this.chatDefaultState.classList.remove('hidden');
+    }
+    
+    // Mobile-specific navigation: show sidebar and hide chat
+    if (this.isMobileView()) {
+      console.log('Mobile back navigation: showing sidebar, hiding chat');
+      const sidebar = document.querySelector('.chat-sidebar');
+      const main = document.querySelector('.chat-main');
+      
+      if (sidebar && main) {
+        sidebar.classList.remove('hidden-mobile');
+        main.classList.remove('active-mobile');
+        console.log('Mobile classes removed for back navigation');
+      }
+    }
+    
+    // Clear active group
+    this.currentGroup = null;
+    
+    // Remove active state from chat items
+    document.querySelectorAll('.chat-item').forEach(el => el.classList.remove('active'));
+    
+    // Leave socket room if connected
+    if (this.socket && this.currentGroup) {
+      this.socket.emit('leave_group', this.currentGroup.id);
     }
   }
 
@@ -398,5 +459,14 @@ class UserChatApp {
 
 // Initialize the chat app when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
+  // Check if the main chat.js has already initialized
+  // to prevent conflicts between the two chat implementations
+  if (window.chatAppInitialized) {
+    console.log('Main chat app already initialized, skipping user-chat.js initialization');
+    return;
+  }
+  
+  // Mark that we're initializing to prevent conflicts
+  window.userChatAppInitialized = true;
   new UserChatApp();
 });

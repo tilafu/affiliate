@@ -1,4 +1,5 @@
 const express = require('express');
+const pool = require('../config/db'); // Import database connection
 // Import updateUserProfile from correct controller if it exists, otherwise remove
 // const { getUserProfile, updateUserProfile } = require('../controllers/user'); 
 const { protect } = require('../middlewares/auth'); // Import the auth middleware
@@ -188,6 +189,35 @@ router.get('/qr-code', getActiveQRCode); // Alternative route for admin panel
 const multer = require('multer');
 const path = require('path');
 
+// Configure multer for avatar uploads
+const avatarStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, path.join(__dirname, '../../public/assets/uploads/avatars/'));
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, 'avatar-' + req.user.id + '-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const uploadAvatar = multer({
+  storage: avatarStorage,
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = /jpeg|jpg|png|gif/;
+    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = allowedTypes.test(file.mimetype);
+    
+    if (mimetype && extname) {
+      return cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed!'));
+    }
+  }
+});
+
 // Configure multer for deposit images
 const depositImageStorage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -218,6 +248,36 @@ const uploadDepositImage = multer({
 });
 
 router.post('/deposit-with-image', protect, uploadDepositImage.single('image'), createDepositWithImage);
+
+// @route   POST /api/user/upload-avatar
+// @desc    Upload user avatar
+// @access  Private
+router.post('/upload-avatar', protect, uploadAvatar.single('avatar'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'No file uploaded' });
+    }
+
+    const avatarUrl = `/assets/uploads/avatars/${req.file.filename}`;
+    
+    // Update user's avatar_url in database
+    const query = 'UPDATE users SET avatar_url = ? WHERE id = ?';
+    const [result] = await pool.execute(query, [avatarUrl, req.user.id]);
+
+    res.json({
+      success: true,
+      message: 'Avatar uploaded successfully',
+      avatarUrl: avatarUrl
+    });
+
+  } catch (error) {
+    console.error('Avatar upload error:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Server error during avatar upload' 
+    });
+  }
+});
 
 // --- End QR Code and Deposit Image Routes ---
 
