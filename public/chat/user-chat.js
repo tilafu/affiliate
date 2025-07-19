@@ -10,6 +10,9 @@ class UserChatApp {
     this.groups = [];
     this.messages = [];
     this.socket = null;
+    this.memberCountTimer = null; // Timer for auto-refreshing member counts
+    this.lastMemberCount = undefined; // Track last member count for realistic changes
+    this.groupLastVisited = {}; // Track when user last visited each group for "new" badges
     
     this.init();
   }
@@ -17,6 +20,185 @@ class UserChatApp {
   // Helper method to detect mobile view
   isMobileView() {
     return window.innerWidth <= 768;
+  }
+
+  // Helper method to generate exaggerated member count display
+  getExaggeratedMemberCount(min = 100, max = 2000, forceNew = false) {
+    // If this is the first time or we're forcing a new count, generate initial random number
+    if (this.lastMemberCount === undefined || forceNew) {
+      const onlineCount = Math.floor(Math.random() * (max - min + 1)) + min;
+      this.lastMemberCount = onlineCount;
+      return `${onlineCount} online`;
+    }
+    
+    // For subsequent calls, return the same count (only update during auto-refresh)
+    return `${this.lastMemberCount} online`;
+  }
+
+  // Method specifically for auto-refresh with gradual changes
+  getUpdatedMemberCount(min = 100, max = 2000) {
+    if (this.lastMemberCount === undefined) {
+      // Initialize if not set
+      this.lastMemberCount = Math.floor(Math.random() * (max - min + 1)) + min;
+    } else {
+      // Make realistic incremental changes (±20 max)
+      const maxChange = 20;
+      const change = Math.floor(Math.random() * (maxChange * 2 + 1)) - maxChange; // -20 to +20
+      let newCount = this.lastMemberCount + change;
+      
+      // Ensure we stay within bounds
+      newCount = Math.max(min, Math.min(max, newCount));
+      this.lastMemberCount = newCount;
+    }
+    
+    return `${this.lastMemberCount} online`;
+  }
+
+  // Start auto-refresh timer for member counts
+  startMemberCountRefresh() {
+    // Clear any existing timer
+    if (this.memberCountTimer) {
+      clearInterval(this.memberCountTimer);
+    }
+    
+    // Update every 3 minutes (180,000 milliseconds)
+    this.memberCountTimer = setInterval(() => {
+      this.updatePersonalGroupMemberCounts();
+    }, 180000);
+  }
+
+  // Update member counts for personal groups only
+  updatePersonalGroupMemberCounts() {
+    // Update in chat list
+    this.groups.forEach(group => {
+      if (group.is_personal_group) {
+        const groupElement = document.querySelector(`[data-group-id="${group.id}"]`);
+        if (groupElement) {
+          const previewElement = groupElement.querySelector('.chat-item-preview');
+          if (previewElement) {
+            previewElement.innerHTML = `
+              ${group.message_count} messages • ${this.getUpdatedMemberCount()}
+            `;
+          }
+        }
+      }
+    });
+
+    // Update chat header if currently viewing a personal group
+    if (this.currentGroup && this.currentGroup.is_personal_group) {
+      if (this.contactStatus) {
+        this.contactStatus.textContent = this.getUpdatedMemberCount();
+      }
+    }
+  }
+
+  // Stop the member count refresh timer
+  stopMemberCountRefresh() {
+    if (this.memberCountTimer) {
+      clearInterval(this.memberCountTimer);
+      this.memberCountTimer = null;
+    }
+  }
+
+  // Helper method to check if user can post in the current group
+  canPostInGroup(group) {
+    // Users can only post in their personal group (created when they registered)
+    // All other groups are read-only for clients
+    return group && group.is_personal_group === true;
+  }
+
+  // Helper method to check if group has new messages since last visit
+  hasNewMessages(group) {
+    const lastVisited = this.groupLastVisited[group.id];
+    if (!lastVisited) {
+      // Never visited this group, consider it as having new messages if it has any activity
+      return group.last_activity && group.message_count > 0;
+    }
+    
+    // Check if group has activity since last visit
+    if (group.last_activity) {
+      const lastActivityTime = new Date(group.last_activity);
+      return lastActivityTime > lastVisited;
+    }
+    
+    return false;
+  }
+
+  // Mark group as visited (remove "new" badge)
+  markGroupAsVisited(groupId) {
+    this.groupLastVisited[groupId] = new Date();
+    
+    // Save to localStorage for persistence across sessions
+    localStorage.setItem('chatGroupLastVisited', JSON.stringify(this.groupLastVisited));
+    
+    // Update the UI to remove the badge
+    this.updateGroupNewBadge(groupId, false);
+  }
+
+  // Load last visited times from localStorage
+  loadGroupVisitedTimes() {
+    try {
+      const stored = localStorage.getItem('chatGroupLastVisited');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        // Convert string dates back to Date objects
+        this.groupLastVisited = {};
+        for (const [groupId, dateString] of Object.entries(parsed)) {
+          this.groupLastVisited[groupId] = new Date(dateString);
+        }
+      }
+    } catch (error) {
+      console.log('Could not load group visited times:', error);
+      this.groupLastVisited = {};
+    }
+  }
+
+  // Update new badge for a specific group
+  updateGroupNewBadge(groupId, hasNew) {
+    const groupElement = document.querySelector(`[data-group-id="${groupId}"]`);
+    if (!groupElement) return;
+    
+    const nameElement = groupElement.querySelector('.chat-item-name');
+    if (!nameElement) return;
+    
+    // Remove existing badge
+    const existingBadge = nameElement.querySelector('.new-message-badge');
+    if (existingBadge) {
+      existingBadge.remove();
+    }
+    
+    // Add new badge if needed
+    if (hasNew) {
+      const newBadge = document.createElement('span');
+      newBadge.className = 'new-message-badge';
+      newBadge.textContent = 'NEW';
+      nameElement.appendChild(document.createTextNode(' '));
+      nameElement.appendChild(newBadge);
+    }
+  }
+
+  // Update input area based on posting permissions
+  updateInputPermissions(group) {
+    const canPost = this.canPostInGroup(group);
+    const inputArea = document.querySelector('.chat-input-area');
+    
+    if (!this.messageInput || !this.sendButton || !inputArea) return;
+    
+    if (canPost) {
+      // Enable posting
+      this.messageInput.disabled = false;
+      this.sendButton.disabled = false;
+      this.messageInput.placeholder = 'Type a message';
+      inputArea.classList.remove('read-only');
+      inputArea.style.opacity = '1';
+    } else {
+      // Disable posting - read-only mode
+      this.messageInput.disabled = true;
+      this.sendButton.disabled = true;
+      // this.messageInput.placeholder = 'You can only read messages in this group';
+      inputArea.classList.add('read-only');
+      inputArea.style.opacity = '0.6';
+    }
   }
 
   async init() {
@@ -111,6 +293,7 @@ class UserChatApp {
     this.sendButton = document.getElementById('sendMessage');
     this.contactName = document.getElementById('contactName');
     this.contactStatus = document.getElementById('contactStatus');
+    this.searchInput = document.getElementById('searchInput');
 
     // Add event listeners
     if (this.sendButton) {
@@ -126,28 +309,21 @@ class UserChatApp {
       });
     }
 
+    // Search functionality
+    if (this.searchInput) {
+      this.searchInput.addEventListener('input', (e) => this.handleSearch(e.target.value));
+      this.searchInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          this.clearSearch();
+        }
+      });
+    }
+
     // Mobile back button functionality
     const mobileBackBtn = document.getElementById('mobileBackBtn');
     if (mobileBackBtn) {
       mobileBackBtn.addEventListener('click', () => this.goBackToChatList());
     }
-
-    // Tab functionality
-    document.querySelectorAll('.tab').forEach(tab => {
-      tab.addEventListener('click', (e) => {
-        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-        e.target.classList.add('active');
-        
-        if (e.target.textContent === 'Groups') {
-          this.showGroups();
-        } else if (e.target.textContent === 'Recent') {
-          this.showRecentChats();
-        }
-      });
-    });
-
-    // Set default tab
-    document.querySelector('.tab').classList.add('active');
   }
 
   getAuthToken() {
@@ -171,7 +347,14 @@ class UserChatApp {
 
       const data = await response.json();
       this.groups = data.groups;
+      
+      // Load group visited times from localStorage
+      this.loadGroupVisitedTimes();
+      
       this.renderGroups();
+      
+      // Start auto-refresh for personal group member counts
+      this.startMemberCountRefresh();
       
     } catch (error) {
       console.error('Error loading groups:', error);
@@ -199,19 +382,27 @@ class UserChatApp {
     const groupIcon = isPersonal ? 'fas fa-user-circle' : 'fas fa-users';
     const lastActivity = group.last_activity ? new Date(group.last_activity).toLocaleDateString() : 'No activity';
     
+    // Show generic name for personal group on client side
+    const displayName = isPersonal ? 'Main PEA Communication' : group.name;
+    
+    // Check if group has new messages since last visit
+    const hasNewMessages = this.hasNewMessages(group);
+    const newBadge = hasNewMessages ? '<span class="new-message-badge">NEW</span>' : '';
+    
     div.innerHTML = `
       <div class="chat-item-avatar">
         <i class="${groupIcon} fa-2x" style="color: ${isPersonal ? '#007bff' : '#28a745'};"></i>
       </div>
       <div class="chat-item-content">
         <div class="chat-item-header">
-          <span class="chat-item-name">${group.name}</span>
+          <span class="chat-item-name">${displayName} ${newBadge}</span>
           <span class="chat-item-time">${lastActivity}</span>
         </div>
         <div class="chat-item-preview">
-          ${group.message_count} messages • ${group.member_count} members
+          ${group.message_count} messages${isPersonal ? ' • ' + this.getExaggeratedMemberCount() : ''}
+          ${!isPersonal ? '<span class="read-only-indicator">• Read Only</span>' : ''}
         </div>
-        ${isPersonal ? '<div class="personal-group-badge">Your Community</div>' : ''}
+        ${isPersonal ? '<div class="personal-group-badge">✏️ Your Community - You can post here</div>' : ''}
       </div>
     `;
 
@@ -222,6 +413,9 @@ class UserChatApp {
 
   async selectGroup(group) {
     this.currentGroup = group;
+    
+    // Mark group as visited to remove "new" badge
+    this.markGroupAsVisited(group.id);
     
     // Update UI
     document.querySelectorAll('.chat-item').forEach(item => {
@@ -247,8 +441,12 @@ class UserChatApp {
     }
     
     // Update chat header
-    this.contactName.textContent = group.name;
-    this.contactStatus.textContent = `${group.member_count} members`;
+    const displayName = group.is_personal_group ? 'Main PEA Communication' : group.name;
+    this.contactName.textContent = displayName;
+    this.contactStatus.textContent = group.is_personal_group ? this.getExaggeratedMemberCount() : 'Community Group';
+    
+    // Update input permissions based on group type
+    this.updateInputPermissions(group);
     
     // Load messages for this group
     await this.loadMessages(group.id);
@@ -363,6 +561,13 @@ class UserChatApp {
   async sendMessage() {
     if (!this.currentGroup || !this.messageInput) return;
     
+    // Check if user has permission to post in this group
+    if (!this.canPostInGroup(this.currentGroup)) {
+      console.log('User does not have permission to post in this group');
+      this.showError('You can only post messages in your personal group');
+      return;
+    }
+    
     const content = this.messageInput.value.trim();
     if (!content) return;
 
@@ -406,7 +611,17 @@ class UserChatApp {
     
     this.socket.on('new_message', (message) => {
       if (this.currentGroup && message.group_id === this.currentGroup.id) {
+        // Add message to current chat
         this.addMessageToUI(message);
+      } else {
+        // Message in a different group - show "new" badge
+        this.updateGroupNewBadge(message.group_id, true);
+        
+        // Update the group's last activity to current time for badge logic
+        const group = this.groups.find(g => g.id === message.group_id);
+        if (group) {
+          group.last_activity = new Date().toISOString();
+        }
       }
     });
 
@@ -417,15 +632,6 @@ class UserChatApp {
     this.socket.on('disconnect', () => {
       console.log('Disconnected from chat server');
     });
-  }
-
-  showGroups() {
-    this.renderGroups();
-  }
-
-  showRecentChats() {
-    // TODO: Implement recent chats view
-    this.chatsList.innerHTML = '<div class="no-chats">Recent chats coming soon...</div>';
   }
 
   showError(message) {
@@ -453,7 +659,91 @@ class UserChatApp {
   }
 
   redirectToLogin() {
+    // Clean up timer before redirecting
+    this.stopMemberCountRefresh();
     window.location.href = '/login.html';
+  }
+
+  // Cleanup method to be called when the app is destroyed
+  destroy() {
+    this.stopMemberCountRefresh();
+    if (this.socket) {
+      this.socket.disconnect();
+    }
+  }
+
+  // Search functionality
+  handleSearch(searchTerm) {
+    const term = searchTerm.toLowerCase().trim();
+    
+    if (!term) {
+      this.clearSearch();
+      return;
+    }
+
+    this.filterGroups(term);
+  }
+
+  filterGroups(searchTerm) {
+    const groupElements = document.querySelectorAll('.chat-item');
+    let hasVisibleGroups = false;
+
+    groupElements.forEach(element => {
+      const groupId = element.dataset.groupId;
+      const group = this.groups.find(g => g.id == groupId);
+      
+      if (group) {
+        const groupName = group.is_personal_group ? 'Main PEA Communication' : group.name;
+        const isMatch = groupName.toLowerCase().includes(searchTerm);
+        
+        if (isMatch) {
+          element.style.display = 'flex';
+          hasVisibleGroups = true;
+        } else {
+          element.style.display = 'none';
+        }
+      }
+    });
+
+    // Show/hide "no results" message
+    this.toggleNoSearchResults(!hasVisibleGroups, searchTerm);
+  }
+
+  clearSearch() {
+    if (this.searchInput) {
+      this.searchInput.value = '';
+    }
+    
+    // Show all groups
+    const groupElements = document.querySelectorAll('.chat-item');
+    groupElements.forEach(element => {
+      element.style.display = 'flex';
+    });
+
+    // Hide "no results" message
+    this.toggleNoSearchResults(false);
+  }
+
+  toggleNoSearchResults(show, searchTerm = '') {
+    let noResultsDiv = document.getElementById('noSearchResults');
+    
+    if (show && !noResultsDiv) {
+      // Create "no results" message
+      noResultsDiv = document.createElement('div');
+      noResultsDiv.id = 'noSearchResults';
+      noResultsDiv.className = 'no-search-results';
+      noResultsDiv.innerHTML = `
+        <div class="no-results-content">
+          <i class="fas fa-search"></i>
+          <p>No chats found for "${this.escapeHtml(searchTerm)}"</p>
+          <small>Try searching with different keywords</small>
+        </div>
+      `;
+      this.chatsList.appendChild(noResultsDiv);
+    } else if (!show && noResultsDiv) {
+      // Remove "no results" message
+      noResultsDiv.remove();
+    }
   }
 }
 
@@ -468,5 +758,15 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // Mark that we're initializing to prevent conflicts
   window.userChatAppInitialized = true;
-  new UserChatApp();
+  const chatApp = new UserChatApp();
+  
+  // Store reference globally for cleanup
+  window.userChatApp = chatApp;
+  
+  // Cleanup on page unload
+  window.addEventListener('beforeunload', () => {
+    if (window.userChatApp) {
+      window.userChatApp.destroy();
+    }
+  });
 });

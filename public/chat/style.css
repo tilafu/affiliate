@@ -68,31 +68,6 @@ body, .chat-dark-bg {
     font-size: 1rem;
 }
 
-.sidebar-tabs {
-    display: flex;
-    gap: 8px;
-    padding: 10px 16px;
-    background: #111b21;
-    border-bottom: 1px solid #222d34;
-}
-
-.sidebar-tabs .tab {
-    background: none;
-    border: none;
-    color: #aebac1;
-    padding: 6px 14px;
-    border-radius: 20px;
-    cursor: pointer;
-    font-size: 0.95rem;
-    transition: background 0.2s;
-}
-
-.sidebar-tabs .tab.active,
-.sidebar-tabs .tab:hover {
-    background: #2a3942;
-    color: #53bdeb;
-}
-
 .chats-list {
     flex: 1;
     overflow-y: auto;
@@ -126,6 +101,35 @@ body, .chat-dark-bg {
     width: 100%;
     height: 100%;
     object-fit: cover;
+}
+
+/* New message badge styles */
+.new-message-badge {
+    display: inline-block;
+    background: #ff3333;
+    color: white;
+    font-size: 9px;
+    font-weight: bold;
+    padding: 3px 6px;
+    border-radius: 10px;
+    margin-left: 8px;
+    text-align: center;
+    line-height: 1;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    vertical-align: middle;
+    animation: newBadgePulse 2s ease-in-out infinite;
+    white-space: nowrap;
+}
+
+@keyframes newBadgePulse {
+    0%, 100% { 
+        transform: scale(1); 
+        opacity: 1; 
+    }
+    50% { 
+        transform: scale(1.1); 
+        opacity: 0.8; 
+    }
 }
 
 .chat-type-indicator {
@@ -170,6 +174,7 @@ body, .chat-dark-bg {
     font-weight: 500;
     color: #e9edef;
     font-size: 1rem;
+    display: inline-block;
 }
 
 .chat-item-time {
@@ -401,6 +406,31 @@ body, .chat-dark-bg {
     color: #53bdeb;
 }
 
+/* Read-only input area styling */
+.chat-input-area.read-only {
+    background: #1a1f23;
+    opacity: 0.6;
+}
+
+.chat-input-area.read-only input[type="text"] {
+    background: #1a1f23 !important;
+    color: #8d9395 !important;
+    cursor: not-allowed !important;
+    border: 1px solid #2a3942 !important;
+}
+
+.chat-input-area.read-only .btn-icon {
+    color: #8d9395 !important;
+    cursor: not-allowed !important;
+    opacity: 0.5;
+}
+
+.chat-input-area.read-only .send-button {
+    color: #8d9395 !important;
+    cursor: not-allowed !important;
+    opacity: 0.5;
+}
+
 /* Admin fake user selector */
 .fake-user-selector {
     position: absolute;
@@ -511,6 +541,14 @@ body, .chat-dark-bg {
     font-weight: 500;
 }
 
+.read-only-indicator {
+    color: #ff9500;
+    font-size: 0.75rem;
+    font-weight: 600;
+    opacity: 0.8;
+    visibility: hidden;
+}
+
 .chat-item.active {
     background-color: #2a3942 !important;
     border-left: 3px solid #53bdeb;
@@ -598,6 +636,60 @@ body, .chat-dark-bg {
     padding: 40px 20px;
     color: #8696a0;
     font-style: italic;
+}
+
+/* Search results styling */
+.no-search-results {
+    text-align: center;
+    padding: 40px 20px;
+    color: #8696a0;
+}
+
+.no-results-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
+.no-results-content i {
+    font-size: 2.5rem;
+    color: #53bdeb;
+    opacity: 0.6;
+}
+
+.no-results-content p {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 500;
+}
+
+.no-results-content small {
+    margin: 0;
+    font-size: 0.85rem;
+    opacity: 0.7;
+}
+
+/* Enhanced search input styling */
+.sidebar-search input {
+    width: 100%;
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: none;
+    background: #2a3942;
+    color: #e9edef;
+    font-size: 1rem;
+    transition: background-color 0.2s, box-shadow 0.2s;
+}
+
+.sidebar-search input:focus {
+    outline: none;
+    background: #374151;
+    box-shadow: 0 0 0 2px rgba(83, 189, 235, 0.3);
+}
+
+.sidebar-search input::placeholder {
+    color: #8696a0;
 }
 
 .tab.active {
@@ -777,19 +869,6 @@ body, .chat-dark-bg {
     
     .app-title {
         font-size: 1.2rem;
-    }
-    
-    /* Mobile-specific tab styling */
-    .sidebar-tabs {
-        padding: 0 16px;
-        background: #202c33;
-        border-bottom: 1px solid #222d34;
-    }
-    
-    .sidebar-tabs .tab {
-        padding: 12px 16px;
-        font-size: 14px;
-        font-weight: 500;
     }
     
     /* Search input mobile styling */
