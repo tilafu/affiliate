@@ -439,17 +439,35 @@
                         <form id="signupForm">
                             <div class="row">
                                 <div class="col-md-6 mb-3">
-                                    <label for="username" class="form-label" data-i18n="publicUsernameLabel">
-                                        <i class="fas fa-user me-1"></i>Public Username
+                                    <label for="firstName" class="form-label" data-i18n="firstNameLabel">
+                                        <i class="fas fa-user me-1"></i>First Name
                                     </label>
-                                    <input type="text" class="form-control" id="username" name="username" required>
+                                    <input type="text" class="form-control" id="firstName" name="firstName" placeholder="Enter your first name" required>
+                                    <div class="error-message" id="firstNameError"></div>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="lastName" class="form-label" data-i18n="lastNameLabel">
+                                        <i class="fas fa-user me-1"></i>Last Name
+                                    </label>
+                                    <input type="text" class="form-control" id="lastName" name="lastName" placeholder="Enter your last name" required>
+                                    <div class="error-message" id="lastNameError"></div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="username" class="form-label" data-i18n="publicUsernameLabel">
+                                        <i class="fas fa-at me-1"></i>Username (Public)
+                                    </label>
+                                    <input type="text" class="form-control" id="username" name="username" placeholder="Choose a unique username" required>
                                     <div class="error-message" id="usernameError"></div>
+                                    <small class="form-text text-muted">This will be your display name visible to others</small>
                                 </div>
                                 <div class="col-md-6 mb-3">
                                     <label for="email" class="form-label" data-i18n="emailLabel">
                                         <i class="fas fa-envelope me-1"></i>Email Address
                                     </label>
-                                    <input type="email" class="form-control" id="email" name="email" required>
+                                    <input type="email" class="form-control" id="email" name="email" placeholder="Enter your email address" required>
                                     <div class="error-message" id="emailError"></div>
                                 </div>
                             </div>

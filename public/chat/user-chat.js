@@ -561,9 +561,11 @@ class UserChatApp {
     const hasNewMessages = this.hasNewMessages(group);
     const newBadge = hasNewMessages ? '<span class="new-message-badge">NEW</span>' : '';
     
+    const avatarUrl = this.getGroupAvatarUrl(group);
+    
     div.innerHTML = `
       <div class="chat-item-avatar">
-        <i class="${groupIcon} fa-2x" style="color: ${isPersonal ? '#007bff' : '#28a745'};"></i>
+        <img src="${avatarUrl}" alt="${displayName}" class="avatar-img" onerror="this.src='/assets/uploads/user.jpg'">
       </div>
       <div class="chat-item-content">
         <div class="chat-item-header">
@@ -717,12 +719,16 @@ class UserChatApp {
     });
 
     const senderInfo = isOwnMessage ? 'You' : message.sender_name;
-    const userTypeIcon = message.sender_type === 'fake_user' ? '<i class="fas fa-robot" title="AI Assistant"></i>' : '';
+    
+    // Get avatar URL for the sender
+    const avatarUrl = this.getUserAvatarUrl(message);
     
     div.innerHTML = `
+      <img src="${avatarUrl}" alt="${senderInfo}" class="message-avatar ${isOwnMessage ? 'own-message' : ''}" 
+           onerror="this.src='/assets/uploads/user.jpg'">
       <div class="message-content">
         <div class="message-header">
-          <span class="message-sender">${userTypeIcon} ${senderInfo}</span>
+          <span class="message-sender ${isOwnMessage ? 'own-sender' : ''}">${senderInfo}</span>
           <span class="message-time">${timestamp}</span>
         </div>
         <div class="message-text">${this.escapeHtml(message.content)}</div>
@@ -730,6 +736,48 @@ class UserChatApp {
     `;
     
     return div;
+  }
+
+  // Helper method to get user avatar URL
+  getUserAvatarUrl(message) {
+    // Primary: Use sender_avatar field from backend query (includes avatars for both real and fake users)
+    if (message.sender_avatar) {
+      return message.sender_avatar;
+    }
+    
+    // Fallback: Check if message has direct avatar_url field (legacy compatibility)
+    if (message.avatar_url) {
+      return message.avatar_url;
+    }
+    
+    // Default fallback avatar - should rarely be used if backend provides sender_avatar correctly
+    return '/assets/uploads/user.jpg';
+  }
+
+  // Helper method to get group/chat item avatar URL
+  getGroupAvatarUrl(group) {
+    // For personal groups (Main PEA Communication), always use CDOT logo for branding consistency
+    if (group.is_personal_group === true) {
+      return '/assets/uploads/logo.png';
+    }
+    
+    // Primary: Use group_avatar if available (for group-specific avatars)
+    if (group.group_avatar) {
+      return group.group_avatar;
+    }
+    
+    // Secondary: Use creator's avatar URL from database (for other groups)
+    if (group.creator_avatar_url) {
+      return group.creator_avatar_url;
+    }
+    
+    // Default fallback based on group type
+    if (group.is_personal_group === false) {
+      return '/assets/uploads/community-default.jpg';
+    }
+    
+    // Final fallback
+    return '/assets/uploads/user.jpg';
   }
 
   async sendMessage() {

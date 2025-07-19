@@ -279,7 +279,9 @@ class AdminChatApp {
           timestamp: msg.created_at || msg.timestamp || new Date().toISOString(),
           unread: true,
           conversationType: 'group',
-          messageType: msg.message_type || 'text'
+          messageType: msg.message_type || 'text',
+          avatar: msg.avatar_url || msg.profile_picture || '/assets/uploads/user.jpg', // Include avatar
+          userId: msg.user_id
         }));
         
         this.unreadMessages = unreadMessages;
@@ -329,19 +331,25 @@ class AdminChatApp {
         id: 1,
         from: 'john_doe',
         group: 'General Discussion',
+        groupId: 1,
         message: 'Hey everyone, I have a question about the latest update. Can someone help me understand how the new feature works?',
         timestamp: new Date().toISOString(),
         unread: true,
-        conversationType: 'group'
+        conversationType: 'group',
+        avatar: '/assets/uploads/avatars/john.jpg',
+        userId: 1
       },
       {
         id: 2,
         from: 'jane_smith',
         group: 'Support Questions',
+        groupId: 2,
         message: 'I\'m having trouble with my account settings. The password reset isn\'t working.',
         timestamp: new Date(Date.now() - 3600000).toISOString(),
         unread: true,
-        conversationType: 'group'
+        conversationType: 'group',
+        avatar: '/assets/uploads/avatars/jane.jpg',
+        userId: 2
       }
     ];
     
@@ -363,21 +371,24 @@ class AdminChatApp {
           user: 'alice_cooper',
           lastMessage: 'I need help with my subscription billing. The payment failed.',
           timestamp: new Date().toISOString(),
-          unread: true
+          unread: true,
+          avatar: '/assets/uploads/avatars/alice.jpg'
         },
         {
           id: 2,
           user: 'bob_wilson',
           lastMessage: 'Thank you for your help with the login issue!',
           timestamp: new Date(Date.now() - 7200000).toISOString(),
-          unread: false
+          unread: false,
+          avatar: '/assets/uploads/avatars/bob.jpg'
         },
         {
           id: 3,
           user: 'carol_jones',
           lastMessage: 'How do I update my profile information?',
           timestamp: new Date(Date.now() - 14400000).toISOString(),
-          unread: true
+          unread: true,
+          avatar: '/assets/uploads/avatars/carol.jpg'
         }
       ];
       
@@ -424,12 +435,15 @@ class AdminChatApp {
     
     this.ui.unreadMessagesList.innerHTML = messages.map(message => `
       <div class="message-item ${message.unread ? 'unread' : ''}" onclick="adminChatApp.viewMessage(${message.id})">
-        <div class="message-header">
-          <span class="message-from">${escapeHtml(message.from)}</span>
-          <span class="message-time">${formatDate(message.timestamp)}</span>
+        <img src="${escapeHtml(message.avatar || '/assets/uploads/user.jpg')}" alt="${escapeHtml(message.from)}" class="message-avatar" onerror="this.src='/assets/uploads/user.jpg'">
+        <div class="message-content">
+          <div class="message-header">
+            <span class="message-from">${escapeHtml(message.from)}</span>
+            <span class="message-time">${formatDate(message.timestamp)}</span>
+          </div>
+          <div class="message-preview">${escapeHtml(message.message)}</div>
+          <div class="message-group">in ${escapeHtml(message.group)}</div>
         </div>
-        <div class="message-preview">${escapeHtml(message.message)}</div>
-        <div class="message-group">in ${escapeHtml(message.group)}</div>
       </div>
     `).join('');
   }
@@ -444,11 +458,14 @@ class AdminChatApp {
     
     this.ui.supportConversationsList.innerHTML = conversations.map(conv => `
       <div class="message-item ${conv.unread ? 'unread' : ''}" onclick="adminChatApp.viewConversation(${conv.id})">
-        <div class="message-header">
-          <span class="message-from">${escapeHtml(conv.user)}</span>
-          <span class="message-time">${formatDate(conv.timestamp)}</span>
+        <img src="${escapeHtml(conv.avatar || '/assets/uploads/user.jpg')}" alt="${escapeHtml(conv.user)}" class="message-avatar" onerror="this.src='/assets/uploads/user.jpg'">
+        <div class="message-content">
+          <div class="message-header">
+            <span class="message-from">${escapeHtml(conv.user)}</span>
+            <span class="message-time">${formatDate(conv.timestamp)}</span>
+          </div>
+          <div class="message-preview">${escapeHtml(conv.lastMessage)}</div>
         </div>
-        <div class="message-preview">${escapeHtml(conv.lastMessage)}</div>
       </div>
     `).join('');
   }
@@ -463,12 +480,15 @@ class AdminChatApp {
     
     this.ui.sentMessagesList.innerHTML = messages.map(message => `
       <div class="message-item">
-        <div class="message-header">
-          <span class="message-from">Sent to ${escapeHtml(message.group)}</span>
-          <span class="message-time">${formatDate(message.timestamp)}</span>
+        <img src="${escapeHtml(message.personaAvatar || '/assets/uploads/bot-avatar.jpg')}" alt="${escapeHtml(message.persona)}" class="message-avatar" onerror="this.src='/assets/uploads/bot-avatar.jpg'">
+        <div class="message-content">
+          <div class="message-header">
+            <span class="message-from">Sent to ${escapeHtml(message.group)}</span>
+            <span class="message-time">${formatDate(message.timestamp)}</span>
+          </div>
+          <div class="message-preview">${escapeHtml(message.message)}</div>
+          <div class="message-group">as ${escapeHtml(message.persona)}</div>
         </div>
-        <div class="message-preview">${escapeHtml(message.message)}</div>
-        <div class="message-group">as ${escapeHtml(message.persona)}</div>
       </div>
     `).join('');
   }
@@ -706,12 +726,15 @@ class AdminChatApp {
       
       this.showDetailModal(`Message from ${message.from}`, `
         <div class="message-item">
-          <div class="message-header">
-            <span class="message-from">${escapeHtml(message.from)}</span>
-            <span class="message-time">${formatDate(message.timestamp)}</span>
+          <img src="${escapeHtml(message.avatar || '/assets/uploads/user.jpg')}" alt="${escapeHtml(message.from)}" class="message-avatar" onerror="this.src='/assets/uploads/user.jpg'">
+          <div class="message-content">
+            <div class="message-header">
+              <span class="message-from">${escapeHtml(message.from)}</span>
+              <span class="message-time">${formatDate(message.timestamp)}</span>
+            </div>
+            <div class="message-preview" style="white-space: pre-wrap; -webkit-line-clamp: none; overflow: visible;">${escapeHtml(message.message)}</div>
+            <div class="message-group">in ${escapeHtml(message.group)}</div>
           </div>
-          <div class="message-preview" style="white-space: pre-wrap; -webkit-line-clamp: none; overflow: visible;">${escapeHtml(message.message)}</div>
-          <div class="message-group">in ${escapeHtml(message.group)}</div>
         </div>
       `, true); // Enable reply for messages
     }
@@ -731,11 +754,14 @@ class AdminChatApp {
       
       this.showDetailModal(`Support conversation with ${conversation.user}`, `
         <div class="message-item">
-          <div class="message-header">
-            <span class="message-from">${escapeHtml(conversation.user)}</span>
-            <span class="message-time">${formatDate(conversation.timestamp)}</span>
+          <img src="${escapeHtml(conversation.avatar || '/assets/uploads/user.jpg')}" alt="${escapeHtml(conversation.user)}" class="message-avatar" onerror="this.src='/assets/uploads/user.jpg'">
+          <div class="message-content">
+            <div class="message-header">
+              <span class="message-from">${escapeHtml(conversation.user)}</span>
+              <span class="message-time">${formatDate(conversation.timestamp)}</span>
+            </div>
+            <div class="message-preview" style="white-space: pre-wrap; -webkit-line-clamp: none; overflow: visible;">${escapeHtml(conversation.lastMessage)}</div>
           </div>
-          <div class="message-preview" style="white-space: pre-wrap; -webkit-line-clamp: none; overflow: visible;">${escapeHtml(conversation.lastMessage)}</div>
         </div>
         <p style="margin-top: 1rem; color: #7f8c8d; font-style: italic;">Full conversation history would be loaded here...</p>
       `, true); // Enable reply for support conversations

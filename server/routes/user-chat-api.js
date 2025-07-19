@@ -55,7 +55,7 @@ router.get('/groups/:groupId/messages', protect, async (req, res) => {
       });
     }
 
-    // Get messages with user/fake user details
+    // Get messages with user/fake user details including avatars
     const messagesQuery = `
       SELECT 
         cm.id,
@@ -72,7 +72,13 @@ router.get('/groups/:groupId/messages', protect, async (req, res) => {
         END as sender_type,
         COALESCE(u.username, cfu.display_name) as sender_name,
         COALESCE(u.id, cfu.id) as sender_id,
-        cfu.avatar_url as sender_avatar
+        COALESCE(
+          u.avatar_url, 
+          u.profile_image_url, 
+          u.profile_image,
+          cfu.avatar_url, 
+          '/assets/uploads/user.jpg'
+        ) as sender_avatar
       FROM chat_messages cm
       LEFT JOIN users u ON cm.user_id = u.id
       LEFT JOIN chat_fake_users cfu ON cm.fake_user_id = cfu.id

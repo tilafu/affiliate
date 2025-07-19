@@ -65,6 +65,8 @@ router.get('/client-messages', async (req, res) => {
         END as user_type,
         u.username,
         u.email,
+        u.avatar_url,
+        u.profile_picture,
         cg.name as group_name
       FROM chat_messages cm
       LEFT JOIN users u ON cm.user_id = u.id

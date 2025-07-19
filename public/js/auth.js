@@ -85,6 +85,8 @@ function validateRegistrationForm() {
     const form = document.getElementById('signupForm');
     clearErrors(form); // Clear previous errors
 
+    const firstName = document.getElementById('firstName');
+    const lastName = document.getElementById('lastName');
     const username = document.getElementById('username');
     const email = document.getElementById('email');
     const password = document.getElementById('password');
@@ -92,12 +94,19 @@ function validateRegistrationForm() {
     const referralCode = document.getElementById('referralCode');
     const revenueSource = form.querySelector('input[name="revenue_source"]:checked');
 
+    if (!firstName.value.trim()) { showError(firstName, 'First name is required'); isValid = false; }
+    if (!lastName.value.trim()) { showError(lastName, 'Last name is required'); isValid = false; }
     if (!username.value.trim()) { showError(username, 'Username is required'); isValid = false; }
     if (!email.value.trim() || !email.value.includes('@')) { showError(email, 'Valid email is required'); isValid = false; }
     if (!referralCode.value.trim()) { showError(referralCode, 'Referral code is required'); isValid = false; }
     if (password.value.length < 8) { showError(password, 'Password must be at least 8 characters'); isValid = false; }
     if (password.value !== repeatPassword.value) { showError(repeatPassword, 'Passwords do not match'); isValid = false; }
     if (!revenueSource) { const radioGroup = form.querySelector('.radio-group'); showError(radioGroup, 'Please select a revenue source'); isValid = false; }
+
+    // Additional name validation
+    if (firstName.value.trim().length < 2) { showError(firstName, 'First name must be at least 2 characters'); isValid = false; }
+    if (lastName.value.trim().length < 2) { showError(lastName, 'Last name must be at least 2 characters'); isValid = false; }
+    if (username.value.trim().length < 3) { showError(username, 'Username must be at least 3 characters'); isValid = false; }
 
     return isValid;
 }
@@ -120,6 +129,8 @@ async function handleRegisterSubmit(event) {
     submitButton.disabled = true;
 
 const formData = {
+    firstName: document.getElementById('firstName').value.trim(),
+    lastName: document.getElementById('lastName').value.trim(),
     username: document.getElementById('username').value.trim(),
     email: document.getElementById('email').value.trim(),
     password: document.getElementById('password').value,

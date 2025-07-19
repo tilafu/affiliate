@@ -148,6 +148,13 @@ const getUserGroups = async (userId) => {
         cg.description,
         cg.is_personal_group,
         cg.is_public,
+        cg.owner_user_id as creator_id,
+        COALESCE(
+          u.avatar_url, 
+          u.profile_image_url, 
+          u.profile_image,
+          '/assets/uploads/user.jpg'
+        ) as creator_avatar_url,
         cgm.role,
         cgm.join_date,
         (SELECT COUNT(*) FROM chat_group_members WHERE group_id = cg.id) as member_count,
@@ -155,6 +162,7 @@ const getUserGroups = async (userId) => {
         (SELECT MAX(created_at) FROM chat_messages WHERE group_id = cg.id) as last_activity
       FROM chat_groups cg
       JOIN chat_group_members cgm ON cgm.group_id = cg.id
+      LEFT JOIN users u ON u.id = cg.owner_user_id
       WHERE cgm.user_id = $1
       ORDER BY 
         cg.is_personal_group DESC,

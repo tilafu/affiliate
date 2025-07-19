@@ -5,12 +5,12 @@ const { generateReferralCode } = require('../utils/helpers'); // We'll create th
 const { setupNewUser } = require('../services/user-group-service');
 
 const register = async (req, res) => {
-  const { username, email, password, referralCode, revenueSource } = req.body;
+  const { firstName, lastName, username, email, password, referralCode, revenueSource } = req.body;
 
-  console.log('[REGISTRATION] Starting registration process for:', { username, email, referralCode, revenueSource });
+  console.log('[REGISTRATION] Starting registration process for:', { firstName, lastName, username, email, referralCode, revenueSource });
 
   // Basic validation
-  if (!username || !email || !password || !referralCode) {
+  if (!firstName || !lastName || !username || !email || !password || !referralCode) {
     console.log('[REGISTRATION ERROR] Missing required fields');
     return res.status(400).json({ success: false, message: 'Missing required fields' });
   }
@@ -69,8 +69,8 @@ const register = async (req, res) => {
 
         // 6. Attempt to insert the user with the generated code
         const newUserResult = await client.query(
-          'INSERT INTO users (username, email, password_hash, referral_code, upliner_id, revenue_source) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, username, referral_code, tier',
-          [username, email, passwordHash, newUserReferralCode, uplinerId, revenueSource]
+          'INSERT INTO users (first_name, last_name, username, email, password_hash, referral_code, upliner_id, revenue_source) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id, first_name, last_name, username, referral_code, tier',
+          [firstName, lastName, username, email, passwordHash, newUserReferralCode, uplinerId, revenueSource]
         );
         newUser = newUserResult.rows[0]; // Assign user data
         userInserted = true; // Mark as successful

@@ -325,8 +325,28 @@ body, .chat-dark-bg {
 
 .message {
     display: flex;
-    margin-bottom: 8px;
+    margin-bottom: 12px;
     animation: fadeIn 0.3s;
+    align-items: flex-start;
+    gap: 6px; /* Reduced from 8px to bring avatar closer */
+    max-width: 85%; /* Limit overall message width */
+}
+
+.message-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    background-color: #2a3942;
+    margin-top: 2px; /* Reduced from 4px to align better */
+}
+
+.message-avatar.own-message {
+    order: 2;
+    margin-left: 6px; /* Reduced from 8px */
+    margin-right: 0;
 }
 
 @keyframes fadeIn {
@@ -343,22 +363,43 @@ body, .chat-dark-bg {
 }
 
 .message-content {
-    max-width: 65%;
-    padding: 8px 12px;
-    border-radius: 8px;
+    max-width: 55%; /* Reduced from 65% to make messages more compact */
+    padding: 10px 14px; /* Slightly increased padding for better readability */
+    border-radius: 12px; /* More rounded corners */
     position: relative;
     word-break: break-word;
+    flex: 1;
+    min-width: 120px; /* Minimum width for very short messages */
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15); /* Subtle shadow for depth */
 }
 
 .message.received .message-content {
     background: #202c33;
-    border-top-left-radius: 0;
+    border-top-left-radius: 4px; /* Reduced radius for chat tail effect */
 }
 
 .message.sent .message-content {
     background: #005c4b;
-    border-top-right-radius: 0;
+    border-top-right-radius: 4px; /* Reduced radius for chat tail effect */
     color: #e9edef;
+}
+
+.message.message-own {
+    flex-direction: row-reverse;
+    justify-content: flex-start;
+    margin-left: auto; /* Push own messages to the right */
+}
+
+.message.message-own .message-content {
+    background: #005c4b;
+    border-top-right-radius: 4px;
+    border-top-left-radius: 12px;
+}
+
+.message.message-other .message-content {
+    background: #202c33;
+    border-top-left-radius: 4px;
+    border-top-right-radius: 12px;
 }
 
 .message-text {
@@ -568,23 +609,16 @@ body, .chat-dark-bg {
     text-align: right;
 }
 
-.message-own .message-content {
-    background: #005c4b;
-    margin-left: auto;
-    margin-right: 0;
-}
+/* Removed duplicate rules - handled by .message.message-own .message-content above */
 
-.message-other .message-content {
-    background: #202c33;
-    margin-left: 0;
-    margin-right: auto;
-}
+/* Removed duplicate rules - handled by .message.message-other .message-content above */
 
 .message-content {
-    max-width: 70%;
-    padding: 8px 12px;
-    border-radius: 8px;
+    max-width: 55%;
+    padding: 10px 14px;
+    border-radius: 12px;
     margin-bottom: 8px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
 }
 
 .message-header {
@@ -593,24 +627,26 @@ body, .chat-dark-bg {
     align-items: center;
     margin-bottom: 4px;
     font-size: 0.8rem;
-    opacity: 0.7;
+    opacity: 0.8;
 }
 
 .message-sender {
-    font-weight: 500;
+    font-weight: 600;
     display: flex;
     align-items: center;
     gap: 4px;
+    color: #53bdeb;
+    font-size: 0.85rem;
 }
 
-.message-sender i {
-    color: #53bdeb;
-    font-size: 0.7rem;
+.message-sender.own-sender {
+    color: #4fc3f7;
 }
 
 .message-time {
     font-size: 0.7rem;
     color: #8696a0;
+    opacity: 0.7;
 }
 
 .message-text {

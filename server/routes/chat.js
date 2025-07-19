@@ -1092,7 +1092,7 @@ router.get('/conversations/direct/:id/messages', protect, async (req, res) => {
     
     const messagesResult = await db.query(
       `SELECT dmsg.id, dmsg.content, dmsg.media_url, dmsg.media_type, dmsg.created_at, dmsg.sender_id,
-              u.username as sender_username
+              u.username as sender_username, u.avatar_url as sender_avatar
        FROM direct_message_texts dmsg
        JOIN users u ON dmsg.sender_id = u.id
        WHERE dmsg.conversation_id = $1
