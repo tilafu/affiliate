@@ -411,6 +411,48 @@
       }
     }
 
+    /* Radio button styling */
+    .radio-group {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .radio-group label {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      cursor: pointer;
+      font-weight: 500;
+    }
+
+    .radio-group input[type="radio"] {
+      margin: 0;
+      width: 18px;
+      height: 18px;
+      accent-color: #3498db;
+    }
+
+    /* User search styling */
+    .user-search {
+      margin-bottom: 1rem;
+    }
+
+    .user-search input {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      margin-bottom: 0.5rem;
+    }
+
+    .user-search select {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+    }
+
     @media (max-width: 768px) {
       .admin-header {
         padding: 1rem;
@@ -438,7 +480,7 @@
       </div>
       <div class="user-info">
         <span id="adminUsername">Admin</span>
-        <a href="#" onclick="logoutAdmin(); return false;" class="logout-btn">Logout</a>
+        <a href="#" id="logout-button" class="logout-btn">Logout</a>
       </div>
     </header>
     
@@ -486,12 +528,34 @@
           </div>
           <div class="card-content">
             <form id="sendMessageForm">
+              <!-- Message Type Selection -->
               <div class="form-group">
+                <label>Message Type:</label>
+                <div class="radio-group">
+                  <input type="radio" id="groupMessage" name="messageType" value="group" checked>
+                  <label for="groupMessage">Send to Group</label>
+                  <input type="radio" id="directMessage" name="messageType" value="dm">
+                  <label for="directMessage">Send DM to Client</label>
+                </div>
+              </div>
+              
+              <!-- Group Selection (shown for group messages) -->
+              <div class="form-group" id="groupSelectContainer">
                 <label for="groupSelect">Select Group:</label>
-                <select id="groupSelect" required>
+                <select id="groupSelect">
                   <option value="">Choose a group...</option>
                 </select>
               </div>
+              
+              <!-- User Selection (shown for DMs) -->
+              <div class="form-group user-search" id="userSelectContainer">
+                <label for="userSelect">Send to Client:</label>
+                <input type="text" id="userSearch" placeholder="Search for a registered client...">
+                <select id="userSelect" size="5">
+                  <option value="">Select a client...</option>
+                </select>
+              </div>
+              
               <div class="form-group">
                 <label for="personaSelect">Send as Persona:</label>
                 <select id="personaSelect" required>
@@ -571,9 +635,7 @@
   <script src="js/simple-auth.js"></script>
   <script src="js/auth.js"></script>
   <script src="js/auth-check.js"></script>
-  <script src="js/dual-auth.js"></script>
   <script src="js/admin-error-handler.js"></script>
-  <script src="js/admin-auth.js"></script>
   <script src="js/admin-chat-api.js"></script>
   <script src="js/admin-chat.js"></script>
 </body>

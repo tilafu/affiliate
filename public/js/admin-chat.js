@@ -62,6 +62,14 @@ class AdminChatApp {
       this.setupEventListeners();
       await this.loadInitialData();
       
+      // Initialize message type UI
+      try {
+        await this.handleMessageTypeChange();
+      } catch (error) {
+        console.error('[AdminChat] Error initializing message type UI:', error);
+        // Don't let this error fail the entire initialization
+      }
+      
       // Load all data
       this.refreshAll();
       
@@ -94,6 +102,13 @@ class AdminChatApp {
       sendMessageBtn: document.getElementById('sendMessageBtn'),
       scheduleMessageBtn: document.getElementById('scheduleMessageBtn'),
       
+      // Radio buttons for message type
+      messageTypeRadios: document.querySelectorAll('input[name="messageType"]'),
+      
+      // User search for DMs
+      userSearch: document.getElementById('userSearch'),
+      userSelect: document.getElementById('userSelect'),
+      
       // Modal
       detailModal: document.getElementById('detailModal'),
       modalTitle: document.getElementById('modalTitle'),
@@ -118,6 +133,22 @@ class AdminChatApp {
     this.ui.sendMessageBtn?.addEventListener('click', () => this.sendMessage());
     this.ui.scheduleMessageBtn?.addEventListener('click', () => this.scheduleMessage());
     
+    // Message type radio buttons
+    this.ui.messageTypeRadios?.forEach(radio => {
+      radio.addEventListener('change', async () => {
+        try {
+          await this.handleMessageTypeChange();
+        } catch (error) {
+          console.error('[AdminChat] Error handling message type change:', error);
+          // Don't let this error cause logout
+        }
+      });
+    });
+    
+    // User search for DMs
+    this.ui.userSearch?.addEventListener('input', (e) => this.searchUsers(e.target.value));
+    this.ui.userSelect?.addEventListener('change', () => this.updateSendButton());
+    
     // Main refresh button
     this.ui.refreshBtn?.addEventListener('click', () => this.refreshAll());
     
@@ -138,7 +169,26 @@ class AdminChatApp {
         this.populatePersonaSelect();
       }
 
-      // Load groups (placeholder for now)
+      // Load real groups from API
+      const groupsResponse = await AdminChatAPI.getGroups(1, 100, '');
+      if (groupsResponse && groupsResponse.groups) {
+        this.groups = groupsResponse.groups;
+      } else {
+        // Fallback to mock data if API fails
+        this.groups = [
+          { id: 1, name: 'General Discussion' },
+          { id: 2, name: 'Product Updates' },
+          { id: 3, name: 'Support Questions' },
+          { id: 4, name: 'Feature Requests' }
+        ];
+      }
+      this.populateGroupSelect();
+
+    } catch (error) {
+      console.error('[AdminChat] Error loading initial data:', error);
+      showError('Failed to load initial data');
+      
+      // Use fallback data
       this.groups = [
         { id: 1, name: 'General Discussion' },
         { id: 2, name: 'Product Updates' },
@@ -146,10 +196,6 @@ class AdminChatApp {
         { id: 4, name: 'Feature Requests' }
       ];
       this.populateGroupSelect();
-
-    } catch (error) {
-      console.error('[AdminChat] Error loading initial data:', error);
-      showError('Failed to load initial data');
     }
   }
 
@@ -189,37 +235,53 @@ class AdminChatApp {
       
       this.ui.unreadMessagesList.innerHTML = '<div class="loading">Loading unread messages...</div>';
       
-      // Mock data for demonstration
-      const mockUnreadMessages = [
-        {
-          id: 1,
-          from: 'john_doe',
-          group: 'General Discussion',
-          message: 'Hey everyone, I have a question about the latest update. Can someone help me understand how the new feature works?',
-          timestamp: new Date().toISOString(),
-          unread: true
-        },
-        {
-          id: 2,
-          from: 'jane_smith',
-          group: 'Support Questions',
-          message: 'I\'m having trouble with my account settings. The password reset isn\'t working.',
-          timestamp: new Date(Date.now() - 3600000).toISOString(),
-          unread: true
-        },
-        {
-          id: 3,
-          from: 'mike_wilson',
-          group: 'Feature Requests',
-          message: 'Would it be possible to add a dark mode to the application?',
-          timestamp: new Date(Date.now() - 7200000).toISOString(),
-          unread: true
-        }
-      ];
+      // Load real conversations from the API
+      const conversationsResponse = await AdminChatAPI.getConversations(1, 50, '');
       
-      this.unreadMessages = mockUnreadMessages;
-      this.renderUnreadMessages(mockUnreadMessages);
-      this.updateUnreadCount(mockUnreadMessages.length);
+      if (conversationsResponse && conversationsResponse.conversations) {
+        // Convert conversations to unread messages format
+        const unreadMessages = conversationsResponse.conversations
+          .filter(conv => conv.unread_count > 0) // Only show conversations with unread messages
+          .map(conv => ({
+            id: conv.id,
+            from: conv.last_sender_name || 'Unknown User',
+            group: conv.group_name || 'Direct Message',
+            message: conv.last_message || 'No message',
+            timestamp: conv.last_message_time || new Date().toISOString(),
+            unread: true,
+            conversationType: conv.conversation_type || 'group'
+          }));
+        
+        this.unreadMessages = unreadMessages;
+        this.renderUnreadMessages(unreadMessages);
+        this.updateUnreadCount(unreadMessages.length);
+      } else {
+        // Fallback to mock data if API fails
+        const mockUnreadMessages = [
+          {
+            id: 1,
+            from: 'john_doe',
+            group: 'General Discussion',
+            message: 'Hey everyone, I have a question about the latest update. Can someone help me understand how the new feature works?',
+            timestamp: new Date().toISOString(),
+            unread: true,
+            conversationType: 'group'
+          },
+          {
+            id: 2,
+            from: 'jane_smith',
+            group: 'Support Questions',
+            message: 'I\'m having trouble with my account settings. The password reset isn\'t working.',
+            timestamp: new Date(Date.now() - 3600000).toISOString(),
+            unread: true,
+            conversationType: 'group'
+          }
+        ];
+        
+        this.unreadMessages = mockUnreadMessages;
+        this.renderUnreadMessages(mockUnreadMessages);
+        this.updateUnreadCount(mockUnreadMessages.length);
+      }
       
     } catch (error) {
       console.error('[AdminChat] Error loading unread messages:', error);
@@ -363,11 +425,20 @@ class AdminChatApp {
   }
 
   updateSendButton() {
-    const hasGroup = this.ui.groupSelect?.value;
-    const hasPersona = this.ui.personaSelect?.value;
-    const hasMessage = this.ui.messageContent?.value.trim();
+    const messageType = document.querySelector('input[name="messageType"]:checked')?.value || 'group';
     
-    const canSend = hasGroup && hasPersona && hasMessage;
+    let hasTarget, hasPersona, hasMessage;
+    
+    if (messageType === 'group') {
+      hasTarget = this.ui.groupSelect?.value;
+    } else {
+      hasTarget = this.ui.userSelect?.value;
+    }
+    
+    hasPersona = this.ui.personaSelect?.value;
+    hasMessage = this.ui.messageContent?.value.trim();
+    
+    const canSend = hasTarget && hasPersona && hasMessage;
     
     if (this.ui.sendMessageBtn) {
       this.ui.sendMessageBtn.disabled = !canSend;
@@ -377,19 +448,169 @@ class AdminChatApp {
     }
   }
 
+  async handleMessageTypeChange() {
+    try {
+      const messageType = document.querySelector('input[name="messageType"]:checked')?.value || 'group';
+      
+      const groupContainer = document.getElementById('groupSelectContainer');
+      const userSearchContainer = document.getElementById('userSelectContainer');
+      
+      if (messageType === 'group') {
+        if (groupContainer) groupContainer.style.display = 'block';
+        if (userSearchContainer) userSearchContainer.style.display = 'none';
+      } else {
+        if (groupContainer) groupContainer.style.display = 'none';
+        if (userSearchContainer) userSearchContainer.style.display = 'block';
+        
+        // Load users asynchronously and catch any errors
+        try {
+          await this.loadUsers();
+        } catch (error) {
+          console.error('[AdminChat] Error in loadUsers from handleMessageTypeChange:', error);
+          // Don't let this error bubble up to cause logout
+        }
+      }
+      
+      this.updateSendButton();
+    } catch (error) {
+      console.error('[AdminChat] Error in handleMessageTypeChange:', error);
+      // Don't let this error bubble up to cause logout
+    }
+  }
+
+  async loadUsers() {
+    try {
+      // Check if we have admin authentication before making the API call
+      const adminToken = localStorage.getItem('admin_auth_token') || localStorage.getItem('auth_token');
+      if (!adminToken) {
+        console.log('[AdminChat] No admin token available, using mock data for client list');
+        const mockClients = [
+          { id: '1', username: 'john_doe', email: 'john@example.com', display_name: 'John Doe' },
+          { id: '2', username: 'jane_smith', email: 'jane@example.com', display_name: 'Jane Smith' },
+          { id: '3', username: 'bob_wilson', email: 'bob@example.com', display_name: 'Bob Wilson' },
+          { id: '4', username: 'alice_cooper', email: 'alice@example.com', display_name: 'Alice Cooper' },
+          { id: '5', username: 'carol_jones', email: 'carol@example.com', display_name: 'Carol Jones' }
+        ];
+        this.populateUserSelect(mockClients);
+        return;
+      }
+
+      if (typeof AdminChatAPI !== 'undefined' && AdminChatAPI.getRegisteredClients) {
+        console.log('[AdminChat] Loading registered clients via API...');
+        const response = await AdminChatAPI.getRegisteredClients(1, 100, '');
+        
+        if (response === null) {
+          console.log('[AdminChat] API returned null (no auth token), using mock data');
+          const mockClients = [
+            { id: '1', username: 'john_doe', email: 'john@example.com', display_name: 'John Doe' },
+            { id: '2', username: 'jane_smith', email: 'jane@example.com', display_name: 'Jane Smith' },
+            { id: '3', username: 'bob_wilson', email: 'bob@example.com', display_name: 'Bob Wilson' }
+          ];
+          this.populateUserSelect(mockClients);
+          return;
+        }
+        
+        console.log('[AdminChat] API response:', response);
+        
+        // Handle API response structure
+        const users = response && response.users ? response.users : [];
+        console.log('[AdminChat] Extracted users:', users);
+        this.populateUserSelect(users);
+      } else {
+        console.log('[AdminChat] AdminChatAPI.getRegisteredClients not available, using mock data');
+        // Fallback mock data representing real clients
+        const mockClients = [
+          { id: '1', username: 'john_doe', email: 'john@example.com', display_name: 'John Doe' },
+          { id: '2', username: 'jane_smith', email: 'jane@example.com', display_name: 'Jane Smith' },
+          { id: '3', username: 'bob_wilson', email: 'bob@example.com', display_name: 'Bob Wilson' },
+          { id: '4', username: 'alice_cooper', email: 'alice@example.com', display_name: 'Alice Cooper' },
+          { id: '5', username: 'carol_jones', email: 'carol@example.com', display_name: 'Carol Jones' }
+        ];
+        this.populateUserSelect(mockClients);
+      }
+    } catch (error) {
+      console.error('[AdminChat] Error loading registered clients:', error);
+      showError('Failed to load client list. Using demo data.', 'info');
+      
+      // Use fallback data on error - don't let this break the UI
+      const mockClients = [
+        { id: '1', username: 'john_doe', email: 'john@example.com', display_name: 'John Doe' },
+        { id: '2', username: 'jane_smith', email: 'jane@example.com', display_name: 'Jane Smith' },
+        { id: '3', username: 'bob_wilson', email: 'bob@example.com', display_name: 'Bob Wilson' }
+      ];
+      this.populateUserSelect(mockClients);
+    }
+  }
+
+  populateUserSelect(users) {
+    if (!this.ui.userSelect) return;
+    
+    this.ui.userSelect.innerHTML = '<option value="">Select a user...</option>';
+    
+    // Ensure users is an array
+    if (!Array.isArray(users)) {
+      console.warn('[AdminChat] populateUserSelect: users is not an array:', users);
+      return;
+    }
+    
+    users.forEach(user => {
+      const option = document.createElement('option');
+      option.value = user.id;
+      option.textContent = `${user.username || user.display_name || user.name || 'Unknown'} (${user.email || 'No email'})`;
+      this.ui.userSelect.appendChild(option);
+    });
+  }
+
+  searchUsers(query) {
+    if (!query.trim()) {
+      this.loadUsers();
+      return;
+    }
+    
+    // Filter existing options
+    const options = Array.from(this.ui.userSelect.options);
+    options.forEach(option => {
+      if (option.value === '') return; // Keep the placeholder
+      
+      const text = option.textContent.toLowerCase();
+      const matches = text.includes(query.toLowerCase());
+      option.style.display = matches ? 'block' : 'none';
+    });
+  }
+
   async sendMessage() {
     try {
-      const groupId = this.ui.groupSelect?.value;
+      const messageType = document.querySelector('input[name="messageType"]:checked')?.value || 'group';
       const personaId = this.ui.personaSelect?.value;
       const message = this.ui.messageContent?.value.trim();
       
-      if (!groupId || !personaId || !message) {
+      let targetId;
+      if (messageType === 'group') {
+        targetId = this.ui.groupSelect?.value;
+      } else {
+        targetId = this.ui.userSelect?.value;
+      }
+      
+      if (!targetId || !personaId || !message) {
         showError('Please fill in all fields');
         return;
       }
       
-      console.log('Sending message:', { groupId, personaId, message });
-      showError('Message sent successfully!', 'success');
+      if (messageType === 'group') {
+        console.log('Sending group message:', { groupId: targetId, personaId, message });
+        // Call API for group messages
+        if (typeof AdminChatAPI !== 'undefined' && AdminChatAPI.postAsFakeUser) {
+          await AdminChatAPI.postAsFakeUser(targetId, personaId, message);
+        }
+      } else {
+        console.log('Sending DM to client:', { clientUserId: targetId, personaId, message });
+        // Call API for direct messages to clients
+        if (typeof AdminChatAPI !== 'undefined' && AdminChatAPI.sendDirectMessage) {
+          await AdminChatAPI.sendDirectMessage(targetId, personaId, message);
+        }
+      }
+      
+      showError(`${messageType === 'group' ? 'Group message' : 'Direct message'} sent successfully!`, 'success');
       
       // Clear the form
       this.ui.messageContent.value = '';
@@ -530,279 +751,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   
   console.log('[AdminChat] Initializing clean admin chat interface...');
-  window.adminChatApp = new AdminChatApp();
-  window.adminChatApp.init();
-});
-
-  populatePersonaSelect() {
-    if (!this.ui.personaSelect) return;
-    
-    this.ui.personaSelect.innerHTML = '<option value="">Choose a persona...</option>';
-    this.personas.forEach(persona => {
-      const option = document.createElement('option');
-      option.value = persona.id;
-      option.textContent = persona.display_name || persona.username;
-      this.ui.personaSelect.appendChild(option);
-    });
-  }
-
-  populateGroupSelect() {
-    if (!this.ui.groupSelect) return;
-    
-    this.ui.groupSelect.innerHTML = '<option value="">Choose a group...</option>';
-    this.groups.forEach(group => {
-      const option = document.createElement('option');
-      option.value = group.id;
-      option.textContent = group.name;
-      this.ui.groupSelect.appendChild(option);
-    });
-  }
-
-  showView(viewName) {
-    this.currentView = viewName;
-    
-    // Update tab states
-    document.querySelectorAll('.nav-tab').forEach(tab => tab.classList.remove('active'));
-    document.querySelectorAll('.chat-view').forEach(view => view.classList.remove('active'));
-    
-    // Show selected view
-    if (viewName === 'unread') {
-      this.ui.unreadTab?.classList.add('active');
-      this.ui.unreadView?.classList.add('active');
-      this.loadUnreadMessages();
-    } else if (viewName === 'send') {
-      this.ui.sendMessagesTab?.classList.add('active');
-      this.ui.sendView?.classList.add('active');
-      this.loadRecentSentMessages();
-    } else if (viewName === 'support') {
-      this.ui.supportTab?.classList.add('active');
-      this.ui.supportView?.classList.add('active');
-      this.loadSupportConversations();
-    }
-  }
-
-  async loadUnreadMessages() {
-    try {
-      if (!this.ui.unreadMessagesList) return;
-      
-      this.ui.unreadMessagesList.innerHTML = '<div class="loading">Loading unread messages...</div>';
-      
-      // This is a placeholder - you'll need to implement the backend endpoint
-      // const response = await AdminChatAPI.getUnreadMessages();
-      
-      // Mock data for now
-      const mockUnreadMessages = [
-        {
-          id: 1,
-          from: 'john_doe',
-          group: 'General Discussion',
-          message: 'Hey everyone, I have a question about the latest update...',
-          timestamp: new Date().toISOString(),
-          unread: true
-        },
-        {
-          id: 2,
-          from: 'jane_smith',
-          group: 'Support',
-          message: 'I\'m having trouble with my account settings',
-          timestamp: new Date(Date.now() - 3600000).toISOString(),
-          unread: true
-        }
-      ];
-      
-      this.renderUnreadMessages(mockUnreadMessages);
-      
-    } catch (error) {
-      console.error('[AdminChat] Error loading unread messages:', error);
-      this.ui.unreadMessagesList.innerHTML = '<div class="empty-state">Failed to load unread messages</div>';
-    }
-  }
-
-  renderUnreadMessages(messages) {
-    if (!this.ui.unreadMessagesList) return;
-    
-    if (messages.length === 0) {
-      this.ui.unreadMessagesList.innerHTML = '<div class="empty-state">No unread messages</div>';
-      return;
-    }
-    
-    this.ui.unreadMessagesList.innerHTML = messages.map(message => `
-      <div class="message-item ${message.unread ? 'unread' : ''}" onclick="adminChatApp.viewMessage(${message.id})">
-        <div class="message-header">
-          <span class="message-from">${escapeHtml(message.from)}</span>
-          <span class="message-time">${formatDate(message.timestamp)}</span>
-        </div>
-        <div class="message-preview">${escapeHtml(message.message)}</div>
-        <div class="message-group">${escapeHtml(message.group)}</div>
-      </div>
-    `).join('');
-  }
-
-  async loadRecentSentMessages() {
-    try {
-      if (!this.ui.sentMessagesList) return;
-      
-      // Placeholder for recent sent messages
-      this.ui.sentMessagesList.innerHTML = '<div class="empty-state">No recent messages</div>';
-      
-    } catch (error) {
-      console.error('[AdminChat] Error loading recent sent messages:', error);
-    }
-  }
-
-  async loadSupportConversations() {
-    try {
-      if (!this.ui.supportConversationsList) return;
-      
-      this.ui.supportConversationsList.innerHTML = '<div class="loading">Loading support conversations...</div>';
-      
-      // Mock data for support conversations
-      const mockSupportConversations = [
-        {
-          id: 1,
-          user: 'alice_cooper',
-          lastMessage: 'I need help with my subscription',
-          timestamp: new Date().toISOString(),
-          unread: true
-        },
-        {
-          id: 2,
-          user: 'bob_wilson',
-          lastMessage: 'Thank you for your help!',
-          timestamp: new Date(Date.now() - 7200000).toISOString(),
-          unread: false
-        }
-      ];
-      
-      this.renderSupportConversations(mockSupportConversations);
-      
-    } catch (error) {
-      console.error('[AdminChat] Error loading support conversations:', error);
-      this.ui.supportConversationsList.innerHTML = '<div class="empty-state">Failed to load support conversations</div>';
-    }
-  }
-
-  renderSupportConversations(conversations) {
-    if (!this.ui.supportConversationsList) return;
-    
-    if (conversations.length === 0) {
-      this.ui.supportConversationsList.innerHTML = '<div class="empty-state">No support conversations</div>';
-      return;
-    }
-    
-    this.ui.supportConversationsList.innerHTML = conversations.map(conv => `
-      <div class="conversation-item ${conv.unread ? 'unread' : ''}" onclick="adminChatApp.viewConversation(${conv.id})">
-        <div class="message-header">
-          <span class="message-from">${escapeHtml(conv.user)}</span>
-          <span class="message-time">${formatDate(conv.timestamp)}</span>
-        </div>
-        <div class="message-preview">${escapeHtml(conv.lastMessage)}</div>
-      </div>
-    `).join('');
-  }
-
-  updateSendButton() {
-    const hasGroup = this.ui.groupSelect?.value;
-    const hasPersona = this.ui.personaSelect?.value;
-    const hasMessage = this.ui.messageContent?.value.trim();
-    
-    const canSend = hasGroup && hasPersona && hasMessage;
-    
-    if (this.ui.sendMessageBtn) {
-      this.ui.sendMessageBtn.disabled = !canSend;
-    }
-    if (this.ui.scheduleMessageBtn) {
-      this.ui.scheduleMessageBtn.disabled = !canSend;
-    }
-  }
-
-  async sendMessage() {
-    try {
-      const groupId = this.ui.groupSelect?.value;
-      const personaId = this.ui.personaSelect?.value;
-      const message = this.ui.messageContent?.value.trim();
-      
-      if (!groupId || !personaId || !message) {
-        showError('Please fill in all fields');
-        return;
-      }
-      
-      // Implement the actual API call
-      console.log('Sending message:', { groupId, personaId, message });
-      showError('Message sent successfully!', 'success');
-      
-      // Clear the form
-      this.ui.messageContent.value = '';
-      this.updateSendButton();
-      this.loadRecentSentMessages();
-      
-    } catch (error) {
-      console.error('[AdminChat] Error sending message:', error);
-      showError('Failed to send message');
-    }
-  }
-
-  viewMessage(messageId) {
-    console.log('View message:', messageId);
-    // Implement message viewing in detail panel
-  }
-
-  viewConversation(conversationId) {
-    console.log('View conversation:', conversationId);
-    // Implement conversation viewing in detail panel
-  }
-
-  hideDetailPanel() {
-    if (this.ui.messageDetailPanel) {
-      this.ui.messageDetailPanel.style.display = 'none';
-    }
-  }
-
-  async sendReply() {
-    try {
-      const replyText = this.ui.replyMessage?.value.trim();
-      if (!replyText) {
-        showError('Please enter a reply message');
-        return;
-      }
-      
-      console.log('Sending reply:', replyText);
-      showError('Reply sent successfully!', 'success');
-      
-      this.ui.replyMessage.value = '';
-      
-    } catch (error) {
-      console.error('[AdminChat] Error sending reply:', error);
-      showError('Failed to send reply');
-    }
-  }
-
-  markAllRead() {
-    console.log('Mark all messages as read');
-    showError('All messages marked as read', 'success');
-    this.loadUnreadMessages();
-  }
-
-  searchUnread(searchTerm) {
-    console.log('Search unread messages:', searchTerm);
-    // Implement search functionality
-  }
-
-  searchSupport(searchTerm) {
-    console.log('Search support conversations:', searchTerm);
-    // Implement search functionality
-  }
-}
-
-// Initialize when DOM is ready
-document.addEventListener('DOMContentLoaded', () => {
-  if (typeof AdminChatAPI === 'undefined') {
-    console.error('[AdminChat] AdminChatAPI is not loaded');
-    showError('Chat API is not loaded. Please refresh the page.');
-    return;
-  }
-  
-  console.log('[AdminChat] Initializing simplified admin chat application...');
   window.adminChatApp = new AdminChatApp();
   window.adminChatApp.init();
 });

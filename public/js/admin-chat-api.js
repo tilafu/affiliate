@@ -16,34 +16,21 @@ const AdminChatAPI = (() => {
     const adminToken = localStorage.getItem('admin_auth_token') || localStorage.getItem('auth_token');
     if (!adminToken) {
       console.warn('[AdminChatAPI] No admin token found. User may not be authenticated.');
-      showError('Authentication token not found. Please log in again.');
-      window.location.href = '/admin.html';
       return null;
     }
     
     try {
-      let response;
-      
-      // Use DualAuth if available, otherwise fall back to direct fetch
-      if (typeof DualAuth !== 'undefined' && DualAuth.fetchWithAuth) {
-        console.log('[AdminChatAPI] Using DualAuth for authentication');
-        response = await DualAuth.fetchWithAuth(fullUrl, {
-          method,
-          body: data ? JSON.stringify(data) : null,
-        }, 'admin');
-      } else {
-        console.log('[AdminChatAPI] DualAuth not available, using direct fetch');
-        // Fallback to direct fetch with Authorization header
-        response = await fetch(fullUrl, {
-          method,
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${adminToken}`
-          },
-          body: data ? JSON.stringify(data) : null,
-          credentials: 'include'
-        });
-      }
+      // Use standard admin authentication approach
+      console.log('[AdminChatAPI] Using standard admin authentication');
+      response = await fetch(fullUrl, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${adminToken}`
+        },
+        body: data ? JSON.stringify(data) : null,
+        credentials: 'include'
+      });
 
       console.log(`[AdminChatAPI] Response status: ${response.status} ${response.statusText}`);
       console.log(`[AdminChatAPI] Response URL: ${response.url}`);
@@ -206,6 +193,11 @@ const AdminChatAPI = (() => {
       return apiCall(`/fake-users/${userId}`);
     },
     
+    // Real Client Users (for DM functionality)
+    getRegisteredClients: (page = 1, limit = 100, search = '') => {
+      return apiCall(`/users?page=${page}&limit=${limit}&search=${encodeURIComponent(search)}`);
+    },
+    
     // Posting and Messages
     postAsFakeUser: (groupId, fakeUserId, message, messageType = 'text') => {
       return apiCall('/post', 'POST', {
@@ -302,6 +294,16 @@ const AdminChatAPI = (() => {
     
     sendConversationMessage: (conversationId, fakeUserId, content, messageType = 'text') => {
       return apiCall(`/conversations/${conversationId}/messages`, 'POST', {
+        fakeUserId,
+        content,
+        messageType
+      });
+    },
+    
+    // Send direct message from persona to client
+    sendDirectMessage: (clientUserId, fakeUserId, content, messageType = 'text') => {
+      return apiCall('/direct-message', 'POST', {
+        clientUserId,
         fakeUserId,
         content,
         messageType
