@@ -4,53 +4,107 @@
  */
 
 const AdminChatAPI = (() => {
-  // Base API URL
-  const API_BASE = '/api/admin-chat';
+  // Base API URL - Fixed to match server routing
+  const API_BASE = '/api/admin/chat';
   
-  // Helper function for API calls
+  // Helper function for API calls with improved error handling
   const apiCall = async (endpoint, method = 'GET', data = null) => {
+    const fullUrl = `${API_BASE}${endpoint}`;
+    console.log(`[AdminChatAPI] Making ${method} request to: ${fullUrl}`);
+    
+    // Check if we have proper authentication
+    const adminToken = localStorage.getItem('admin_auth_token') || localStorage.getItem('auth_token');
+    if (!adminToken) {
+      console.warn('[AdminChatAPI] No admin token found. User may not be authenticated.');
+      showError('Authentication token not found. Please log in again.');
+      window.location.href = '/admin.html';
+      return null;
+    }
+    
     try {
-      // Use DualAuth for a unified authentication approach
-      const response = await DualAuth.fetchWithAuth(`/api/admin-chat${endpoint}`, {
-        method,
-        body: data ? JSON.stringify(data) : null,
-      }, 'admin');
+      let response;
+      
+      // Use DualAuth if available, otherwise fall back to direct fetch
+      if (typeof DualAuth !== 'undefined' && DualAuth.fetchWithAuth) {
+        console.log('[AdminChatAPI] Using DualAuth for authentication');
+        response = await DualAuth.fetchWithAuth(fullUrl, {
+          method,
+          body: data ? JSON.stringify(data) : null,
+        }, 'admin');
+      } else {
+        console.log('[AdminChatAPI] DualAuth not available, using direct fetch');
+        // Fallback to direct fetch with Authorization header
+        response = await fetch(fullUrl, {
+          method,
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${adminToken}`
+          },
+          body: data ? JSON.stringify(data) : null,
+          credentials: 'include'
+        });
+      }
+
+      console.log(`[AdminChatAPI] Response status: ${response.status} ${response.statusText}`);
+      console.log(`[AdminChatAPI] Response URL: ${response.url}`);
 
       // Check for non-JSON responses which may indicate an error or redirect
       const contentType = response.headers.get('content-type');
       if (!contentType || !contentType.includes('application/json')) {
         const text = await response.text();
+        console.log(`[AdminChatAPI] Non-JSON response received (${contentType}):`, text.substring(0, 500));
+        
         // If we get HTML, it's likely a server-side redirect or error page
         if (text.includes('<!DOCTYPE html>')) {
-            console.error('Received HTML response instead of JSON. This could be an auth issue or server error.');
+            console.error('[AdminChatAPI] Received HTML response instead of JSON. This could be an auth issue or server error.');
             showError('An unexpected server response was received. Please try logging in again.');
-            // DualAuth's fetchWithAuth will handle the redirect on 401, but this is a fallback.
-            // if (!response.ok) {
-            //      window.location.href = '/admin.html';
-            // }
-            // return null;
+            return null;
         }
         // For other non-JSON, non-OK responses
         if (!response.ok) {
-            throw new Error(`Server returned a non-JSON error: ${response.status} ${response.statusText}`);
+            throw new Error(`SERVER_NON_JSON_ERROR: Server returned a non-JSON error: ${response.status} ${response.statusText}`);
         }
         // If response is OK but not JSON (e.g., 204 No Content)
-        return text; // Or handle as needed
+        return { success: true, data: text };
       }
 
       const result = await response.json();
       
       if (!response.ok) {
-        throw new Error(result.error || result.message || 'API call failed');
+        // Enhanced error handling with detailed error information
+        const errorInfo = {
+          status: response.status,
+          statusText: response.statusText,
+          error: result.error || 'UNKNOWN_ERROR',
+          message: result.message || result.error || 'API call failed',
+          details: result.details || null,
+          timestamp: result.timestamp || new Date().toISOString()
+        };
+        
+        console.error('[AdminChatAPI] API Error:', errorInfo);
+        throw new Error(JSON.stringify(errorInfo));
       }
       
       return result;
     } catch (error) {
-      console.error('API error in apiCall:', error);
-      // Avoid showing generic error if DualAuth is already handling a redirect.
-      // We can check if the error message is 'Unauthorized' which is what we throw in DualAuth.
-      if (error.message !== 'Unauthorized') {
-        showError(error.message);
+      console.error('[AdminChatAPI] API call failed:', error);
+      
+      // Try to parse enhanced error info
+      let errorInfo;
+      try {
+        errorInfo = JSON.parse(error.message);
+      } catch (parseError) {
+        // Fallback to simple error
+        errorInfo = {
+          error: 'NETWORK_ERROR',
+          message: error.message,
+          details: 'Failed to connect to server or parse response'
+        };
+      }
+      
+      // Avoid showing generic error if DualAuth is already handling a redirect
+      if (errorInfo.error !== 'Unauthorized') {
+        showError(`${errorInfo.message}${errorInfo.details ? ' - ' + errorInfo.details : ''}`);
       }
       return null;
     }
@@ -63,9 +117,9 @@ const AdminChatAPI = (() => {
     return metaTag ? metaTag.getAttribute('content') : '';
   };
   
-  // Show error message
+  // Show error message with improved formatting
   const showError = (message) => {
-    console.error('API Error:', message);
+    console.error('[AdminChatAPI] Error:', message);
     
     // Try to use the existing notification system if available
     if (window.AdminUI && window.AdminUI.showNotification) {
@@ -73,8 +127,43 @@ const AdminChatAPI = (() => {
       return;
     }
     
-    // Fallback to alert for simplicity
-    alert(`Error: ${message}`);
+    // Try to use a more user-friendly notification if available
+    if (window.showNotification) {
+      window.showNotification('error', message);
+      return;
+    }
+    
+    // Create a temporary error display element
+    const errorDiv = document.createElement('div');
+    errorDiv.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: #dc3545;
+      color: white;
+      padding: 12px 20px;
+      border-radius: 6px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      z-index: 10000;
+      max-width: 400px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 14px;
+      line-height: 1.4;
+    `;
+    errorDiv.textContent = message;
+    document.body.appendChild(errorDiv);
+    
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+      if (errorDiv.parentNode) {
+        errorDiv.parentNode.removeChild(errorDiv);
+      }
+    }, 5000);
+    
+    // Fallback to alert for critical errors
+    if (message.includes('AUTHENTICATION') || message.includes('UNAUTHORIZED')) {
+      alert(`Authentication Error: ${message}`);
+    }
   };
   
   // Redirect to admin dashboard
@@ -105,11 +194,11 @@ const AdminChatAPI = (() => {
     
     // Fake Users
     getAllFakeUsers: (page = 1, limit = 50, search = '') => {
-      return apiCall(`/users?page=${page}&limit=${limit}&search=${encodeURIComponent(search)}`);
+      return apiCall(`/fake-users?page=${page}&limit=${limit}&search=${encodeURIComponent(search)}`);
     },
     
     getFakeUserDetails: (userId) => {
-      return apiCall(`/users/${userId}`);
+      return apiCall(`/fake-users/${userId}`);
     },
     
     // Posting and Messages

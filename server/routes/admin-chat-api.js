@@ -20,10 +20,16 @@ router.use(admin);   // Admin role check
 router.get('/groups', adminChatController.getAllGroups);
 router.get('/groups/:groupId', adminChatController.getGroupDetails);
 router.get('/groups/:groupId/users', adminChatController.getGroupUsers);
+router.get('/groups/:groupId/messages', adminChatController.getGroupMessages);
+router.post('/groups/:groupId/reply', adminChatController.replyToGroupMessage);
 
 // Fake user management
 router.get('/users', adminChatController.getAllFakeUsers);
 router.get('/users/:userId', adminChatController.getFakeUserDetails);
+
+// Direct message management
+router.get('/direct-messages', adminChatController.getAllDirectMessages);
+router.get('/direct-messages/:conversationId/messages', adminChatController.getDirectMessageConversation);
 
 // Posting and message management
 router.post('/post', adminChatController.postAsFakeUser);

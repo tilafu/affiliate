@@ -16,42 +16,64 @@ router.use(admin);   // Admin role check
 // === CHAT GROUPS ===
 router.get('/groups', adminChatController.getAllGroups);
 router.get('/groups/:id', adminChatController.getGroupDetails);
-router.post('/groups', adminChatController.postAsFakeUser); // Create group
-router.put('/groups/:id', adminChatController.updateTemplate); // Update group
-router.delete('/groups/:id', adminChatController.deleteTemplate); // Delete group
+// NOTE: Group creation/modification endpoints would be implemented with proper handlers
+// router.post('/groups', adminChatController.createGroup); // TODO: implement createGroup
+// router.put('/groups/:id', adminChatController.updateGroup); // TODO: implement updateGroup  
+// router.delete('/groups/:id', adminChatController.deleteGroup); // TODO: implement deleteGroup
 
-// Route for getting users in a specific group
-router.get('/users/group/:groupId', adminChatController.getGroupUsers);
+// === GROUP MEMBERS ===
+router.get('/groups/:id/members', adminChatController.getGroupUsers);
+// NOTE: Member management endpoints would be implemented with proper handlers
+// router.post('/groups/:id/members', adminChatController.addGroupMember); // TODO: implement addGroupMember
+// router.delete('/groups/:id/members/:memberId', adminChatController.removeGroupMember); // TODO: implement removeGroupMember
 
 // === FAKE USERS ===
 router.get('/fake-users', adminChatController.getAllFakeUsers);
 router.get('/fake-users/:id', adminChatController.getFakeUserDetails);
-router.post('/fake-users', adminChatController.postAsFakeUser); // Create fake user
-router.put('/fake-users/:id', adminChatController.updateTemplate); // Update fake user
-router.delete('/fake-users/:id', adminChatController.deleteTemplate); // Delete fake user
+// NOTE: Fake user creation/modification endpoints would be implemented with proper handlers
+// router.post('/fake-users', adminChatController.createFakeUser); // TODO: implement createFakeUser
+// router.put('/fake-users/:id', adminChatController.updateFakeUser); // TODO: implement updateFakeUser
+// router.delete('/fake-users/:id', adminChatController.deleteFakeUser); // TODO: implement deleteFakeUser
 router.post('/fake-users/generate', function(req, res) {
     // Mock implementation until real one is created
-    res.json({success: true, message: "Fake user generation would happen here"});
+    res.status(501).json({
+        success: false, 
+        message: "Fake user generation is not yet implemented",
+        error: "NOT_IMPLEMENTED"
+    });
 });
 
-// === GROUP MEMBERS ===
-router.get('/groups/:id/members', adminChatController.getGroupUsers);
-router.post('/groups/:id/members', adminChatController.postAsFakeUser); // Add member
-router.delete('/groups/:id/members/:memberId', adminChatController.deleteTemplate); // Remove member
-
 // === CHAT MESSAGES ===
-router.get('/groups/:id/messages', adminChatController.previewConversation);
+// Get messages in a specific group for admin viewing
+router.get('/groups/:id/messages', adminChatController.getGroupMessages);
+// Post a message as a fake user
 router.post('/groups/:id/messages', adminChatController.postAsFakeUser);
-router.delete('/messages/:id', adminChatController.deleteTemplate);
+// Reply to a group message as admin
+router.post('/groups/:id/reply', adminChatController.replyToGroupMessage);
+// NOTE: Message deletion would be implemented with proper handler
+// router.delete('/messages/:id', adminChatController.deleteMessage); // TODO: implement deleteMessage
+
+// === DIRECT MESSAGES MANAGEMENT ===
+// Get all direct message conversations
+router.get('/direct-messages', adminChatController.getAllDirectMessages);
+// Get messages in a specific DM conversation
+router.get('/direct-messages/:conversationId/messages', adminChatController.getDirectMessageConversation);
 
 // === SCHEDULED MESSAGES ===
 router.get('/scheduled-messages', adminChatController.getScheduledMessages);
-router.get('/groups/:id/scheduled-messages', adminChatController.getScheduledMessages);
 router.post('/scheduled-messages', adminChatController.scheduleMessage);
-router.put('/scheduled-messages/:id', adminChatController.updateTemplate);
 router.delete('/scheduled-messages/:id', adminChatController.cancelScheduledMessage);
+// NOTE: Update scheduled message would be implemented with proper handler
+// router.put('/scheduled-messages/:id', adminChatController.updateScheduledMessage); // TODO: implement updateScheduledMessage
+
+// === TEMPLATES ===
+router.get('/templates', adminChatController.getTemplates);
+router.post('/templates', adminChatController.createTemplate);
+router.put('/templates/:templateId', adminChatController.updateTemplate);
+router.delete('/templates/:templateId', adminChatController.deleteTemplate);
 
 // === ADMIN LOGS ===
 router.get('/logs', adminChatController.getAdminLogs);
+router.get('/logs/:logId', adminChatController.getLogDetails);
 
 module.exports = router;

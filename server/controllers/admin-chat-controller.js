@@ -11,26 +11,52 @@ const adminChatModel = require('../models/admin-chat-model');
 const getAllGroups = async (req, res) => {
   try {
     const { page = 1, limit = 50, search = '' } = req.query;
-    const offset = (page - 1) * limit;
     
-    const groups = await adminChatModel.getGroups({ limit, offset, search });
+    // Validate pagination parameters
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+    
+    if (isNaN(pageNum) || pageNum < 1) {
+      return res.status(400).json({ 
+        error: 'INVALID_PAGE_PARAMETER',
+        message: 'Page parameter must be a positive integer',
+        details: { provided: page, expected: 'positive integer >= 1' }
+      });
+    }
+    
+    if (isNaN(limitNum) || limitNum < 1 || limitNum > 100) {
+      return res.status(400).json({ 
+        error: 'INVALID_LIMIT_PARAMETER',
+        message: 'Limit parameter must be between 1 and 100',
+        details: { provided: limit, expected: 'integer between 1 and 100' }
+      });
+    }
+    
+    const offset = (pageNum - 1) * limitNum;
+    
+    const groups = await adminChatModel.getGroups({ limit: limitNum, offset, search });
     const totalCount = await adminChatModel.getGroupsCount(search);
     
     res.json({
       groups,
       pagination: {
         total: totalCount,
-        page: parseInt(page),
-        limit: parseInt(limit),
-        pages: Math.ceil(totalCount / limit)
+        page: pageNum,
+        limit: limitNum,
+        pages: Math.ceil(totalCount / limitNum)
       }
     });
     
     // Log admin action
-    await logAdminAction(req.user.id, 'VIEW_GROUPS', null, null, null, { search, page, limit });
+    await logAdminAction(req.user.id, 'VIEW_GROUPS', null, null, null, { search, page: pageNum, limit: limitNum });
   } catch (error) {
     console.error('Error getting groups:', error);
-    res.status(500).json({ error: 'Failed to retrieve groups' });
+    res.status(500).json({ 
+      error: 'GROUPS_FETCH_FAILED',
+      message: 'Failed to retrieve groups from database',
+      details: error.message,
+      timestamp: new Date().toISOString()
+    });
   }
 };
 
@@ -155,20 +181,67 @@ const postAsFakeUser = async (req, res) => {
     const { groupId, fakeUserId, message, messageType = 'text' } = req.body;
     
     // Validate required fields
-    if (!groupId || !fakeUserId || !message) {
-      return res.status(400).json({ error: 'Group ID, fake user ID, and message are required' });
+    if (!groupId) {
+      return res.status(400).json({ 
+        error: 'MISSING_GROUP_ID',
+        message: 'Group ID is required',
+        details: 'groupId field is missing from request body'
+      });
     }
     
-    // Verify group and user exist
-    const userInGroup = await adminChatModel.isFakeUserInGroup(fakeUserId, groupId);
-    if (!userInGroup) {
-      return res.status(400).json({ error: 'User is not a member of this group' });
+    if (!fakeUserId) {
+      return res.status(400).json({ 
+        error: 'MISSING_FAKE_USER_ID',
+        message: 'Fake user ID is required',
+        details: 'fakeUserId field is missing from request body'
+      });
     }
-      // Create message in database
+    
+    if (!message || typeof message !== 'string' || !message.trim()) {
+      return res.status(400).json({ 
+        error: 'INVALID_MESSAGE_CONTENT',
+        message: 'Message content is required and must be a non-empty string',
+        details: { provided: typeof message, expected: 'non-empty string' }
+      });
+    }
+    
+    // Validate message type
+    const validMessageTypes = ['text', 'image', 'file', 'link'];
+    if (!validMessageTypes.includes(messageType)) {
+      return res.status(400).json({ 
+        error: 'INVALID_MESSAGE_TYPE',
+        message: 'Invalid message type',
+        details: { provided: messageType, expected: validMessageTypes }
+      });
+    }
+    
+    // Validate IDs are positive integers
+    const groupIdNum = parseInt(groupId);
+    const fakeUserIdNum = parseInt(fakeUserId);
+    
+    if (isNaN(groupIdNum) || groupIdNum <= 0) {
+      return res.status(400).json({ 
+        error: 'INVALID_GROUP_ID_FORMAT',
+        message: 'Group ID must be a positive integer',
+        details: { provided: groupId, expected: 'positive integer' }
+      });
+    }
+    
+    if (isNaN(fakeUserIdNum) || fakeUserIdNum <= 0) {
+      return res.status(400).json({ 
+        error: 'INVALID_FAKE_USER_ID_FORMAT',
+        message: 'Fake user ID must be a positive integer',
+        details: { provided: fakeUserId, expected: 'positive integer' }
+      });
+    }
+    
+    const trimmedMessage = message.trim();
+    
+    // Create message in database with transaction support
     const newMessage = await adminChatModel.createMessage({
-      groupId,
-      fakeUserId,
-      content: message,
+      groupId: groupIdNum,
+      fakeUserId: fakeUserIdNum,
+      content: trimmedMessage,
       messageType,
       isAdminGenerated: true,
       adminId: req.user.id
@@ -177,31 +250,57 @@ const postAsFakeUser = async (req, res) => {
     // Broadcast message via Socket.io
     const io = req.app.get('io');
     if (io && io.emitMessageToGroup) {
-      io.emitMessageToGroup(groupId, {
-        id: newMessage.id,
-        groupId,
-        userId: fakeUserId,
-        userType: 'fake',
-        content: message,
-        messageType,
-        createdAt: newMessage.created_at
+      try {
+        io.emitMessageToGroup(groupIdNum, {
+          id: newMessage.id,
+          groupId: groupIdNum,
+          userId: fakeUserIdNum,
+          userType: 'fake',
+          content: trimmedMessage,
+          messageType,
+          createdAt: newMessage.created_at
+        });
+      } catch (socketError) {
+        console.error('Socket.io broadcast failed:', socketError);
+        // Continue - don't fail the request for socket errors
+      }
+    }
+    
+    res.status(201).json({
+      success: true,
+      message: newMessage,
+      meta: {
+        adminId: req.user.id,
+        timestamp: new Date().toISOString()
+      }
+    });
+    
+  } catch (error) {
+    console.error('Error posting as fake user:', error);
+    
+    // Handle specific error types
+    if (error.message.includes('FAKE_USER_NOT_IN_GROUP')) {
+      return res.status(400).json({ 
+        error: 'FAKE_USER_NOT_IN_GROUP',
+        message: 'The specified fake user is not a member of this group',
+        details: error.message
       });
     }
     
-    res.status(201).json(newMessage);
+    if (error.message.includes('does not exist') || error.code === '23503') {
+      return res.status(404).json({ 
+        error: 'RESOURCE_NOT_FOUND',
+        message: 'Either the group or fake user does not exist',
+        details: error.message
+      });
+    }
     
-    // Log admin action
-    await logAdminAction(
-      req.user.id, 
-      'POST_AS_FAKE_USER', 
-      groupId, 
-      fakeUserId, 
-      newMessage.id, 
-      { messageType }
-    );
-  } catch (error) {
-    console.error('Error posting as fake user:', error);
-    res.status(500).json({ error: 'Failed to post message' });
+    res.status(500).json({ 
+      error: 'MESSAGE_POST_FAILED',
+      message: 'Failed to post message as fake user',
+      details: error.message,
+      timestamp: new Date().toISOString()
+    });
   }
 };
 
@@ -221,29 +320,87 @@ const scheduleMessage = async (req, res) => {
     } = req.body;
     
     // Validate required fields
-    if (!groupId || !fakeUserId || !message || !scheduledAt) {
+    if (!groupId) {
       return res.status(400).json({ 
-        error: 'Group ID, fake user ID, message, and scheduledAt are required' 
+        error: 'MISSING_GROUP_ID',
+        message: 'Group ID is required for scheduling a message'
       });
     }
     
-    // Validate scheduled time is in the future
+    if (!fakeUserId) {
+      return res.status(400).json({ 
+        error: 'MISSING_FAKE_USER_ID',
+        message: 'Fake user ID is required for scheduling a message'
+      });
+    }
+    
+    if (!message || typeof message !== 'string' || !message.trim()) {
+      return res.status(400).json({ 
+        error: 'INVALID_MESSAGE_CONTENT',
+        message: 'Message content is required and must be a non-empty string'
+      });
+    }
+    
+    if (!scheduledAt) {
+      return res.status(400).json({ 
+        error: 'MISSING_SCHEDULED_TIME',
+        message: 'Scheduled time is required (scheduledAt field)'
+      });
+    }
+    
+    // Validate message type
+    const validMessageTypes = ['text', 'image', 'file', 'link'];
+    if (!validMessageTypes.includes(messageType)) {
+      return res.status(400).json({ 
+        error: 'INVALID_MESSAGE_TYPE',
+        message: 'Invalid message type',
+        details: { provided: messageType, expected: validMessageTypes }
+      });
+    }
+    
+    // Validate IDs
+    const groupIdNum = parseInt(groupId);
+    const fakeUserIdNum = parseInt(fakeUserId);
+    
+    if (isNaN(groupIdNum) || groupIdNum <= 0) {
+      return res.status(400).json({ 
+        error: 'INVALID_GROUP_ID_FORMAT',
+        message: 'Group ID must be a positive integer'
+      });
+    }
+    
+    if (isNaN(fakeUserIdNum) || fakeUserIdNum <= 0) {
+      return res.status(400).json({ 
+        error: 'INVALID_FAKE_USER_ID_FORMAT',
+        message: 'Fake user ID must be a positive integer'
+      });
+    }
+    
+    // Validate scheduled time format
     const scheduledTime = new Date(scheduledAt);
-    if (scheduledTime <= new Date()) {
-      return res.status(400).json({ error: 'Scheduled time must be in the future' });
+    if (isNaN(scheduledTime.getTime())) {
+      return res.status(400).json({ 
+        error: 'INVALID_SCHEDULED_TIME_FORMAT',
+        message: 'Scheduled time must be a valid ISO date string',
+        details: { provided: scheduledAt, expected: 'ISO 8601 date string' }
+      });
     }
     
-    // Verify group and user exist
-    const userInGroup = await adminChatModel.isFakeUserInGroup(fakeUserId, groupId);
-    if (!userInGroup) {
-      return res.status(400).json({ error: 'User is not a member of this group' });
+    // Validate recurring pattern if recurring is enabled
+    if (isRecurring && !recurringPattern) {
+      return res.status(400).json({ 
+        error: 'MISSING_RECURRING_PATTERN',
+        message: 'Recurring pattern is required when isRecurring is true'
+      });
     }
     
-    // Create scheduled message in database
+    const trimmedMessage = message.trim();
+    
+    // Create scheduled message in database with transaction support
     const scheduledMessage = await adminChatModel.scheduleMessage({
-      groupId,
-      fakeUserId,
-      content: message,
+      groupId: groupIdNum,
+      fakeUserId: fakeUserIdNum,
+      content: trimmedMessage,
       messageType,
       scheduledAt: scheduledTime,
       isAdminGenerated: true,
@@ -252,24 +409,49 @@ const scheduleMessage = async (req, res) => {
       recurringPattern
     });
     
-    res.status(201).json(scheduledMessage);
-    
-    // Log admin action
-    await logAdminAction(
-      req.user.id, 
-      'SCHEDULE_MESSAGE', 
-      groupId, 
-      fakeUserId, 
-      scheduledMessage.id, 
-      { 
-        scheduledAt, 
-        isRecurring, 
-        recurringPattern 
+    res.status(201).json({
+      success: true,
+      scheduledMessage,
+      meta: {
+        adminId: req.user.id,
+        timestamp: new Date().toISOString()
       }
-    );
+    });
+    
   } catch (error) {
     console.error('Error scheduling message:', error);
-    res.status(500).json({ error: 'Failed to schedule message' });
+    
+    // Handle specific error types
+    if (error.message.includes('INVALID_SCHEDULE_TIME')) {
+      return res.status(400).json({ 
+        error: 'INVALID_SCHEDULE_TIME',
+        message: 'Scheduled time must be in the future',
+        details: error.message
+      });
+    }
+    
+    if (error.message.includes('FAKE_USER_NOT_IN_GROUP')) {
+      return res.status(400).json({ 
+        error: 'FAKE_USER_NOT_IN_GROUP',
+        message: 'The specified fake user is not a member of this group',
+        details: error.message
+      });
+    }
+    
+    if (error.message.includes('does not exist') || error.code === '23503') {
+      return res.status(404).json({ 
+        error: 'RESOURCE_NOT_FOUND',
+        message: 'Either the group or fake user does not exist',
+        details: error.message
+      });
+    }
+    
+    res.status(500).json({ 
+      error: 'MESSAGE_SCHEDULE_FAILED',
+      message: 'Failed to schedule message',
+      details: error.message,
+      timestamp: new Date().toISOString()
+    });
   }
 };
 
@@ -664,6 +846,213 @@ const logAdminAction = async (
   }
 };
 
+/**
+ * Get messages in a specific group for admin viewing
+ */
+const getGroupMessages = async (req, res) => {
+  try {
+    const { groupId } = req.params;
+    const { page = 1, limit = 50 } = req.query;
+    const offset = (page - 1) * limit;
+    
+    const db = require('../db');
+    
+    const messages = await db.query(`
+      SELECT cm.*, 
+             COALESCE(u.username, fu.username) as sender_name,
+             CASE 
+               WHEN cm.user_id IS NOT NULL THEN 'real_user'
+               ELSE 'fake_user'
+             END as sender_type,
+             cm.created_at,
+             cm.content,
+             cm.is_active
+      FROM chat_messages cm
+      LEFT JOIN users u ON cm.user_id = u.id
+      LEFT JOIN chat_fake_users fu ON cm.fake_user_id = fu.id
+      WHERE cm.group_id = $1 AND cm.is_active = true
+      ORDER BY cm.created_at DESC
+      LIMIT $2 OFFSET $3
+    `, [groupId, limit, offset]);
+    
+    const totalCount = await db.query(
+      'SELECT COUNT(*) FROM chat_messages WHERE group_id = $1 AND is_active = true',
+      [groupId]
+    );
+    
+    res.json({
+      messages: messages.rows.reverse(), // Reverse to show oldest first
+      pagination: {
+        total: parseInt(totalCount.rows[0].count),
+        page: parseInt(page),
+        limit: parseInt(limit),
+        pages: Math.ceil(totalCount.rows[0].count / limit)
+      }
+    });
+    
+    await logAdminAction(req.user.id, 'VIEW_GROUP_MESSAGES', groupId);
+  } catch (error) {
+    console.error('Error getting group messages:', error);
+    res.status(500).json({ error: 'Failed to retrieve messages' });
+  }
+};
+
+/**
+ * Reply to a message in a group as admin
+ */
+const replyToGroupMessage = async (req, res) => {
+  try {
+    const { groupId } = req.params;
+    const { content, fakeUserId, replyToMessageId } = req.body;
+    const adminId = req.user.id;
+    
+    const db = require('../db');
+    
+    if (!content || !content.trim()) {
+      return res.status(400).json({ error: 'Message content is required' });
+    }
+    
+    const message = await db.query(`
+      INSERT INTO chat_messages (
+        group_id, content, admin_id, fake_user_id, 
+        sent_by_admin, reply_to_message_id, created_at
+      ) VALUES ($1, $2, $3, $4, true, $5, NOW()) 
+      RETURNING *
+    `, [groupId, content.trim(), adminId, fakeUserId, replyToMessageId || null]);
+    
+    // Get sender name for response
+    let senderName = 'Admin';
+    if (fakeUserId) {
+      const fakeUser = await db.query('SELECT username FROM chat_fake_users WHERE id = $1', [fakeUserId]);
+      if (fakeUser.rows.length > 0) {
+        senderName = fakeUser.rows[0].username;
+      }
+    }
+    
+    const responseMessage = {
+      ...message.rows[0],
+      sender_name: senderName,
+      sender_type: fakeUserId ? 'fake_user' : 'admin'
+    };
+    
+    res.json({ message: responseMessage });
+    
+    await logAdminAction(adminId, 'REPLY_TO_GROUP_MESSAGE', groupId, null, fakeUserId, {
+      replyToMessageId,
+      content: content.substring(0, 100)
+    });
+  } catch (error) {
+    console.error('Error replying to message:', error);
+    res.status(500).json({ error: 'Failed to send reply' });
+  }
+};
+
+/**
+ * Get all direct message conversations for admin oversight
+ */
+const getAllDirectMessages = async (req, res) => {
+  try {
+    const { page = 1, limit = 50, search = '' } = req.query;
+    const offset = (page - 1) * limit;
+    
+    const db = require('../db');
+    
+    let whereClause = '';
+    let params = [limit, offset];
+    
+    if (search) {
+      whereClause = 'WHERE u1.username ILIKE $3 OR u2.username ILIKE $3';
+      params.push(`%${search}%`);
+    }
+    
+    const conversations = await db.query(`
+      SELECT dm.*, 
+             u1.username as user1_name, 
+             u2.username as user2_name,
+             u1.id as user1_id,
+             u2.id as user2_id,
+             (SELECT content FROM direct_message_texts dmt 
+              WHERE dmt.conversation_id = dm.id 
+              ORDER BY dmt.created_at DESC LIMIT 1) as last_message,
+             (SELECT COUNT(*) FROM direct_message_texts dmt 
+              WHERE dmt.conversation_id = dm.id) as message_count,
+             (SELECT created_at FROM direct_message_texts dmt 
+              WHERE dmt.conversation_id = dm.id 
+              ORDER BY dmt.created_at DESC LIMIT 1) as last_message_at
+      FROM direct_messages dm
+      JOIN users u1 ON dm.user1_id = u1.id
+      JOIN users u2 ON dm.user2_id = u2.id
+      ${whereClause}
+      ORDER BY dm.updated_at DESC
+      LIMIT $1 OFFSET $2
+    `, params);
+    
+    const totalCount = await db.query(`
+      SELECT COUNT(*) FROM direct_messages dm
+      JOIN users u1 ON dm.user1_id = u1.id
+      JOIN users u2 ON dm.user2_id = u2.id
+      ${whereClause}
+    `, search ? [`%${search}%`] : []);
+    
+    res.json({ 
+      conversations: conversations.rows,
+      pagination: {
+        total: parseInt(totalCount.rows[0].count),
+        page: parseInt(page),
+        limit: parseInt(limit),
+        pages: Math.ceil(totalCount.rows[0].count / limit)
+      }
+    });
+    
+    await logAdminAction(req.user.id, 'VIEW_DIRECT_MESSAGES', null, null, null, { search });
+  } catch (error) {
+    console.error('Error getting direct messages:', error);
+    res.status(500).json({ error: 'Failed to retrieve direct messages' });
+  }
+};
+
+/**
+ * Get messages in a specific DM conversation for admin viewing
+ */
+const getDirectMessageConversation = async (req, res) => {
+  try {
+    const { conversationId } = req.params;
+    const { page = 1, limit = 50 } = req.query;
+    const offset = (page - 1) * limit;
+    
+    const db = require('../db');
+    
+    const messages = await db.query(`
+      SELECT dmt.*, u.username as sender_name, u.id as sender_id
+      FROM direct_message_texts dmt
+      JOIN users u ON dmt.sender_id = u.id
+      WHERE dmt.conversation_id = $1
+      ORDER BY dmt.created_at DESC
+      LIMIT $2 OFFSET $3
+    `, [conversationId, limit, offset]);
+    
+    const totalCount = await db.query(
+      'SELECT COUNT(*) FROM direct_message_texts WHERE conversation_id = $1',
+      [conversationId]
+    );
+    
+    res.json({ 
+      messages: messages.rows.reverse(), // Show oldest first
+      pagination: {
+        total: parseInt(totalCount.rows[0].count),
+        page: parseInt(page),
+        limit: parseInt(limit),
+        pages: Math.ceil(totalCount.rows[0].count / limit)
+      }
+    });
+    
+    await logAdminAction(req.user.id, 'VIEW_DM_CONVERSATION', null, conversationId);
+  } catch (error) {
+    console.error('Error getting DM conversation:', error);
+    res.status(500).json({ error: 'Failed to retrieve conversation' });
+  }
+};
+
 module.exports = {
   getAllGroups,
   getGroupDetails,
@@ -680,6 +1069,10 @@ module.exports = {
   getTemplates,
   createTemplate,
   updateTemplate,
-  deleteTemplate
+  deleteTemplate,
+  getGroupMessages,
+  replyToGroupMessage,
+  getAllDirectMessages,
+  getDirectMessageConversation
 };
 

@@ -277,7 +277,20 @@ const AdminChatAPI = (() => {
     deleteScheduledMessage,
     
     // Admin Logs
-    getAdminLogs
+    getAdminLogs,
+    
+    // NEW: Direct Messages Management
+    getAllDirectMessages: () => apiCall('/direct-messages'),
+    getDirectMessageConversation: (conversationId, options = {}) => {
+      const queryParams = new URLSearchParams({
+        page: options.page || 1,
+        limit: options.limit || 50
+      });
+      return apiCall(`/direct-messages/${conversationId}/messages?${queryParams}`);
+    },
+    
+    // NEW: Enhanced Group Message Management
+    replyToGroupMessage: (groupId, replyData) => apiCall(`/groups/${groupId}/reply`, 'POST', replyData)
   };
 })();
 

@@ -49,13 +49,18 @@ const getGroupsCount = async (search) => {
   }
   
   const result = await db.query(query, values);
-  return parseInt(result.rows[0].count);
+  // Safe access with fallback
+  return result.rows && result.rows.length > 0 ? parseInt(result.rows[0].count) : 0;
 };
 
 /**
- * Get a specific group by ID
+ * Get a specific group by ID with safe access
  */
 const getGroupById = async (groupId) => {
+  if (!groupId || isNaN(parseInt(groupId))) {
+    throw new Error(`INVALID_GROUP_ID: Group ID must be a valid integer, received: ${groupId}`);
+  }
+  
   const query = `
     SELECT 
       cg.id, 
@@ -73,17 +78,21 @@ const getGroupById = async (groupId) => {
       cg.id = $1
   `;
   
-  const result = await db.query(query, [groupId]);
-  return result.rows[0] || null;
+  const result = await db.query(query, [parseInt(groupId)]);
+  return result.rows && result.rows.length > 0 ? result.rows[0] : null;
 };
 
 /**
- * Check if a group exists
+ * Check if a group exists with safe access
  */
 const groupExists = async (groupId) => {
+  if (!groupId || isNaN(parseInt(groupId))) {
+    return false;
+  }
+  
   const query = 'SELECT EXISTS(SELECT 1 FROM chat_groups WHERE id = $1)';
-  const result = await db.query(query, [groupId]);
-  return result.rows[0].exists;
+  const result = await db.query(query, [parseInt(groupId)]);
+  return result.rows && result.rows.length > 0 ? result.rows[0].exists : false;
 };
 
 /**
@@ -181,11 +190,11 @@ const getUsersInGroup = async (groupId, userType, { limit, offset }) => {
 };
 
 /**
- * Count users in a group
+ * Count users in a group with safe access
  */
 const getUsersInGroupCount = async (groupId, userType) => {
   let query;
-  const values = [groupId];
+  const values = [parseInt(groupId)];
   
   if (userType === 'fake_user') {
     query = 'SELECT COUNT(*) FROM chat_group_members WHERE group_id = $1 AND fake_user_id IS NOT NULL';
@@ -200,7 +209,7 @@ const getUsersInGroupCount = async (groupId, userType) => {
   }
   
   const result = await db.query(query, values);
-  return parseInt(result.rows[0].count);
+  return result.rows && result.rows.length > 0 ? parseInt(result.rows[0].count) : 0;
 };
 
 /**
@@ -336,7 +345,7 @@ const isFakeUserInGroup = async (userId, groupId) => {
 };
 
 /**
- * Create a new message as a fake user
+ * Create a new message as a fake user with transaction support
  */
 const createMessage = async ({ 
   groupId, 
@@ -346,33 +355,87 @@ const createMessage = async ({
   isAdminGenerated = true,
   adminId
 }) => {
-  const query = `
-    INSERT INTO chat_messages (
-      group_id, 
-      fake_user_id, 
+  const client = await db.getClient();
+  
+  try {
+    await client.query('BEGIN');
+    
+    // First, verify the fake user is in the group
+    const membershipCheck = await client.query(`
+      SELECT EXISTS(
+        SELECT 1 FROM chat_group_members 
+        WHERE fake_user_id = $1 AND group_id = $2
+      )
+    `, [fakeUserId, groupId]);
+    
+    if (!membershipCheck.rows[0].exists) {
+      throw new Error(`FAKE_USER_NOT_IN_GROUP: Fake user ${fakeUserId} is not a member of group ${groupId}`);
+    }
+    
+    // Create the message
+    const messageQuery = `
+      INSERT INTO chat_messages (
+        group_id, 
+        fake_user_id, 
+        content, 
+        media_type, 
+        sent_by_admin, 
+        admin_id,
+        created_at
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, NOW())
+      RETURNING id, group_id, fake_user_id, content, media_type, created_at
+    `;
+    
+    const messageResult = await client.query(messageQuery, [
+      groupId, 
+      fakeUserId, 
       content, 
-      media_type, 
-      sent_by_admin, 
-      admin_id
-    )
-    VALUES ($1, $2, $3, $4, $5, $6)
-    RETURNING id, group_id, fake_user_id, content, media_type, created_at
-  `;
-  
-  const result = await db.query(query, [
-    groupId, 
-    fakeUserId, 
-    content, 
-    messageType, 
-    isAdminGenerated, 
-    adminId
-  ]);
-  
-  return result.rows[0];
+      messageType, 
+      isAdminGenerated, 
+      adminId
+    ]);
+    
+    const newMessage = messageResult.rows[0];
+    
+    // Log the admin action atomically
+    await client.query(`
+      INSERT INTO chat_admin_logs (
+        admin_id,
+        action_type,
+        entity_type,
+        entity_id,
+        details,
+        created_at
+      )
+      VALUES ($1, $2, $3, $4, $5, NOW())
+    `, [
+      adminId,
+      'POST_AS_FAKE_USER',
+      'MESSAGE',
+      newMessage.id,
+      JSON.stringify({ 
+        groupId, 
+        fakeUserId, 
+        messageType,
+        contentLength: content.length 
+      })
+    ]);
+    
+    await client.query('COMMIT');
+    return newMessage;
+    
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('[createMessage] Transaction failed:', error);
+    throw error;
+  } finally {
+    client.release();
+  }
 };
 
 /**
- * Schedule a message to be sent later
+ * Schedule a message to be sent later with validation and transaction support
  */
 const scheduleMessage = async ({ 
   groupId, 
@@ -385,33 +448,97 @@ const scheduleMessage = async ({
   isRecurring = false,
   recurringPattern = null
 }) => {
-  const query = `
-    INSERT INTO chat_scheduled_messages (
-      group_id, 
-      fake_user_id, 
+  const client = await db.getClient();
+  
+  try {
+    await client.query('BEGIN');
+    
+    // Validate scheduled time is in the future
+    const now = new Date();
+    const scheduledTime = new Date(scheduledAt);
+    
+    if (scheduledTime <= now) {
+      throw new Error(`INVALID_SCHEDULE_TIME: Scheduled time ${scheduledAt} must be in the future (current time: ${now.toISOString()})`);
+    }
+    
+    // Verify the fake user is in the group
+    const membershipCheck = await client.query(`
+      SELECT EXISTS(
+        SELECT 1 FROM chat_group_members 
+        WHERE fake_user_id = $1 AND group_id = $2
+      )
+    `, [fakeUserId, groupId]);
+    
+    if (!membershipCheck.rows[0].exists) {
+      throw new Error(`FAKE_USER_NOT_IN_GROUP: Fake user ${fakeUserId} is not a member of group ${groupId}`);
+    }
+    
+    // Create the scheduled message
+    const query = `
+      INSERT INTO chat_scheduled_messages (
+        group_id, 
+        fake_user_id, 
+        content, 
+        media_type, 
+        scheduled_time,
+        is_recurring,
+        recurrence_pattern,
+        scheduled_by,
+        created_at
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
+      RETURNING id, group_id, fake_user_id, content, media_type, scheduled_time, is_recurring, recurrence_pattern, scheduled_by, created_at
+    `;
+    
+    const result = await client.query(query, [
+      groupId, 
+      fakeUserId, 
       content, 
-      media_type, 
-      scheduled_time,
-      is_recurring,
-      recurrence_pattern,
-      scheduled_by
-    )
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-    RETURNING id, group_id, fake_user_id, content, media_type, scheduled_time, is_recurring, recurrence_pattern, scheduled_by, created_at
-  `;
-  
-  const result = await db.query(query, [
-    groupId, 
-    fakeUserId, 
-    content, 
-    messageType, 
-    scheduledAt,
-    isRecurring,
-    recurringPattern,
-    adminId
-  ]);
-  
-  return result.rows[0];
+      messageType, 
+      scheduledAt,
+      isRecurring,
+      recurringPattern,
+      adminId
+    ]);
+    
+    const scheduledMessage = result.rows[0];
+    
+    // Log the admin action atomically
+    await client.query(`
+      INSERT INTO chat_admin_logs (
+        admin_id,
+        action_type,
+        entity_type,
+        entity_id,
+        details,
+        created_at
+      )
+      VALUES ($1, $2, $3, $4, $5, NOW())
+    `, [
+      adminId,
+      'SCHEDULE_MESSAGE',
+      'SCHEDULED_MESSAGE',
+      scheduledMessage.id,
+      JSON.stringify({ 
+        groupId, 
+        fakeUserId, 
+        messageType,
+        scheduledAt,
+        isRecurring,
+        recurringPattern
+      })
+    ]);
+    
+    await client.query('COMMIT');
+    return scheduledMessage;
+    
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('[scheduleMessage] Transaction failed:', error);
+    throw error;
+  } finally {
+    client.release();
+  }
 };
 
 /**

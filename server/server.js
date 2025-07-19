@@ -137,7 +137,7 @@ app.use('/api/admin/drive-management', adminDriveRoutes); // Mount admin drive r
 app.use('/api/admin/chat', adminChatRoutes); // Mount admin chat routes - Standardized route pattern
 app.use('/api/admin/chat', chatUserManagementRoutes); // Mount chat user management routes
 app.use('/api/admin/chat', chatMessageRoutes); // Mount chat message routes
-app.use('/api/admin-chat', dmRoutes); // Mount direct message routes
+app.use('/api/dm', dmRoutes); // Mount direct message routes (separate from admin chat)
 
 // Start server (using HTTP server instead of Express)
 server.listen(PORT, () => {

@@ -7,12 +7,15 @@ class UserChatApp {
   constructor() {
     this.currentUser = null;
     this.currentGroup = null;
+    this.currentDM = null; // Track current direct message conversation
     this.groups = [];
+    this.directMessages = []; // Store DM conversations
     this.messages = [];
     this.socket = null;
     this.memberCountTimer = null; // Timer for auto-refreshing member counts
     this.lastMemberCount = undefined; // Track last member count for realistic changes
     this.groupLastVisited = {}; // Track when user last visited each group for "new" badges
+    this.chatMode = 'groups'; // 'groups' or 'direct' mode
     
     this.init();
   }
@@ -24,10 +27,16 @@ class UserChatApp {
 
   // Helper method to generate exaggerated member count display
   getExaggeratedMemberCount(min = 100, max = 2000, forceNew = false) {
+    // Load persisted member count from localStorage first
+    if (this.lastMemberCount === undefined) {
+      this.loadPersistedMemberCount(min, max);
+    }
+    
     // If this is the first time or we're forcing a new count, generate initial random number
     if (this.lastMemberCount === undefined || forceNew) {
       const onlineCount = Math.floor(Math.random() * (max - min + 1)) + min;
       this.lastMemberCount = onlineCount;
+      this.savePersistedMemberCount();
       return `${onlineCount} online`;
     }
     
@@ -51,7 +60,49 @@ class UserChatApp {
       this.lastMemberCount = newCount;
     }
     
+    // Save the updated count to localStorage
+    this.savePersistedMemberCount();
+    
     return `${this.lastMemberCount} online`;
+  }
+
+  // Load member count from localStorage to persist across page refreshes
+  loadPersistedMemberCount(min = 100, max = 2000) {
+    try {
+      const stored = localStorage.getItem('chatMemberCount');
+      const storedTimestamp = localStorage.getItem('chatMemberCountTimestamp');
+      
+      if (stored && storedTimestamp) {
+        const count = parseInt(stored);
+        const timestamp = parseInt(storedTimestamp);
+        const now = Date.now();
+        
+        // Only use stored count if it's less than 1 hour old and within valid range
+        // This prevents stale data while allowing persistence during normal usage
+        if ((now - timestamp) < 36000 && count >= min && count <= max) {
+          this.lastMemberCount = count;
+          console.log('Loaded persisted member count:', count);
+          return;
+        }
+      }
+    } catch (error) {
+      console.log('Could not load persisted member count:', error);
+    }
+    
+    // If no valid stored count, this.lastMemberCount remains undefined
+    // and will be initialized by getExaggeratedMemberCount or getUpdatedMemberCount
+  }
+
+  // Save member count to localStorage for persistence
+  savePersistedMemberCount() {
+    try {
+      if (this.lastMemberCount !== undefined) {
+        localStorage.setItem('chatMemberCount', this.lastMemberCount.toString());
+        localStorage.setItem('chatMemberCountTimestamp', Date.now().toString());
+      }
+    } catch (error) {
+      console.log('Could not save member count:', error);
+    }
   }
 
   // Start auto-refresh timer for member counts
@@ -104,6 +155,10 @@ class UserChatApp {
   canPostInGroup(group) {
     // Users can only post in their personal group (created when they registered)
     // All other groups are read-only for clients
+    // OR if it's a direct message
+    if (group && group.is_direct_message) {
+      return true; // Can always post in DMs
+    }
     return group && group.is_personal_group === true;
   }
 
@@ -351,6 +406,9 @@ class UserChatApp {
       // Load group visited times from localStorage
       this.loadGroupVisitedTimes();
       
+      // Also load direct messages
+      await this.loadDirectMessages();
+      
       this.renderGroups();
       
       // Start auto-refresh for personal group member counts
@@ -359,6 +417,120 @@ class UserChatApp {
     } catch (error) {
       console.error('Error loading groups:', error);
       this.showError('Failed to load groups');
+    }
+  }
+
+  // Load direct message conversations
+  async loadDirectMessages() {
+    try {
+      const token = this.getAuthToken();
+      const response = await fetch('/api/user/chat/direct-messages', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch direct messages');
+      }
+
+      const data = await response.json();
+      this.directMessages = data.conversations;
+      
+    } catch (error) {
+      console.error('Error loading direct messages:', error);
+      // Don't show error for DMs as it's not critical
+    }
+  }
+
+  // Start a direct message conversation
+  async startDirectMessage(userId) {
+    try {
+      const token = this.getAuthToken();
+      const response = await fetch('/api/user/chat/direct-messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ userId })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to start conversation');
+      }
+
+      const data = await response.json();
+      this.selectDirectMessage(data.conversation);
+    } catch (error) {
+      console.error('Error starting direct message:', error);
+      this.showError('Failed to start conversation');
+    }
+  }
+
+  // Select and load a direct message conversation
+  async selectDirectMessage(conversation) {
+    this.currentDM = conversation;
+    this.currentGroup = null; // Clear group selection
+    this.chatMode = 'direct';
+    
+    // Update UI
+    document.querySelectorAll('.chat-item').forEach(item => {
+      item.classList.remove('active');
+    });
+    
+    // Show chat interface
+    this.chatDefaultState.classList.add('hidden');
+    this.chatActiveState.classList.remove('hidden');
+    
+    // Mobile navigation
+    if (this.isMobileView()) {
+      const sidebar = document.querySelector('.chat-sidebar');
+      const main = document.querySelector('.chat-main');
+      
+      if (sidebar && main) {
+        sidebar.classList.add('hidden-mobile');
+        main.classList.add('active-mobile');
+      }
+    }
+    
+    // Update chat header
+    this.contactName.textContent = conversation.other_user_name || 'Direct Message';
+    this.contactStatus.textContent = 'Private Chat';
+    
+    // Enable input for DMs
+    this.updateInputPermissions({ is_direct_message: true });
+    
+    // Load messages for this conversation
+    await this.loadDirectMessageMessages(conversation.id);
+    
+    // Join socket room for real-time updates
+    if (this.socket) {
+      this.socket.emit('join_dm', conversation.id);
+    }
+  }
+
+  // Load messages for a direct message conversation
+  async loadDirectMessageMessages(conversationId, page = 1) {
+    try {
+      const token = this.getAuthToken();
+      const response = await fetch(`/api/user/chat/direct-messages/${conversationId}/messages?page=${page}&limit=50`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch messages');
+      }
+
+      const data = await response.json();
+      this.messages = data.messages;
+      this.renderMessages();
+      
+    } catch (error) {
+      console.error('Error loading DM messages:', error);
+      this.showError('Failed to load messages');
     }
   }
 
@@ -413,6 +585,8 @@ class UserChatApp {
 
   async selectGroup(group) {
     this.currentGroup = group;
+    this.currentDM = null; // Clear DM selection
+    this.chatMode = 'groups';
     
     // Mark group as visited to remove "new" badge
     this.markGroupAsVisited(group.id);
@@ -559,28 +733,44 @@ class UserChatApp {
   }
 
   async sendMessage() {
-    if (!this.currentGroup || !this.messageInput) return;
-    
-    // Check if user has permission to post in this group
-    if (!this.canPostInGroup(this.currentGroup)) {
-      console.log('User does not have permission to post in this group');
-      this.showError('You can only post messages in your personal group');
-      return;
-    }
-    
     const content = this.messageInput.value.trim();
     if (!content) return;
 
     try {
       const token = this.getAuthToken();
-      const response = await fetch(`/api/user/chat/groups/${this.currentGroup.id}/messages`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ content })
-      });
+      let response;
+      
+      if (this.chatMode === 'direct' && this.currentDM) {
+        // Send direct message
+        response = await fetch(`/api/user/chat/direct-messages/${this.currentDM.id}/messages`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ content })
+        });
+      } else if (this.chatMode === 'groups' && this.currentGroup) {
+        // Check if user has permission to post in this group
+        if (!this.canPostInGroup(this.currentGroup)) {
+          console.log('User does not have permission to post in this group');
+          this.showError('You can only post messages in your personal group');
+          return;
+        }
+        
+        // Send group message
+        response = await fetch(`/api/user/chat/groups/${this.currentGroup.id}/messages`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ content })
+        });
+      } else {
+        this.showError('No active conversation selected');
+        return;
+      }
 
       if (!response.ok) {
         throw new Error('Failed to send message');
@@ -609,8 +799,9 @@ class UserChatApp {
   initializeSocket() {
     this.socket = io();
     
+    // Handle group messages
     this.socket.on('new_message', (message) => {
-      if (this.currentGroup && message.group_id === this.currentGroup.id) {
+      if (this.currentGroup && message.group_id === this.currentGroup.id && this.chatMode === 'groups') {
         // Add message to current chat
         this.addMessageToUI(message);
       } else {
@@ -622,6 +813,17 @@ class UserChatApp {
         if (group) {
           group.last_activity = new Date().toISOString();
         }
+      }
+    });
+
+    // Handle direct messages
+    this.socket.on('new_direct_message', (message) => {
+      if (this.currentDM && message.conversation_id === this.currentDM.id && this.chatMode === 'direct') {
+        // Add message to current DM chat
+        this.addMessageToUI(message);
+      } else {
+        // Message in a different DM - could update DM list here
+        console.log('New DM message in other conversation:', message);
       }
     });
 
