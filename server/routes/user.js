@@ -195,8 +195,9 @@ const avatarStorage = multer.diskStorage({
     cb(null, path.join(__dirname, '../../public/assets/uploads/avatars/'));
   },
   filename: (req, file, cb) => {
+    // Generate a unique filename without relying on req.user.id (which isn't available yet)
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, 'avatar-' + req.user.id + '-' + uniqueSuffix + path.extname(file.originalname));
+    cb(null, 'avatar-' + uniqueSuffix + path.extname(file.originalname));
   }
 });
 
@@ -260,9 +261,9 @@ router.post('/upload-avatar', protect, uploadAvatar.single('avatar'), async (req
 
     const avatarUrl = `/assets/uploads/avatars/${req.file.filename}`;
     
-    // Update user's avatar_url in database
-    const query = 'UPDATE users SET avatar_url = ? WHERE id = ?';
-    const [result] = await pool.execute(query, [avatarUrl, req.user.id]);
+    // Update both avatar_url and profile_image fields for compatibility
+    const query = 'UPDATE users SET avatar_url = $1, profile_image = $1 WHERE id = $2';
+    const result = await pool.query(query, [avatarUrl, req.user.id]);
 
     res.json({
       success: true,

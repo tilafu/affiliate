@@ -21,7 +21,7 @@ const protect = async (req, res, next) => {
 
             // Get user from the token
             const userResult = await pool.query(
-                'SELECT id, username, email, referral_code, tier, role FROM users WHERE id = $1',
+                'SELECT id, username, email, referral_code, tier, role, avatar_url, profile_image FROM users WHERE id = $1',
                 [decoded.userId]
             );
 

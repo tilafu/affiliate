@@ -282,7 +282,14 @@ function updateSidebarUI(data) {
             avatarElement.src = user.avatar_url;
         } else if (user.profile_image) {
             avatarElement.src = user.profile_image;
+        } else {
+            // Fallback to default avatar
+            avatarElement.src = '/assets/uploads/user.jpg';
         }
+        // Add error handler to ensure fallback works
+        avatarElement.onerror = function() {
+            this.src = '/assets/uploads/user.jpg';
+        };
     }
     // Verification Provider
     const verificationElement = document.getElementById('verification-provider');

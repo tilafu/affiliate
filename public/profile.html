@@ -760,12 +760,23 @@ document.addEventListener('DOMContentLoaded', function() {
                     sidebarAvatar.src = result.avatarUrl;
                 }
                 
+                // Refresh sidebar data to update avatar across all pages
+                if (typeof window.refreshSidebarUserData === 'function') {
+                    try {
+                        await window.refreshSidebarUserData();
+                        console.log('Sidebar data refreshed after avatar update');
+                    } catch (e) {
+                        console.error('Error refreshing sidebar data:', e);
+                    }
+                }
+                
                 // Update cached user data
                 const userData = localStorage.getItem('user_data');
                 if (userData) {
                     try {
                         const user = JSON.parse(userData);
                         user.avatar_url = result.avatarUrl;
+                        user.profile_image = result.avatarUrl; // Update both fields for compatibility
                         localStorage.setItem('user_data', JSON.stringify(user));
                     } catch (e) {
                         console.error('Error updating cached user data:', e);
