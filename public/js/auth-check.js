@@ -1,13 +1,11 @@
 // Central authentication management for the frontend
 // This file provides reusable authentication utilities
 //
-// *** DEBUGGING MODE - REDIRECTS DISABLED ***
-// - All 401 error redirects have been completely removed
-// - 401 errors are only logged to console with detailed debug information
-// - Users will NOT be automatically logged out on 401 errors
-// - Check browser console for detailed debug information when 401 errors occur
-// - Redirects will be restored after identifying the root cause
-// *** END DEBUG NOTE ***
+// *** PRODUCTION MODE - REDIRECTS ENABLED ***
+// - 401 error redirects are now active
+// - Authentication failures will redirect to login page
+// - Users will be automatically logged out on auth failures
+// *** END NOTE ***
 
 /**
  * Central authentication check function with dual auth support
@@ -32,29 +30,25 @@ function checkAuthentication(options = {}) {
         
         if (!authData) {
             if (!silent && typeof showNotification === 'function') {
-                showNotification('Authentication token is missing. Please login to access full features.', 'warning');
+                showNotification('Authentication required. Redirecting to login...', 'warning');
             }
-            console.warn('Auth Check: No authentication data - allowing continuation with limited access');
-            return {
-                token: null,
-                user: {},
-                isAdmin: false,
-                hasLimitedAccess: true,
-                missingRequirement: 'authentication_token'
-            };
+            console.warn('Auth Check: No authentication data - redirecting to login');
+            setTimeout(() => {
+                window.location.href = redirectPath;
+            }, 1000);
+            return null;
         }
         
         // Check admin requirement
         if (adminRequired && !authData.isAdmin) {
             if (!silent && typeof showNotification === 'function') {
-                showNotification('Admin privileges required for full features. Some functionality may be limited.', 'warning');
+                showNotification('Admin access required. Redirecting to login...', 'warning');
             }
-            console.warn('Auth Check: Admin required but user is not admin - allowing continuation with limited access');
-            return {
-                ...authData,
-                hasLimitedAccess: true,
-                missingRequirement: 'admin_privileges'
-            };
+            console.warn('Auth Check: Admin required but user is not admin - redirecting to login');
+            setTimeout(() => {
+                window.location.href = redirectPath;
+            }, 1000);
+            return null;
         }
         
         console.log('Auth Check: Authentication successful via SimpleAuth');
@@ -82,16 +76,13 @@ function checkAuthentication(options = {}) {
     console.log(`Legacy token: ${token ? `found (${token.length} chars)` : 'not found'}`);
       if (!token) {
         if (!silent && typeof showNotification === 'function') {
-            showNotification('Authentication token is missing. Please login to access full features.', 'warning');
+            showNotification('Authentication required. Redirecting to login...', 'warning');
         }
-        console.warn('Auth Check: No token found - allowing continuation with limited access');
-        // Return limited access object instead of redirecting
-        return {
-            token: null,
-            user: {},
-            isAdmin: false,
-            missingRequirement: 'authentication_token'
-        };
+        console.warn('Auth Check: No token found - redirecting to login');
+        setTimeout(() => {
+            window.location.href = redirectPath;
+        }, 1000);
+        return null;
     }
 
     // Parse token to check expiration and role
@@ -111,16 +102,13 @@ function checkAuthentication(options = {}) {
             }
             
             if (!silent && typeof showNotification === 'function') {
-                showNotification('Session has expired. Please login again for full access.', 'warning');
+                showNotification('Session expired. Redirecting to login...', 'warning');
             }
-            console.warn('Auth Check: Token expired - allowing continuation with limited access');
-            // Return limited access object instead of redirecting
-            return {
-                token: null,
-                user: {},
-                isAdmin: false,
-                missingRequirement: 'valid_session'
-            };
+            console.warn('Auth Check: Token expired - redirecting to login');
+            setTimeout(() => {
+                window.location.href = redirectPath;
+            }, 1000);
+            return null;
         }
 
         // Get user data from localStorage for role checking
@@ -128,16 +116,13 @@ function checkAuthentication(options = {}) {
           // Check admin requirement
         if (adminRequired && userData.role !== 'admin') {
             if (!silent && typeof showNotification === 'function') {
-                showNotification('Admin access required for full features. Some functionality may be limited.', 'warning');
+                showNotification('Admin access required. Redirecting to login...', 'warning');
             }
-            console.warn('Auth Check: Admin required but user is not admin - allowing continuation with limited access');
-            // Return limited access object instead of redirecting
-            return {
-                token,
-                user: userData,
-                isAdmin: false,
-                missingRequirement: 'admin_privileges'
-            };
+            console.warn('Auth Check: Admin required but user is not admin - redirecting to login');
+            setTimeout(() => {
+                window.location.href = redirectPath;
+            }, 1000);
+            return null;
         }
 
         // Return user data if authentication successful
@@ -159,16 +144,13 @@ function checkAuthentication(options = {}) {
         }
         
         if (!silent && typeof showNotification === 'function') {
-            showNotification('Authentication data is invalid. Please login for full access.', 'warning');
+            showNotification('Authentication data is invalid. Redirecting to login...', 'warning');
         }
-        console.warn('Auth Check: Invalid token data - allowing continuation with limited access');
-        // Return limited access object instead of redirecting
-        return {
-            token: null,
-            user: {},
-            isAdmin: false,
-            missingRequirement: 'valid_token_data'
-        };
+        console.warn('Auth Check: Invalid token data - redirecting to login');
+        setTimeout(() => {
+            window.location.href = redirectPath;
+        }, 1000);
+        return null;
     }
 }
 
@@ -279,20 +261,21 @@ function enhancedFetchWithAuth(url, options = {}) {
         ...options,
         headers,    }).then(response => {
         if (response.status === 401) {
-            console.error('=== 401 AUTH ERROR DEBUG ===');
+            console.error('=== 401 AUTH ERROR ===');
             console.error('URL that returned 401:', url);
             console.error('Request options:', options);
             console.error('Current auth token:', authData.token ? `${authData.token.substring(0, 20)}...` : 'no token');
             console.error('User data:', authData.user);
             console.error('=== END 401 DEBUG ===');
-              // Show notification but don't redirect - debugging mode
+              // Show notification and redirect to login
             if (typeof showNotification === 'function') {
-                showNotification(`API ${url} returned 401 - Check browser console for details`, 'error');
+                showNotification('Session expired. Redirecting to login...', 'error');
             }
             
-            // REDIRECT REMOVED FOR DEBUGGING - Will be restored after identifying the problem
+            // Clear auth data and redirect
+            clearAuthAndRedirect('Authentication failed. Please login again.', true);
             
-            throw new Error(`401 Unauthorized from ${url} - Check console for debug info`);
+            throw new Error(`401 Unauthorized from ${url}`);
         }
         
         if (!response.ok) {
@@ -337,22 +320,23 @@ async function authenticatedFetch(url, options = {}, panelType = null) {
     return fetch(url, {
         ...options,
         headers    }).then(response => {
-        // Handle 401 responses - log details for debugging instead of immediate redirect
+        // Handle 401 responses - redirect to login
         if (response.status === 401) {
-            console.error('=== 401 AUTH ERROR DEBUG ===');
+            console.error('=== 401 AUTH ERROR ===');
             console.error('URL that returned 401:', url);
             console.error('Request options:', options);
             console.error('Current auth token:', authData.token ? `${authData.token.substring(0, 20)}...` : 'no token');
             console.error('User data:', authData);
             console.error('=== END 401 DEBUG ===');
-              // Show notification but don't redirect - debugging mode
+              // Show notification and redirect to login
             if (typeof showNotification === 'function') {
-                showNotification(`API ${url} returned 401 - Check browser console for details`, 'error');
+                showNotification('Session expired. Redirecting to login...', 'error');
             }
             
-            // REDIRECT REMOVED FOR DEBUGGING - Will be restored after identifying the problem
+            // Clear auth data and redirect
+            clearAuthAndRedirect('Authentication failed. Please login again.', true);
             
-            throw new Error(`401 Unauthorized from ${url} - Check console for debug info`);
+            throw new Error(`401 Unauthorized from ${url}`);
         }
         return response;
     });

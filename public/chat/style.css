@@ -1198,6 +1198,164 @@ body, .chat-dark-bg {
     padding: 8px 12px;
     background: #374151;
     color: #e9edef;
+}
+
+/* Group Join Notification Popup */
+.group-join-notification-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    backdrop-filter: blur(4px);
+    animation: fadeInOverlay 0.3s ease;
+}
+
+@keyframes fadeInOverlay {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.group-join-notification {
+    background: white;
+    border-radius: 16px;
+    padding: 0;
+    max-width: 400px;
+    width: 90%;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+    animation: slideInUp 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    overflow: hidden;
+    position: relative;
+}
+
+@keyframes slideInUp {
+    from { 
+        transform: translateY(30px);
+        opacity: 0;
+    }
+    to { 
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.join-notification-header {
+    background: linear-gradient(135deg, #0891b2 0%, #0d9488 100%);
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: relative;
+}
+
+.join-notification-logo {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: white;
+    padding: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.close-notification {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: white;
+    font-size: 24px;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s;
+    font-weight: 300;
+    line-height: 1;
+}
+
+.close-notification:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.join-notification-content {
+    padding: 24px;
+    text-align: center;
+}
+
+.join-notification-content h3 {
+    margin: 0 0 8px 0;
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.group-name {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #0891b2;
+    margin: 0 0 16px 0;
+}
+
+.join-message {
+    font-size: 1rem;
+    color: #64748b;
+    line-height: 1.5;
+    margin: 0;
+}
+
+/* Mobile responsive design */
+@media (max-width: 768px) {
+    .group-join-notification {
+        max-width: 340px;
+        margin: 20px;
+    }
+    
+    .join-notification-header {
+        padding: 16px;
+    }
+    
+    .join-notification-logo {
+        width: 40px;
+        height: 40px;
+    }
+    
+    .close-notification {
+        width: 32px;
+        height: 32px;
+        font-size: 20px;
+    }
+    
+    .join-notification-content {
+        padding: 20px;
+    }
+    
+    .join-notification-content h3 {
+        font-size: 1.2rem;
+    }
+    
+    .group-name {
+        font-size: 1rem;
+    }
+    
+    .join-message {
+        font-size: 0.95rem;
+    }
+}
+
+/* File attachment styles */
+.file-attachment {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: #374151;
+    color: #e9edef;
     text-decoration: none;
     border-radius: 6px;
     transition: background-color 0.2s;

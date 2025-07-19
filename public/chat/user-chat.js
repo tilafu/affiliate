@@ -698,6 +698,11 @@ class UserChatApp {
 
     this.chatMessages.innerHTML = '';
 
+    // Show join notification for Main PEA Communication group
+    if (this.currentGroup && this.currentGroup.group_name === 'Main PEA Communication') {
+      this.showGroupJoinNotification();
+    }
+
     this.messages.forEach(message => {
       const messageElement = this.createMessageElement(message);
       this.chatMessages.appendChild(messageElement);
@@ -736,6 +741,54 @@ class UserChatApp {
     `;
     
     return div;
+  }
+
+  // Show join notification popup for Main PEA Communication group
+  showGroupJoinNotification() {
+    // Check if notification was already shown in this session
+    const notificationKey = `join_notification_shown_${this.currentGroup.id}`;
+    if (sessionStorage.getItem(notificationKey)) {
+      return;
+    }
+
+    // Create popup overlay
+    const overlay = document.createElement('div');
+    overlay.className = 'group-join-notification-overlay';
+    overlay.innerHTML = `
+      <div class="group-join-notification">
+        <div class="join-notification-header">
+          <img src="/assets/uploads/logo.png" alt="CDOT PEA" class="join-notification-logo">
+          <button class="close-notification" aria-label="Close notification">×</button>
+        </div>
+        <div class="join-notification-content">
+          <h3>You joined the group</h3>
+          <p class="group-name">${this.currentGroup.group_name}</p>
+          <p class="join-message">Stay connected with the CDOT PEA community for updates, announcements, and collaboration.</p>
+        </div>
+      </div>
+    `;
+
+    // Add to page
+    document.body.appendChild(overlay);
+
+    // Mark as shown for this session
+    sessionStorage.setItem(notificationKey, 'true');
+
+    // Close notification handlers
+    const closeBtn = overlay.querySelector('.close-notification');
+    const closeNotification = () => {
+      overlay.remove();
+    };
+
+    closeBtn.addEventListener('click', closeNotification);
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) {
+        closeNotification();
+      }
+    });
+
+    // Auto-close after 8 seconds
+    setTimeout(closeNotification, 8000);
   }
 
   // Helper method to get user avatar URL

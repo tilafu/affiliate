@@ -499,12 +499,11 @@ function showSigningOutDialog() {
 }
 
 // Function to make authenticated API requests
-// *** DEBUGGING MODE - REDIRECTS DISABLED ***
-// - All 401 error redirects have been completely removed
-// - 401 errors are only logged to console with detailed debug information
-// - Users will NOT be automatically logged out on 401 errors
-// - Redirects will be restored after identifying the root cause
-// *** END DEBUG NOTE ***
+// *** PRODUCTION MODE - REDIRECTS ENABLED ***
+// - 401 error redirects are now active
+// - Authentication failures will redirect to login page
+// - Users will be automatically logged out on auth failures
+// *** END NOTE ***
 
 async function fetchWithAuth(url, options = {}) {
     const token = getToken();
@@ -523,7 +522,7 @@ async function fetchWithAuth(url, options = {}) {
             headers,
         });        // Handle 401 (Unauthorized) upfront
         if (response.status === 401) {
-            console.error('=== 401 AUTH ERROR DEBUG (fetchWithAuth) ===');
+            console.error('=== 401 AUTH ERROR (fetchWithAuth) ===');
             console.error('URL that returned 401:', url);
             console.error('Full URL:', `${API_BASE_URL}${url}`);
             console.error('Request options:', options);
@@ -532,12 +531,13 @@ async function fetchWithAuth(url, options = {}) {
             console.error('Response status:', response.status);
             console.error('Response statusText:', response.statusText);
             console.error('=== END 401 DEBUG ===');
-              // Show notification but don't handle 401 - debugging mode
-            showNotification(`API ${url} returned 401 - Check browser console for debug details`, 'error');
+              // Handle 401 with proper redirect
+            showNotification('Session expired. Redirecting to login...', 'error');
             
-            // REDIRECT REMOVED FOR DEBUGGING - Will be restored after identifying the problem
+            // Use the global 401 handler
+            handle401Error();
             
-            throw new Error(`401 Unauthorized from ${url} - Check console for debug info`);
+            throw new Error(`401 Unauthorized from ${url}`);
         }// Handle other errors
         if (!response.ok) {
             let errorData = {};
@@ -572,21 +572,21 @@ window.addEventListener('unhandledrejection', function(event) {
     // Check if this is a 401 authentication error
     if (event.reason && event.reason.message && event.reason.message.includes('401')) {
         console.warn('Unhandled 401 error detected:', event.reason);
-        console.error('=== 401 AUTH ERROR DEBUG (unhandledrejection) ===');
+        console.error('=== 401 AUTH ERROR (unhandledrejection) ===');
         console.error('Rejection reason:', event.reason);
         console.error('=== END 401 DEBUG ===');
         
-        // REDIRECT REMOVED FOR DEBUGGING - Will be restored after identifying the problem
+        // Handle 401 with proper redirect
         event.preventDefault(); // Prevent the default unhandled rejection behavior
         
         if (typeof showNotification === 'function') {
-            showNotification('Unhandled 401 error detected - Check browser console for debug details', 'error');
+            showNotification('Session expired. Redirecting to login...', 'error');
         }
         
         // Only handle if our main handler hasn't been triggered
-        // if (!is401HandlerActive) {
-        //     handle401Error();
-        // }
+        if (!window.is401HandlerActive) {
+            handle401Error();
+        }
     }
 });
 
@@ -594,19 +594,19 @@ window.addEventListener('unhandledrejection', function(event) {
 window.addEventListener('error', function(event) {
     if (event.error && event.error.message && event.error.message.includes('401')) {
         console.warn('Unhandled 401 error detected in error event:', event.error);
-        console.error('401 AUTH ERROR DEBUG (error event)');
+        console.error('=== 401 AUTH ERROR (error event) ===');
         console.error('Error object:', event.error);
         console.error('Event details:', event);
         console.error('=== END 401 DEBUG ===');
         
-        // REDIRECT REMOVED FOR DEBUGGING - Will be restored after identifying the problem
+        // Handle 401 with proper redirect
         if (typeof showNotification === 'function') {
-            showNotification('Error event 401 detected - Check browser console for debug details', 'error');
+            showNotification('Session expired. Redirecting to login...', 'error');
         }
         
-        // if (!is401HandlerActive) {
-        //     handle401Error();
-        // }
+        if (!window.is401HandlerActive) {
+            handle401Error();
+        }
     }
 });
 
