@@ -70,6 +70,7 @@ const adminDriveRoutes = require('./routes/adminDriveRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
 const tierManagementRoutes = require('./routes/tierManagementRoutes');
+const adminChatRoutes = require('./routes/admin-chat-api-integrated');
 
 // Apply admin routes
 app.use('/api/admin', adminRoutes);
@@ -77,6 +78,7 @@ app.use('/api/admin/drive-management', adminDriveRoutes);
 app.use('/api/admin', notificationRoutes);
 app.use('/api/admin', dashboardRoutes);
 app.use('/api/admin/tier-management', tierManagementRoutes);
+app.use('/api/admin/chat', adminChatRoutes);
 
 // Start server
 app.listen(ADMIN_PORT, () => {

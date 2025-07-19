@@ -12,16 +12,42 @@ const AdminChatAPI = (() => {
     const fullUrl = `${API_BASE}${endpoint}`;
     console.log(`[AdminChatAPI] Making ${method} request to: ${fullUrl}`);
     
-    // Check if we have proper authentication
-    const adminToken = localStorage.getItem('admin_auth_token') || localStorage.getItem('auth_token');
+    // Check if SimpleAuth is available
+    if (typeof SimpleAuth === 'undefined') {
+      console.error('[AdminChatAPI] SimpleAuth not available. Check script loading order.');
+      showError('Authentication system not loaded. Please refresh the page.');
+      return null;
+    }
+    
+    // Debug: Check what tokens are available
+    console.log('[AdminChatAPI] Debug - Available localStorage keys:', Object.keys(localStorage));
+    console.log('[AdminChatAPI] Debug - auth_token:', localStorage.getItem('auth_token'));
+    console.log('[AdminChatAPI] Debug - auth_token_admin:', localStorage.getItem('auth_token_admin'));
+    console.log('[AdminChatAPI] Debug - SimpleAuth current context:', SimpleAuth.getCurrentContext());
+    
+    // Use SimpleAuth to get the admin token
+    const adminToken = SimpleAuth.getToken('admin');
+    console.log('[AdminChatAPI] Retrieved admin token:', adminToken ? `${adminToken.substring(0, 20)}...` : 'null');
+    
     if (!adminToken) {
       console.warn('[AdminChatAPI] No admin token found. User may not be authenticated.');
+      
+      // Check if user is on admin page but not authenticated
+      if (window.location.pathname.includes('admin-chat.html')) {
+        console.log('[AdminChatAPI] On admin page without admin token. Redirecting to admin login.');
+        showError('Admin authentication required. Redirecting to login...');
+        setTimeout(() => {
+          window.location.href = 'admin-login.html';
+        }, 2000);
+      } else {
+        showError('Authentication required. Please log in as admin.');
+      }
       return null;
     }
     
     try {
       // Use standard admin authentication approach
-      console.log('[AdminChatAPI] Using standard admin authentication');
+      console.log('[AdminChatAPI] Using admin authentication token');
       response = await fetch(fullUrl, {
         method,
         headers: {
@@ -286,6 +312,13 @@ const AdminChatAPI = (() => {
     // Conversations (Admin View)
     getConversations: (page = 1, limit = 50, search = '') => {
       return apiCall(`/conversations?page=${page}&limit=${limit}&search=${encodeURIComponent(search)}`);
+    },
+    
+    // Client Chat Messages (Real messages from chat system)
+    getClientMessages: (page = 1, limit = 100, groupId = null) => {
+      let query = `?page=${page}&limit=${limit}`;
+      if (groupId) query += `&groupId=${groupId}`;
+      return apiCall(`/client-messages${query}`);
     },
     
     getConversationMessages: (conversationId, page = 1, limit = 50) => {

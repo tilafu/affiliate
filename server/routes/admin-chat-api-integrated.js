@@ -44,6 +44,87 @@ router.post('/fake-users/generate', function(req, res) {
 });
 
 // === CHAT MESSAGES ===
+// Get recent client messages from the actual chat system
+router.get('/client-messages', async (req, res) => {
+  try {
+    const { page = 1, limit = 100, groupId = null } = req.query;
+    const offset = (page - 1) * limit;
+
+    let query = `
+      SELECT 
+        cm.id,
+        cm.content,
+        cm.media_type as message_type,
+        cm.created_at,
+        cm.group_id,
+        cm.user_id,
+        CASE 
+          WHEN cm.user_id IS NOT NULL AND cm.fake_user_id IS NULL THEN 'real'
+          WHEN cm.fake_user_id IS NOT NULL AND cm.user_id IS NULL THEN 'fake'
+          ELSE 'unknown'
+        END as user_type,
+        u.username,
+        u.email,
+        cg.name as group_name
+      FROM chat_messages cm
+      LEFT JOIN users u ON cm.user_id = u.id
+      LEFT JOIN chat_groups cg ON cm.group_id = cg.id
+      WHERE cm.user_id IS NOT NULL AND cm.fake_user_id IS NULL
+    `;
+    
+    const queryParams = [];
+    let paramIndex = 1;
+
+    if (groupId) {
+      query += ` AND cm.group_id = $${paramIndex}`;
+      queryParams.push(groupId);
+      paramIndex++;
+    }
+
+    query += ` ORDER BY cm.created_at DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
+    queryParams.push(limit, offset);
+
+    const result = await db.query(query, queryParams);
+
+    // Count total messages for pagination
+    let countQuery = `
+      SELECT COUNT(*) as total
+      FROM chat_messages cm
+      WHERE cm.user_id IS NOT NULL AND cm.fake_user_id IS NULL
+    `;
+    
+    const countParams = [];
+    if (groupId) {
+      countQuery += ` AND cm.group_id = $1`;
+      countParams.push(groupId);
+    }
+
+    const countResult = await db.query(countQuery, countParams);
+    const total = parseInt(countResult.rows[0].total);
+
+    res.json({
+      success: true,
+      messages: result.rows,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        totalPages: Math.ceil(total / limit)
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching client messages:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch client messages',
+      error: error.message
+    });
+  }
+});
+
+// Backward compatibility: Post message endpoint
+router.post('/post', adminChatController.postAsFakeUser);
+
 // Get messages in a specific group for admin viewing
 router.get('/groups/:id/messages', adminChatController.getGroupMessages);
 // Post a message as a fake user

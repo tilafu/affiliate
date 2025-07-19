@@ -294,7 +294,14 @@
       border: 1px solid #ddd;
       border-radius: 6px;
       font-size: 0.9rem;
+      color: #2c3e50;
+      background-color: white;
       transition: border-color 0.2s;
+    }
+
+    .form-group select option {
+      color: #2c3e50;
+      background-color: white;
     }
 
     .form-group select:focus,
@@ -621,9 +628,15 @@
         </div>
         <div class="modal-footer">
           <div class="form-group" id="replySection" style="display: none;">
+            <label for="replyPersona">Reply as Persona:</label>
+            <select id="replyPersona" style="margin-bottom: 0.75rem;">
+              <option value="">Choose a persona...</option>
+            </select>
+            <label for="replyMessage">Your Reply:</label>
             <textarea id="replyMessage" placeholder="Type your reply..." rows="3"></textarea>
-            <div style="margin-top: 0.5rem;">
+            <div style="margin-top: 0.75rem; display: flex; gap: 0.5rem;">
               <button class="btn btn-primary" onclick="adminChatApp.sendReply()">Send Reply</button>
+              <button class="btn btn-secondary" onclick="adminChatApp.hideDetailModal()">Cancel</button>
             </div>
           </div>
         </div>

@@ -47,6 +47,9 @@ class AdminChatApp {
     this.supportConversations = [];
     this.sentMessages = [];
     this.selectedConversation = null;
+    
+    // Reply context for modal replies
+    this.currentReplyContext = null;
   }
 
   async init() {
@@ -115,6 +118,7 @@ class AdminChatApp {
       conversationMessages: document.getElementById('conversationMessages'),
       replySection: document.getElementById('replySection'),
       replyMessage: document.getElementById('replyMessage'),
+      replyPersona: document.getElementById('replyPersona'),
       
       // Refresh button
       refreshBtn: document.getElementById('refreshBtn')
@@ -163,9 +167,21 @@ class AdminChatApp {
   async loadInitialData() {
     try {
       // Load personas for sending messages
+      console.log('Loading personas...');
       const personasResponse = await AdminChatAPI.getAllFakeUsers(1, 100, '');
+      console.log('Personas response:', personasResponse);
+      
       if (personasResponse && personasResponse.users) {
         this.personas = personasResponse.users;
+        console.log('Loaded personas:', this.personas);
+        this.populatePersonaSelect();
+      } else {
+        console.warn('No personas found in response');
+        // Add some default personas if none exist
+        this.personas = [
+          { id: 1, username: 'admin_bot', display_name: 'Admin Bot' },
+          { id: 2, username: 'support_agent', display_name: 'Support Agent' }
+        ];
         this.populatePersonaSelect();
       }
 
@@ -200,15 +216,23 @@ class AdminChatApp {
   }
 
   populatePersonaSelect() {
-    if (!this.ui.personaSelect) return;
+    console.log('Populating persona select with:', this.personas);
+    if (!this.ui.personaSelect) {
+      console.warn('Persona select element not found');
+      return;
+    }
     
     this.ui.personaSelect.innerHTML = '<option value="">Choose a persona...</option>';
     this.personas.forEach(persona => {
       const option = document.createElement('option');
       option.value = persona.id;
       option.textContent = persona.display_name || persona.username;
+      option.style.color = '#2c3e50';
       this.ui.personaSelect.appendChild(option);
+      console.log('Added persona option:', persona.display_name || persona.username);
     });
+    
+    console.log('Persona select populated, total options:', this.ui.personaSelect.options.length);
   }
 
   populateGroupSelect() {
@@ -235,58 +259,95 @@ class AdminChatApp {
       
       this.ui.unreadMessagesList.innerHTML = '<div class="loading">Loading unread messages...</div>';
       
-      // Load real conversations from the API
-      const conversationsResponse = await AdminChatAPI.getConversations(1, 50, '');
+      // Load real client messages from the chat system
+      let clientMessagesResponse = null;
       
-      if (conversationsResponse && conversationsResponse.conversations) {
-        // Convert conversations to unread messages format
-        const unreadMessages = conversationsResponse.conversations
-          .filter(conv => conv.unread_count > 0) // Only show conversations with unread messages
-          .map(conv => ({
-            id: conv.id,
-            from: conv.last_sender_name || 'Unknown User',
-            group: conv.group_name || 'Direct Message',
-            message: conv.last_message || 'No message',
-            timestamp: conv.last_message_time || new Date().toISOString(),
-            unread: true,
-            conversationType: conv.conversation_type || 'group'
-          }));
+      try {
+        clientMessagesResponse = await AdminChatAPI.getClientMessages(1, 50);
+      } catch (error) {
+        console.warn('[AdminChat] Client messages API not available:', error);
+      }
+      
+      if (clientMessagesResponse && clientMessagesResponse.messages) {
+        // Convert client messages to unread messages format
+        const unreadMessages = clientMessagesResponse.messages.map(msg => ({
+          id: msg.id,
+          from: msg.username || msg.user_name || 'Unknown User',
+          group: msg.group_name || 'General Chat',
+          groupId: msg.group_id || 1, // Include the actual group ID
+          message: msg.content || msg.message || 'No content',
+          timestamp: msg.created_at || msg.timestamp || new Date().toISOString(),
+          unread: true,
+          conversationType: 'group',
+          messageType: msg.message_type || 'text'
+        }));
         
         this.unreadMessages = unreadMessages;
         this.renderUnreadMessages(unreadMessages);
         this.updateUnreadCount(unreadMessages.length);
       } else {
-        // Fallback to mock data if API fails
-        const mockUnreadMessages = [
-          {
-            id: 1,
-            from: 'john_doe',
-            group: 'General Discussion',
-            message: 'Hey everyone, I have a question about the latest update. Can someone help me understand how the new feature works?',
-            timestamp: new Date().toISOString(),
-            unread: true,
-            conversationType: 'group'
-          },
-          {
-            id: 2,
-            from: 'jane_smith',
-            group: 'Support Questions',
-            message: 'I\'m having trouble with my account settings. The password reset isn\'t working.',
-            timestamp: new Date(Date.now() - 3600000).toISOString(),
-            unread: true,
-            conversationType: 'group'
+        // Fallback: try the conversations API
+        try {
+          const conversationsResponse = await AdminChatAPI.getConversations(1, 50, '');
+          
+          if (conversationsResponse && conversationsResponse.conversations) {
+            // Convert conversations to unread messages format
+            const unreadMessages = conversationsResponse.conversations
+              .filter(conv => conv.unread_count > 0) // Only show conversations with unread messages
+              .map(conv => ({
+                id: conv.id,
+                from: conv.last_sender_name || 'Unknown User',
+                group: conv.group_name || 'Direct Message',
+                message: conv.last_message || 'No message',
+                timestamp: conv.last_message_time || new Date().toISOString(),
+                unread: true,
+                conversationType: conv.conversation_type || 'group'
+              }));
+            
+            this.unreadMessages = unreadMessages;
+            this.renderUnreadMessages(unreadMessages);
+            this.updateUnreadCount(unreadMessages.length);
+          } else {
+            this.showFallbackMessages();
           }
-        ];
-        
-        this.unreadMessages = mockUnreadMessages;
-        this.renderUnreadMessages(mockUnreadMessages);
-        this.updateUnreadCount(mockUnreadMessages.length);
+        } catch (error) {
+          console.warn('[AdminChat] Conversations API also failed:', error);
+          this.showFallbackMessages();
+        }
       }
       
     } catch (error) {
       console.error('[AdminChat] Error loading unread messages:', error);
       this.ui.unreadMessagesList.innerHTML = '<div class="empty-state">Failed to load unread messages</div>';
     }
+  }
+
+  showFallbackMessages() {
+    // Fallback to mock data if both APIs fail
+    const mockUnreadMessages = [
+      {
+        id: 1,
+        from: 'john_doe',
+        group: 'General Discussion',
+        message: 'Hey everyone, I have a question about the latest update. Can someone help me understand how the new feature works?',
+        timestamp: new Date().toISOString(),
+        unread: true,
+        conversationType: 'group'
+      },
+      {
+        id: 2,
+        from: 'jane_smith',
+        group: 'Support Questions',
+        message: 'I\'m having trouble with my account settings. The password reset isn\'t working.',
+        timestamp: new Date(Date.now() - 3600000).toISOString(),
+        unread: true,
+        conversationType: 'group'
+      }
+    ];
+    
+    this.unreadMessages = mockUnreadMessages;
+    this.renderUnreadMessages(mockUnreadMessages);
+    this.updateUnreadCount(mockUnreadMessages.length);
   }
 
   async refreshSupport() {
@@ -630,7 +691,19 @@ class AdminChatApp {
   viewMessage(messageId) {
     console.log('View message:', messageId);
     const message = this.unreadMessages.find(m => m.id === messageId);
+    console.log('Found message:', message);
     if (message) {
+      // Set reply context for this message
+      this.currentReplyContext = {
+        type: 'message_reply',
+        messageId: message.id,
+        groupId: message.groupId,
+        originalSender: message.from,
+        groupName: message.group
+      };
+      
+      console.log('Set reply context:', this.currentReplyContext);
+      
       this.showDetailModal(`Message from ${message.from}`, `
         <div class="message-item">
           <div class="message-header">
@@ -640,7 +713,7 @@ class AdminChatApp {
           <div class="message-preview" style="white-space: pre-wrap; -webkit-line-clamp: none; overflow: visible;">${escapeHtml(message.message)}</div>
           <div class="message-group">in ${escapeHtml(message.group)}</div>
         </div>
-      `, false);
+      `, true); // Enable reply for messages
     }
   }
 
@@ -648,6 +721,14 @@ class AdminChatApp {
     console.log('View conversation:', conversationId);
     const conversation = this.supportConversations.find(c => c.id === conversationId);
     if (conversation) {
+      // Set reply context for this support conversation
+      this.currentReplyContext = {
+        type: 'support_reply',
+        conversationId: conversation.id,
+        userId: conversation.user_id || conversation.user,
+        userName: conversation.user
+      };
+      
       this.showDetailModal(`Support conversation with ${conversation.user}`, `
         <div class="message-item">
           <div class="message-header">
@@ -657,7 +738,7 @@ class AdminChatApp {
           <div class="message-preview" style="white-space: pre-wrap; -webkit-line-clamp: none; overflow: visible;">${escapeHtml(conversation.lastMessage)}</div>
         </div>
         <p style="margin-top: 1rem; color: #7f8c8d; font-style: italic;">Full conversation history would be loaded here...</p>
-      `, true);
+      `, true); // Enable reply for support conversations
     }
   }
 
@@ -670,6 +751,11 @@ class AdminChatApp {
     }
     if (this.ui.replySection) {
       this.ui.replySection.style.display = showReply ? 'block' : 'none';
+      
+      // Populate reply persona dropdown when showing reply section
+      if (showReply && this.ui.replyPersona) {
+        this.populateReplyPersonas();
+      }
     }
     if (this.ui.detailModal) {
       this.ui.detailModal.classList.add('active');
@@ -683,26 +769,164 @@ class AdminChatApp {
     if (this.ui.replyMessage) {
       this.ui.replyMessage.value = '';
     }
+    if (this.ui.replyPersona) {
+      this.ui.replyPersona.value = '';
+    }
+    // Clear reply context
+    this.currentReplyContext = null;
+  }
+
+  populateReplyPersonas() {
+    console.log('Populating reply personas with:', this.personas);
+    console.log('Reply persona element:', this.ui.replyPersona);
+    
+    if (!this.ui.replyPersona) {
+      console.warn('Reply persona select element not found');
+      return;
+    }
+    
+    if (!this.personas || this.personas.length === 0) {
+      console.warn('No personas available to populate');
+      // Add fallback personas if none loaded
+      this.personas = [
+        { id: 1, username: 'admin_bot', display_name: 'Admin Bot' },
+        { id: 2, username: 'support_agent', display_name: 'Support Agent' }
+      ];
+    }
+    
+    this.ui.replyPersona.innerHTML = '<option value="">Choose a persona...</option>';
+    
+    this.personas.forEach(persona => {
+      const option = document.createElement('option');
+      option.value = persona.id;
+      option.textContent = persona.display_name || persona.username;
+      option.style.color = '#2c3e50';
+      option.style.backgroundColor = 'white';
+      this.ui.replyPersona.appendChild(option);
+      console.log('Added reply persona option:', persona.display_name || persona.username, 'with ID:', persona.id);
+    });
+    
+    console.log('Reply persona select populated, total options:', this.ui.replyPersona.options.length);
   }
 
   async sendReply() {
     try {
       const replyText = this.ui.replyMessage?.value.trim();
+      const selectedPersona = this.ui.replyPersona?.value;
+      
+      console.log('SendReply called with:', {
+        replyText,
+        selectedPersona,
+        personaOptions: this.ui.replyPersona?.options.length,
+        currentContext: this.currentReplyContext
+      });
+      
       if (!replyText) {
         showError('Please enter a reply message');
         return;
       }
       
-      console.log('Sending reply:', replyText);
-      showError('Reply sent successfully!', 'success');
+      if (!selectedPersona) {
+        showError('Please select a persona to reply as');
+        return;
+      }
       
-      this.ui.replyMessage.value = '';
-      this.hideDetailModal();
-      this.refreshSupport();
+      // Ensure selectedPersona is a number
+      const personaId = parseInt(selectedPersona);
+      if (isNaN(personaId)) {
+        showError('Invalid persona selection');
+        return;
+      }
+      
+      if (!this.currentReplyContext) {
+        showError('No conversation context available');
+        return;
+      }
+      
+      console.log('Sending reply:', {
+        message: replyText,
+        personaId: personaId,
+        context: this.currentReplyContext
+      });
+      
+      // Prepare the reply data based on context type
+      let replyData;
+      
+      if (this.currentReplyContext.type === 'message_reply') {
+        // Replying to a group message
+        replyData = {
+          groupId: this.currentReplyContext.groupId,
+          fakeUserId: personaId,
+          message: replyText,
+          messageType: 'text'
+        };
+      } else if (this.currentReplyContext.type === 'support_reply') {
+        // Replying to a support conversation (DM)
+        replyData = {
+          userId: this.currentReplyContext.userId,
+          fakeUserId: personaId,
+          message: replyText,
+          messageType: 'text'
+        };
+      } else {
+        showError('Unknown conversation type');
+        return;
+      }
+      
+      // Send the reply via API
+      console.log('Sending reply data:', replyData);
+      console.log('Current reply context:', this.currentReplyContext);
+      console.log('Selected persona ID:', personaId, 'Type:', typeof personaId);
+      
+      let response;
+      try {
+        if (this.currentReplyContext.type === 'message_reply') {
+          // Call API with individual parameters for group messages
+          response = await AdminChatAPI.postAsFakeUser(
+            replyData.groupId,
+            replyData.fakeUserId, 
+            replyData.message,
+            replyData.messageType
+          );
+        } else {
+          // For support replies (DMs), we might need a different endpoint
+          // For now, try the same endpoint but this may need adjustment
+          response = await AdminChatAPI.postAsFakeUser(
+            replyData.userId, // Use userId as groupId for DMs (may need different endpoint)
+            replyData.fakeUserId,
+            replyData.message,
+            replyData.messageType
+          );
+        }
+        
+        console.log('Reply API response:', response);
+        
+        if (response && response.success) {
+          showError('Reply sent successfully!', 'success');
+          
+          // Clear the form
+          this.ui.replyMessage.value = '';
+          this.ui.replyPersona.value = '';
+          
+          // Close modal and refresh data
+          this.hideDetailModal();
+          this.refreshUnread();
+          this.refreshSupport();
+          
+        } else {
+          const errorMsg = response?.error || response?.message || 'Failed to send reply';
+          throw new Error(errorMsg);
+        }
+        
+      } catch (apiError) {
+        console.error('[AdminChat] API error sending reply:', apiError);
+        const errorMsg = apiError.message || 'Unknown error occurred';
+        showError('Failed to send reply: ' + errorMsg);
+      }
       
     } catch (error) {
       console.error('[AdminChat] Error sending reply:', error);
-      showError('Failed to send reply');
+      showError('Failed to send reply: ' + error.message);
     }
   }
 

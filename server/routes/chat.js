@@ -1498,3 +1498,44 @@ router.get('/dm-users', protect, async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch users' });
   }
 });
+
+// Broadcast admin message to chat group (called from admin server)
+router.post('/broadcast-admin-message', async (req, res) => {
+  try {
+    // Verify this is an admin broadcast request
+    if (req.headers['x-admin-broadcast'] !== 'true') {
+      return res.status(403).json({ error: 'Unauthorized broadcast request' });
+    }
+
+    const { groupId, message } = req.body;
+
+    if (!groupId || !message) {
+      return res.status(400).json({ error: 'Missing groupId or message data' });
+    }
+
+    // Get Socket.io instance from app
+    const io = req.app.get('io');
+    if (io) {
+      // Broadcast message to the group
+      const roomName = `group:${groupId}`;
+      io.to(roomName).emit('new-message', message);
+      console.log(`Broadcasted admin message to group ${groupId}:`, message.id);
+      
+      res.json({ 
+        success: true, 
+        message: 'Admin message broadcasted successfully',
+        groupId: groupId,
+        messageId: message.id 
+      });
+    } else {
+      console.error('Socket.io instance not available for broadcast');
+      res.status(500).json({ error: 'Socket.io not available' });
+    }
+    
+  } catch (error) {
+    console.error('Error broadcasting admin message:', error);
+    res.status(500).json({ error: 'Failed to broadcast admin message' });
+  }
+});
+
+module.exports = router;

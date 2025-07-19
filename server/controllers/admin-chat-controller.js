@@ -247,11 +247,14 @@ const postAsFakeUser = async (req, res) => {
       adminId: req.user.id
     });
 
-    // Broadcast message via Socket.io
-    const io = req.app.get('io');
-    if (io && io.emitMessageToGroup) {
-      try {
-        io.emitMessageToGroup(groupIdNum, {
+    // Broadcast message via HTTP request to main chat server
+    try {
+      const axios = require('axios');
+      const MAIN_SERVER_URL = process.env.MAIN_SERVER_URL || 'http://localhost:3000';
+      
+      await axios.post(`${MAIN_SERVER_URL}/api/chat/broadcast-admin-message`, {
+        groupId: groupIdNum,
+        message: {
           id: newMessage.id,
           groupId: groupIdNum,
           userId: fakeUserIdNum,
@@ -259,11 +262,18 @@ const postAsFakeUser = async (req, res) => {
           content: trimmedMessage,
           messageType,
           createdAt: newMessage.created_at
-        });
-      } catch (socketError) {
-        console.error('Socket.io broadcast failed:', socketError);
-        // Continue - don't fail the request for socket errors
-      }
+        }
+      }, {
+        timeout: 5000,
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Admin-Broadcast': 'true'
+        }
+      });
+      console.log(`Admin message broadcast to group ${groupIdNum}`);
+    } catch (broadcastError) {
+      console.error('Failed to broadcast admin message:', broadcastError.message);
+      // Continue - don't fail the request for broadcast errors
     }
     
     res.status(201).json({
