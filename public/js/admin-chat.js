@@ -5,7 +5,14 @@
 
 // Utility functions
 function showError(message, type = 'error') {
-  console.error('[AdminChat] ' + (type === 'error' ? 'Error:' : 'Info:'), message);
+  // Use appropriate console method based on message type
+  if (type === 'error') {
+    console.error('[AdminChat] Error:', message);
+  } else if (type === 'success') {
+    console.log('[AdminChat] Success:', message);
+  } else {
+    console.info('[AdminChat] Info:', message);
+  }
   
   const errorDiv = document.createElement('div');
   errorDiv.style.cssText = `
@@ -1149,7 +1156,11 @@ class AdminChatApp {
       
       let response;
       try {
-        if (this.currentReplyContext.type === 'message_reply') {
+        // Store context info before API calls (in case they modify the context)
+        const contextType = this.currentReplyContext.type;
+        const contextData = { ...this.currentReplyContext }; // Create a copy
+        
+        if (contextType === 'message_reply') {
           // Call API with individual parameters for group messages
           response = await AdminChatAPI.postAsFakeUser(
             replyData.groupId,
@@ -1157,10 +1168,10 @@ class AdminChatApp {
             replyData.message,
             replyData.messageType
           );
-        } else if (this.currentReplyContext.type === 'support_reply') {
+        } else if (contextType === 'support_reply') {
           // For support replies, use the dedicated support reply API
           response = await AdminChatAPI.replySupportMessage(
-            this.currentReplyContext.messageId,
+            contextData.messageId,
             replyData.message,
             replyData.fakeUserId
           );
@@ -1171,6 +1182,9 @@ class AdminChatApp {
         if (response && (response.success || response.status === 'success')) {
           showError('Reply sent successfully!', 'success');
           
+          // Store context type before clearing it
+          const contextType = this.currentReplyContext.type;
+          
           // Clear the form
           this.ui.replyMessage.value = '';
           this.ui.replyPersona.value = '';
@@ -1178,7 +1192,7 @@ class AdminChatApp {
           // Close modal and refresh data
           this.hideDetailModal();
           
-          if (this.currentReplyContext.type === 'message_reply') {
+          if (contextType === 'message_reply') {
             this.refreshUnread();
           } else {
             this.refreshSupport();
