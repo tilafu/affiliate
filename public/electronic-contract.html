@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge"/>
+    <title>Electronic Contract - Sellvia Affiliate Hub</title>
+    <meta name="csrf-token" content="cMnbgu3d14TqQm9u7lWoeRN4awsdQMKFm6tCJ2zU">
+    <link rel="shortcut icon" href="./assets/uploads/generals/favicon-665b8c8a863b91717275786.png">
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary-blue: #007AFF;
+            --secondary-blue: #5AC8FA;
+            --success-green: #30D158;
+            --warning-orange: #FF9500;
+            --danger-red: #FF3B30;
+            --purple: #5856D6;
+            --pink: #FF2D92;
+            --background: #F2F2F7;
+            --card-background: #FFFFFF;
+            --text-primary: #000000;
+            --text-secondary: #8E8E93;
+            --border-color: #E5E5EA;
+            --shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+            --shadow-hover: 0 8px 32px rgba(0, 0, 0, 0.15);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, var(--primary-blue), var(--secondary-blue));
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        .container-fluid {
+            padding: 0;
+            height: 100vh;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border-color);
+            padding: 1rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header .container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .back-button {
+            background: rgba(0, 122, 255, 0.1);
+            color: var(--primary-blue);
+            border: 1px solid rgba(0, 122, 255, 0.2);
+            border-radius: 12px;
+            padding: 0.75rem 1.25rem;
+            font-size: 0.9rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.3s ease;
+            text-decoration: none;
+        }
+
+        .back-button:hover {
+            background: rgba(0, 122, 255, 0.15);
+            color: var(--primary-blue);
+            text-decoration: none;
+            transform: translateX(-2px);
+        }
+
+        .page-title {
+            margin: 0;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .title-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--purple), var(--pink));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.25rem;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .action-button {
+            background: var(--primary-blue);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 0.75rem 1.5rem;
+            font-weight: 600;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.3s ease;
+            text-decoration: none;
+        }
+
+        .action-button:hover {
+            background: #0056d6;
+            color: white;
+            text-decoration: none;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 122, 255, 0.3);
+        }
+
+        .action-button.secondary {
+            background: rgba(255, 255, 255, 0.9);
+            color: var(--primary-blue);
+            border: 1px solid var(--border-color);
+        }
+
+        .action-button.secondary:hover {
+            background: white;
+            color: var(--primary-blue);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .main-content {
+            height: calc(100vh - 80px);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .content-wrapper {
+            flex: 1;
+            background: var(--card-background);
+            margin: 0;
+            border-radius: 0;
+            box-shadow: none;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .pdf-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            background: #f8f9fa;
+        }
+
+        .pdf-viewer {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: white;
+        }
+
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.9);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+        }
+
+        .loading-spinner {
+            width: 48px;
+            height: 48px;
+            border: 4px solid var(--border-color);
+            border-top: 4px solid var(--primary-blue);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .error-state {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            padding: 2rem;
+            text-align: center;
+        }
+
+        .error-icon {
+            width: 80px;
+            height: 80px;
+            background: rgba(255, 59, 48, 0.1);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            color: var(--danger-red);
+            margin-bottom: 1.5rem;
+        }
+
+        .error-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .error-message {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            margin-bottom: 2rem;
+            max-width: 400px;
+        }
+
+        .retry-button {
+            background: var(--primary-blue);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 0.875rem 2rem;
+            font-weight: 600;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .retry-button:hover {
+            background: #0056d6;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 122, 255, 0.3);
+        }
+
+        .contract-info {
+            background: linear-gradient(135deg, rgba(0, 122, 255, 0.05), rgba(90, 200, 250, 0.05));
+            border: 1px solid rgba(0, 122, 255, 0.1);
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin: 1rem;
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 300px;
+            z-index: 5;
+            backdrop-filter: blur(10px);
+        }
+
+        .contract-info h4 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .info-item:last-child {
+            border-bottom: none;
+        }
+
+        .info-label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .info-value {
+            font-size: 0.85rem;
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .status-badge {
+            background: var(--success-green);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .toolbar {
+            background: var(--card-background);
+            border-bottom: 1px solid var(--border-color);
+            padding: 0.75rem 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+        }
+
+        .toolbar-left {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .toolbar-button {
+            background: rgba(0, 122, 255, 0.1);
+            color: var(--primary-blue);
+            border: 1px solid rgba(0, 122, 255, 0.2);
+            border-radius: 8px;
+            padding: 0.5rem 1rem;
+            font-size: 0.85rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .toolbar-button:hover {
+            background: rgba(0, 122, 255, 0.15);
+            color: var(--primary-blue);
+        }
+
+        .zoom-controls {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .zoom-button {
+            background: none;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 0.5rem;
+            font-size: 0.9rem;
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .zoom-button:hover {
+            background: var(--background);
+        }
+
+        .zoom-level {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+            min-width: 60px;
+            text-align: center;
+        }
+
+        /* Mobile responsiveness */
+        @media (max-width: 768px) {
+            .header .container {
+                flex-direction: column;
+                gap: 1rem;
+                align-items: flex-start;
+            }
+
+            .header-left {
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            .header-actions {
+                width: 100%;
+                justify-content: flex-end;
+            }
+
+            .page-title {
+                font-size: 1.25rem;
+            }
+
+            .contract-info {
+                position: relative;
+                width: 100%;
+                margin: 0.5rem;
+                top: auto;
+                right: auto;
+            }
+
+            .toolbar {
+                flex-direction: column;
+                gap: 1rem;
+                align-items: stretch;
+            }
+
+            .toolbar-left {
+                justify-content: space-between;
+            }
+
+            .zoom-controls {
+                justify-content: center;
+            }
+
+            .action-button {
+                padding: 0.5rem 1rem;
+                font-size: 0.8rem;
+            }
+
+            .back-button {
+                padding: 0.5rem 1rem;
+                font-size: 0.8rem;
+            }
+        }
+
+        /* Print styles */
+        @media print {
+            .header,
+            .toolbar,
+            .contract-info {
+                display: none !important;
+            }
+
+            .main-content {
+                height: auto;
+            }
+
+            .content-wrapper {
+                height: auto;
+                box-shadow: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="container">
+            <div class="header-left">
+                <a href="./dashboard.html" class="back-button">
+                    <i class="fas fa-arrow-left"></i>
+                    Back to Dashboard
+                </a>
+                <h1 class="page-title">
+                    <div class="title-icon">
+                        <i class="fas fa-file-contract"></i>
+                    </div>
+                    Electronic Contract
+                </h1>
+            </div>
+            <div class="header-actions">
+                <button class="action-button secondary" onclick="printContract()">
+                    <i class="fas fa-print"></i>
+                    Print
+                </button>
+                <a href="./assets/uploads/images/Drive/Contract.pdf" download class="action-button">
+                    <i class="fas fa-download"></i>
+                    Download
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Contract Info Panel -->
+        <div class="contract-info" id="contractInfo">
+            <h4>
+                <i class="fas fa-info-circle"></i>
+                Contract Details
+            </h4>
+            <div class="info-item">
+                <span class="info-label">Document Type</span>
+                <span class="info-value">Affiliate Agreement</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Version</span>
+                <span class="info-value">2.1</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Last Updated</span>
+                <span class="info-value">July 2025</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Status</span>
+                <span class="status-badge">Active</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Language</span>
+                <span class="info-value">English</span>
+            </div>
+        </div>
+
+        <!-- Toolbar -->
+        <div class="toolbar">
+            <div class="toolbar-left">
+                <button class="toolbar-button" onclick="toggleFullscreen()">
+                    <i class="fas fa-expand"></i>
+                    Fullscreen
+                </button>
+                <button class="toolbar-button" onclick="toggleContractInfo()">
+                    <i class="fas fa-info-circle"></i>
+                    Toggle Info
+                </button>
+            </div>
+            <div class="zoom-controls">
+                <button class="zoom-button" onclick="zoomOut()">
+                    <i class="fas fa-minus"></i>
+                </button>
+                <span class="zoom-level" id="zoomLevel">100%</span>
+                <button class="zoom-button" onclick="zoomIn()">
+                    <i class="fas fa-plus"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- PDF Container -->
+        <div class="content-wrapper">
+            <div class="pdf-container">
+                <!-- Loading Overlay -->
+                <div class="loading-overlay" id="loadingOverlay">
+                    <div class="loading-spinner"></div>
+                    <div class="loading-text">Loading contract document...</div>
+                </div>
+
+                <!-- Error State -->
+                <div class="error-state" id="errorState">
+                    <div class="error-icon">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <h3 class="error-title">Unable to Load Document</h3>
+                    <p class="error-message">
+                        We're having trouble loading the contract document. Please check your internet connection and try again.
+                    </p>
+                    <button class="retry-button" onclick="retryLoad()">
+                        <i class="fas fa-redo"></i>
+                        Retry Loading
+                    </button>
+                </div>
+
+                <!-- PDF Viewer -->
+                <iframe 
+                    id="pdfViewer" 
+                    class="pdf-viewer"
+                    src="./assets/uploads/images/Drive/Contract.pdf#toolbar=1&navpanes=1&scrollbar=1&page=1&zoom=100"
+                    title="Electronic Contract Document"
+                    loading="lazy">
+                    <p>Your browser does not support viewing PDF files. 
+                       <a href="./assets/uploads/images/Drive/Contract.pdf" target="_blank">
+                           Click here to download the contract.
+                       </a>
+                    </p>
+                </iframe>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let currentZoom = 100;
+        let isFullscreen = false;
+        let infoVisible = false;
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            setupPDFViewer();
+            setupEventListeners();
+        });
+
+        function setupPDFViewer() {
+            const iframe = document.getElementById('pdfViewer');
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            const errorState = document.getElementById('errorState');
+
+            // Show loading initially
+            loadingOverlay.style.display = 'flex';
+            errorState.style.display = 'none';
+
+            // Handle iframe load
+            iframe.onload = function() {
+                setTimeout(() => {
+                    loadingOverlay.style.display = 'none';
+                }, 1000); // Small delay for better UX
+            };
+
+            // Handle iframe error
+            iframe.onerror = function() {
+                loadingOverlay.style.display = 'none';
+                errorState.style.display = 'flex';
+            };
+
+            // Fallback timeout
+            setTimeout(() => {
+                if (loadingOverlay.style.display !== 'none') {
+                    // Check if PDF actually loaded
+                    try {
+                        if (iframe.contentDocument || iframe.contentWindow) {
+                            loadingOverlay.style.display = 'none';
+                        } else {
+                            loadingOverlay.style.display = 'none';
+                            errorState.style.display = 'flex';
+                        }
+                    } catch (e) {
+                        loadingOverlay.style.display = 'none';
+                        // PDF might be loaded but cross-origin restricted
+                    }
+                }
+            }, 5000);
+        }
+
+        function setupEventListeners() {
+            // Keyboard shortcuts
+            document.addEventListener('keydown', function(e) {
+                if (e.ctrlKey || e.metaKey) {
+                    switch(e.key) {
+                        case 'p':
+                            e.preventDefault();
+                            printContract();
+                            break;
+                        case '=':
+                        case '+':
+                            e.preventDefault();
+                            zoomIn();
+                            break;
+                        case '-':
+                            e.preventDefault();
+                            zoomOut();
+                            break;
+                        case '0':
+                            e.preventDefault();
+                            resetZoom();
+                            break;
+                    }
+                }
+                
+                if (e.key === 'F11') {
+                    e.preventDefault();
+                    toggleFullscreen();
+                }
+                
+                if (e.key === 'Escape' && isFullscreen) {
+                    toggleFullscreen();
+                }
+            });
+
+            // Handle fullscreen changes
+            document.addEventListener('fullscreenchange', updateFullscreenButton);
+            document.addEventListener('webkitfullscreenchange', updateFullscreenButton);
+            document.addEventListener('mozfullscreenchange', updateFullscreenButton);
+        }
+
+        function zoomIn() {
+            if (currentZoom < 200) {
+                currentZoom += 25;
+                updateZoom();
+            }
+        }
+
+        function zoomOut() {
+            if (currentZoom > 50) {
+                currentZoom -= 25;
+                updateZoom();
+            }
+        }
+
+        function resetZoom() {
+            currentZoom = 100;
+            updateZoom();
+        }
+
+        function updateZoom() {
+            const iframe = document.getElementById('pdfViewer');
+            const zoomLevel = document.getElementById('zoomLevel');
+            
+            // Update zoom level display
+            zoomLevel.textContent = currentZoom + '%';
+            
+            // Update iframe src with new zoom level
+            const currentSrc = iframe.src;
+            const baseUrl = currentSrc.split('#')[0];
+            iframe.src = `${baseUrl}#toolbar=1&navpanes=1&scrollbar=1&page=1&zoom=${currentZoom}`;
+        }
+
+        function toggleFullscreen() {
+            const element = document.documentElement;
+            
+            if (!isFullscreen) {
+                // Enter fullscreen
+                if (element.requestFullscreen) {
+                    element.requestFullscreen();
+                } else if (element.webkitRequestFullscreen) {
+                    element.webkitRequestFullscreen();
+                } else if (element.mozRequestFullScreen) {
+                    element.mozRequestFullScreen();
+                }
+            } else {
+                // Exit fullscreen
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                } else if (document.webkitExitFullscreen) {
+                    document.webkitExitFullscreen();
+                } else if (document.mozCancelFullScreen) {
+                    document.mozCancelFullScreen();
+                }
+            }
+        }
+
+        function updateFullscreenButton() {
+            isFullscreen = !!(document.fullscreenElement || 
+                            document.webkitFullscreenElement || 
+                            document.mozFullScreenElement);
+            
+            const button = document.querySelector('[onclick="toggleFullscreen()"]');
+            const icon = button.querySelector('i');
+            
+            if (isFullscreen) {
+                icon.className = 'fas fa-compress';
+                button.innerHTML = '<i class="fas fa-compress"></i> Exit Fullscreen';
+            } else {
+                icon.className = 'fas fa-expand';
+                button.innerHTML = '<i class="fas fa-expand"></i> Fullscreen';
+            }
+        }
+
+        function toggleContractInfo() {
+            const contractInfo = document.getElementById('contractInfo');
+            const button = document.querySelector('[onclick="toggleContractInfo()"]');
+            
+            if (infoVisible) {
+                contractInfo.style.display = 'block';
+                button.innerHTML = '<i class="fas fa-info-circle"></i> Hide Info';
+                infoVisible = true;
+            } else {
+                contractInfo.style.display = 'none';
+                button.innerHTML = '<i class="fas fa-info-circle"></i> Show Info';
+                infoVisible = false;
+            }
+        }
+
+        function printContract() {
+            try {
+                // Try to print the iframe content
+                const iframe = document.getElementById('pdfViewer');
+                if (iframe.contentWindow) {
+                    iframe.contentWindow.print();
+                } else {
+                    // Fallback to window print
+                    window.print();
+                }
+            } catch (e) {
+                // If iframe printing fails, use window print
+                window.print();
+            }
+        }
+
+        function retryLoad() {
+            const iframe = document.getElementById('pdfViewer');
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            const errorState = document.getElementById('errorState');
+            
+            // Show loading and hide error
+            loadingOverlay.style.display = 'flex';
+            errorState.style.display = 'none';
+            
+            // Reload iframe
+            const src = iframe.src;
+            iframe.src = '';
+            setTimeout(() => {
+                iframe.src = src;
+            }, 100);
+        }
+
+        // Handle window resize
+        window.addEventListener('resize', function() {
+            // Update contract info position on mobile
+            const contractInfo = document.getElementById('contractInfo');
+            if (window.innerWidth <= 768) {
+                contractInfo.style.position = 'relative';
+                contractInfo.style.width = '100%';
+                contractInfo.style.top = 'auto';
+                contractInfo.style.right = 'auto';
+            } else if (infoVisible) {
+                contractInfo.style.position = 'absolute';
+                contractInfo.style.width = '300px';
+                contractInfo.style.top = '0';
+                contractInfo.style.right = '0';
+            }
+        });
+
+        // Initialize responsive behavior
+        window.addEventListener('load', function() {
+            window.dispatchEvent(new Event('resize'));
+        });
+    </script>
+</body>
+</html>

@@ -324,7 +324,7 @@
         }        /* Enhanced Transaction Cards with Images */
         .transaction-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: repeat(4, 1fr);
             gap: 1.5rem;
             margin-bottom: 2rem;
         }
@@ -402,6 +402,16 @@
         .transaction-icon.withdraws {
             color: var(--danger-red);
             border: 2px solid rgba(255, 59, 48, 0.3);
+        }
+
+        .transaction-icon.faqs {
+            color: var(--warning-orange);
+            border: 2px solid rgba(255, 149, 0, 0.3);
+        }
+
+        .transaction-icon.tutorials {
+            color: var(--primary-blue);
+            border: 2px solid rgba(0, 122, 255, 0.3);
         }
 
         .transaction-card h6 {
@@ -849,7 +859,314 @@
             color: var(--text-secondary);
             font-size: 12px;
             margin: 0;
-        }        /* Product Carousel */
+        }
+
+        /* Product Catalog Section */
+        .product-catalog-section {
+            margin: 2rem 0;
+        }
+
+        .product-catalog-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: color 0.3s ease;
+        }
+
+        .product-catalog-title:hover {
+            color: var(--primary-blue);
+        }
+
+        .product-catalog-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.5rem;
+        }
+
+        .product-catalog-card {
+            position: relative;
+            background: var(--card-background);
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            transition: all 0.3s ease;
+            text-decoration: none;
+            color: inherit;
+            cursor: pointer;
+            height: 200px;
+        }
+
+        .product-catalog-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+            color: inherit;
+            text-decoration: none;
+        }
+
+        .product-catalog-card-image {
+            width: 100%;
+            height: 120px;
+            object-fit: cover;
+            transition: transform 0.3s ease;
+        }
+
+        .product-catalog-card:hover .product-catalog-card-image {
+            transform: scale(1.05);
+        }
+
+        .product-catalog-card-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(180deg, transparent 40%, rgba(0, 0, 0, 0.7) 100%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .product-catalog-card:hover .product-catalog-card-overlay {
+            opacity: 1;
+        }
+
+        .product-catalog-card-content {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 1rem;
+            background: linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.8));
+            color: black;
+            transform: translateY(20px);
+            transition: transform 0.3s ease;
+        }
+
+        .product-catalog-card:hover .product-catalog-card-content {
+            transform: translateY(0);
+        }
+
+        .product-catalog-card h6 {
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            font-size: 1.1rem;
+            /* color: white; */
+        }
+
+        .product-catalog-card p {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 0.9rem;
+            margin: 0;
+        }
+
+        .product-catalog-icon {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            color: white;
+            background: rgba(0, 122, 255, 0.9);
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        .product-catalog-card:hover .product-catalog-icon {
+            transform: scale(1.1);
+            background: rgba(0, 122, 255, 1);
+        }
+
+        /* Mobile responsiveness for product catalog */
+        @media (max-width: 768px) {
+            .product-catalog-grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+            
+            .product-catalog-card {
+                height: 180px;
+            }
+            
+            .product-catalog-title {
+                font-size: 1.3rem;
+            }
+        }
+
+        /* Bottom Action Cards Section */
+        .bottom-actions-section {
+            margin: 3rem 0 2rem 0;
+        }
+
+        .bottom-actions-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            color: var(--text-primary);
+            text-align: center;
+        }
+
+        .bottom-actions-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+        }
+
+        .bottom-action-card {
+            position: relative;
+            background: var(--card-background);
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            transition: all 0.3s ease;
+            text-decoration: none;
+            color: inherit;
+            cursor: pointer;
+            height: 250px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .bottom-action-card:hover {
+            transform: translateY(-6px);
+            box-shadow: var(--shadow-hover);
+            color: inherit;
+            text-decoration: none;
+        }
+
+        .bottom-action-card-image {
+            width: 100%;
+            height: 140px;
+            object-fit: cover;
+            transition: transform 0.3s ease;
+        }
+
+        .bottom-action-card:hover .bottom-action-card-image {
+            transform: scale(1.05);
+        }
+
+        .bottom-action-card-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 140px;
+            background: linear-gradient(180deg, transparent 40%, rgba(0, 0, 0, 0.6) 100%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .bottom-action-card:hover .bottom-action-card-overlay {
+            opacity: 1;
+        }
+
+        .bottom-action-card-content {
+            padding: 1.5rem;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .bottom-action-card h6 {
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            font-size: 1.1rem;
+            color: var(--text-primary);
+        }
+
+        .bottom-action-card p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+            line-height: 1.4;
+        }
+
+        .bottom-action-card-icon {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            color: white;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+            z-index: 5;
+        }
+
+        .bottom-action-card-icon.daily-checkin {
+            background: rgba(48, 209, 88, 0.9);
+        }
+
+        .bottom-action-card-icon.contract {
+            background: rgba(88, 86, 214, 0.9);
+        }
+
+        .bottom-action-card-icon.support {
+            background: rgba(255, 149, 0, 0.9);
+        }
+
+        .bottom-action-card:hover .bottom-action-card-icon {
+            transform: scale(1.1);
+        }
+
+        .bottom-action-status {
+            font-size: 0.8rem;
+            color: var(--primary-blue);
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: auto;
+        }
+
+        /* Mobile responsiveness for bottom actions */
+        @media (max-width: 768px) {
+            .bottom-actions-grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+            
+            .bottom-action-card {
+                height: 220px;
+            }
+            
+            .bottom-action-card-image {
+                height: 120px;
+            }
+            
+            .bottom-actions-title {
+                font-size: 1.3rem;
+            }
+            
+            .bottom-action-card-content {
+                padding: 1.25rem;
+            }
+            
+            .bottom-action-card h6 {
+                font-size: 1rem;
+            }
+            
+            .bottom-action-card-icon {
+                width: 40px;
+                height: 40px;
+                font-size: 18px;
+                top: 12px;
+                right: 12px;
+            }
+        }
+
+        /* Product Carousel */
 #product-carousel-container { 
     position: relative; 
     width: 100%; 
@@ -926,6 +1243,24 @@
   text-transform:uppercase;
   letter-spacing:0.5px;
   box-shadow:0 2px 4px rgba(0,0,0,0.1);
+}
+
+.commission-badge {
+  position:absolute;
+  top:12px;
+  right:12px;
+  background:linear-gradient(135deg, var(--success-green), #28a745);
+  color:white;
+  font-size:0.7rem;
+  border-radius:6px;
+  padding:3px 6px;
+  font-weight:600;
+  box-shadow:0 2px 4px rgba(48,209,88,0.3);
+  z-index:10;
+}
+
+.commission-badge.merge-data {
+  background:linear-gradient(135deg, #FF6B35, #F7931E);
 }
 .product-name {
   font-size:0.9rem;
@@ -1089,6 +1424,175 @@
     opacity: 1;
 }
 
+        /* Testimonials Carousel */
+        #testimonials-carousel-container { 
+            position: relative; 
+            width: 100%; 
+            margin: 32px auto 24px auto; 
+            max-width: 1200px; 
+            overflow: hidden;
+        }
+
+        #testimonials-carousel {
+            display: flex;
+            align-items: stretch;
+            gap: 24px;
+            padding: 12px 0;
+            width: fit-content;
+            animation: testimonials-infinite-scroll 50s linear infinite reverse;
+        }
+
+        #testimonials-carousel:hover {
+            animation-play-state: paused;
+        }
+
+        @keyframes testimonials-infinite-scroll {
+            0% {
+                transform: translateX(0);
+            }
+            100% {
+                transform: translateX(calc(-100% / 2));
+            }
+        }
+
+        .testimonial-card {
+            min-width: 320px;
+            max-width: 320px;
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            padding: 24px;
+            position: relative;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .testimonial-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+
+        .testimonial-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(0,122,255,0.03), rgba(90,200,250,0.03));
+            border-radius: 16px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .testimonial-card:hover::before {
+            opacity: 1;
+        }
+
+        .testimonial-content {
+            position: relative;
+            z-index: 1;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .testimonial-text {
+            font-size: 0.95rem;
+            line-height: 1.6;
+            color: #333;
+            margin-bottom: 20px;
+            flex-grow: 1;
+            position: relative;
+        }
+
+        .testimonial-text::before {
+            content: '"';
+            font-size: 3rem;
+            color: var(--primary-blue);
+            position: absolute;
+            top: -10px;
+            left: -10px;
+            font-family: serif;
+            opacity: 0.3;
+        }
+
+        .testimonial-author {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-top: auto;
+        }
+
+        .testimonial-photo {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid rgba(0,122,255,0.1);
+            transition: all 0.3s ease;
+        }
+
+        .testimonial-card:hover .testimonial-photo {
+            border-color: var(--primary-blue);
+            transform: scale(1.05);
+        }
+
+        .testimonial-info {
+            flex: 1;
+        }
+
+        .testimonial-name {
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: #333;
+            margin-bottom: 2px;
+        }
+
+        .testimonial-role {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        /* Mobile responsiveness for testimonials */
+        @media (max-width: 768px) {
+            #testimonials-carousel-container {
+                margin: 20px auto 16px auto;
+            }
+
+            .testimonial-card {
+                min-width: 280px;
+                max-width: 280px;
+                padding: 20px;
+            }
+
+            .testimonial-text {
+                font-size: 0.9rem;
+                margin-bottom: 16px;
+            }
+
+            .testimonial-photo {
+                width: 45px;
+                height: 45px;
+            }
+
+            .testimonial-name {
+                font-size: 0.85rem;
+            }
+
+            .testimonial-role {
+                font-size: 0.75rem;
+            }
+
+            #testimonials-carousel {
+                gap: 16px;
+            }
+        }
+
         /* Referral Section with Overlay Card Style */
         .referral-hero-section {
             position: relative;
@@ -1235,7 +1739,8 @@
         /* Responsive Design */
         @media (max-width: 768px) {
             .transaction-grid {
-                grid-template-columns: 1fr;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 1rem;
             }
             
             .progress-circles {
@@ -1524,6 +2029,54 @@
                         </div>
                     </div>
                 </a>
+                <a href="./faqs.html" class="transaction-card">
+                    <div class="position-relative">
+                        <img src="./assets/uploads/images/Drive/faq.jpg" alt="FAQs" class="transaction-card-image">
+                        <div class="transaction-card-overlay"></div>
+                        <div class="transaction-icon faqs">
+                            <i class="fas fa-question-circle"></i>
+                        </div>
+                    </div>
+                    <div class="transaction-card-content">
+                        <div>
+                            <h6>FAQs</h6>
+                            <p>Find quick answers</p>
+                        </div>
+                        <div class="transaction-card-footer">
+                            <div class="transaction-status">
+                                <i class="fas fa-lightbulb"></i>
+                                Get help now
+                            </div>
+                            <div class="transaction-arrow">
+                                <i class="fas fa-chevron-right"></i>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+                <a href="./tutorials.html" class="transaction-card">
+                    <div class="position-relative">
+                        <img src="./assets/uploads/images/Drive/tutorial.png" alt="Tutorials" class="transaction-card-image">
+                        <div class="transaction-card-overlay"></div>
+                        <div class="transaction-icon tutorials">
+                            <i class="fas fa-play-circle"></i>
+                        </div>
+                    </div>
+                    <div class="transaction-card-content">
+                        <div>
+                            <h6>Tutorials</h6>
+                            <p>Learn how to earn more</p>
+                        </div>
+                        <div class="transaction-card-footer">
+                            <div class="transaction-status">
+                                <i class="fas fa-graduation-cap"></i>
+                                Start learning
+                            </div>
+                            <div class="transaction-arrow">
+                                <i class="fas fa-chevron-right"></i>
+                            </div>
+                        </div>
+                    </div>
+                </a>
             </div>
 
             <!-- Progress Section -->
@@ -1594,7 +2147,40 @@
                         </div> -->
                     </div>
                 </div>
-            </div><!-- Product Carousel (Top of Dashboard) -->
+            </div>
+
+            <!-- Product Catalog Section -->
+            <div class="product-catalog-section">
+                <h2 class="product-catalog-title" onclick="window.open('https://example-catalog.com', '_blank')">
+                    Product Catalog
+                </h2>
+                <div class="product-catalog-grid">
+                    <a href="https://example-catalog.com/electronics" target="_blank" class="product-catalog-card">
+                        <img src="./assets/uploads/images/Drive/catalog1.jpeg" alt="Electronics" class="product-catalog-card-image">
+                        <div class="product-catalog-card-overlay"></div>
+                        <div class="product-catalog-icon">
+                            <i class="fas fa-laptop"></i>
+                        </div>
+                        <div class="product-catalog-card-content">
+                            <h6>Electronics & Tech</h6>
+                            <p>Discover the latest gadgets and technology products</p>
+                        </div>
+                    </a>
+                    <a href="https://example-catalog.com/lifestyle" target="_blank" class="product-catalog-card">
+                        <img src="./assets/uploads/images/Drive/catalog2.jpeg" alt="Lifestyle Products" class="product-catalog-card-image">
+                        <div class="product-catalog-card-overlay"></div>
+                        <div class="product-catalog-icon">
+                            <i class="fas fa-heart"></i>
+                        </div>
+                        <div class="product-catalog-card-content">
+                            <h6>Lifestyle & Wellness</h6>
+                            <p>Health, beauty, and lifestyle products for modern living</p>
+                        </div>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Product Carousel (Top of Dashboard) -->
             <div id="product-carousel-container">
             <div class="carousel-title">Earn Commission</div>
             <div id="product-carousel"></div>
@@ -1604,6 +2190,193 @@
             <div id="partners-carousel-container">
             <div class="carousel-title">Brands We've Partnered With</div>
             <div id="partners-carousel"></div>
+            </div>
+
+            <!-- Testimonials Carousel -->
+            <div id="testimonials-carousel-container">
+                <div class="carousel-title">What Our Members Say</div>
+                <div id="testimonials-carousel">
+                    <div class="testimonial-card">
+                        <div class="testimonial-content">
+                            <div class="testimonial-text">
+                                "This platform has transformed my financial journey. The affiliate program is transparent and the earnings are consistent. Highly recommend!"
+                            </div>
+                            <div class="testimonial-author">
+                                <img src="./assets/uploads/images/Drive/DeWatermark.ai_1751925469667.jpeg" alt="Sarah Johnson" class="testimonial-photo">
+                                <div class="testimonial-info">
+                                    <div class="testimonial-name">Sarah Johnson</div>
+                                    <div class="testimonial-role">Premium Member</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="testimonial-card">
+                        <div class="testimonial-content">
+                            <div class="testimonial-text">
+                                "Amazing support team and great earning opportunities. I've been able to supplement my income significantly through their program."
+                            </div>
+                            <div class="testimonial-author">
+                                <img src="./assets/uploads/images/Drive/DeWatermark.ai_1751928721390.jpeg" alt="Michael Chen" class="testimonial-photo">
+                                <div class="testimonial-info">
+                                    <div class="testimonial-name">Michael Chen</div>
+                                    <div class="testimonial-role">Gold Member</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="testimonial-card">
+                        <div class="testimonial-content">
+                            <div class="testimonial-text">
+                                "Professional, reliable, and profitable. The dashboard makes tracking my progress so easy. Best decision I've made this year!"
+                            </div>
+                            <div class="testimonial-author">
+                                <img src="./assets/uploads/images/Drive/happy-woman.jpeg" alt="Emma Davis" class="testimonial-photo">
+                                <div class="testimonial-info">
+                                    <div class="testimonial-name">Emma Davis</div>
+                                    <div class="testimonial-role">Elite Member</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="testimonial-card">
+                        <div class="testimonial-content">
+                            <div class="testimonial-text">
+                                "The referral system is fantastic. I've built a steady passive income stream while helping others discover this opportunity."
+                            </div>
+                            <div class="testimonial-author">
+                                <img src="./assets/uploads/images/Drive/happy-team.jpg" alt="David Rodriguez" class="testimonial-photo">
+                                <div class="testimonial-info">
+                                    <div class="testimonial-name">David Rodriguez</div>
+                                    <div class="testimonial-role">VIP Member</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="testimonial-card">
+                        <div class="testimonial-content">
+                            <div class="testimonial-text">
+                                "Clear, honest, and rewarding. The platform delivers exactly what it promises. My earnings have exceeded expectations!"
+                            </div>
+                            <div class="testimonial-author">
+                                <img src="./assets/uploads/images/Drive/woman-worker.jpg" alt="Lisa Thompson" class="testimonial-photo">
+                                <div class="testimonial-info">
+                                    <div class="testimonial-name">Lisa Thompson</div>
+                                    <div class="testimonial-role">Diamond Member</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Duplicate cards for seamless loop -->
+                    <div class="testimonial-card">
+                        <div class="testimonial-content">
+                            <div class="testimonial-text">
+                                "This platform has transformed my financial journey. The affiliate program is transparent and the earnings are consistent. Highly recommend!"
+                            </div>
+                            <div class="testimonial-author">
+                                <img src="./assets/uploads/images/Drive/DeWatermark.ai_1751925469667.jpeg" alt="Sarah Johnson" class="testimonial-photo">
+                                <div class="testimonial-info">
+                                    <div class="testimonial-name">Sarah Johnson</div>
+                                    <div class="testimonial-role">Premium Member</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="testimonial-card">
+                        <div class="testimonial-content">
+                            <div class="testimonial-text">
+                                "Amazing support team and great earning opportunities. I've been able to supplement my income significantly through their program."
+                            </div>
+                            <div class="testimonial-author">
+                                <img src="./assets/uploads/images/Drive/DeWatermark.ai_1751928721390.jpeg" alt="Michael Chen" class="testimonial-photo">
+                                <div class="testimonial-info">
+                                    <div class="testimonial-name">Michael Chen</div>
+                                    <div class="testimonial-role">Gold Member</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="testimonial-card">
+                        <div class="testimonial-content">
+                            <div class="testimonial-text">
+                                "Professional, reliable, and profitable. The dashboard makes tracking my progress so easy. Best decision I've made this year!"
+                            </div>
+                            <div class="testimonial-author">
+                                <img src="./assets/uploads/images/Drive/happy-woman.jpeg" alt="Emma Davis" class="testimonial-photo">
+                                <div class="testimonial-info">
+                                    <div class="testimonial-name">Emma Davis</div>
+                                    <div class="testimonial-role">Elite Member</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bottom Action Cards Section -->
+            <div class="bottom-actions-section">
+                <h2 class="bottom-actions-title">Essential Tools</h2>
+                <div class="bottom-actions-grid">
+                    <a href="./daily-checkin.html" class="bottom-action-card">
+                        <img src="./assets/uploads/images/Drive/checkin.webp" alt="Daily Check-in" class="bottom-action-card-image">
+                        <div class="bottom-action-card-overlay"></div>
+                        <div class="bottom-action-card-icon daily-checkin">
+                            <i class="fas fa-calendar-check"></i>
+                        </div>
+                        <div class="bottom-action-card-content">
+                            <div>
+                                <h6>Daily Check-in</h6>
+                                <p>Mark your daily attendance and earn bonus points for consistent participation</p>
+                            </div>
+                            <div class="bottom-action-status">
+                                <i class="fas fa-clock"></i>
+                                Check in today
+                            </div>
+                        </div>
+                    </a>
+                    
+                    <a href="./electronic-contract.html" class="bottom-action-card">
+                        <img src="./assets/uploads/images/Drive/contract.png" alt="Electronic Contract" class="bottom-action-card-image">
+                        <div class="bottom-action-card-overlay"></div>
+                        <div class="bottom-action-card-icon contract">
+                            <i class="fas fa-file-contract"></i>
+                        </div>
+                        <div class="bottom-action-card-content">
+                            <div>
+                                <h6>Electronic Contract</h6>
+                                <p>View and manage your affiliate agreements and contract documents securely</p>
+                            </div>
+                            <div class="bottom-action-status">
+                                <i class="fas fa-shield-alt"></i>
+                                Secure & Digital
+                            </div>
+                        </div>
+                    </a>
+                    
+                    <a href="./chat/index.html" class="bottom-action-card">
+                        <img src="./assets/uploads/images/Drive/customer-support.webp" alt="Customer Support" class="bottom-action-card-image">
+                        <div class="bottom-action-card-overlay"></div>
+                        <div class="bottom-action-card-icon support">
+                            <i class="fas fa-headset"></i>
+                        </div>
+                        <div class="bottom-action-card-content">
+                            <div>
+                                <h6>Customer Support</h6>
+                                <p>Get help from our dedicated support team available 24/7 for all your needs</p>
+                            </div>
+                            <div class="bottom-action-status">
+                                <i class="fas fa-comments"></i>
+                                Always available
+                            </div>
+                        </div>
+                    </a>
+                </div>
             </div>
         </div>
     </main>
@@ -1669,7 +2442,64 @@
                     }
                 });
             }
+
+            // Setup testimonials carousel navigation
+            setupTestimonialsCarousel();
         });
+
+        // Testimonials Carousel Navigation
+        function setupTestimonialsCarousel() {
+            const carousel = document.getElementById('testimonials-carousel');
+            const leftBtn = document.getElementById('testimonials-left');
+            const rightBtn = document.getElementById('testimonials-right');
+            
+            if (!carousel || !leftBtn || !rightBtn) return;
+            
+            let currentPosition = 0;
+            const cardWidth = 320 + 24; // card width + gap
+            const visibleCards = Math.floor(carousel.parentElement.offsetWidth / cardWidth);
+            const totalCards = carousel.children.length;
+            const maxPosition = Math.max(0, totalCards - visibleCards);
+            
+            function updateCarousel() {
+                const translateX = -currentPosition * cardWidth;
+                carousel.style.transform = `translateX(${translateX}px)`;
+                
+                // Update button states
+                leftBtn.style.opacity = currentPosition === 0 ? '0.5' : '1';
+                leftBtn.style.cursor = currentPosition === 0 ? 'not-allowed' : 'pointer';
+                rightBtn.style.opacity = currentPosition >= maxPosition ? '0.5' : '1';
+                rightBtn.style.cursor = currentPosition >= maxPosition ? 'not-allowed' : 'pointer';
+            }
+            
+            leftBtn.addEventListener('click', function() {
+                if (currentPosition > 0) {
+                    currentPosition--;
+                    updateCarousel();
+                }
+            });
+            
+            rightBtn.addEventListener('click', function() {
+                if (currentPosition < maxPosition) {
+                    currentPosition++;
+                    updateCarousel();
+                }
+            });
+            
+            // Initialize
+            updateCarousel();
+            
+            // Handle window resize
+            window.addEventListener('resize', function() {
+                const newVisibleCards = Math.floor(carousel.parentElement.offsetWidth / cardWidth);
+                const newMaxPosition = Math.max(0, totalCards - newVisibleCards);
+                
+                if (currentPosition > newMaxPosition) {
+                    currentPosition = newMaxPosition;
+                }
+                updateCarousel();
+            });
+        }
           // Function to setup referral code copy functionality
         function setupDashboardReferralCopy() {
             const copyBtn = document.getElementById('copy-dashboard-referral');
@@ -2192,7 +3022,23 @@
   // Function to create a product card
   function createProductCard(product, index, isClone = false) {
     const price = parseFloat(product.price || 0);
-    const commission = product.commission ? `$${parseFloat(product.commission).toFixed(2)}` : `$${(price * 0.10).toFixed(2)}`;
+    
+    // Determine if this is a merge data operation (you can modify this logic based on your product data)
+    // For demo purposes, I'll use product name or category to determine this
+    const isMergeData = product.name && (
+      product.name.toLowerCase().includes('merge') || 
+      product.name.toLowerCase().includes('data') ||
+      product.name.toLowerCase().includes('analytics') ||
+      product.name.toLowerCase().includes('integration') ||
+      product.category === 'merge-data'
+    );
+    
+    // Calculate commission based on operation type
+    const commissionRate = isMergeData ? 0.06 : 0.02; // 6% for merge data, 2% for normal
+    const commissionAmount = price * commissionRate;
+    const commission = `$${commissionAmount.toFixed(2)}`; // Always use calculated commission rates
+    const commissionPercentage = isMergeData ? '6%' : '2%';
+    
     const name = (product.name||'').split(' ').slice(0,5).join(' ');
     const imgSrc = product.image_url || '/assets/uploads/products/newegg-1.jpg';
     const card = document.createElement('div');
@@ -2204,6 +3050,7 @@
     });
     card.innerHTML = `
       <span class="product-badge">Platinum</span>
+      <span class="commission-badge ${isMergeData ? 'merge-data' : ''}">${commissionPercentage}</span>
       <img src="${imgSrc}" alt="${name}">
       <div class="product-name">${name}</div>
       <div class="product-price-btn">$${price.toLocaleString()}</div>

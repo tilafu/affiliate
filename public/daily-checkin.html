@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge"/>
+    <title>Daily Check-in - Sellvia Affiliate Hub</title>
+    <meta name="csrf-token" content="cMnbgu3d14TqQm9u7lWoeRN4awsdQMKFm6tCJ2zU">
+    <link rel="shortcut icon" href="./assets/uploads/generals/favicon-665b8c8a863b91717275786.png">
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary-blue: #007AFF;
+            --secondary-blue: #5AC8FA;
+            --success-green: #30D158;
+            --warning-orange: #FF9500;
+            --danger-red: #FF3B30;
+            --purple: #5856D6;
+            --pink: #FF2D92;
+            --background: #F2F2F7;
+            --card-background: #FFFFFF;
+            --text-primary: #000000;
+            --text-secondary: #8E8E93;
+            --border-color: #E5E5EA;
+            --shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+            --shadow-hover: 0 8px 32px rgba(0, 0, 0, 0.15);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, var(--primary-blue), var(--secondary-blue));
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .checkin-container {
+            background: var(--card-background);
+            border-radius: 24px;
+            box-shadow: var(--shadow-hover);
+            overflow: hidden;
+            max-width: 600px;
+            width: 100%;
+            position: relative;
+        }
+
+        .checkin-header {
+            background: linear-gradient(135deg, var(--primary-blue), var(--secondary-blue));
+            color: white;
+            padding: 2rem;
+            text-align: center;
+            position: relative;
+        }
+
+        .checkin-header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .checkin-title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            position: relative;
+            z-index: 1;
+            padding-top: 10%;
+        }
+
+        .checkin-subtitle {
+            font-size: 1rem;
+            opacity: 0.9;
+            position: relative;
+            z-index: 1;
+        }
+
+        .checkin-content {
+            padding: 2rem;
+        }
+
+        .checkin-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--background);
+            border-radius: 16px;
+            padding: 1.5rem 1rem;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary-blue);
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .calendar-container {
+            background: var(--background);
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .calendar-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+
+        .calendar-nav {
+            background: none;
+            border: none;
+            font-size: 1.25rem;
+            color: var(--primary-blue);
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .calendar-nav:hover {
+            background: rgba(0, 122, 255, 0.1);
+        }
+
+        .calendar-month {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 0.5rem;
+        }
+
+        .calendar-day-header {
+            text-align: center;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            padding: 0.5rem;
+        }
+
+        .calendar-day {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .calendar-day:hover {
+            background: rgba(0, 122, 255, 0.1);
+        }
+
+        .calendar-day.checked-in {
+            background: var(--success-green);
+            color: white;
+        }
+
+        .calendar-day.checked-in::after {
+            content: '✓';
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            font-size: 0.7rem;
+            font-weight: bold;
+        }
+
+        .calendar-day.today {
+            background: var(--primary-blue);
+            color: white;
+            box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.3);
+        }
+
+        .calendar-day.other-month {
+            color: var(--text-secondary);
+            opacity: 0.5;
+        }
+
+        .checkin-button {
+            width: 100%;
+            background: linear-gradient(135deg, var(--success-green), #28a745);
+            color: white;
+            border: none;
+            border-radius: 16px;
+            padding: 1rem 2rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .checkin-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(48, 209, 88, 0.3);
+        }
+
+        .checkin-button:disabled {
+            background: var(--text-secondary);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .checkin-button.checked-in {
+            background: var(--text-secondary);
+        }
+
+        .streak-badge {
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            background: var(--warning-orange);
+            color: white;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            font-weight: 700;
+            box-shadow: 0 2px 8px rgba(255, 149, 0, 0.3);
+        }
+
+        .back-button {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 0.75rem 1rem;
+            font-size: 0.9rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            backdrop-filter: blur(10px);
+        }
+
+        .back-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+            color: white;
+            text-decoration: none;
+            transform: translateX(-2px);
+        }
+
+        /* Mobile responsiveness */
+        @media (max-width: 768px) {
+            .checkin-container {
+                margin: 10px;
+                border-radius: 20px;
+            }
+
+            .checkin-header {
+                padding: 1.5rem 1rem;
+            }
+
+            .checkin-title {
+                font-size: 1.5rem;
+            }
+
+            .checkin-content {
+                padding: 1.5rem 1rem;
+            }
+
+            .checkin-stats {
+                grid-template-columns: 1fr;
+                gap: 0.75rem;
+            }
+
+            .stat-card {
+                padding: 1rem;
+            }
+
+            .stat-number {
+                font-size: 1.5rem;
+            }
+
+            .calendar-container {
+                padding: 1rem;
+            }
+
+            .calendar-day {
+                font-size: 0.8rem;
+            }
+
+            .back-button {
+                top: 15px;
+                left: 15px;
+                padding: 0.5rem 0.75rem;
+                font-size: 0.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="checkin-container">
+        <div class="checkin-header">
+            <a href="./dashboard.html" class="back-button">
+                <i class="fas fa-arrow-left"></i>
+                Back to Dashboard
+            </a>
+            <h1 class="checkin-title">Check Your Streak</h1>
+            <!-- <p class="checkin-subtitle">Discover a Wide Range of Products • Experience our shop and refund model • Partner with over 3000+ retail stores to profit</p> -->
+        </div>
+
+        <div class="checkin-content">
+            <div class="checkin-stats">
+                <div class="stat-card">
+                    <div class="stat-number" id="streakDays">7</div>
+                    <div class="stat-label">Days</div>
+                </div>
+                <div class="stat-card" style="position: relative;">
+                    <div class="streak-badge" id="streakBadge">🔥</div>
+                    <div class="stat-number" id="totalCheckins">24</div>
+                    <div class="stat-label">Total Check-ins</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="bonusPoints">150</div>
+                    <div class="stat-label">Bonus Points</div>
+                </div>
+            </div>
+
+            <div class="calendar-container">
+                <div class="calendar-header">
+                    <button class="calendar-nav" id="prevMonth">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <div class="calendar-month" id="currentMonth">July 2025</div>
+                    <button class="calendar-nav" id="nextMonth">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+
+                <div class="calendar-grid" id="calendarGrid">
+                    <!-- Calendar will be populated by JavaScript -->
+                </div>
+            </div>
+
+            <button class="checkin-button" id="checkinButton">
+                <i class="fas fa-check-circle"></i>
+                <span id="checkinText">Check-in Success</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        class DailyCheckin {
+            constructor() {
+                this.currentDate = new Date();
+                this.currentMonth = this.currentDate.getMonth();
+                this.currentYear = this.currentDate.getFullYear();
+                this.checkinData = this.loadCheckinData();
+                this.init();
+            }
+
+            init() {
+                this.renderCalendar();
+                this.updateStats();
+                this.bindEvents();
+                this.checkTodayStatus();
+            }
+
+            loadCheckinData() {
+                const stored = localStorage.getItem('affiliate_checkin_data');
+                if (stored) {
+                    const data = JSON.parse(stored);
+                    // Convert string dates back to Date objects
+                    data.checkinDates = data.checkinDates.map(date => new Date(date));
+                    return data;
+                }
+                return {
+                    checkinDates: [],
+                    currentStreak: 0,
+                    longestStreak: 0,
+                    totalCheckins: 0,
+                    lastCheckin: null,
+                    bonusPoints: 0
+                };
+            }
+
+            saveCheckinData() {
+                localStorage.setItem('affiliate_checkin_data', JSON.stringify(this.checkinData));
+            }
+
+            formatDate(date) {
+                return date.toISOString().split('T')[0];
+            }
+
+            isToday(date) {
+                const today = new Date();
+                return this.formatDate(date) === this.formatDate(today);
+            }
+
+            isSameDay(date1, date2) {
+                return this.formatDate(date1) === this.formatDate(date2);
+            }
+
+            hasCheckedInToday() {
+                return this.checkinData.checkinDates.some(date => this.isToday(date));
+            }
+
+            hasCheckedInOnDate(date) {
+                return this.checkinData.checkinDates.some(checkinDate => 
+                    this.isSameDay(checkinDate, date)
+                );
+            }
+
+            performCheckin() {
+                if (this.hasCheckedInToday()) {
+                    return false; // Already checked in today
+                }
+
+                const today = new Date();
+                this.checkinData.checkinDates.push(today);
+                this.checkinData.totalCheckins++;
+                this.checkinData.lastCheckin = today;
+                
+                // Calculate streak
+                this.calculateStreak();
+                
+                // Award bonus points (5 points per day + streak bonus)
+                const streakBonus = Math.floor(this.checkinData.currentStreak / 7) * 10; // 10 bonus points every 7 days
+                this.checkinData.bonusPoints += 5 + streakBonus;
+
+                this.saveCheckinData();
+                this.updateStats();
+                this.renderCalendar();
+                this.checkTodayStatus();
+                
+                return true;
+            }
+
+            calculateStreak() {
+                if (this.checkinData.checkinDates.length === 0) {
+                    this.checkinData.currentStreak = 0;
+                    return;
+                }
+
+                // Sort dates in descending order
+                const sortedDates = this.checkinData.checkinDates
+                    .map(date => new Date(date))
+                    .sort((a, b) => b - a);
+
+                let streak = 1;
+                let currentDate = new Date(sortedDates[0]);
+
+                for (let i = 1; i < sortedDates.length; i++) {
+                    const previousDate = new Date(currentDate);
+                    previousDate.setDate(previousDate.getDate() - 1);
+
+                    if (this.isSameDay(sortedDates[i], previousDate)) {
+                        streak++;
+                        currentDate = sortedDates[i];
+                    } else {
+                        break;
+                    }
+                }
+
+                this.checkinData.currentStreak = streak;
+                if (streak > this.checkinData.longestStreak) {
+                    this.checkinData.longestStreak = streak;
+                }
+            }
+
+            updateStats() {
+                document.getElementById('streakDays').textContent = this.checkinData.currentStreak;
+                document.getElementById('totalCheckins').textContent = this.checkinData.totalCheckins;
+                document.getElementById('bonusPoints').textContent = this.checkinData.bonusPoints;
+
+                // Update streak badge
+                const streakBadge = document.getElementById('streakBadge');
+                if (this.checkinData.currentStreak >= 30) {
+                    streakBadge.textContent = '💎';
+                } else if (this.checkinData.currentStreak >= 14) {
+                    streakBadge.textContent = '⭐';
+                } else if (this.checkinData.currentStreak >= 7) {
+                    streakBadge.textContent = '🏆';
+                } else {
+                    streakBadge.textContent = '🔥';
+                }
+            }
+
+            checkTodayStatus() {
+                const button = document.getElementById('checkinButton');
+                const text = document.getElementById('checkinText');
+                
+                if (this.hasCheckedInToday()) {
+                    button.disabled = true;
+                    button.classList.add('checked-in');
+                    text.textContent = 'Already Checked In Today!';
+                } else {
+                    button.disabled = false;
+                    button.classList.remove('checked-in');
+                    text.textContent = 'Check In Today';
+                }
+            }
+
+            renderCalendar() {
+                const grid = document.getElementById('calendarGrid');
+                const monthNames = [
+                    'January', 'February', 'March', 'April', 'May', 'June',
+                    'July', 'August', 'September', 'October', 'November', 'December'
+                ];
+                
+                document.getElementById('currentMonth').textContent = 
+                    `${monthNames[this.currentMonth]} ${this.currentYear}`;
+
+                // Clear previous calendar
+                grid.innerHTML = '';
+
+                // Add day headers
+                const dayHeaders = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+                dayHeaders.forEach(day => {
+                    const header = document.createElement('div');
+                    header.className = 'calendar-day-header';
+                    header.textContent = day;
+                    grid.appendChild(header);
+                });
+
+                // Get first day of month and number of days
+                const firstDay = new Date(this.currentYear, this.currentMonth, 1);
+                const lastDay = new Date(this.currentYear, this.currentMonth + 1, 0);
+                const daysInMonth = lastDay.getDate();
+                const startingDayOfWeek = firstDay.getDay();
+
+                // Add empty cells for days before month starts
+                for (let i = 0; i < startingDayOfWeek; i++) {
+                    const emptyDay = document.createElement('div');
+                    emptyDay.className = 'calendar-day other-month';
+                    grid.appendChild(emptyDay);
+                }
+
+                // Add days of the month
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const dayElement = document.createElement('div');
+                    dayElement.className = 'calendar-day';
+                    dayElement.textContent = day;
+
+                    const currentDate = new Date(this.currentYear, this.currentMonth, day);
+                    
+                    if (this.isToday(currentDate)) {
+                        dayElement.classList.add('today');
+                    }
+
+                    if (this.hasCheckedInOnDate(currentDate)) {
+                        dayElement.classList.add('checked-in');
+                    }
+
+                    grid.appendChild(dayElement);
+                }
+            }
+
+            bindEvents() {
+                document.getElementById('checkinButton').addEventListener('click', () => {
+                    if (this.performCheckin()) {
+                        // Show success animation or message
+                        this.showCheckinSuccess();
+                    }
+                });
+
+                document.getElementById('prevMonth').addEventListener('click', () => {
+                    this.currentMonth--;
+                    if (this.currentMonth < 0) {
+                        this.currentMonth = 11;
+                        this.currentYear--;
+                    }
+                    this.renderCalendar();
+                });
+
+                document.getElementById('nextMonth').addEventListener('click', () => {
+                    this.currentMonth++;
+                    if (this.currentMonth > 11) {
+                        this.currentMonth = 0;
+                        this.currentYear++;
+                    }
+                    this.renderCalendar();
+                });
+            }
+
+            showCheckinSuccess() {
+                const button = document.getElementById('checkinButton');
+                const originalText = button.innerHTML;
+                
+                button.innerHTML = '<i class="fas fa-check"></i> Success!';
+                button.style.background = 'linear-gradient(135deg, #30D158, #28a745)';
+                
+                setTimeout(() => {
+                    this.checkTodayStatus();
+                }, 2000);
+            }
+        }
+
+        // Initialize the checkin system when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new DailyCheckin();
+        });
+    </script>
+</body>
+</html>
