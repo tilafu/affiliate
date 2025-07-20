@@ -1570,7 +1570,10 @@ async function _loadAndRenderUserDriveProgress(userId, username) {
                         <div class="modal-content">
                             <div class="modal-header">
                                 <h5 class="modal-title" id="addComboModalLabel">Add Combo</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                <div class="d-flex gap-2">
+                                    <button type="button" class="btn btn-primary" onclick="createComboTaskSet()" id="addComboBtn" disabled>Add Combo</button>
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                </div>
                             </div>
                             <div class="modal-body">
                                 <div class="row mb-3">
@@ -1596,10 +1599,6 @@ async function _loadAndRenderUserDriveProgress(userId, username) {
                                 <div id="selectedComboProduct" class="alert alert-info" style="display: none;">
                                     <strong>Selected:</strong> <span id="selectedProductName"></span> - $<span id="selectedProductPrice"></span>
                                 </div>
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                <button type="button" class="btn btn-primary" onclick="createComboTaskSet()" id="addComboBtn" disabled>Add Combo</button>
                             </div>
                         </div>
                     </div>
