@@ -747,6 +747,49 @@
     </div>
 </div>
 
+<!-- Direct Deposit Success Modal -->
+<div class="modal fade" id="directDepositSuccessModal" tabindex="-1" aria-labelledby="directDepositSuccessModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-body text-center p-5">
+                <div class="mb-4">
+                    <i class="fas fa-check-circle text-success" style="font-size: 4rem;"></i>
+                </div>
+                <h4 class="mb-3">Direct Deposit Request Submitted Successfully!</h4>
+                <p class="text-muted mb-4">
+                    Your direct deposit request for 
+                    <strong id="direct-modal-deposit-amount">$0.00</strong> has been received and is now being processed.
+                </p>
+                <!-- <div class="alert alert-primary">
+                    <i class="fas fa-qrcode me-2"></i>
+                    <strong>Next Steps:</strong> Follow the payment instructions and upload your proof of payment.
+                </div> -->
+                <p class="text-muted mb-4">
+                    <small>
+                        <i class="fas fa-clock me-2"></i>
+                        Processing typically takes 15-30 minutes after payment verification. You will receive a notification once your deposit is approved.
+                    </small>
+                </p>
+                <div class="alert alert-info">
+                    <i class="fas fa-question-circle me-2"></i>
+                    <strong>Need help?</strong> Contact our support team if you have any questions.
+                </div>
+                <div class="d-grid gap-2">
+                    <button type="button" class="btn btn-custom" data-bs-dismiss="modal" id="direct-modal-ok-button">
+                        <i class="fas fa-check me-2"></i>Perfect, Got It!
+                    </button>
+                    <button type="button" class="btn btn-outline-primary" data-bs-dismiss="modal" onclick="window.location.href='dashboard.html'">
+                        <i class="fas fa-tachometer-alt me-2"></i>Go to Dashboard
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" onclick="window.location.href='support.html'">
+                        <i class="fas fa-headset me-2"></i>Contact Support
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Standard Footer Navigation -->
 <div id="footer-navigation"></div>
 

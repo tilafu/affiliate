@@ -303,21 +303,33 @@ const requestWithdrawal = async (req, res) => {
     try {
         await client.query('BEGIN'); // Start transaction
 
-        // 1. Verify withdrawal password
-        const userResult = await client.query('SELECT withdrawal_password_hash FROM users WHERE id = $1', [userId]);
-        if (userResult.rows.length === 0 || !userResult.rows[0].withdrawal_password_hash) {
+        // 1. Verify withdrawal password (fallback to account password if withdrawal password not set)
+        const userResult = await client.query('SELECT withdrawal_password_hash, password_hash FROM users WHERE id = $1', [userId]);
+        if (userResult.rows.length === 0) {
              await client.query('ROLLBACK');
              client.release();
-             return res.status(400).json({ success: false, message: 'Withdrawal password not set or user not found.' });
+             return res.status(400).json({ success: false, message: 'User not found.' });
         }
+        
         const withdrawalPasswordHash = userResult.rows[0].withdrawal_password_hash;
-        const isPasswordMatch = await bcrypt.compare(withdrawal_password, withdrawalPasswordHash);
+        const accountPasswordHash = userResult.rows[0].password_hash;
+        
+        let isPasswordMatch = false;
+        
+        // If withdrawal password is set, use it; otherwise fall back to account password
+        if (withdrawalPasswordHash) {
+            isPasswordMatch = await bcrypt.compare(withdrawal_password, withdrawalPasswordHash);
+        } else {
+            // Fall back to account password if withdrawal password is not set
+            isPasswordMatch = await bcrypt.compare(withdrawal_password, accountPasswordHash);
+            logger.info(`User ${userId} using account password for withdrawal (withdrawal password not set)`);
+        }
 
         if (!isPasswordMatch) {
             await client.query('ROLLBACK');
             client.release();
-            logger.warn(`User ${userId} failed withdrawal request: Incorrect withdrawal password.`);
-            return res.status(401).json({ success: false, message: 'Incorrect withdrawal password.' });
+            logger.warn(`User ${userId} failed withdrawal request: Incorrect password.`);
+            return res.status(401).json({ success: false, message: 'Incorrect password. Please enter your account password or set a withdrawal password.' });
         }
 
         // 2. Check if user has sufficient balance in the main account

@@ -438,7 +438,12 @@
 
         <!-- Deposits Section -->
         <section id="deposits-section" class="section" style="display: none;">
-            <h2>Deposits Management</h2>
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h2>Deposits Management</h2>
+                <button type="button" class="btn btn-info" id="view-deposit-history-btn">
+                    <i class="fas fa-history me-2"></i>View Deposit History
+                </button>
+            </div>
             <div class="table-responsive mt-4">
                 <table class="table">
                     <thead>
@@ -1148,6 +1153,90 @@
                     </div>
                 </div>
             </div>
+            
+            <!-- Deposit History Modal -->
+            <div class="modal fade" id="depositHistoryModal" tabindex="-1" aria-labelledby="depositHistoryModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-xl">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="depositHistoryModalLabel">
+                                <i class="fas fa-history me-2"></i>Deposit History
+                            </h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="row mb-3">
+                                <div class="col-md-3">
+                                    <label for="historyStatusFilter" class="form-label">Status:</label>
+                                    <select id="historyStatusFilter" class="form-control">
+                                        <option value="">All Statuses</option>
+                                        <option value="APPROVED">Approved</option>
+                                        <option value="REJECTED">Rejected</option>
+                                        <option value="PENDING">Pending</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="historyTypeFilter" class="form-label">Type:</label>
+                                    <select id="historyTypeFilter" class="form-control">
+                                        <option value="">All Types</option>
+                                        <option value="bank">Bank Deposit</option>
+                                        <option value="direct">Direct Deposit</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="historyLimitSelect" class="form-label">Show:</label>
+                                    <select id="historyLimitSelect" class="form-control">
+                                        <option value="50">50 records</option>
+                                        <option value="100" selected>100 records</option>
+                                        <option value="200">200 records</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3 d-flex align-items-end">
+                                    <button id="refreshHistoryBtn" class="btn btn-primary">
+                                        <i class="fas fa-sync-alt me-1"></i>Refresh
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div class="table-responsive">
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>User</th>
+                                            <th>Amount</th>
+                                            <th>Type</th>
+                                            <th>Submitted</th>
+                                            <th>Processed</th>
+                                            <th>Status</th>
+                                            <th>Attachments</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="deposit-history-list">
+                                        <tr>
+                                            <td colspan="8" class="text-center">Loading deposit history...</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <div class="d-flex justify-content-between align-items-center mt-3">
+                                <div>
+                                    <span id="deposits-pagination-info" class="text-muted"></span>
+                                </div>
+                                <div>
+                                    <button id="loadMoreDepositsBtn" class="btn btn-outline-primary" style="display: none;">
+                                        <i class="fas fa-plus me-1"></i>Load More
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </section>
     </div>
 
@@ -1157,6 +1246,7 @@
     <script src="./js/auth.js"></script> <!-- Add centralized logout handling -->
     <script src="./js/auth-check.js"></script> <!-- Centralized authentication -->    <script type="module" src="./js/admin.js"></script>
     <script type="module" src="./js/admin-drives.js"></script> <!-- Ensure admin-drives.js is loaded as a module if not already -->
+    <script type="module" src="./js/admin-finance.js"></script> <!-- Finance module for deposits and withdrawals -->
     <script type="module" src="./js/enhanced-combo-creation.js"></script>
     <script src="./js/tier-management.js"></script>
     

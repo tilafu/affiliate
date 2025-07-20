@@ -278,7 +278,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const result = await response.json();
         
         if (result.success) {
-          alert('Deposit request submitted successfully!');
+          // Show success modal instead of alert
+          showDirectDepositSuccessModal(amount);
           
           // Clear form
           amountInput.value = '';
@@ -300,7 +301,7 @@ document.addEventListener('DOMContentLoaded', () => {
       } finally {
         // Re-enable button
         depositButton.disabled = false;
-        depositButton.innerHTML = '<i class="fas fa-paper-plane me-2"></i>Submit Deposit Request';
+        depositButton.innerHTML = '<i class="fas fa-paper-plane me-2"></i>Submit Direct Deposit Request';
       }    });
   }
 
@@ -417,6 +418,35 @@ function updateDepositTranslations() {
     }
   } else {
     console.warn('i18next not initialized yet for deposit page');
+  }
+}
+
+// Function to show direct deposit success modal
+function showDirectDepositSuccessModal(amount) {
+  try {
+    // Update the amount in the modal
+    const modalAmountElement = document.getElementById('direct-modal-deposit-amount');
+    if (modalAmountElement) {
+      modalAmountElement.textContent = `$${amount.toFixed(2)}`;
+    }
+    
+    // Show the modal
+    const modal = new bootstrap.Modal(document.getElementById('directDepositSuccessModal'));
+    modal.show();
+    
+    // Add click handler for the OK button to refresh data
+    const okButton = document.getElementById('direct-modal-ok-button');
+    if (okButton) {
+      okButton.addEventListener('click', function() {
+        // Optionally refresh data when modal is closed
+        console.log('Direct deposit modal closed');
+      }, { once: true }); // Use once: true to prevent multiple listeners
+    }
+    
+  } catch (error) {
+    console.error('Error showing direct deposit success modal:', error);
+    // Fallback to alert if modal fails
+    alert(`Direct deposit request for $${amount.toFixed(2)} submitted successfully!`);
   }
 }
 

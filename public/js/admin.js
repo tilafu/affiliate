@@ -63,6 +63,14 @@ document.addEventListener('DOMContentLoaded', () => {
         console.error('DriveModuleAPI or its initDependencies function is not available. Ensure admin-drives.js is loaded as a module and exports correctly.');
     }
 
+    // Initialize FinanceModule functionality from admin-finance.js
+    if (FinanceModuleAPI && typeof FinanceModuleAPI.initDependencies === 'function') {
+        FinanceModuleAPI.initDependencies({ fetchWithAuth, showNotification });
+        console.log('Finance module dependencies initialized');
+    } else {
+        console.error('FinanceModuleAPI or its initDependencies function is not available. Ensure admin-finance.js is loaded as a module and exports correctly.');
+    }
+
     // Initialize Enhanced Combo Creation dependencies
     if (typeof window.initEnhancedComboCreationDependencies === 'function') {
         window.initEnhancedComboCreationDependencies({ fetchWithAuth, showNotification });
@@ -239,6 +247,18 @@ function closeAlert(alertId) {
 window.showNotification = showNotification;
 window.closeAlert = closeAlert;
 
+// Debug function - test deposit modal manually
+window.testDepositModal = function() {
+    console.log('Manual test function called - delegating to FinanceModuleAPI');
+    
+    if (FinanceModuleAPI && typeof FinanceModuleAPI.showDepositHistoryModal === 'function') {
+        FinanceModuleAPI.showDepositHistoryModal();
+    } else {
+        console.error('FinanceModuleAPI not available');
+        alert('Finance module not loaded - cannot show deposit modal');
+    }
+};
+
 function initializeSidebar() {
     // Handle submenu toggles
     document.querySelectorAll('.has-submenu > .nav-link').forEach(link => {
@@ -327,10 +347,18 @@ function loadSection(sectionName) {
             loadFrozenUsers();
             break;
         case 'deposits':
-            loadDeposits();
+            if (FinanceModuleAPI && typeof FinanceModuleAPI.loadDeposits === 'function') {
+                FinanceModuleAPI.loadDeposits();
+            } else {
+                console.error('FinanceModuleAPI.loadDeposits function is not available.');
+            }
             break;
         case 'withdrawals':
-            loadWithdrawals();
+            if (FinanceModuleAPI && typeof FinanceModuleAPI.loadWithdrawals === 'function') {
+                FinanceModuleAPI.loadWithdrawals();
+            } else {
+                console.error('FinanceModuleAPI.loadWithdrawals function is not available.');
+            }
             break;
         case 'drives': 
             if (DriveModuleAPI && typeof DriveModuleAPI.loadDrives === 'function') {
@@ -683,265 +711,8 @@ async function populateDriveConfigurationDropdown(currentAssignedConfigId, curre
     }
 }
 
-// Deposits Management
-async function loadDeposits() {
-    try {
-        // Fetch only pending deposits for the admin view
-        const response = await fetchWithAuth('/admin/deposits');
-        if (response.success) {
-            renderDepositsTable(response.deposits, 'deposits-list');
-        }
-    } catch (error) {
-        console.error('Error loading deposits:', error);
-        showNotification('Failed to load deposits', 'error');
-    }
-}
-
-// Render deposits table
-function renderDepositsTable(deposits, containerId) {
-    const depositsList = document.getElementById(containerId);
-    if (!depositsList) {
-        console.warn(`Deposits list element ('${containerId}') not found.`);
-        return;
-    }
-
-    depositsList.innerHTML = deposits.map(deposit => {
-        // Determine deposit type based on deposit_type field
-        const depositType = deposit.deposit_type === 'bank' ? 'Bank' : 'Direct';
-        
-        // Build bank info for bank deposits
-        let bankInfo = '';
-        if (deposit.deposit_type === 'bank' && deposit.bank_name) {
-            bankInfo = `
-                <div class="small text-muted mt-1">
-                    <i class="fas fa-university me-1"></i>Bank: ${deposit.bank_name}
-                    ${deposit.notes ? `<br><i class="fas fa-sticky-note me-1"></i>Notes: ${deposit.notes}` : ''}
-                </div>
-            `;
-        }
-        
-        // Build attachments column
-        let attachmentsHtml = '';
-        if (deposit.client_image_url) {
-            const fileName = deposit.client_image_filename || deposit.client_image_url.split('/').pop();
-            const fileExtension = fileName.split('.').pop().toLowerCase();
-            const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(fileExtension);
-            const isPdf = fileExtension === 'pdf';
-            
-            attachmentsHtml = `
-                <div class="deposit-attachments">
-                    ${isImage ? `
-                        <button class="btn btn-sm btn-outline-primary me-1" onclick="viewDepositImage('${deposit.client_image_url}', '${fileName}')" title="View Image">
-                            <i class="fas fa-image"></i>
-                        </button>
-                    ` : ''}
-                    ${isPdf ? `
-                        <button class="btn btn-sm btn-outline-info me-1" onclick="viewDepositPdf('${deposit.client_image_url}', '${fileName}')" title="View PDF">
-                            <i class="fas fa-file-pdf"></i>
-                        </button>
-                    ` : ''}
-                    <button class="btn btn-sm btn-outline-success" onclick="downloadDepositFile('${deposit.client_image_url}', '${fileName}')" title="Download">
-                        <i class="fas fa-download"></i>
-                    </button>
-                </div>
-            `;
-        } else {
-            attachmentsHtml = '<span class="text-muted small">No attachments</span>';
-        }
-        
-        return `
-            <tr>
-                <td>${deposit.id}</td>
-                <td>
-                    ${deposit.username}
-                    ${bankInfo}
-                </td>
-                <td>$${deposit.amount}</td>
-                <td>
-                    <span class="badge ${depositType === 'Bank' ? 'bg-info' : 'bg-primary'}">
-                        <i class="fas ${depositType === 'Bank' ? 'fa-university' : 'fa-qrcode'} me-1"></i>
-                        ${depositType}
-                    </span>
-                </td>
-                <td>${new Date(deposit.created_at).toLocaleDateString()}</td>
-                <td>${attachmentsHtml}</td>
-                <td>
-                    <span class="status-badge status-${deposit.status.toLowerCase()}">
-                        ${deposit.status}
-                    </span>
-                </td>
-                <td>
-                    ${deposit.status === 'PENDING' ? `
-                        <button class="btn btn-sm btn-success approve-deposit-btn" data-id="${deposit.id}">
-                            Approve
-                        </button>
-                        <button class="btn btn-sm btn-danger reject-deposit-btn" data-id="${deposit.id}">
-                            Reject
-                        </button>
-                    ` : ''}
-                </td>
-            </tr>
-        `;
-    }).join('');
-}
-
-// Deposit Attachment Functions
-function viewDepositImage(imagePath, fileName) {
-    const modal = document.createElement('div');
-    modal.className = 'modal fade';
-    modal.innerHTML = `
-        <div class="modal-dialog modal-lg modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">
-                        <i class="fas fa-image me-2"></i>Deposit Proof - ${fileName}
-                    </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body text-center">
-                    <img src="${imagePath}" alt="Deposit Proof" class="img-fluid rounded" style="max-height: 70vh;">
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-success" onclick="downloadDepositFile('${imagePath}', '${fileName}')">
-                        <i class="fas fa-download me-2"></i>Download
-                    </button>
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                </div>
-            </div>
-        </div>
-    `;
-    document.body.appendChild(modal);
-    const bsModal = new bootstrap.Modal(modal);
-    bsModal.show();
-    
-    // Clean up modal after it's hidden
-    modal.addEventListener('hidden.bs.modal', () => {
-        document.body.removeChild(modal);
-    });
-}
-
-function viewDepositPdf(pdfPath, fileName) {
-    const modal = document.createElement('div');
-    modal.className = 'modal fade';
-    modal.innerHTML = `
-        <div class="modal-dialog modal-xl modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">
-                        <i class="fas fa-file-pdf me-2"></i>Deposit Proof - ${fileName}
-                    </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <iframe src="${pdfPath}" style="width: 100%; height: 70vh; border: none;"></iframe>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-success" onclick="downloadDepositFile('${pdfPath}', '${fileName}')">
-                        <i class="fas fa-download me-2"></i>Download
-                    </button>
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                </div>
-            </div>
-        </div>
-    `;
-    document.body.appendChild(modal);
-    const bsModal = new bootstrap.Modal(modal);
-    bsModal.show();
-    
-    // Clean up modal after it's hidden
-    modal.addEventListener('hidden.bs.modal', () => {
-        document.body.removeChild(modal);
-    });
-}
-
-function downloadDepositFile(filePath, fileName) {
-    const link = document.createElement('a');
-    link.href = filePath;
-    link.download = fileName;
-    link.style.display = 'none';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-}
-
-// Deposit Approval/Rejection Functions
-async function approveDeposit(depositId) {
-    try {
-        const response = await fetchWithAuth(`/admin/deposits/${depositId}/approve`, {
-            method: 'POST'
-        });
-        
-        if (response.success) {
-            showNotification('Deposit approved successfully', 'success');
-            loadDeposits(); // Reload the deposits list
-        } else {
-            showNotification(response.message || 'Failed to approve deposit', 'error');
-        }
-    } catch (error) {
-        console.error('Error approving deposit:', error);
-        showNotification('Failed to approve deposit: ' + error.message, 'error');
-    }
-}
-
-async function rejectDeposit(depositId) {
-    try {
-        const response = await fetchWithAuth(`/admin/deposits/${depositId}/reject`, {
-            method: 'POST'
-        });
-        
-        if (response.success) {
-            showNotification('Deposit rejected successfully', 'success');
-            loadDeposits(); // Reload the deposits list
-        } else {
-            showNotification(response.message || 'Failed to reject deposit', 'error');
-        }
-    } catch (error) {
-        console.error('Error rejecting deposit:', error);
-        showNotification('Failed to reject deposit: ' + error.message, 'error');
-    }
-}
-
-// Withdrawals Management
-async function loadWithdrawals() {
-    try {
-        // Fetch only pending withdrawals for the admin view
-        const response = await fetchWithAuth('/admin/withdrawals');
-        if (response.success) {
-            const withdrawalsList = document.getElementById('withdrawals-list');
-            if (withdrawalsList) {
-                withdrawalsList.innerHTML = response.withdrawals.map(withdrawal => `
-                    <tr>
-                        <td>${withdrawal.id}</td>
-                        <td>${withdrawal.username}</td>
-                        <td>$${withdrawal.amount}</td>
-                        <td>${withdrawal.address}</td>
-                        <td>${new Date(withdrawal.created_at).toLocaleDateString()}</td>
-                        <td>
-                            <span class="status-badge status-${withdrawal.status.toLowerCase()}">
-                                ${withdrawal.status}
-                            </span>
-                        </td>
-                        <td>
-                            ${withdrawal.status === 'PENDING' ? `
-                                <button class="btn btn-sm btn-success approve-withdrawal-btn" data-id="${withdrawal.id}">
-                                    Approve
-                                </button>
-                                <button class="btn btn-sm btn-danger reject-withdrawal-btn" data-id="${withdrawal.id}">
-                                    Reject
-                                </button>
-                            ` : ''}
-                        </td>
-                    </tr>
-                `).join('');
-            } else {
-                console.warn("Withdrawals list element ('withdrawals-list') not found.");
-            }
-        }
-    } catch (error) {
-        console.error('Error loading withdrawals:', error);
-        showNotification('Failed to load withdrawals', 'error');
-    }
-}
+// Finance Management (Deposits & Withdrawals)
+// These functions have been moved to admin-finance.js
 
 // Data Drives Management
 // These functions have been moved to admin-drives.js
@@ -1375,14 +1146,92 @@ function initializeHandlers() {
         else if (target.matches('.approve-deposit-btn')) {
             const depositId = target.dataset.id;
             if (depositId && confirm('Are you sure you want to approve this deposit?')) {
-                await approveDeposit(depositId);
+                if (FinanceModuleAPI && typeof FinanceModuleAPI.approveDeposit === 'function') {
+                    await FinanceModuleAPI.approveDeposit(depositId);
+                } else {
+                    console.error('FinanceModuleAPI.approveDeposit function is not available.');
+                    showNotification('Finance module not available', 'error');
+                }
             }
         }
         // Reject Deposit Button
         else if (target.matches('.reject-deposit-btn')) {
             const depositId = target.dataset.id;
             if (depositId && confirm('Are you sure you want to reject this deposit?')) {
-                await rejectDeposit(depositId);
+                if (FinanceModuleAPI && typeof FinanceModuleAPI.rejectDeposit === 'function') {
+                    await FinanceModuleAPI.rejectDeposit(depositId);
+                } else {
+                    console.error('FinanceModuleAPI.rejectDeposit function is not available.');
+                    showNotification('Finance module not available', 'error');
+                }
+            }
+        }
+        // Approve Withdrawal Button - NEW FUNCTIONALITY
+        else if (target.matches('.approve-withdrawal-btn')) {
+            const withdrawalId = target.dataset.id;
+            if (withdrawalId) {
+                if (FinanceModuleAPI && typeof FinanceModuleAPI.approveWithdrawal === 'function') {
+                    await FinanceModuleAPI.approveWithdrawal(withdrawalId);
+                } else {
+                    console.error('FinanceModuleAPI.approveWithdrawal function is not available.');
+                    showNotification('Finance module not available', 'error');
+                }
+            }
+        }
+        // Reject Withdrawal Button - NEW FUNCTIONALITY
+        else if (target.matches('.reject-withdrawal-btn')) {
+            const withdrawalId = target.dataset.id;
+            if (withdrawalId) {
+                if (FinanceModuleAPI && typeof FinanceModuleAPI.rejectWithdrawal === 'function') {
+                    await FinanceModuleAPI.rejectWithdrawal(withdrawalId);
+                } else {
+                    console.error('FinanceModuleAPI.rejectWithdrawal function is not available.');
+                    showNotification('Finance module not available', 'error');
+                }
+            }
+        }
+        // View Deposit History Button
+        else if (target.id === 'view-deposit-history-btn') {
+            console.log('View deposit history button clicked');
+            event.preventDefault();
+            
+            if (FinanceModuleAPI && typeof FinanceModuleAPI.showDepositHistoryModal === 'function') {
+                FinanceModuleAPI.showDepositHistoryModal();
+            } else {
+                console.error('FinanceModuleAPI.showDepositHistoryModal function is not available.');
+                showNotification('Finance module not available', 'error');
+            }
+        }
+        // View Withdrawal History Button - NEW FUNCTIONALITY
+        else if (target.id === 'view-withdrawal-history-btn') {
+            console.log('View withdrawal history button clicked');
+            event.preventDefault();
+            
+            if (FinanceModuleAPI && typeof FinanceModuleAPI.showWithdrawalHistoryModal === 'function') {
+                FinanceModuleAPI.showWithdrawalHistoryModal();
+            } else {
+                console.error('FinanceModuleAPI.showWithdrawalHistoryModal function is not available.');
+                showNotification('Finance module not available', 'error');
+            }
+        }
+        // Refresh Deposit History Button
+        else if (target.id === 'refreshHistoryBtn') {
+            console.log('Refresh history button clicked');
+            event.preventDefault();
+            if (FinanceModuleAPI && typeof FinanceModuleAPI.loadDepositHistory === 'function') {
+                FinanceModuleAPI.loadDepositHistory();
+            } else {
+                console.error('FinanceModuleAPI.loadDepositHistory function is not available.');
+            }
+        }
+        // Refresh Withdrawal History Button - NEW FUNCTIONALITY
+        else if (target.id === 'refreshWithdrawalHistoryBtn') {
+            console.log('Refresh withdrawal history button clicked');
+            event.preventDefault();
+            if (FinanceModuleAPI && typeof FinanceModuleAPI.loadWithdrawalHistory === 'function') {
+                FinanceModuleAPI.loadWithdrawalHistory();
+            } else {
+                console.error('FinanceModuleAPI.loadWithdrawalHistory function is not available.');
             }
         }
     });

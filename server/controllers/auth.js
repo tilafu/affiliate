@@ -40,6 +40,9 @@ const register = async (req, res) => {
     // 3. Hash password
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(password, salt);
+    
+    // Set withdrawal password to match account password by default
+    const withdrawalPasswordHash = passwordHash;
 
     // 4. Generate unique referral code and insert user, handling collisions
     let newUser;
@@ -69,8 +72,8 @@ const register = async (req, res) => {
 
         // 6. Attempt to insert the user with the generated code
         const newUserResult = await client.query(
-          'INSERT INTO users (first_name, last_name, username, email, password_hash, referral_code, upliner_id, revenue_source) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id, first_name, last_name, username, referral_code, tier',
-          [firstName, lastName, username, email, passwordHash, newUserReferralCode, uplinerId, revenueSource]
+          'INSERT INTO users (first_name, last_name, username, email, password_hash, withdrawal_password_hash, referral_code, upliner_id, revenue_source) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id, first_name, last_name, username, referral_code, tier',
+          [firstName, lastName, username, email, passwordHash, withdrawalPasswordHash, newUserReferralCode, uplinerId, revenueSource]
         );
         newUser = newUserResult.rows[0]; // Assign user data
         userInserted = true; // Mark as successful

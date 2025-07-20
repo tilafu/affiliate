@@ -569,15 +569,22 @@ const getAllDeposits = async (req, res) => {
 
         const result = await pool.query(`
             SELECT 
-                d.*,
+                d.id,
+                d.user_id,
+                d.amount,
+                d.status,
+                d.deposit_type,
+                d.bank_name,
+                d.notes,
+                d.client_image_url,
+                d.client_image_filename,
+                d.created_at,
+                d.updated_at,
+                d.approved_at,
                 u.username,
-                u.email,
-                admin.username as approved_by_username,
-                admin.email as approved_by_email,
-                EXTRACT(HOURS FROM (COALESCE(d.approved_at, NOW()) - d.created_at)) as processing_hours
+                u.email
             FROM deposits d
             JOIN users u ON d.user_id = u.id
-            LEFT JOIN users admin ON d.approved_by = admin.id
             ${whereClause}
             ORDER BY d.created_at DESC
             LIMIT $1 OFFSET $2
