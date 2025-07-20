@@ -11,28 +11,43 @@ const db = require('../db');
  */
 const authenticateAdmin = async (req, res, next) => {
   try {
+    console.log(`[ADMIN AUTH] Processing request: ${req.method} ${req.originalUrl}`);
+    
     // Get token from Authorization header
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({ error: 'Authentication required' });
+      console.log('[ADMIN AUTH] No authorization header or invalid format');
+      return res.status(401).json({ 
+        error: 'Authentication required', 
+        message: 'Missing or invalid authorization header',
+        expected: 'Bearer <token>'
+      });
     }
     
     const token = authHeader.split(' ')[1];
+    console.log(`[ADMIN AUTH] Token received, length: ${token.length}`);
     
-    // Verify JWT token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'affiliate-admin-secret');
+    // Verify JWT token using the same secret as token creation
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    console.log(`[ADMIN AUTH] Token verified successfully for userId: ${decoded.userId}`);
     
     // Check if user exists and has admin role
     const user = await db.query(
       'SELECT id, username, role FROM users WHERE id = $1 AND role = $2',
-      [decoded.id, 'admin']
+      [decoded.userId, 'admin']  // Use decoded.userId to match JWT payload
     );
 
     if (user.rows.length === 0) {
-      return res.status(401).json({ error: 'Unauthorized' });
+      console.log(`[ADMIN AUTH] User not found or not admin: userId=${decoded.userId}`);
+      return res.status(401).json({ 
+        error: 'Unauthorized', 
+        message: 'User not found or insufficient privileges',
+        details: 'Admin role required'
+      });
     }
 
     const admin = user.rows[0];
+    console.log(`[ADMIN AUTH] Admin access granted: ${admin.username} (ID: ${admin.id})`);
     
     // Add admin info to request object
     req.admin = {
@@ -43,17 +58,28 @@ const authenticateAdmin = async (req, res, next) => {
     
     next();
   } catch (error) {
-    console.error('Admin auth error:', error);
+    console.error('[ADMIN AUTH] Authentication error:', error.message);
     
     if (error.name === 'JsonWebTokenError') {
-      return res.status(401).json({ error: 'Invalid token' });
+      return res.status(401).json({ 
+        error: 'Invalid token', 
+        message: 'Token is malformed or signature is invalid',
+        details: error.message
+      });
     }
     
     if (error.name === 'TokenExpiredError') {
-      return res.status(401).json({ error: 'Token expired' });
+      return res.status(401).json({ 
+        error: 'Token expired', 
+        message: 'Authentication token has expired',
+        expiredAt: error.expiredAt
+      });
     }
     
-    res.status(500).json({ error: 'Server error during authentication' });
+    res.status(500).json({ 
+      error: 'Server error during authentication',
+      message: 'Internal server error while processing authentication'
+    });
   }
 };
 

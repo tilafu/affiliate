@@ -921,6 +921,26 @@ const replyToGroupMessage = async (req, res) => {
     if (!content || !content.trim()) {
       return res.status(400).json({ error: 'Message content is required' });
     }
+
+    // Check if this is a support group
+    const groupCheck = await db.query(`
+      SELECT is_support_group FROM chat_groups WHERE id = $1
+    `, [groupId]);
+    
+    const isSupportGroup = groupCheck.rows[0]?.is_support_group || false;
+    let actualFakeUserId = fakeUserId;
+    
+    // For support groups, automatically use the support fake user if no specific fake user is provided
+    if (isSupportGroup && !fakeUserId) {
+      // Use the "Emma (Support)" fake user (ID: 3) for support responses
+      const supportUser = await db.query(`
+        SELECT id FROM chat_fake_users WHERE username = 'support_emma' LIMIT 1
+      `);
+      
+      if (supportUser.rows.length > 0) {
+        actualFakeUserId = supportUser.rows[0].id;
+      }
+    }
     
     const message = await db.query(`
       INSERT INTO chat_messages (
@@ -928,21 +948,21 @@ const replyToGroupMessage = async (req, res) => {
         sent_by_admin, reply_to_message_id, created_at
       ) VALUES ($1, $2, $3, $4, true, $5, NOW()) 
       RETURNING *
-    `, [groupId, content.trim(), adminId, fakeUserId, replyToMessageId || null]);
+    `, [groupId, content.trim(), adminId, actualFakeUserId, replyToMessageId || null]);
     
     // Get sender name for response
     let senderName = 'Admin';
-    if (fakeUserId) {
-      const fakeUser = await db.query('SELECT username FROM chat_fake_users WHERE id = $1', [fakeUserId]);
+    if (actualFakeUserId) {
+      const fakeUser = await db.query('SELECT display_name FROM chat_fake_users WHERE id = $1', [actualFakeUserId]);
       if (fakeUser.rows.length > 0) {
-        senderName = fakeUser.rows[0].username;
+        senderName = isSupportGroup ? 'Support' : fakeUser.rows[0].display_name;
       }
     }
     
     const responseMessage = {
       ...message.rows[0],
       sender_name: senderName,
-      sender_type: fakeUserId ? 'fake_user' : 'admin'
+      sender_type: actualFakeUserId ? 'fake_user' : 'admin'
     };
     
     res.json({ message: responseMessage });

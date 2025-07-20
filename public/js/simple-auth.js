@@ -22,6 +22,12 @@ class SimpleAuth {
         localStorage.setItem('auth_token', token);
         localStorage.setItem('user_data', JSON.stringify(userData));
         
+        // For admin context, also store in adminToken for compatibility with admin.html
+        if (actualContext === 'admin') {
+            localStorage.setItem('adminToken', token);
+            console.log(`SimpleAuth.storeAuth: also stored as adminToken for admin.html compatibility`);
+        }
+        
         console.log(`Auth data stored for context: ${actualContext}`);
     }
     
@@ -31,14 +37,14 @@ class SimpleAuth {
     static determineContext(userData) {
         const currentPage = window.location.pathname.split('/').pop();
         
-        // If on admin page, use admin context
-        if (currentPage === 'admin.html') {
+        // If on admin pages, use admin context
+        if (currentPage === 'admin.html' || currentPage === 'admin-chat.html') {
             return 'admin';
         }
         
         // If user is admin but not on admin page, use client context
         // This allows admin users to access client dashboard
-        if (userData.role === 'admin' && currentPage !== 'admin.html') {
+        if (userData.role === 'admin' && !currentPage.includes('admin')) {
             return 'client';
         }
         
@@ -62,6 +68,23 @@ class SimpleAuth {
             token = localStorage.getItem('auth_token');
         }
         
+        // Special fallbacks for admin context
+        if (!token && actualContext === 'admin') {
+            // Check for adminToken (used by main admin.html)
+            token = localStorage.getItem('adminToken');
+            if (token) {
+                console.log(`SimpleAuth.getToken: Using adminToken fallback for admin context`);
+            }
+            
+            // Also check for admin_auth_token (used by some admin components)
+            if (!token) {
+                token = localStorage.getItem('admin_auth_token');
+                if (token) {
+                    console.log(`SimpleAuth.getToken: Using admin_auth_token fallback for admin context`);
+                }
+            }
+        }
+        
         console.log(`SimpleAuth.getToken(${actualContext}): ${token ? `found (${token.length} chars)` : 'not found'}`);
         return token;
     }
@@ -71,7 +94,11 @@ class SimpleAuth {
      */
     static getCurrentContext() {
         const currentPage = window.location.pathname.split('/').pop();
-        return currentPage === 'admin.html' ? 'admin' : 'client';
+        // Check for admin pages
+        if (currentPage === 'admin.html' || currentPage === 'admin-chat.html') {
+            return 'admin';
+        }
+        return 'client';
     }
     
     /**
@@ -88,6 +115,15 @@ class SimpleAuth {
         // Fallback to default user data if context-specific not found
         if (!userData) {
             userData = localStorage.getItem('user_data');
+        }
+        
+        // Additional fallback for admin context
+        if (!userData && actualContext === 'admin') {
+            // Check if there's admin_user_data stored separately
+            userData = localStorage.getItem('admin_user_data');
+            if (userData) {
+                console.log(`SimpleAuth.getUserData: Using admin_user_data fallback for admin context`);
+            }
         }
         
         if (!userData) return null;
@@ -156,9 +192,17 @@ class SimpleAuth {
      * @param {string} context - 'admin', 'client', or null for all
      */
     static clearAuth(context = null) {
-        if (context) {
-            localStorage.removeItem(`auth_token_${context}`);
-            localStorage.removeItem(`user_data_${context}`);
+        if (context === 'admin') {
+            // Clear all admin-related tokens
+            localStorage.removeItem('auth_token_admin');
+            localStorage.removeItem('user_data_admin');
+            localStorage.removeItem('adminToken');
+            localStorage.removeItem('admin_auth_token');
+            console.log(`Auth data cleared for context: ${context}`);
+        } else if (context === 'client') {
+            // Clear client-specific tokens
+            localStorage.removeItem('auth_token_client');
+            localStorage.removeItem('user_data_client');
             console.log(`Auth data cleared for context: ${context}`);
         } else {
             // Clear all authentication data
@@ -168,6 +212,8 @@ class SimpleAuth {
             localStorage.removeItem('user_data_admin');
             localStorage.removeItem('auth_token_client');
             localStorage.removeItem('user_data_client');
+            localStorage.removeItem('adminToken');
+            localStorage.removeItem('admin_auth_token');
             console.log('All auth data cleared');
         }
     }

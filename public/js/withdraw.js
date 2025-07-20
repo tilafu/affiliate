@@ -296,8 +296,8 @@ document.addEventListener('DOMContentLoaded', () => {
         // Restore button
         withdrawButton.disabled = false;
         withdrawButton.innerHTML = originalText;        if (response.success) {
-          // Show success message
-          showNotification('Withdrawal request submitted successfully! Your request is pending admin approval. ' + (response.message || ''), 'success', 7000);
+          // Show success modal instead of notification
+          showWithdrawalSuccessModal(withdrawalData.amount);
           // Clear form
           if (amountInput) amountInput.value = '';
           if (passwordInput) passwordInput.value = '';
@@ -319,6 +319,58 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
 });
+
+// Function to show withdrawal success modal
+function showWithdrawalSuccessModal(amount) {
+  try {
+    // Find the modal element
+    const modalElement = document.getElementById('withdrawalSuccessModal');
+    if (!modalElement) {
+      console.error('Withdrawal success modal not found in DOM');
+      // Fallback to notification if modal not found
+      showNotification('Withdrawal request submitted successfully! Your request is pending admin approval.', 'success', 7000);
+      return;
+    }
+
+    // Update the amount in the modal
+    const amountElement = document.getElementById('withdrawal-modal-amount');
+    if (amountElement) {
+      amountElement.textContent = `$${parseFloat(amount).toFixed(2)}`;
+    }
+
+    // Show the modal using Bootstrap 5
+    const modal = new bootstrap.Modal(modalElement);
+    modal.show();
+
+    // Handle modal OK button click to switch to history tab
+    const okButton = document.getElementById('withdrawal-modal-ok-button');
+    if (okButton) {
+      // Remove any existing event listeners to prevent duplicates
+      okButton.removeEventListener('click', handleWithdrawalModalOk);
+      okButton.addEventListener('click', handleWithdrawalModalOk);
+    }
+
+  } catch (error) {
+    console.error('Error showing withdrawal success modal:', error);
+    // Fallback to notification if modal fails
+    showNotification('Withdrawal request submitted successfully! Your request is pending admin approval.', 'success', 7000);
+  }
+}
+
+// Handle withdrawal modal OK button click
+function handleWithdrawalModalOk() {
+  try {
+    // Switch to withdrawal history tab
+    const historyTab = document.getElementById('history-tab');
+    if (historyTab) {
+      // Use Bootstrap's tab methods to switch
+      const tabTrigger = new bootstrap.Tab(historyTab);
+      tabTrigger.show();
+    }
+  } catch (error) {
+    console.error('Error switching to history tab:', error);
+  }
+}
 
 // Function to update text conversions on the withdrawal page
 function updateWithdrawalTranslations() {

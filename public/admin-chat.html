@@ -458,6 +458,52 @@
       accent-color: #3498db;
     }
 
+    /* Enhanced Support Badge Styling */
+    .support-badge {
+      background: #e74c3c !important;
+      color: white !important;
+      font-weight: 600 !important;
+      font-size: 0.85rem !important;
+      min-width: 24px !important;
+      height: 24px !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      border-radius: 12px !important;
+      animation: pulse-badge 2s infinite !important;
+      box-shadow: 0 2px 8px rgba(231, 76, 60, 0.3) !important;
+    }
+    
+    .support-badge.no-unread {
+      background: #95a5a6 !important;
+      animation: none !important;
+      box-shadow: none !important;
+    }
+
+    @keyframes pulse-badge {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+      100% { transform: scale(1); }
+    }
+
+    /* Message item enhancements */
+    .message-item {
+      display: flex;
+      align-items: flex-start;
+      padding: 12px;
+      border-bottom: 1px solid #e0e6ed;
+      transition: background-color 0.2s ease;
+    }
+
+    .message-item:hover {
+      background: #f8f9fa;
+    }
+
+    .message-item.unread {
+      background: #ebf3fd;
+      border-left: 4px solid #3498db;
+    }
+
     /* User search styling */
     .user-search {
       margin-bottom: 1rem;
@@ -603,7 +649,7 @@
         <div class="dashboard-card">
           <div class="card-header">
             <h3 class="card-title">Support Messages</h3>
-            <span class="card-count" id="supportCount">0</span>
+            <span class="card-count support-badge" id="supportCount">0</span>
           </div>
           <div class="card-content">
             <div class="search-box">
@@ -615,6 +661,7 @@
           </div>
           <div class="card-actions">
             <button class="btn btn-primary" onclick="adminChatApp.refreshSupport()">Refresh</button>
+            <button class="btn btn-success" onclick="adminChatApp.markAllSupportRead()" id="markAllSupportReadBtn" style="display: none;">Mark All Read</button>
           </div>
         </div>
       </div>

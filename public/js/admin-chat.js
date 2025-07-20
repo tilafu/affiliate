@@ -56,6 +56,23 @@ class AdminChatApp {
     try {
       console.log('[AdminChat] Initializing clean admin chat interface...');
       
+      // Check admin authentication first
+      if (typeof SimpleAuth === 'undefined') {
+        throw new Error('SimpleAuth is not loaded');
+      }
+      
+      const adminToken = SimpleAuth.getToken('admin');
+      if (!adminToken) {
+        console.error('[AdminChat] No admin token found');
+        showError('Admin authentication required. Redirecting to login...');
+        setTimeout(() => {
+          window.location.href = 'admin-login.html';
+        }, 2000);
+        return;
+      }
+      
+      console.log('[AdminChat] Admin authentication verified');
+      
       // Check if API is available
       if (typeof AdminChatAPI === 'undefined') {
         throw new Error('AdminChatAPI is not loaded');
@@ -76,10 +93,61 @@ class AdminChatApp {
       // Load all data
       this.refreshAll();
       
+      // Set up auto-refresh for support messages every 30 seconds
+      this.setupAutoRefresh();
+      
       console.log('[AdminChat] Admin chat initialized successfully');
     } catch (error) {
       console.error('[AdminChat] Failed to initialize:', error);
       showError('Failed to initialize admin chat interface');
+    }
+  }
+
+  // Auto-refresh support messages to check for new ones
+  setupAutoRefresh() {
+    // Store initial count for comparison
+    this.lastSupportCount = 0;
+    
+    // Request notification permission if not granted
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+    
+    // Refresh support messages every 30 seconds
+    this.autoRefreshInterval = setInterval(() => {
+      console.log('[AdminChat] Auto-refreshing support messages...');
+      this.refreshSupport();
+    }, 30000); // 30 seconds
+    
+    // Cleanup on page unload
+    window.addEventListener('beforeunload', () => {
+      if (this.autoRefreshInterval) {
+        clearInterval(this.autoRefreshInterval);
+      }
+    });
+  }
+
+  // Show browser notification for new support messages
+  showNewSupportNotification(newCount) {
+    if ('Notification' in window && Notification.permission === 'granted') {
+      // Only show notification if page is not focused
+      if (document.hidden) {
+        const notification = new Notification('New Support Messages', {
+          body: `You have ${newCount} new support message${newCount > 1 ? 's' : ''} waiting for response.`,
+          icon: './assets/uploads/generals/favicon-665b8c8a863b91717275786.png',
+          badge: './assets/uploads/generals/favicon-665b8c8a863b91717275786.png',
+          tag: 'support-messages' // Replace existing notifications
+        });
+        
+        // Close notification after 5 seconds
+        setTimeout(() => notification.close(), 5000);
+        
+        // Focus window when notification is clicked
+        notification.onclick = () => {
+          window.focus();
+          notification.close();
+        };
+      }
     }
   }
 
@@ -280,7 +348,7 @@ class AdminChatApp {
           unread: true,
           conversationType: 'group',
           messageType: msg.message_type || 'text',
-          avatar: msg.avatar_url || msg.profile_picture || '/assets/uploads/user.jpg', // Include avatar
+          avatar: msg.avatar_url || msg.profile_image_url || '/assets/uploads/user.jpg', // Include avatar
           userId: msg.user_id
         }));
         
@@ -364,42 +432,68 @@ class AdminChatApp {
       
       this.ui.supportConversationsList.innerHTML = '<div class="loading">Loading support conversations...</div>';
       
-      // Mock data for demonstration
-      const mockSupportConversations = [
-        {
-          id: 1,
-          user: 'alice_cooper',
-          lastMessage: 'I need help with my subscription billing. The payment failed.',
-          timestamp: new Date().toISOString(),
-          unread: true,
-          avatar: '/assets/uploads/avatars/alice.jpg'
-        },
-        {
-          id: 2,
-          user: 'bob_wilson',
-          lastMessage: 'Thank you for your help with the login issue!',
-          timestamp: new Date(Date.now() - 7200000).toISOString(),
-          unread: false,
-          avatar: '/assets/uploads/avatars/bob.jpg'
-        },
-        {
-          id: 3,
-          user: 'carol_jones',
-          lastMessage: 'How do I update my profile information?',
-          timestamp: new Date(Date.now() - 14400000).toISOString(),
-          unread: true,
-          avatar: '/assets/uploads/avatars/carol.jpg'
-        }
-      ];
+      // Fetch real support messages from API
+      const supportData = await AdminChatAPI.getSupportMessages();
+      console.log('[AdminChat] Support data received:', supportData);
       
-      this.supportConversations = mockSupportConversations;
-      this.renderSupportConversations(mockSupportConversations);
-      this.updateSupportCount(mockSupportConversations.filter(c => c.unread).length);
+      if (supportData && supportData.length > 0) {
+        // Transform API data to conversation format
+        const conversations = this.transformSupportData(supportData);
+        this.supportConversations = conversations;
+        this.renderSupportConversations(conversations);
+        this.updateSupportCount(conversations.filter(c => c.unread).length);
+      } else {
+        // Show empty state if no support messages
+        this.supportConversations = [];
+        this.renderSupportConversations([]);
+        this.updateSupportCount(0);
+      }
       
     } catch (error) {
       console.error('[AdminChat] Error loading support conversations:', error);
-      this.ui.supportConversationsList.innerHTML = '<div class="empty-state">Failed to load support conversations</div>';
+      this.ui.supportConversationsList.innerHTML = '<div class="empty-state">Failed to load support conversations. Please check your connection.</div>';
+      this.updateSupportCount(0);
     }
+  }
+
+  // Transform support message data into conversation format
+  transformSupportData(supportMessages) {
+    // Group messages by sender_id to create conversations
+    const conversationMap = new Map();
+    
+    supportMessages.forEach(msg => {
+      const senderId = msg.sender_id;
+      if (!conversationMap.has(senderId)) {
+        conversationMap.set(senderId, {
+          id: senderId,
+          user: `User ${senderId}`, // You could enhance this with actual usernames
+          lastMessage: msg.message,
+          subject: msg.subject || 'No Subject',
+          timestamp: msg.created_at,
+          unread: !msg.is_read,
+          avatar: '/assets/uploads/user.jpg', // Default avatar
+          messageId: msg.id,
+          messages: []
+        });
+      }
+      
+      // Add message to conversation
+      const conversation = conversationMap.get(senderId);
+      conversation.messages.push(msg);
+      
+      // Update with latest message if this is newer
+      if (new Date(msg.created_at) > new Date(conversation.timestamp)) {
+        conversation.lastMessage = msg.message;
+        conversation.timestamp = msg.created_at;
+        conversation.unread = !msg.is_read;
+        conversation.messageId = msg.id;
+      }
+    });
+    
+    // Convert map to array and sort by timestamp (newest first)
+    return Array.from(conversationMap.values()).sort((a, b) => 
+      new Date(b.timestamp) - new Date(a.timestamp)
+    );
   }
 
   async refreshSentMessages() {
@@ -457,14 +551,21 @@ class AdminChatApp {
     }
     
     this.ui.supportConversationsList.innerHTML = conversations.map(conv => `
-      <div class="message-item ${conv.unread ? 'unread' : ''}" onclick="adminChatApp.viewConversation(${conv.id})">
-        <img src="${escapeHtml(conv.avatar || '/assets/uploads/user.jpg')}" alt="${escapeHtml(conv.user)}" class="message-avatar" onerror="this.src='/assets/uploads/user.jpg'">
-        <div class="message-content">
-          <div class="message-header">
-            <span class="message-from">${escapeHtml(conv.user)}</span>
-            <span class="message-time">${formatDate(conv.timestamp)}</span>
+      <div class="message-item ${conv.unread ? 'unread' : ''}" onclick="adminChatApp.viewConversation(${conv.id})" style="cursor: pointer;">
+        <img src="${escapeHtml(conv.avatar || '/assets/uploads/user.jpg')}" alt="${escapeHtml(conv.user)}" class="message-avatar" onerror="this.src='/assets/uploads/user.jpg'" style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover; margin-right: 12px;">
+        <div class="message-content" style="flex: 1;">
+          <div class="message-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+            <span class="message-from" style="font-weight: 600; color: #2c3e50;">${escapeHtml(conv.user)}</span>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              ${conv.unread ? '<span class="badge bg-primary" style="font-size: 0.7rem;">New</span>' : ''}
+              <span class="message-time" style="font-size: 0.8rem; color: #7f8c8d;">${formatDate(conv.timestamp)}</span>
+            </div>
           </div>
-          <div class="message-preview">${escapeHtml(conv.lastMessage)}</div>
+          ${conv.subject ? `<div class="message-subject" style="font-weight: 500; color: #34495e; margin-bottom: 4px; font-size: 0.9rem;">${escapeHtml(conv.subject)}</div>` : ''}
+          <div class="message-preview" style="color: #5a6c7d; font-size: 0.9rem; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${escapeHtml(conv.lastMessage)}</div>
+          <div class="message-meta" style="font-size: 0.75rem; color: #95a5a6; margin-top: 4px;">
+            ${conv.messages ? `${conv.messages.length} message${conv.messages.length > 1 ? 's' : ''}` : '1 message'}
+          </div>
         </div>
       </div>
     `).join('');
@@ -480,7 +581,7 @@ class AdminChatApp {
     
     this.ui.sentMessagesList.innerHTML = messages.map(message => `
       <div class="message-item">
-        <img src="${escapeHtml(message.personaAvatar || '/assets/uploads/bot-avatar.jpg')}" alt="${escapeHtml(message.persona)}" class="message-avatar" onerror="this.src='/assets/uploads/bot-avatar.jpg'">
+        <img src="${escapeHtml(message.personaAvatar || '/assets/uploads/user.jpg')}" alt="${escapeHtml(message.persona)}" class="message-avatar" onerror="this.src='/assets/uploads/user.jpg'">
         <div class="message-content">
           <div class="message-header">
             <span class="message-from">Sent to ${escapeHtml(message.group)}</span>
@@ -502,6 +603,107 @@ class AdminChatApp {
   updateSupportCount(count) {
     if (this.ui.supportCount) {
       this.ui.supportCount.textContent = count;
+      
+      // Check for new messages and show notification
+      if (this.lastSupportCount !== undefined && count > this.lastSupportCount) {
+        const newMessages = count - this.lastSupportCount;
+        this.showNewSupportNotification(newMessages);
+        
+        // Play a subtle notification sound (optional)
+        if (window.AudioContext || window.webkitAudioContext) {
+          this.playNotificationSound();
+        }
+      }
+      
+      // Update last count for comparison
+      this.lastSupportCount = count;
+      
+      // Enhanced badge styling based on count
+      if (count > 0) {
+        this.ui.supportCount.classList.remove('no-unread');
+        this.ui.supportCount.classList.add('support-badge');
+        
+        // Show "Mark All Read" button when there are unread messages
+        const markAllBtn = document.getElementById('markAllSupportReadBtn');
+        if (markAllBtn) {
+          markAllBtn.style.display = 'inline-block';
+        }
+      } else {
+        this.ui.supportCount.classList.add('no-unread');
+        this.ui.supportCount.classList.add('support-badge');
+        
+        // Hide "Mark All Read" button when no unread messages
+        const markAllBtn = document.getElementById('markAllSupportReadBtn');
+        if (markAllBtn) {
+          markAllBtn.style.display = 'none';
+        }
+      }
+      
+      // Update page title with notification count
+      this.updatePageTitle(count);
+    }
+  }
+
+  // Play a subtle notification sound
+  playNotificationSound() {
+    try {
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+      oscillator.frequency.setValueAtTime(600, audioContext.currentTime + 0.1);
+      
+      gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+      gainNode.gain.linearRampToValueAtTime(0.1, audioContext.currentTime + 0.01);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.2);
+      
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.2);
+    } catch (error) {
+      console.log('[AdminChat] Could not play notification sound:', error);
+    }
+  }
+
+  // Update page title to show unread support count
+  updatePageTitle(unreadCount) {
+    const baseTitle = 'Admin Chat Management';
+    if (unreadCount > 0) {
+      document.title = `(${unreadCount}) ${baseTitle}`;
+    } else {
+      document.title = baseTitle;
+    }
+  }
+
+  // Mark all support messages as read
+  async markAllSupportRead() {
+    try {
+      // Show loading state
+      showError('Marking all support messages as read...', 'info');
+      
+      // Update local state - mark all as read
+      this.supportConversations.forEach(conv => {
+        conv.unread = false;
+        if (conv.messages) {
+          conv.messages.forEach(msg => msg.is_read = true);
+        }
+      });
+      
+      // Re-render with updated state
+      this.renderSupportConversations(this.supportConversations);
+      this.updateSupportCount(0);
+      
+      showError('All support messages marked as read!', 'success');
+      
+      // TODO: Implement actual API call to mark messages as read
+      // await AdminChatAPI.markAllSupportRead();
+      
+    } catch (error) {
+      console.error('[AdminChat] Error marking support messages as read:', error);
+      showError('Failed to mark messages as read. Please try again.');
     }
   }
 
@@ -562,7 +764,8 @@ class AdminChatApp {
   async loadUsers() {
     try {
       // Check if we have admin authentication before making the API call
-      const adminToken = localStorage.getItem('admin_auth_token') || localStorage.getItem('auth_token');
+      const adminToken = SimpleAuth ? SimpleAuth.getToken('admin') : 
+                        (localStorage.getItem('admin_auth_token') || localStorage.getItem('auth_token'));
       if (!adminToken) {
         console.log('[AdminChat] No admin token available, using mock data for client list');
         const mockClients = [
@@ -748,23 +951,63 @@ class AdminChatApp {
       this.currentReplyContext = {
         type: 'support_reply',
         conversationId: conversation.id,
-        userId: conversation.user_id || conversation.user,
-        userName: conversation.user
+        userId: conversation.id, // Use the conversation id as user id
+        userName: conversation.user,
+        messageId: conversation.messageId // Original message ID for replies
       };
       
-      this.showDetailModal(`Support conversation with ${conversation.user}`, `
-        <div class="message-item">
-          <img src="${escapeHtml(conversation.avatar || '/assets/uploads/user.jpg')}" alt="${escapeHtml(conversation.user)}" class="message-avatar" onerror="this.src='/assets/uploads/user.jpg'">
-          <div class="message-content">
-            <div class="message-header">
-              <span class="message-from">${escapeHtml(conversation.user)}</span>
-              <span class="message-time">${formatDate(conversation.timestamp)}</span>
+      // Build conversation history HTML
+      let conversationHTML = '';
+      
+      if (conversation.messages && conversation.messages.length > 0) {
+        // Sort messages by creation date
+        const sortedMessages = conversation.messages.sort((a, b) => 
+          new Date(a.created_at) - new Date(b.created_at)
+        );
+        
+        conversationHTML = sortedMessages.map(msg => `
+          <div class="conversation-message ${msg.sender_role === 'admin' ? 'admin-message' : 'user-message'}" style="margin-bottom: 16px; padding: 12px; border-radius: 8px; ${msg.sender_role === 'admin' ? 'background: #e8f5e8; margin-left: 20px;' : 'background: #f8f9fa; margin-right: 20px;'}">
+            <div class="message-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <span class="message-sender" style="font-weight: 600; color: ${msg.sender_role === 'admin' ? '#27ae60' : '#2c3e50'};">
+                ${msg.sender_role === 'admin' ? 'Admin' : conversation.user}
+              </span>
+              <span class="message-time" style="font-size: 0.8rem; color: #7f8c8d;">
+                ${formatDate(msg.created_at)}
+              </span>
             </div>
-            <div class="message-preview" style="white-space: pre-wrap; -webkit-line-clamp: none; overflow: visible;">${escapeHtml(conversation.lastMessage)}</div>
+            ${msg.subject ? `<div class="message-subject" style="font-weight: 500; color: #34495e; margin-bottom: 8px; font-size: 0.9rem;">${escapeHtml(msg.subject)}</div>` : ''}
+            <div class="message-text" style="white-space: pre-wrap; line-height: 1.4;">
+              ${escapeHtml(msg.message)}
+            </div>
+            <div class="message-status" style="font-size: 0.75rem; color: #95a5a6; margin-top: 4px;">
+              ${msg.is_read ? 'Read' : 'Unread'}
+            </div>
           </div>
-        </div>
-        <p style="margin-top: 1rem; color: #7f8c8d; font-style: italic;">Full conversation history would be loaded here...</p>
-      `, true); // Enable reply for support conversations
+        `).join('');
+      } else {
+        // Fallback for single message view
+        conversationHTML = `
+          <div class="conversation-message user-message" style="margin-bottom: 16px; padding: 12px; border-radius: 8px; background: #f8f9fa; margin-right: 20px;">
+            <div class="message-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <span class="message-sender" style="font-weight: 600; color: #2c3e50;">
+                ${conversation.user}
+              </span>
+              <span class="message-time" style="font-size: 0.8rem; color: #7f8c8d;">
+                ${formatDate(conversation.timestamp)}
+              </span>
+            </div>
+            ${conversation.subject ? `<div class="message-subject" style="font-weight: 500; color: #34495e; margin-bottom: 8px; font-size: 0.9rem;">${escapeHtml(conversation.subject)}</div>` : ''}
+            <div class="message-text" style="white-space: pre-wrap; line-height: 1.4;">
+              ${escapeHtml(conversation.lastMessage)}
+            </div>
+            <div class="message-status" style="font-size: 0.75rem; color: #95a5a6; margin-top: 4px;">
+              ${conversation.unread ? 'Unread' : 'Read'}
+            </div>
+          </div>
+        `;
+      }
+      
+      this.showDetailModal(`Support Conversation with ${conversation.user}`, conversationHTML, true);
     }
   }
 
@@ -914,20 +1157,18 @@ class AdminChatApp {
             replyData.message,
             replyData.messageType
           );
-        } else {
-          // For support replies (DMs), we might need a different endpoint
-          // For now, try the same endpoint but this may need adjustment
-          response = await AdminChatAPI.postAsFakeUser(
-            replyData.userId, // Use userId as groupId for DMs (may need different endpoint)
-            replyData.fakeUserId,
+        } else if (this.currentReplyContext.type === 'support_reply') {
+          // For support replies, use the dedicated support reply API
+          response = await AdminChatAPI.replySupportMessage(
+            this.currentReplyContext.messageId,
             replyData.message,
-            replyData.messageType
+            replyData.fakeUserId
           );
         }
         
         console.log('Reply API response:', response);
         
-        if (response && response.success) {
+        if (response && (response.success || response.status === 'success')) {
           showError('Reply sent successfully!', 'success');
           
           // Clear the form
@@ -936,8 +1177,12 @@ class AdminChatApp {
           
           // Close modal and refresh data
           this.hideDetailModal();
-          this.refreshUnread();
-          this.refreshSupport();
+          
+          if (this.currentReplyContext.type === 'message_reply') {
+            this.refreshUnread();
+          } else {
+            this.refreshSupport();
+          }
           
         } else {
           const errorMsg = response?.error || response?.message || 'Failed to send reply';
@@ -994,6 +1239,33 @@ class AdminChatApp {
 
 // Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
+  // Check authentication first
+  if (typeof SimpleAuth !== 'undefined') {
+    const authData = SimpleAuth.getAuthData('admin');
+    if (!authData) {
+      console.warn('[AdminChat] No admin authentication found');
+      showError('Admin authentication required. Redirecting to login...', 'error');
+      setTimeout(() => {
+        window.location.href = 'admin-login.html';
+      }, 2000);
+      return;
+    }
+    console.log('[AdminChat] Admin authentication verified');
+  } else {
+    console.warn('[AdminChat] SimpleAuth not available, checking legacy tokens');
+    const adminToken = localStorage.getItem('adminToken') || 
+                      localStorage.getItem('auth_token_admin') ||
+                      localStorage.getItem('auth_token');
+    if (!adminToken) {
+      console.warn('[AdminChat] No admin token found');
+      showError('Admin authentication required. Redirecting to login...', 'error');
+      setTimeout(() => {
+        window.location.href = 'admin-login.html';
+      }, 2000);
+      return;
+    }
+  }
+
   if (typeof AdminChatAPI === 'undefined') {
     console.error('[AdminChat] AdminChatAPI is not loaded');
     showError('Chat API is not loaded. Please refresh the page.');

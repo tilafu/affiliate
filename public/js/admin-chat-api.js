@@ -23,11 +23,28 @@ const AdminChatAPI = (() => {
     console.log('[AdminChatAPI] Debug - Available localStorage keys:', Object.keys(localStorage));
     console.log('[AdminChatAPI] Debug - auth_token:', localStorage.getItem('auth_token'));
     console.log('[AdminChatAPI] Debug - auth_token_admin:', localStorage.getItem('auth_token_admin'));
+    console.log('[AdminChatAPI] Debug - adminToken:', localStorage.getItem('adminToken'));
+    console.log('[AdminChatAPI] Debug - admin_auth_token:', localStorage.getItem('admin_auth_token'));
     console.log('[AdminChatAPI] Debug - SimpleAuth current context:', SimpleAuth.getCurrentContext());
     
     // Use SimpleAuth to get the admin token
     const adminToken = SimpleAuth.getToken('admin');
     console.log('[AdminChatAPI] Retrieved admin token:', adminToken ? `${adminToken.substring(0, 20)}...` : 'null');
+    
+    // Additional debugging - check token structure if available
+    if (adminToken) {
+      try {
+        const payload = JSON.parse(atob(adminToken.split('.')[1]));
+        console.log('[AdminChatAPI] Token payload preview:', {
+          userId: payload.userId,
+          username: payload.username,
+          exp: payload.exp,
+          expiresAt: new Date(payload.exp * 1000).toISOString()
+        });
+      } catch (e) {
+        console.log('[AdminChatAPI] Could not parse token payload:', e.message);
+      }
+    }
     
     if (!adminToken) {
       console.warn('[AdminChatAPI] No admin token found. User may not be authenticated.');
@@ -66,10 +83,13 @@ const AdminChatAPI = (() => {
       if (!contentType || !contentType.includes('application/json')) {
         const text = await response.text();
         console.log(`[AdminChatAPI] Non-JSON response received (${contentType}):`, text.substring(0, 500));
+        console.log(`[AdminChatAPI] Full URL: ${fullUrl}`);
+        console.log(`[AdminChatAPI] Response headers:`, Object.fromEntries(response.headers.entries()));
         
         // If we get HTML, it's likely a server-side redirect or error page
         if (text.includes('<!DOCTYPE html>')) {
             console.error('[AdminChatAPI] Received HTML response instead of JSON. This could be an auth issue or server error.');
+            console.error('[AdminChatAPI] Response preview:', text.substring(0, 200));
             showError('An unexpected server response was received. Please try logging in again.');
             return null;
         }
@@ -341,6 +361,35 @@ const AdminChatAPI = (() => {
         content,
         messageType
       });
+    },
+
+    // Support Messages API
+    getSupportMessages: () => {
+      // Use the correct admin route for support messages (not under /chat)
+      return fetch('/api/admin/support/messages', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${SimpleAuth.getToken('admin')}`
+        },
+        credentials: 'include'
+      }).then(response => response.json());
+    },
+
+    replySupportMessage: (messageId, replyContent, personaId) => {
+      return fetch('/api/admin/support/messages/reply', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${SimpleAuth.getToken('admin')}`
+        },
+        body: JSON.stringify({
+          message_id: messageId,
+          message: replyContent,
+          persona_id: personaId
+        }),
+        credentials: 'include'
+      }).then(response => response.json());
     }
   };
 })();

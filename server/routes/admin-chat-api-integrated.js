@@ -6,12 +6,21 @@
 const express = require('express');
 const router = express.Router();
 const adminChatController = require('../controllers/admin-chat-controller');
-const { protect, admin } = require('../middlewares/auth'); // Use existing auth middleware
+const { authenticateAdmin } = require('../middleware/admin-auth'); // Use admin auth middleware
 const db = require('../db');
 
 // Apply the same authentication middleware that main admin routes use
-router.use(protect); // JWT authentication
-router.use(admin);   // Admin role check
+router.use(authenticateAdmin); // Use the admin-specific auth middleware
+
+// === TEST ROUTE ===
+router.get('/test', (req, res) => {
+  res.json({ 
+    success: true, 
+    message: 'Admin chat API authentication working',
+    admin: req.admin,
+    timestamp: new Date().toISOString()
+  });
+});
 
 // === CHAT GROUPS ===
 router.get('/groups', adminChatController.getAllGroups);
@@ -66,7 +75,7 @@ router.get('/client-messages', async (req, res) => {
         u.username,
         u.email,
         u.avatar_url,
-        u.profile_picture,
+        u.profile_image_url,
         cg.name as group_name
       FROM chat_messages cm
       LEFT JOIN users u ON cm.user_id = u.id

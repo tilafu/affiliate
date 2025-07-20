@@ -147,6 +147,7 @@ const getUserGroups = async (userId) => {
         cg.name,
         cg.description,
         cg.is_personal_group,
+        cg.is_support_group,
         cg.is_public,
         cg.owner_user_id as creator_id,
         COALESCE(
@@ -166,6 +167,7 @@ const getUserGroups = async (userId) => {
       WHERE cgm.user_id = $1
       ORDER BY 
         cg.is_personal_group DESC,
+        cg.is_support_group DESC,
         last_activity DESC NULLS LAST,
         cg.created_at DESC
     `;

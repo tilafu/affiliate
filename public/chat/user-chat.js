@@ -153,13 +153,14 @@ class UserChatApp {
 
   // Helper method to check if user can post in the current group
   canPostInGroup(group) {
-    // Users can only post in their personal group (created when they registered)
-    // All other groups are read-only for clients
-    // OR if it's a direct message
+    // Users can post in:
+    // 1. Their personal group (created when they registered)
+    // 2. Support groups (like "Support Team")
+    // 3. Direct messages
     if (group && group.is_direct_message) {
       return true; // Can always post in DMs
     }
-    return group && group.is_personal_group === true;
+    return group && (group.is_personal_group === true || group.is_support_group === true);
   }
 
   // Helper method to check if group has new messages since last visit
@@ -273,6 +274,9 @@ class UserChatApp {
       // Initialize Socket.io connection
       this.initializeSocket();
       
+      // Check if we need to automatically open support
+      this.handleSupportAutoOpen();
+      
       console.log('Chat app initialization completed');
       
     } catch (error) {
@@ -288,11 +292,33 @@ class UserChatApp {
     }
   }
 
+  // Handle automatic opening of support group from URL parameter
+  handleSupportAutoOpen() {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('openSupport') === 'true') {
+      // Find the Support Team group and open it
+      const supportGroup = this.groups.find(group => 
+        group.is_support_group === true || group.name === 'Support Team'
+      );
+      
+      if (supportGroup) {
+        console.log('Auto-opening Support Team group');
+        this.selectGroup(supportGroup);
+        
+        // Clear the URL parameter to avoid reopening on refresh
+        const newUrl = new URL(window.location);
+        newUrl.searchParams.delete('openSupport');
+        window.history.replaceState({}, '', newUrl);
+      } else {
+        console.warn('Support Team group not found for auto-opening');
+      }
+    }
+  }
+
   async checkAuth() {
-    // Check multiple possible token keys (for compatibility)
+    // Check only client tokens, not admin tokens to avoid confusion
     const token = localStorage.getItem('authToken') || 
-                  localStorage.getItem('auth_token') || 
-                  localStorage.getItem('admin_auth_token');
+                  localStorage.getItem('auth_token');
     
     console.log('Checking auth token:', token ? 'Token found' : 'No token');
     
@@ -324,16 +350,14 @@ class UserChatApp {
       console.log('Profile data received:', data);
       this.currentUser = data.user;
       
-      // Store the working token key for future use
-      this.tokenKey = localStorage.getItem('authToken') ? 'authToken' : 
-                     localStorage.getItem('auth_token') ? 'auth_token' : 'admin_auth_token';
+      // Store the working token key for future use (client tokens only)
+      this.tokenKey = localStorage.getItem('authToken') ? 'authToken' : 'auth_token';
       
     } catch (error) {
       console.error('Auth check failed:', error);
-      // Clear all possible token keys
+      // Clear only client token keys
       localStorage.removeItem('authToken');
       localStorage.removeItem('auth_token');
-      localStorage.removeItem('admin_auth_token');
       throw error;
     }
   }
@@ -551,11 +575,17 @@ class UserChatApp {
     div.dataset.groupId = group.id;
     
     const isPersonal = group.is_personal_group;
-    const groupIcon = isPersonal ? 'fas fa-user-circle' : 'fas fa-users';
+    const isSupport = group.is_support_group;
+    const groupIcon = isPersonal ? 'fas fa-user-circle' : isSupport ? 'fas fa-headset' : 'fas fa-users';
     const lastActivity = group.last_activity ? new Date(group.last_activity).toLocaleDateString() : 'No activity';
     
-    // Show generic name for personal group on client side
-    const displayName = isPersonal ? 'Main PEA Communication' : group.name;
+    // Show specific names for special groups on client side
+    let displayName = group.name;
+    if (isPersonal) {
+      displayName = 'Main PEA Communication';
+    } else if (isSupport) {
+      displayName = group.name; // Keep "Support Team" as is
+    }
     
     // Check if group has new messages since last visit
     const hasNewMessages = this.hasNewMessages(group);
@@ -617,9 +647,19 @@ class UserChatApp {
     }
     
     // Update chat header
-    const displayName = group.is_personal_group ? 'Main PEA Communication' : group.name;
+    let displayName = group.name;
+    let statusText = 'Community Group';
+    
+    if (group.is_personal_group) {
+      displayName = 'Main PEA Communication';
+      statusText = this.getExaggeratedMemberCount();
+    } else if (group.is_support_group) {
+      displayName = group.name; // Keep "Support Team" as is
+      statusText = 'Support available 24/7';
+    }
+    
     this.contactName.textContent = displayName;
-    this.contactStatus.textContent = group.is_personal_group ? this.getExaggeratedMemberCount() : 'Community Group';
+    this.contactStatus.textContent = statusText;
     
     // Update input permissions based on group type
     this.updateInputPermissions(group);
@@ -723,7 +763,17 @@ class UserChatApp {
       minute: '2-digit'
     });
 
-    const senderInfo = isOwnMessage ? 'You' : message.sender_name;
+    // Determine sender display name based on message context
+    let senderInfo = message.sender_name;
+    if (isOwnMessage) {
+      senderInfo = 'You';
+    } else if (this.currentGroup && this.currentGroup.is_support_group) {
+      // In support groups, show admin responses as "Support"
+      if (message.sender_type === 'admin' || 
+          (message.support_conversation_user_id === null && message.sender_type !== 'real_user')) {
+        senderInfo = 'Support';
+      }
+    }
     
     // Get avatar URL for the sender
     const avatarUrl = this.getUserAvatarUrl(message);
