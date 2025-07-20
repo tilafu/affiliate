@@ -533,7 +533,10 @@ const getDashboardStats = async (req, res) => {
 const getDeposits = async (req, res) => {
     try {
         const result = await pool.query(`
-            SELECT d.*, u.username
+            SELECT 
+                d.*,
+                u.username,
+                u.email
             FROM deposits d
             JOIN users u ON d.user_id = u.id
             WHERE d.status = 'PENDING'
@@ -548,12 +551,66 @@ const getDeposits = async (req, res) => {
 };
 
 /**
+ * @desc    Get all deposits with admin tracking information
+ * @route   GET /api/admin/deposits/all
+ * @access  Private/Admin
+ */
+const getAllDeposits = async (req, res) => {
+    try {
+        const { status, limit = 100, offset = 0 } = req.query;
+        
+        let whereClause = '';
+        let queryParams = [parseInt(limit), parseInt(offset)];
+        
+        if (status) {
+            whereClause = 'WHERE d.status = $3';
+            queryParams.push(status.toUpperCase());
+        }
+
+        const result = await pool.query(`
+            SELECT 
+                d.*,
+                u.username,
+                u.email,
+                admin.username as approved_by_username,
+                admin.email as approved_by_email,
+                EXTRACT(HOURS FROM (COALESCE(d.approved_at, NOW()) - d.created_at)) as processing_hours
+            FROM deposits d
+            JOIN users u ON d.user_id = u.id
+            LEFT JOIN users admin ON d.approved_by = admin.id
+            ${whereClause}
+            ORDER BY d.created_at DESC
+            LIMIT $1 OFFSET $2
+        `, queryParams);
+
+        // Get total count for pagination
+        const countResult = await pool.query(`
+            SELECT COUNT(*) as total
+            FROM deposits d
+            ${whereClause.replace(/\$3/g, '$1')}
+        `, status ? [status.toUpperCase()] : []);
+
+        res.json({ 
+            success: true, 
+            deposits: result.rows,
+            total: parseInt(countResult.rows[0].total),
+            limit: parseInt(limit),
+            offset: parseInt(offset)
+        });
+    } catch (error) {
+        console.error('Error fetching all deposits:', error);
+        res.status(500).json({ success: false, message: 'Error fetching deposits' });
+    }
+};
+
+/**
  * @desc    Approve a deposit request
  * @route   POST /api/admin/deposits/:id/approve
  * @access  Private/Admin
  */
 const approveDeposit = async (req, res) => {
     const { id } = req.params;
+    const adminId = req.user.id; // Get admin ID from auth middleware
     const client = await pool.connect();
 
     try {
@@ -1586,6 +1643,7 @@ module.exports = {// User Management
     
     // Financial Management
     getDeposits,
+    getAllDeposits,
     approveDeposit,
     rejectDeposit,
     getWithdrawals,

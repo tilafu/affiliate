@@ -94,13 +94,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 typeDisplay = 'Deposit';
               }
 
-              // Handle client image display
-              let imageDisplay = '-';
-              if (entry.client_image_url) {
-                imageDisplay = `<a href="${entry.client_image_url}" target="_blank" title="View payment proof">
-                  <img src="${entry.client_image_url}" alt="Payment proof" style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px; cursor: pointer;">
-                </a>`;
-              }
+              // Handle client image display - Hidden in history tab
+              // let imageDisplay = '-';
+              // if (entry.client_image_url) {
+              //   imageDisplay = `<a href="${entry.client_image_url}" target="_blank" title="View payment proof">
+              //     <img src="${entry.client_image_url}" alt="Payment proof" style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px; cursor: pointer;">
+              //   </a>`;
+              // }
 
                 return `
                 <tr>
@@ -108,8 +108,7 @@ document.addEventListener('DOMContentLoaded', () => {
                   <td>${new Date(entry.date || entry.created_at).toLocaleTimeString()}</td>
                   <td>${amountPrefix}$${Math.abs(parseFloat(entry.amount)).toFixed(2)}</td>
                   <td><span class="status-badge status-${(entry.status || 'completed').toLowerCase()}">${entry.status || 'Completed'}</span></td>
-                  <td>${imageDisplay}</td>
-                  ${entry.admin_note ? `<td><small class="text-muted">${entry.admin_note}</small></td>` : '<td>-</td>'}
+                  <!-- Image and Note columns hidden -->
                 </tr>
               `;
             })            .join('');
@@ -120,7 +119,7 @@ document.addEventListener('DOMContentLoaded', () => {
             response: response
           });          historyElement.innerHTML = `
             <tr>
-              <td colspan="6" class="empty-state">
+              <td colspan="4" class="empty-state">
                 <i class="fas fa-history"></i>
                 <p>No deposit history found</p>
               </td>
@@ -132,7 +131,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const historyElement = document.querySelector('#deposit-history table tbody');
       if (historyElement) {        historyElement.innerHTML = `
           <tr>
-            <td colspan="6" class="empty-state">
+            <td colspan="4" class="empty-state">
               <i class="fas fa-exclamation-triangle"></i>
               <p>Error loading deposit history</p>
             </td>
@@ -262,6 +261,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const formData = new FormData();
         formData.append('amount', amount);
         formData.append('description', descriptionInput?.value || '');
+        formData.append('type', 'direct'); // Add deposit type
         
         if (imageInput?.files[0]) {
           formData.append('image', imageInput.files[0]);
@@ -371,6 +371,39 @@ document.addEventListener('DOMContentLoaded', () => {
   refreshDepositData();
 
 });
+
+// Simplified Bank Deposit API Functions
+async function processBankDepositSimpleAPI(depositData) {
+  try {
+    console.log('Processing simplified bank deposit:', depositData);
+    
+    const response = await fetchWithAuth('/api/user/deposits/bank-simple', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        bank_name: depositData.bankName,
+        amount: depositData.amount,
+        notes: depositData.notes || ''
+      })
+    });
+    
+    console.log('Bank deposit response:', response);
+    
+    if (response.success) {
+      // Bank deposit submitted successfully
+      console.log('Bank deposit submitted successfully');
+      return response;
+    } else {
+      throw new Error(response.message || 'Bank deposit submission failed');
+    }
+  } catch (error) {
+    console.error('Error processing bank deposit:', error);
+    throw error;
+  }
+}
+
 // Function to update translations on the deposit page
 function updateDepositTranslations() {
   // Only run if i18next is available and initialized

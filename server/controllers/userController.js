@@ -788,7 +788,7 @@ const getDriveProgress = async (req, res) => {
     try {
         const userId = req.user.id;
 
-        // Get drive progress data
+        // Get drive progress data for the last 30 days for credit score calculation
         const progressResult = await pool.query(`
             SELECT 
                 drives_completed,
@@ -796,13 +796,21 @@ const getDriveProgress = async (req, res) => {
                 date
             FROM user_drive_progress 
             WHERE user_id = $1 
+                AND date >= CURRENT_DATE - INTERVAL '30 days'
             ORDER BY date DESC 
-            LIMIT 7
         `, [userId]);
 
-        // Calculate weekly progress
+        // Calculate weekly progress (last 7 days)
         const today = new Date().toISOString().split('T')[0];
-        const weeklyProgress = progressResult.rows.filter(row => row.is_working_day).length;
+        const last7Days = progressResult.rows.filter(row => {
+            const rowDate = new Date(row.date);
+            const currentDate = new Date();
+            const diffTime = currentDate - rowDate;
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            return diffDays <= 7;
+        });
+
+        const weeklyProgress = last7Days.filter(row => row.is_working_day).length;
         const todayRecord = progressResult.rows.find(row => {
             const recordDate = new Date(row.date).toISOString().split('T')[0];
             return recordDate === today;
@@ -836,15 +844,21 @@ const getDriveProgress = async (req, res) => {
 
         res.json({
             success: true,
-            today: {
-                drives_completed: todayRecord ? todayRecord.drives_completed : 0,
-                is_working_day: todayRecord ? todayRecord.is_working_day : false
-            },
-            weekly: {
-                progress: Math.max(weeklyProgress, workingDaysData.weekly_progress || 0),
-                total: 7
-            },
-            total_working_days: workingDaysData.total_working_days || 0
+            data: {
+                today: {
+                    drives_completed: todayRecord ? todayRecord.drives_completed : 0,
+                    is_working_day: todayRecord ? todayRecord.is_working_day : false
+                },
+                weekly: {
+                    progress: Math.max(weeklyProgress, workingDaysData.weekly_progress || 0),
+                    total: 7
+                },
+                monthly: {
+                    progress: progressResult.rows || [],
+                    total: 30
+                },
+                total_working_days: workingDaysData.total_working_days || 0
+            }
         });
     } catch (error) {
         logger.error('Error fetching drive progress:', { userId, error: error.message, stack: error.stack });
@@ -1082,6 +1096,168 @@ const createDepositWithImage = async (req, res) => {
   }
 };
 
+/**
+ * @desc    Process simple bank deposit
+ * @route   POST /api/user/deposits/bank-simple
+ * @access  Private (requires token)
+ */
+const processBankDepositSimple = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { bank_name, amount, notes } = req.body;
+
+    // Validate required fields
+    if (!bank_name || !amount) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Bank name and amount are required' 
+      });
+    }
+
+    if (amount <= 0) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Amount must be greater than 0' 
+      });
+    }
+
+    // Insert bank deposit into database
+    const insertQuery = `
+      INSERT INTO deposits (
+        user_id, 
+        amount, 
+        deposit_type, 
+        bank_name, 
+        notes, 
+        description, 
+        status
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, 'PENDING')
+      RETURNING *
+    `;
+
+    const result = await pool.query(insertQuery, [
+      userId,
+      amount,
+      'bank',
+      bank_name,
+      notes || '',
+      `Bank deposit from ${bank_name}`
+    ]);
+
+    logger.info('Bank deposit created:', { 
+      userId, 
+      amount, 
+      bankName: bank_name,
+      depositId: result.rows[0].id 
+    });
+
+    res.json({ 
+      success: true, 
+      message: 'Bank deposit request submitted successfully',
+      data: result.rows[0]
+    });
+  } catch (error) {
+    logger.error('Error processing bank deposit:', { 
+      userId: req.user?.id, 
+      error: error.message, 
+      stack: error.stack 
+    });
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server error processing bank deposit' 
+    });
+  }
+};
+
+/**
+ * @desc    Process bank deposit with file upload
+ * @route   POST /api/user/deposits/bank-with-file
+ * @access  Private (requires token)
+ */
+const processBankDepositWithFile = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { bank_name, amount, notes } = req.body;
+
+    // Validate required fields
+    if (!bank_name || !amount) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Bank name and amount are required' 
+      });
+    }
+
+    if (amount <= 0) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Amount must be greater than 0' 
+      });
+    }
+
+    // Handle file upload
+    let clientImageUrl = null;
+    let clientImageFilename = null;
+
+    if (req.file) {
+      clientImageUrl = `/assets/uploads/deposit-images/${req.file.filename}`;
+      clientImageFilename = req.file.filename;
+    }
+
+    // Insert bank deposit into database
+    const insertQuery = `
+      INSERT INTO deposits (
+        user_id, 
+        amount, 
+        deposit_type, 
+        bank_name, 
+        notes, 
+        description,
+        client_image_url,
+        client_image_filename,
+        status
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'PENDING')
+      RETURNING *
+    `;
+
+    const result = await pool.query(insertQuery, [
+      userId,
+      amount,
+      'bank',
+      bank_name,
+      notes || '',
+      `Bank deposit from ${bank_name}`,
+      clientImageUrl,
+      clientImageFilename
+    ]);
+
+    logger.info('Bank deposit with file created:', { 
+      userId, 
+      amount, 
+      bankName: bank_name,
+      clientImageUrl,
+      depositId: result.rows[0].id 
+    });
+
+    res.json({ 
+      success: true, 
+      message: 'Bank deposit request submitted successfully',
+      data: result.rows[0]
+    });
+  } catch (error) {
+    logger.error('Error processing bank deposit with file:', { 
+      userId: req.user?.id, 
+      error: error.message, 
+      stack: error.stack 
+    });
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server error processing bank deposit' 
+    });
+  }
+};
+
 module.exports = {
   getUserDeposits,
   getUserWithdrawals,
@@ -1106,6 +1282,8 @@ module.exports = {
   getHighValueProducts,
   getActiveQRCode,
   uploadQRCode,
-  createDepositWithImage
+  createDepositWithImage,
+  processBankDepositSimple,
+  processBankDepositWithFile
   // Other user-related functions
 };

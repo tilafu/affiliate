@@ -55,6 +55,7 @@ router.delete('/products/:productId', protect, admin, adminController.deleteProd
 
 // Deposit Management
 router.get('/deposits', protect, admin, adminController.getDeposits);
+router.get('/deposits/all', protect, admin, adminController.getAllDeposits);
 router.post('/deposits/:id/approve', protect, admin, adminController.approveDeposit);
 router.post('/deposits/:id/reject', protect, admin, adminController.rejectDeposit);
 

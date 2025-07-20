@@ -243,10 +243,21 @@
                     </div>
                     <div class="flex-grow-1">
                         <div class="account-label">Credit Score</div>
-                        <small class="text-muted">Your account standing</small>
-                        <div class="credit-score-bar mt-2">
-                            <div class="credit-score-progress"></div>
+                        <small class="text-muted">Based on daily drive completion (Target: 2/day)</small>
+                        <div class="d-flex align-items-center mt-2">
+                            <div class="credit-score-value me-3">
+                                <span id="credit-score-number">--</span>/100
+                            </div>
+                            <div class="credit-score-bar flex-grow-1">
+                                <div class="credit-score-progress" id="credit-score-progress"></div>
+                            </div>
+                            <div class="credit-score-rating ms-3">
+                                <span id="credit-score-rating" class="badge">Loading...</span>
+                            </div>
                         </div>
+                        <small class="text-muted mt-1" id="credit-score-details">
+                            <span id="avg-drives">--</span> avg drives/day over 30 days
+                        </small>
                     </div>
                 </div>
             </div>

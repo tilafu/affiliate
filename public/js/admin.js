@@ -689,38 +689,215 @@ async function loadDeposits() {
         // Fetch only pending deposits for the admin view
         const response = await fetchWithAuth('/admin/deposits');
         if (response.success) {
-            const depositsList = document.getElementById('deposits-list');
-            if (depositsList) {
-                depositsList.innerHTML = response.deposits.map(deposit => `
-                    <tr>
-                        <td>${deposit.id}</td>
-                        <td>${deposit.username}</td>
-                        <td>$${deposit.amount}</td>
-                        <td>${new Date(deposit.created_at).toLocaleDateString()}</td>
-                        <td>
-                            <span class="status-badge status-${deposit.status.toLowerCase()}">
-                                ${deposit.status}
-                            </span>
-                        </td>
-                        <td>
-                            ${deposit.status === 'PENDING' ? `
-                                <button class="btn btn-sm btn-success approve-deposit-btn" data-id="${deposit.id}">
-                                    Approve
-                                </button>
-                                <button class="btn btn-sm btn-danger reject-deposit-btn" data-id="${deposit.id}">
-                                    Reject
-                                </button>
-                            ` : ''}
-                        </td>
-                    </tr>
-                `).join('');
-            } else {
-                console.warn("Deposits list element ('deposits-list') not found.");
-            }
+            renderDepositsTable(response.deposits, 'deposits-list');
         }
     } catch (error) {
         console.error('Error loading deposits:', error);
         showNotification('Failed to load deposits', 'error');
+    }
+}
+
+// Render deposits table
+function renderDepositsTable(deposits, containerId) {
+    const depositsList = document.getElementById(containerId);
+    if (!depositsList) {
+        console.warn(`Deposits list element ('${containerId}') not found.`);
+        return;
+    }
+
+    depositsList.innerHTML = deposits.map(deposit => {
+        // Determine deposit type based on deposit_type field
+        const depositType = deposit.deposit_type === 'bank' ? 'Bank' : 'Direct';
+        
+        // Build bank info for bank deposits
+        let bankInfo = '';
+        if (deposit.deposit_type === 'bank' && deposit.bank_name) {
+            bankInfo = `
+                <div class="small text-muted mt-1">
+                    <i class="fas fa-university me-1"></i>Bank: ${deposit.bank_name}
+                    ${deposit.notes ? `<br><i class="fas fa-sticky-note me-1"></i>Notes: ${deposit.notes}` : ''}
+                </div>
+            `;
+        }
+        
+        // Build attachments column
+        let attachmentsHtml = '';
+        if (deposit.client_image_url) {
+            const fileName = deposit.client_image_filename || deposit.client_image_url.split('/').pop();
+            const fileExtension = fileName.split('.').pop().toLowerCase();
+            const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(fileExtension);
+            const isPdf = fileExtension === 'pdf';
+            
+            attachmentsHtml = `
+                <div class="deposit-attachments">
+                    ${isImage ? `
+                        <button class="btn btn-sm btn-outline-primary me-1" onclick="viewDepositImage('${deposit.client_image_url}', '${fileName}')" title="View Image">
+                            <i class="fas fa-image"></i>
+                        </button>
+                    ` : ''}
+                    ${isPdf ? `
+                        <button class="btn btn-sm btn-outline-info me-1" onclick="viewDepositPdf('${deposit.client_image_url}', '${fileName}')" title="View PDF">
+                            <i class="fas fa-file-pdf"></i>
+                        </button>
+                    ` : ''}
+                    <button class="btn btn-sm btn-outline-success" onclick="downloadDepositFile('${deposit.client_image_url}', '${fileName}')" title="Download">
+                        <i class="fas fa-download"></i>
+                    </button>
+                </div>
+            `;
+        } else {
+            attachmentsHtml = '<span class="text-muted small">No attachments</span>';
+        }
+        
+        return `
+            <tr>
+                <td>${deposit.id}</td>
+                <td>
+                    ${deposit.username}
+                    ${bankInfo}
+                </td>
+                <td>$${deposit.amount}</td>
+                <td>
+                    <span class="badge ${depositType === 'Bank' ? 'bg-info' : 'bg-primary'}">
+                        <i class="fas ${depositType === 'Bank' ? 'fa-university' : 'fa-qrcode'} me-1"></i>
+                        ${depositType}
+                    </span>
+                </td>
+                <td>${new Date(deposit.created_at).toLocaleDateString()}</td>
+                <td>${attachmentsHtml}</td>
+                <td>
+                    <span class="status-badge status-${deposit.status.toLowerCase()}">
+                        ${deposit.status}
+                    </span>
+                </td>
+                <td>
+                    ${deposit.status === 'PENDING' ? `
+                        <button class="btn btn-sm btn-success approve-deposit-btn" data-id="${deposit.id}">
+                            Approve
+                        </button>
+                        <button class="btn btn-sm btn-danger reject-deposit-btn" data-id="${deposit.id}">
+                            Reject
+                        </button>
+                    ` : ''}
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+// Deposit Attachment Functions
+function viewDepositImage(imagePath, fileName) {
+    const modal = document.createElement('div');
+    modal.className = 'modal fade';
+    modal.innerHTML = `
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-image me-2"></i>Deposit Proof - ${fileName}
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <img src="${imagePath}" alt="Deposit Proof" class="img-fluid rounded" style="max-height: 70vh;">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-success" onclick="downloadDepositFile('${imagePath}', '${fileName}')">
+                        <i class="fas fa-download me-2"></i>Download
+                    </button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+    const bsModal = new bootstrap.Modal(modal);
+    bsModal.show();
+    
+    // Clean up modal after it's hidden
+    modal.addEventListener('hidden.bs.modal', () => {
+        document.body.removeChild(modal);
+    });
+}
+
+function viewDepositPdf(pdfPath, fileName) {
+    const modal = document.createElement('div');
+    modal.className = 'modal fade';
+    modal.innerHTML = `
+        <div class="modal-dialog modal-xl modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-file-pdf me-2"></i>Deposit Proof - ${fileName}
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <iframe src="${pdfPath}" style="width: 100%; height: 70vh; border: none;"></iframe>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-success" onclick="downloadDepositFile('${pdfPath}', '${fileName}')">
+                        <i class="fas fa-download me-2"></i>Download
+                    </button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+    const bsModal = new bootstrap.Modal(modal);
+    bsModal.show();
+    
+    // Clean up modal after it's hidden
+    modal.addEventListener('hidden.bs.modal', () => {
+        document.body.removeChild(modal);
+    });
+}
+
+function downloadDepositFile(filePath, fileName) {
+    const link = document.createElement('a');
+    link.href = filePath;
+    link.download = fileName;
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+// Deposit Approval/Rejection Functions
+async function approveDeposit(depositId) {
+    try {
+        const response = await fetchWithAuth(`/admin/deposits/${depositId}/approve`, {
+            method: 'POST'
+        });
+        
+        if (response.success) {
+            showNotification('Deposit approved successfully', 'success');
+            loadDeposits(); // Reload the deposits list
+        } else {
+            showNotification(response.message || 'Failed to approve deposit', 'error');
+        }
+    } catch (error) {
+        console.error('Error approving deposit:', error);
+        showNotification('Failed to approve deposit: ' + error.message, 'error');
+    }
+}
+
+async function rejectDeposit(depositId) {
+    try {
+        const response = await fetchWithAuth(`/admin/deposits/${depositId}/reject`, {
+            method: 'POST'
+        });
+        
+        if (response.success) {
+            showNotification('Deposit rejected successfully', 'success');
+            loadDeposits(); // Reload the deposits list
+        } else {
+            showNotification(response.message || 'Failed to reject deposit', 'error');
+        }
+    } catch (error) {
+        console.error('Error rejecting deposit:', error);
+        showNotification('Failed to reject deposit: ' + error.message, 'error');
     }
 }
 
@@ -1192,6 +1369,20 @@ function initializeHandlers() {
                     console.error('Error deleting product:', error);
                     showNotification('Failed to delete product: ' + error.message, 'error');
                 }
+            }
+        }
+        // Approve Deposit Button
+        else if (target.matches('.approve-deposit-btn')) {
+            const depositId = target.dataset.id;
+            if (depositId && confirm('Are you sure you want to approve this deposit?')) {
+                await approveDeposit(depositId);
+            }
+        }
+        // Reject Deposit Button
+        else if (target.matches('.reject-deposit-btn')) {
+            const depositId = target.dataset.id;
+            if (depositId && confirm('Are you sure you want to reject this deposit?')) {
+                await rejectDeposit(depositId);
             }
         }
     });

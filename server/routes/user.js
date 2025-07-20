@@ -27,7 +27,9 @@ const {
     getHighValueProducts, // Import new function
     getActiveQRCode, // Import QR code function
     uploadQRCode, // Import QR code upload function
-    createDepositWithImage // Import deposit with image function
+    createDepositWithImage, // Import deposit with image function
+    processBankDepositSimple, // Import bank deposit function
+    processBankDepositWithFile // Import bank deposit with file function
 } = require('../controllers/userController');
 
 const router = express.Router();
@@ -90,6 +92,11 @@ router.get('/deposits', protect, getUserDeposits);
 // @desc    Get user's total deposited amount from accounts.deposit field
 // @access  Private (requires token)
 router.get('/deposits/total', protect, getUserTotalDeposits);
+
+// @route   POST /api/user/deposits/bank-simple
+// @desc    Process simple bank deposit
+// @access  Private (requires token)
+router.post('/deposits/bank-simple', protect, processBankDepositSimple);
 
 // @route   GET /api/user/withdrawals
 // @desc    Get user's withdrawn amount
@@ -236,19 +243,24 @@ const uploadDepositImage = multer({
     fileSize: 5 * 1024 * 1024 // 5MB limit
   },
   fileFilter: (req, file, cb) => {
-    const allowedTypes = /jpeg|jpg|png|gif/;
+    const allowedTypes = /jpeg|jpg|png|gif|pdf/;
     const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-    const mimetype = allowedTypes.test(file.mimetype);
+    const mimetype = allowedTypes.test(file.mimetype) || file.mimetype === 'application/pdf';
     
     if (mimetype && extname) {
       return cb(null, true);
     } else {
-      cb(new Error('Only image files are allowed'));
+      cb(new Error('Only image files (JPEG, JPG, PNG, GIF) and PDF files are allowed'));
     }
   }
 });
 
 router.post('/deposit-with-image', protect, uploadDepositImage.single('image'), createDepositWithImage);
+
+// @route   POST /api/user/deposits/bank-with-file
+// @desc    Process bank deposit with file attachment
+// @access  Private
+router.post('/deposits/bank-with-file', protect, uploadDepositImage.single('receipt'), processBankDepositWithFile);
 
 // @route   POST /api/user/upload-avatar
 // @desc    Upload user avatar

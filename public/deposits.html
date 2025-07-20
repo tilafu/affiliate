@@ -299,20 +299,125 @@
                 min-height: 450px;
             }
         }
-          /* Hide image on history tab - better approach */
+        /* Hide images on history tab - better approach */
         .tab-content .deposit-image-container-left {
             display: none;
         }
         
-        /* Show image only when deposit form tab is active */
-        #deposit-form.active ~ .deposit-image-container-left,
-        #deposit-form.show ~ .deposit-image-container-left {
+        /* Show image only when direct deposit tab is active */
+        #direct-deposit-form.active ~ #direct-deposit-image,
+        #direct-deposit-form.show ~ #direct-deposit-image {
+            display: flex;
+        }
+        
+        /* Show bank image only when bank deposit tab is active */
+        #bank-deposit-form.active ~ #bank-deposit-image,
+        #bank-deposit-form.show ~ #bank-deposit-image {
             display: flex;
         }
         
         /* Alternative approach using data attribute */
-        .tab-content[data-active-tab="deposit-form"] .deposit-image-container-left {
+        .tab-content[data-active-tab="direct-deposit-form"] #direct-deposit-image {
             display: flex;
+        }
+        
+        .tab-content[data-active-tab="bank-deposit-form"] #bank-deposit-image {
+            display: flex;
+        }
+
+        /* Bank Deposit Specific Styles */
+        .bank-deposit-step {
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateX(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        /* Bank deposit form styling */
+        .form-control-lg {
+            font-size: 1.25rem;
+            padding: 1rem;
+        }
+
+        /* Image preview styling */
+        #bank-image-preview, #image-preview {
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            margin-bottom: 1rem;
+        }
+
+        #bank-image-preview:hover, #image-preview:hover {
+            border-color: #667eea;
+            transform: scale(1.02);
+        }
+
+        /* PDF preview styling */
+        .pdf-preview-box {
+            border: 2px dashed #dc3545;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            background-color: #f8f9fa;
+            margin-bottom: 1rem;
+        }
+
+        /* Classy remove button styling */
+        #remove-bank-image, #remove-image {
+            margin-top: 1rem;
+            border-radius: 12px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(220, 53, 69, 0.2);
+        }
+
+        #remove-bank-image:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+        }
+
+        /* Loading spinner customization */
+        .spinner-border {
+            border-width: 0.3rem;
+        }
+
+        /* Success modal customization */
+        .modal-content {
+            border-radius: 20px;
+            border: none;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+        }
+
+        .modal-body {
+            padding: 2.5rem !important;
+        }
+
+        /* Success checkmark animation */
+        @keyframes checkmarkAnimation {
+            0% {
+                transform: scale(0);
+                opacity: 0;
+            }
+            50% {
+                transform: scale(1.2);
+                opacity: 0.8;
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .fa-check-circle {
+            animation: checkmarkAnimation 0.6s ease-out;
         }
     </style>
 </head>
@@ -347,8 +452,13 @@
                 <!-- Tabs Navigation -->
                 <ul class="nav nav-tabs mb-4" id="depositTabs" role="tablist">
                     <li class="nav-item" role="presentation">
-                        <button class="nav-link active" id="deposit-tab" data-bs-toggle="tab" data-bs-target="#deposit-form" type="button" role="tab">
-                            <i class="fas fa-plus-circle me-2"></i>Make Deposit
+                        <button class="nav-link active" id="direct-deposit-tab" data-bs-toggle="tab" data-bs-target="#direct-deposit-form" type="button" role="tab">
+                            <i class="fas fa-qrcode me-2"></i>Direct Deposit
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="bank-deposit-tab" data-bs-toggle="tab" data-bs-target="#bank-deposit-form" type="button" role="tab">
+                            <i class="fas fa-university me-2"></i>Bank Deposit
                         </button>
                     </li>
                     <li class="nav-item" role="presentation">
@@ -357,15 +467,20 @@
                         </button>
                     </li>
                 </ul>
-                  <!-- Tabs Content -->
+                <!-- Tabs Content -->
                 <div class="tab-content" id="depositTabsContent">
-                    <!-- Absolute positioned image for Make Deposit tab -->
-                    <div class="deposit-image-container-left">
-                        <img src="./assets/uploads/images/Drive/deposit.jpg" alt="Make Deposit" class="deposit-hero-image-left">
+                    <!-- Absolute positioned image for Direct Deposit tab -->
+                    <div class="deposit-image-container-left" id="direct-deposit-image">
+                        <img src="./assets/uploads/images/Drive/deposit.jpg" alt="Direct Deposit" class="deposit-hero-image-left">
                     </div>
                     
-                    <!-- Deposit Form Tab -->
-                    <div class="tab-pane fade show active" id="deposit-form" role="tabpanel">
+                    <!-- Absolute positioned image for Bank Deposit tab -->
+                    <div class="deposit-image-container-left" id="bank-deposit-image" style="display: none;">
+                        <img src="./assets/uploads/images/Drive/euro-notes-eur-50.jpg" alt="Bank Deposit" class="deposit-hero-image-left">
+                    </div>
+                    
+                    <!-- Direct Deposit Form Tab (formerly Make Deposit) -->
+                    <div class="tab-pane fade show active" id="direct-deposit-form" role="tabpanel">
                         <div class="row">
                             <!-- Image column hidden since we use absolute positioning -->
                             <div class="deposit-image-column">
@@ -383,21 +498,14 @@
                                     </div>
                                 </div>
                                 
-                                <!-- Quick Amounts  -->
-                                <!-- <div class="mb-4">
-                                    <h5 class="mb-3"><i class="fas fa-coins me-2"></i>Quick Amounts</h5>
-                                    <div class="d-flex justify-content-between mb-3">
-                                        <button class="btn btn-secondary bs-example" type="button" data-amount="100">100 USDT</button>
-                                        <button class="btn btn-secondary bs-example" type="button" data-amount="200">200 USDT</button>
-                                        <button class="btn btn-secondary bs-example" type="button" data-amount="500">500 USDT</button>
-                                    </div>
-                                </div> -->
-                                  <div class="mb-4">
+                                <div class="mb-4">
                                     <label for="deposit_amount" class="form-label">
                                         <i class="fas fa-money-bill-wave me-2"></i>Enter Deposit Amount (USDT)
                                     </label>
                                     <input type="text" name="deposit_amount" id="deposit_amount" class="form-control" placeholder="Enter amount">
-                                </div>                                <!-- QR Code Section -->
+                                </div>
+
+                                <!-- QR Code Section -->
                                 <div class="mb-4">
                                     <h5 class="mb-3"><i class="fas fa-qrcode me-2"></i>Payment QR Code</h5>
                                     <div class="card bg-light">
@@ -427,14 +535,27 @@
                                     <label for="payment_proof" class="form-label">
                                         <i class="fas fa-camera me-2"></i>Upload Payment Proof (Optional)
                                     </label>
-                                    <input type="file" name="payment_proof" id="payment_proof" class="form-control" accept="image/*">
-                                    <div class="form-text">Upload a screenshot or photo of your payment confirmation</div>
+                                    <input type="file" name="payment_proof" id="payment_proof" class="form-control" accept="image/*,application/pdf,.pdf">
+                                    <div class="form-text">Upload a screenshot, photo, or PDF of your payment confirmation</div>
                                     
-                                    <!-- Image Preview -->
+                                    <!-- File Preview -->
                                     <div id="image-preview-container" class="mt-3" style="display: none;">
-                                        <img id="image-preview" src="" alt="Payment Proof Preview" class="img-fluid rounded" style="max-width: 200px; height: auto;">
+                                        <!-- Image Preview -->
+                                        <div id="image-preview-wrapper" style="display: none;">
+                                            <img id="image-preview" src="" alt="Payment Proof Preview" class="img-fluid rounded" style="max-width: 200px; height: auto;">
+                                        </div>
+                                        
+                                        <!-- PDF Preview -->
+                                        <div id="pdf-preview-wrapper" style="display: none;">
+                                            <div class="pdf-preview-box">
+                                                <i class="fas fa-file-pdf fa-3x text-danger mb-2"></i>
+                                                <p class="mb-1 fw-bold" id="pdf-name">Document.pdf</p>
+                                                <p class="text-muted small" id="pdf-size">0 KB</p>
+                                            </div>
+                                        </div>
+                                        
                                         <button type="button" class="btn btn-sm btn-outline-danger mt-2" id="remove-image">
-                                            <i class="fas fa-times me-1"></i>Remove Image
+                                            <i class="fas fa-times me-1"></i>Remove File
                                         </button>
                                     </div>
                                 </div>
@@ -449,8 +570,117 @@
                                 
                                 <div class="d-grid">
                                     <button class="btn btn-custom" id="deposit">
-                                        <i class="fas fa-paper-plane me-2"></i>Submit Deposit Request
+                                        <i class="fas fa-paper-plane me-2"></i>Submit Direct Deposit Request
                                     </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bank Deposit Form Tab (NEW) -->
+                    <div class="tab-pane fade" id="bank-deposit-form" role="tabpanel">
+                        <div class="row">
+                            <div class="col-12">
+                                <!-- Bank Deposit Form -->
+                                <div id="bank-deposit-form-step" class="bank-deposit-step">
+                                    <div class="deposit-card mb-4">
+                                        <div class="deposit-item text-center">
+                                            <h5 class="mb-3"><i class="fas fa-university me-2"></i>Bank Deposit</h5>
+                                            <p class="text-muted">Contact support for instructions on how to deposit funds to your account through your bank.</p>
+                                        </div>
+                                    </div>
+
+                                    <div class="deposit-card">
+                                        <div class="deposit-item">
+                                            <form id="bank-deposit-form-element">
+                                                <!-- Bank Name -->
+                                                <div class="mb-4">
+                                                    <label for="bank_name" class="form-label">
+                                                        <i class="fas fa-university me-2"></i>Bank Name
+                                                    </label>
+                                                    <input type="text" id="bank_name" class="form-control" placeholder="Enter your bank name" required>
+                                                    <div class="form-text">Enter the name of your bank (e.g., Chase Bank, Bank of America)</div>
+                                                </div>
+
+                                                <!-- Account Number -->
+                                                <!-- <div class="mb-4">
+                                                    <label for="account_number" class="form-label">
+                                                        <i class="fas fa-credit-card me-2"></i>Account Number
+                                                    </label>
+                                                    <input type="text" id="account_number" class="form-control" placeholder="Enter your account number" maxlength="20" required>
+                                                    <div class="form-text">Your bank account number (will be masked for security)</div>
+                                                </div> -->
+
+                                                <!-- Amount -->
+                                                <div class="mb-4">
+                                                    <label for="bank_deposit_amount_simple" class="form-label">
+                                                        <i class="fas fa-dollar-sign me-2"></i>Amount Deposited (USD)
+                                                    </label>
+                                                    <input type="number" id="bank_deposit_amount_simple" class="form-control form-control-lg" placeholder="0.00" step="0.01" min="10" required>
+                                                    <div class="form-text">Enter the amount you transferred from your bank account</div>
+                                                </div>
+
+                                                <!-- Payment Proof Upload -->
+                                                <div class="mb-4">
+                                                    <label for="payment_proof_bank" class="form-label">
+                                                        <i class="fas fa-camera me-2"></i>Payment Proof (Upload Document)
+                                                    </label>
+                                                    <input type="file" id="payment_proof_bank" class="form-control" accept="image/*,application/pdf,.pdf">
+                                                    <div class="form-text">Upload a screenshot, photo, or PDF of your bank transfer confirmation</div>
+                                                    
+                                                    <!-- File Preview -->
+                                                    <div id="bank-image-preview-container" class="mt-3" style="display: none;">
+                                                        <!-- Image Preview -->
+                                                        <div id="bank-image-preview-wrapper" style="display: none;">
+                                                            <img id="bank-image-preview" src="" alt="Payment Proof Preview" class="img-fluid rounded" style="max-width: 200px; height: auto;">
+                                                        </div>
+                                                        
+                                                        <!-- PDF Preview -->
+                                                        <div id="bank-pdf-preview-wrapper" style="display: none;">
+                                                            <div class="d-flex align-items-center p-3 border rounded bg-light">
+                                                                <i class="fas fa-file-pdf text-danger me-3" style="font-size: 2rem;"></i>
+                                                                <div>
+                                                                    <h6 class="mb-0" id="bank-pdf-name">document.pdf</h6>
+                                                                    <small class="text-muted" id="bank-pdf-size">0 KB</small>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <button type="button" class="btn btn-outline-danger" id="remove-bank-image">
+                                                            <i class="fas fa-times me-2"></i>Remove File
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                                <!-- Additional Notes -->
+                                                <div class="mb-4">
+                                                    <label for="bank_notes" class="form-label">
+                                                        <i class="fas fa-sticky-note me-2"></i>Additional Notes (Optional)
+                                                    </label>
+                                                    <textarea id="bank_notes" class="form-control" rows="3" placeholder="Any additional information about your transfer"></textarea>
+                                                </div>
+
+                                                <div class="d-grid">
+                                                    <button type="submit" class="btn btn-custom btn-lg" id="submit-bank-deposit-simple">
+                                                        <i class="fas fa-paper-plane me-2"></i>Submit Bank Deposit
+                                                    </button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Loading Animation -->
+                                <div id="bank-loading-step" class="bank-deposit-step text-center" style="display: none;">
+                                    <div class="deposit-card">
+                                        <div class="deposit-item text-center py-5">
+                                            <div class="spinner-border text-primary mb-4" role="status" style="width: 4rem; height: 4rem;">
+                                                <span class="visually-hidden">Loading...</span>
+                                            </div>
+                                            <h5 class="mb-3">Processing Your Deposit</h5>
+                                            <p class="text-muted">Please wait while we process your bank deposit...</p>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -464,8 +694,9 @@
                                         <th scope="col">Time</th>
                                         <th scope="col">Amount</th>
                                         <th scope="col">Status</th>
-                                        <th scope="col">Image</th>
-                                        <th scope="col">Note</th>
+                                        <!-- Hide Image and Note columns -->
+                                        <!-- <th scope="col">Image</th> -->
+                                        <!-- <th scope="col">Note</th> -->
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -479,6 +710,42 @@
         </div>
     </div>
 </main>
+
+<!-- Bank Deposit Success Modal -->
+<div class="modal fade" id="bankDepositSuccessModal" tabindex="-1" aria-labelledby="bankDepositSuccessModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-body text-center p-5">
+                <div class="mb-4">
+                    <i class="fas fa-check-circle text-success" style="font-size: 4rem;"></i>
+                </div>
+                <h4 class="mb-3">Deposit Submitted Successfully!</h4>
+                <p class="text-muted mb-4">
+                    We are verifying your bank deposit information. We will deposit 
+                    <strong id="modal-deposit-amount">$0.00</strong> into your account as soon as we're done verifying.
+                </p>
+                <p class="text-muted mb-4">
+                    <small>
+                        <i class="fas fa-clock me-2"></i>
+                        Verification may take up to 2 business days. You will receive a notification once your deposit is processed.
+                    </small>
+                </p>
+                <div class="alert alert-info">
+                    <i class="fas fa-question-circle me-2"></i>
+                    <strong>Have questions?</strong> Contact our support team for assistance.
+                </div>
+                <div class="d-grid gap-2">
+                    <button type="button" class="btn btn-custom" data-bs-dismiss="modal" id="modal-ok-button">
+                        <i class="fas fa-check me-2"></i>OK, Got It
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" onclick="window.location.href='support.html'">
+                        <i class="fas fa-headset me-2"></i>Contact Support
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
 <!-- Standard Footer Navigation -->
 <div id="footer-navigation"></div>
@@ -504,41 +771,298 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Handle tab switching for image visibility
     const tabButtons = document.querySelectorAll('[data-bs-toggle="tab"]');
-    const imageContainer = document.querySelector('.deposit-image-container-left');
+    const directDepositImage = document.querySelector('#direct-deposit-image');
+    const bankDepositImage = document.querySelector('#bank-deposit-image');
     const tabContent = document.querySelector('#depositTabsContent');
     
     tabButtons.forEach(button => {
         button.addEventListener('shown.bs.tab', function(e) {
             const targetTab = e.target.getAttribute('data-bs-target');
             
-            if (targetTab === '#deposit-form') {
-                // Show image on deposit form tab
-                if (imageContainer) {
-                    imageContainer.style.display = 'flex';
+            // Hide all images first
+            if (directDepositImage) directDepositImage.style.display = 'none';
+            if (bankDepositImage) bankDepositImage.style.display = 'none';
+            
+            if (targetTab === '#direct-deposit-form') {
+                // Show direct deposit image
+                if (directDepositImage) {
+                    directDepositImage.style.display = 'flex';
                 }
                 if (tabContent) {
-                    tabContent.setAttribute('data-active-tab', 'deposit-form');
+                    tabContent.setAttribute('data-active-tab', 'direct-deposit-form');
+                }
+            } else if (targetTab === '#bank-deposit-form') {
+                // Show bank deposit image
+                if (bankDepositImage) {
+                    bankDepositImage.style.display = 'flex';
+                }
+                if (tabContent) {
+                    tabContent.setAttribute('data-active-tab', 'bank-deposit-form');
                 }
             } else {
-                // Hide image on other tabs (history tab)
-                if (imageContainer) {
-                    imageContainer.style.display = 'none';
-                }
+                // History tab or others - no images
                 if (tabContent) {
-                    tabContent.setAttribute('data-active-tab', 'deposit-history');
+                    tabContent.setAttribute('data-active-tab', targetTab.replace('#', ''));
                 }
             }
         });
     });
     
-    // Ensure image is visible on page load (deposit form is active by default)
-    if (imageContainer) {
-        imageContainer.style.display = 'flex';
+    // Ensure direct deposit image is visible on page load (direct deposit tab is active by default)
+    if (directDepositImage) {
+        directDepositImage.style.display = 'flex';
     }
     if (tabContent) {
-        tabContent.setAttribute('data-active-tab', 'deposit-form');
+        tabContent.setAttribute('data-active-tab', 'direct-deposit-form');
     }
+
+    // Bank Deposit Functionality
+    initializeBankDeposit();
 });
+
+function initializeBankDeposit() {
+    // Get form elements
+    const bankForm = document.getElementById('bank-deposit-form-element');
+    const imageInput = document.getElementById('payment_proof_bank');
+    const imagePreview = document.getElementById('bank-image-preview');
+    const imagePreviewContainer = document.getElementById('bank-image-preview-container');
+    const removeImageBtn = document.getElementById('remove-bank-image');
+    const bankFormStep = document.getElementById('bank-deposit-form-step');
+    const loadingStep = document.getElementById('bank-loading-step');
+
+    // Image/PDF preview functionality
+    if (imageInput && imagePreviewContainer && removeImageBtn) {
+        const imagePreview = document.getElementById('bank-image-preview');
+        const imagePreviewWrapper = document.getElementById('bank-image-preview-wrapper');
+        const pdfPreviewWrapper = document.getElementById('bank-pdf-preview-wrapper');
+        const pdfName = document.getElementById('bank-pdf-name');
+        const pdfSize = document.getElementById('bank-pdf-size');
+        
+        imageInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                // Reset previews
+                imagePreviewWrapper.style.display = 'none';
+                pdfPreviewWrapper.style.display = 'none';
+                
+                if (file.type.startsWith('image/')) {
+                    // Handle image files
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        imagePreview.src = e.target.result;
+                        imagePreviewWrapper.style.display = 'block';
+                        imagePreviewContainer.style.display = 'block';
+                    };
+                    reader.readAsDataURL(file);
+                } else if (file.type === 'application/pdf') {
+                    // Handle PDF files
+                    pdfName.textContent = file.name;
+                    pdfSize.textContent = formatFileSize(file.size);
+                    pdfPreviewWrapper.style.display = 'block';
+                    imagePreviewContainer.style.display = 'block';
+                }
+            }
+        });
+
+        removeImageBtn.addEventListener('click', function() {
+            imageInput.value = '';
+            imagePreview.src = '';
+            imagePreviewWrapper.style.display = 'none';
+            pdfPreviewWrapper.style.display = 'none';
+            imagePreviewContainer.style.display = 'none';
+        });
+    }
+
+    // Direct deposit file preview functionality
+    const directImageInput = document.getElementById('payment_proof');
+    const directImagePreviewContainer = document.getElementById('image-preview-container');
+    const directRemoveImageBtn = document.getElementById('remove-image');
+    
+    if (directImageInput && directImagePreviewContainer && directRemoveImageBtn) {
+        const directImagePreview = document.getElementById('image-preview');
+        const directImagePreviewWrapper = document.getElementById('image-preview-wrapper');
+        const directPdfPreviewWrapper = document.getElementById('pdf-preview-wrapper');
+        const directPdfName = document.getElementById('pdf-name');
+        const directPdfSize = document.getElementById('pdf-size');
+        
+        directImageInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                // Reset previews
+                directImagePreviewWrapper.style.display = 'none';
+                directPdfPreviewWrapper.style.display = 'none';
+                
+                if (file.type.startsWith('image/')) {
+                    // Handle image files
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        directImagePreview.src = e.target.result;
+                        directImagePreviewWrapper.style.display = 'block';
+                        directImagePreviewContainer.style.display = 'block';
+                    };
+                    reader.readAsDataURL(file);
+                } else if (file.type === 'application/pdf') {
+                    // Handle PDF files
+                    directPdfName.textContent = file.name;
+                    directPdfSize.textContent = formatFileSize(file.size);
+                    directPdfPreviewWrapper.style.display = 'block';
+                    directImagePreviewContainer.style.display = 'block';
+                }
+            }
+        });
+
+        directRemoveImageBtn.addEventListener('click', function() {
+            directImageInput.value = '';
+            directImagePreview.src = '';
+            directImagePreviewWrapper.style.display = 'none';
+            directPdfPreviewWrapper.style.display = 'none';
+            directImagePreviewContainer.style.display = 'none';
+        });
+    }
+
+    // Helper function to format file size
+    function formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+
+    // Form submission
+    if (bankForm) {
+        bankForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            processBankDepositSimple();
+        });
+    }
+
+    function processBankDepositSimple() {
+        // Get form data
+        const bankName = document.getElementById('bank_name').value.trim();
+        const amount = parseFloat(document.getElementById('bank_deposit_amount_simple').value);
+        const notes = document.getElementById('bank_notes').value.trim();
+        const imageFile = imageInput.files[0];
+
+        // Validation
+        if (!bankName) {
+            alert('Please enter your bank name');
+            return;
+        }
+
+        if (!amount || amount < 10) {
+            alert('Please enter a valid amount (minimum $10.00)');
+            return;
+        }
+
+        // Show loading animation
+        showLoadingStep();
+
+        // Use the actual API function
+        processBankDepositWithAPI(bankName, amount, notes, imageFile);
+    }
+
+    async function processBankDepositWithAPI(bankName, amount, notes, imageFile) {
+        try {
+            if (imageFile) {
+                // Use the new file upload endpoint
+                const formData = new FormData();
+                formData.append('bank_name', bankName);
+                formData.append('amount', amount);
+                formData.append('notes', notes || '');
+                formData.append('receipt', imageFile);
+
+                const authData = checkAuthentication();
+                if (!authData) {
+                    throw new Error('Authentication required');
+                }
+
+                const response = await fetch(`${baseurl}/api/user/deposits/bank-with-file`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${authData.token}`
+                    },
+                    body: formData
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Hide loading
+                    hideLoadingStep();
+                    
+                    // Show success modal
+                    showSuccessModal(amount);
+                    
+                    // Reset form
+                    resetBankForm();
+                } else {
+                    throw new Error(result.message || 'Failed to submit bank deposit');
+                }
+            } else {
+                // Use the existing simple API for deposits without files
+                const depositData = {
+                    bankName: bankName,
+                    amount: amount,
+                    notes: notes || ''
+                };
+
+                const result = await processBankDepositSimpleAPI(depositData);
+                
+                if (result && result.success) {
+                    // Hide loading
+                    hideLoadingStep();
+                    
+                    // Show success modal
+                    showSuccessModal(amount);
+                    
+                    // Reset form
+                    resetBankForm();
+                } else {
+                    throw new Error(result?.message || 'Failed to submit bank deposit');
+                }
+            }
+        } catch (error) {
+            console.error('Error submitting bank deposit:', error);
+            hideLoadingStep();
+            alert('Error submitting bank deposit: ' + error.message);
+        }
+    }
+
+    function showLoadingStep() {
+        bankFormStep.style.display = 'none';
+        loadingStep.style.display = 'block';
+    }
+
+    function hideLoadingStep() {
+        loadingStep.style.display = 'none';
+        bankFormStep.style.display = 'block';
+    }
+
+    function showSuccessModal(amount) {
+        const modal = new bootstrap.Modal(document.getElementById('bankDepositSuccessModal'));
+        document.getElementById('modal-deposit-amount').textContent = `$${amount.toFixed(2)}`;
+        modal.show();
+
+        // Handle modal OK button click
+        document.getElementById('modal-ok-button').addEventListener('click', function() {
+            // Redirect to deposits history tab
+            const historyTab = document.getElementById('history-tab');
+            if (historyTab) {
+                historyTab.click();
+            }
+        });
+    }
+
+    function resetBankForm() {
+        if (bankForm) {
+            bankForm.reset();
+            if (imagePreviewContainer) {
+                imagePreviewContainer.style.display = 'none';
+            }
+        }
+    }
+}
 </script>
 
 <!-- Chat Widget -->

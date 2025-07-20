@@ -249,12 +249,96 @@ body {
     border-radius: 5px;
     background-color: #e9ecef;
     overflow: hidden;
+    position: relative;
 }
 
 .credit-score-progress {
     height: 100%;
-    background: linear-gradient(90deg, #4fd1c5, #38b2ac);
-    width: 100%;
+    border-radius: 5px;
+    transition: width 0.3s ease;
+    width: 0%;
+}
+
+.credit-score-value {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: #495057;
+}
+
+.credit-score-rating {
+    min-width: 80px;
+    text-align: center;
+}
+
+.credit-score-rating .badge {
+    padding: 0.5rem 0.8rem;
+    font-size: 0.8rem;
+}
+
+/* Credit Score Rating Colors */
+.badge.excellent {
+    background-color: #28a745;
+    color: white;
+}
+
+.badge.good {
+    background-color: #20c997;
+    color: white;
+}
+
+.badge.fair {
+    background-color: #ffc107;
+    color: #212529;
+}
+
+.badge.poor {
+    background-color: #fd7e14;
+    color: white;
+}
+
+.badge.very-poor {
+    background-color: #dc3545;
+    color: white;
+}
+
+.badge.newcomer {
+    background-color: #6f42c1;
+    color: white;
+}
+
+/* Dynamic progress bar colors */
+.credit-score-progress.excellent {
+    background: linear-gradient(90deg, #28a745, #20c997);
+}
+
+.credit-score-progress.good {
+    background: linear-gradient(90deg, #20c997, #17a2b8);
+}
+
+.credit-score-progress.fair {
+    background: linear-gradient(90deg, #ffc107, #fd7e14);
+}
+
+.credit-score-progress.poor {
+    background: linear-gradient(90deg, #fd7e14, #dc3545);
+}
+
+.credit-score-progress.very-poor {
+    background: linear-gradient(90deg, #dc3545, #6c757d);
+}
+
+.credit-score-progress.newcomer {
+    background: linear-gradient(90deg, #6f42c1, #9b59b6);
+    animation: newcomerPulse 2s ease-in-out infinite alternate;
+}
+
+@keyframes newcomerPulse {
+    0% {
+        opacity: 0.6;
+    }
+    100% {
+        opacity: 1;
+    }
 }
 
 /* Task specific styles */

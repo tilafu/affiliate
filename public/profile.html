@@ -415,7 +415,7 @@
         <div class="profile-card" style="background-color: white !important; background-image: none !important;">
             <div class="profile-item text-center" style="background-color: white !important; background-image: none !important;">
                 <div class="position-relative d-inline-block">
-                    <img src="./assets/uploads/user.jpg" class="profile-image mb-3" alt="Profile Picture" id="profile-image">
+                    <img src="" class="profile-image mb-3" alt="Profile Picture" id="profile-image" style="display: none;">
                     <button type="button" class="btn btn-sm btn-primary position-absolute" 
                             style="bottom: 10px; right: -10px; border-radius: 50%; width: 30px; height: 30px; padding: 0;"
                             id="change-avatar-btn" title="Change Profile Picture">
@@ -660,6 +660,32 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log(`Could not update ${id}, element exists: ${!!element}, value exists: ${!!value}`);
           }
         }
+        
+        // Update profile image with user's avatar
+        const profileImage = document.getElementById('profile-image');
+        if (profileImage) {
+          let avatarSrc = null;
+          if (user.avatar_url) {
+            avatarSrc = user.avatar_url;
+          } else if (user.profile_image) {
+            avatarSrc = user.profile_image;
+          }
+          
+          if (avatarSrc) {
+            profileImage.src = avatarSrc;
+            profileImage.style.display = 'block';
+            console.log('Updated profile image with user avatar:', avatarSrc);
+          } else {
+            profileImage.style.display = 'none';
+            console.log('No user avatar found, hiding profile image');
+          }
+          
+          // Add error handler to hide image if loading fails
+          profileImage.onerror = function() {
+            this.style.display = 'none';
+            console.log('Profile image failed to load, hiding image');
+          };
+        }
       } catch (e) {
         console.error('Failed to parse user data:', e);
       }
@@ -756,6 +782,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const sidebarAvatar = document.getElementById('user-avatar');
                 
                 profileImage.src = result.avatarUrl;
+                profileImage.style.display = 'block'; // Show the image after upload
                 if (sidebarAvatar) {
                     sidebarAvatar.src = result.avatarUrl;
                 }
@@ -971,6 +998,31 @@ document.addEventListener('DOMContentLoaded', function() {
                                         }
                                     }
                                 });
+                                
+                                // Update profile image with user's avatar
+                                const profileImage = document.getElementById('profile-image');
+                                if (profileImage) {
+                                    let avatarSrc = null;
+                                    if (userData.avatar_url) {
+                                        avatarSrc = userData.avatar_url;
+                                    } else if (userData.profile_image) {
+                                        avatarSrc = userData.profile_image;
+                                    }
+                                    
+                                    if (avatarSrc) {
+                                        profileImage.src = avatarSrc;
+                                        profileImage.style.display = 'block';
+                                        console.log('Updated profile image after component load:', avatarSrc);
+                                    } else {
+                                        profileImage.style.display = 'none';
+                                    }
+                                    
+                                    // Add error handler to hide image if loading fails
+                                    profileImage.onerror = function() {
+                                        this.style.display = 'none';
+                                    };
+                                }
+                                
                                 console.log('Profile updated with cached data after component load');
                             }
                         }
