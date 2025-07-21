@@ -2149,6 +2149,34 @@ function attemptAutoUnfreeze(token, currentBalance, requiredAmount) {
     });
 }
 
+// Helper function to show frozen account modal
+function showFrozenAccountModal(currentBalance, amountNeeded) {
+    console.log('showFrozenAccountModal: Displaying modal with balance:', currentBalance, 'needed:', amountNeeded);
+    
+    const frozenModalElement = document.getElementById('frozenAccountModal');
+    if (frozenModalElement) {
+        // Update modal content with current status
+        const currentBalanceElement = document.getElementById('modal-current-balance');
+        const amountNeededElement = document.getElementById('modal-amount-needed');
+        
+        if (currentBalanceElement) {
+            currentBalanceElement.textContent = `$${currentBalance.toFixed(2)}`;
+        }
+        
+        if (amountNeededElement) {
+            amountNeededElement.textContent = `$${amountNeeded.toFixed(2)}`;
+        }
+        
+        // Show the modal
+        const frozenModal = bootstrap.Modal.getOrCreateInstance(frozenModalElement);
+        frozenModal.show();
+        
+        console.log('showFrozenAccountModal: Modal should now be visible');
+    } else {
+        console.error('showFrozenAccountModal: frozenAccountModal element not found in DOM');
+    }
+}
+
 // --- Periodic Frozen Account Check ---
 function checkFrozenAccountStatus(token) {
     // Only check if no modal is currently showing to avoid spam
@@ -2172,29 +2200,49 @@ function checkFrozenAccountStatus(token) {
         const isFrozen = statusData.success && statusData.status === 'frozen';
         const frozenAmountNeeded = statusData.frozen_amount_needed ? parseFloat(statusData.frozen_amount_needed) : 0;
         
-        if (isFrozen && frozenAmountNeeded > 0) {
-            // Check current balance
-            fetch(`${API_BASE_URL}/api/user/balances`, {
-                method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json',
-                },
-            })
-            .then(response => response.json())
-            .then(balanceData => {
-                if (balanceData.success && balanceData.balances) {
-                    const mainBalance = parseFloat(balanceData.balances.main_balance || 0);
-                    
-                    if (mainBalance >= frozenAmountNeeded) {
-                        console.log('Account can be auto-unfrozen - attempting...');
-                        attemptAutoUnfreeze(token, mainBalance, frozenAmountNeeded);
+        if (isFrozen) {
+            console.log('checkFrozenAccountStatus: Account is frozen, amount needed:', frozenAmountNeeded);
+            
+            if (frozenAmountNeeded > 0) {
+                // Check current balance for auto-unfreeze
+                fetch(`${API_BASE_URL}/api/user/balances`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json',
+                    },
+                })
+                .then(response => response.json())
+                .then(balanceData => {
+                    if (balanceData.success && balanceData.balances) {
+                        const mainBalance = parseFloat(balanceData.balances.main_balance || 0);
+                        
+                        if (mainBalance >= frozenAmountNeeded) {
+                            console.log('Account can be auto-unfrozen - attempting...');
+                            attemptAutoUnfreeze(token, mainBalance, frozenAmountNeeded);
+                        } else {
+                            // Show frozen account modal
+                            console.log('Insufficient balance - showing frozen account modal');
+                            showFrozenAccountModal(mainBalance, frozenAmountNeeded);
+                        }
+                    } else {
+                        // Show frozen account modal with default values
+                        console.log('Could not get balance - showing frozen account modal');
+                        showFrozenAccountModal(0, frozenAmountNeeded);
                     }
-                }
-            })
-            .catch(error => {
-                console.error('Error checking balance for auto-unfreeze:', error);
-            });
+                })
+                .catch(error => {
+                    console.error('Error checking balance for auto-unfreeze:', error);
+                    // Show frozen account modal with default values
+                    showFrozenAccountModal(0, frozenAmountNeeded);
+                });
+            } else {
+                // Show frozen account modal even if amount needed is 0
+                console.log('Account frozen - showing frozen account modal');
+                showFrozenAccountModal(0, frozenAmountNeeded);
+            }
+        } else {
+            console.log('checkFrozenAccountStatus: Account is not frozen');
         }
     })
     .catch(error => {
@@ -2456,8 +2504,26 @@ async function fetchProductDataForModal(authToken) {
       }
       return null;
     } else {
-      // Error or no data available
-      console.warn('fetchProductDataForModal: No product data available, code:', data.code);
+      // Error or no data available - check if it's due to frozen account
+      console.warn('fetchProductDataForModal: No product data available, code:', data.code, 'message:', data.message || data.info);
+      
+      // Check if response indicates frozen account
+      const message = (data.message || data.info || '').toLowerCase();
+      if (message.includes('frozen') || message.includes('insufficient') || data.code === 1) {
+        console.log('Detected frozen account from API response - closing modal and checking status');
+        
+        // Close the product modal first
+        closeProductModal();
+        
+        // Check frozen account status
+        const authToken = globalAuthData?.token;
+        if (authToken) {
+          checkFrozenAccountStatus(authToken);
+        }
+        return null;
+      }
+      
+      // Generic no data message
       const modalContent = document.querySelector('.drive-modal .drive-product-info');
       if (modalContent) {
         modalContent.innerHTML = '<div class="alert alert-info">No product data available. Please start a drive session first.</div>';
@@ -2466,9 +2532,83 @@ async function fetchProductDataForModal(authToken) {
     }
   } catch (error) {
     console.error('fetchProductDataForModal: Error fetching product data:', error);
-    const modalContent = document.querySelector('.drive-modal .drive-product-info');
-    if (modalContent) {
-      modalContent.innerHTML = '<div class="alert alert-danger">Error loading product data. Please try again later.</div>';
+    
+    // Check if this might be due to a frozen account
+    const authToken = globalAuthData?.token;
+    if (authToken && (error.message.includes('HTTP 400') || error.message.includes('HTTP 403') || error.message.includes('frozen'))) {
+      // Close the product modal first
+      closeProductModal();
+      
+      // Check frozen account status
+      fetch(`${API_BASE_URL}/api/drive/status`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+          'Content-Type': 'application/json',
+        },
+      })
+      .then(response => response.json())
+      .then(statusData => {
+        const isFrozen = statusData.success && statusData.status === 'frozen';
+        const frozenAmountNeeded = statusData.frozen_amount_needed ? parseFloat(statusData.frozen_amount_needed) : 0;
+        
+        if (isFrozen) {
+          console.log('Account is frozen - showing frozen account modal');
+          // Show frozen account modal
+          const frozenModalElement = document.getElementById('frozenAccountModal');
+          if (frozenModalElement) {
+            // Update modal content with current status
+            const currentBalanceElement = document.getElementById('modal-current-balance');
+            const amountNeededElement = document.getElementById('modal-amount-needed');
+            
+            if (currentBalanceElement) {
+              fetch(`${API_BASE_URL}/api/user/balances`, {
+                method: 'GET',
+                headers: {
+                  'Authorization': `Bearer ${authToken}`,
+                  'Content-Type': 'application/json',
+                },
+              })
+              .then(response => response.json())
+              .then(balanceData => {
+                if (balanceData.success && balanceData.balances) {
+                  const mainBalance = parseFloat(balanceData.balances.main_balance || 0);
+                  currentBalanceElement.textContent = `$${mainBalance.toFixed(2)}`;
+                }
+              })
+              .catch(() => {
+                currentBalanceElement.textContent = 'Loading...';
+              });
+            }
+            
+            if (amountNeededElement) {
+              amountNeededElement.textContent = `$${frozenAmountNeeded.toFixed(2)}`;
+            }
+            
+            const frozenModal = bootstrap.Modal.getOrCreateInstance(frozenModalElement);
+            frozenModal.show();
+          }
+        } else {
+          // Not frozen, show generic error
+          const modalContent = document.querySelector('.drive-modal .drive-product-info');
+          if (modalContent) {
+            modalContent.innerHTML = '<div class="alert alert-danger">Error loading product data. Please try again later.</div>';
+          }
+        }
+      })
+      .catch(() => {
+        // If status check fails, show generic error
+        const modalContent = document.querySelector('.drive-modal .drive-product-info');
+        if (modalContent) {
+          modalContent.innerHTML = '<div class="alert alert-danger">Error loading product data. Please try again later.</div>';
+        }
+      });
+    } else {
+      // Generic error handling
+      const modalContent = document.querySelector('.drive-modal .drive-product-info');
+      if (modalContent) {
+        modalContent.innerHTML = '<div class="alert alert-danger">Error loading product data. Please try again later.</div>';
+      }
     }
     return null;
   }

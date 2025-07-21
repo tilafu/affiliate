@@ -215,11 +215,31 @@ function showPurchaseSuccessPopup(productName, onContinue) {
         popup.classList.add('show');
     }, 10);
     
-    // Handle continue button
+    // Handle continue button - now triggers rating modal
     const handleContinue = () => {
         hidePurchaseSuccessPopup();
-        if (typeof onContinue === 'function') {
-            onContinue();
+        
+        // Show product rating modal after success popup
+        if (typeof window.LuxuryProductRatingModal !== 'undefined') {
+            const ratingModal = new window.LuxuryProductRatingModal();
+            const productData = {
+                name: productName,
+                image: document.querySelector('.drive-product-image img')?.src || './assets/uploads/images/1.jpg',
+                price: document.querySelector('#drivePurchasePrice')?.textContent || '$24.99 USDT',
+                category: 'Electronics'
+            };
+            
+            ratingModal.show(productData, () => {
+                // After rating submission, continue with original callback
+                if (typeof onContinue === 'function') {
+                    onContinue();
+                }
+            });
+        } else {
+            // Fallback if rating modal not available
+            if (typeof onContinue === 'function') {
+                onContinue();
+            }
         }
     };
     

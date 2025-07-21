@@ -4,8 +4,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <meta http-equiv="X-UA-Compatible" content="IE=Edge"/>
-    <title>FAQs</title>
-    <meta name="csrf-token" content="t9EtiRskFKx5XpnOFvbrimp5ZgsKIg3UU1Ea1iDM">
+    <title data-i18n-title="faqPageTitle">Frequently Asked Questions - CDOT</title>
+    <meta name="csrf-token" content="cMnbgu3d14TqQm9u7lWoeRN4awsdQMKFm6tCJ2zU">
     <link rel="shortcut icon" href="./assets/uploads/generals/favicon-665b8c8a863b91717275786.png">
     
     <!-- Bootstrap 5 CSS -->
@@ -15,27 +15,21 @@
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     
-    <!-- i18next scripts -->
-    <script src="https://unpkg.com/i18next/i18next.min.js"></script>
-    <script src="https://unpkg.com/i18next-http-backend/i18nextHttpBackend.min.js"></script>
-    
     <style>
         :root {
-            --primary-blue: #007AFF;
-            --secondary-blue: #5AC8FA;
-            --success-green: #30D158;
-            --warning-orange: #FF9500;
-            --danger-red: #FF3B30;
-            --purple: #5856D6;
-            --pink: #FF2D92;
-            --background: #F2F2F7;
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+            --success-color: #30D158;
+            --warning-color: #FF9500;
+            --danger-color: #FF3B30;
+            --background: #F8F9FA;
             --card-background: #FFFFFF;
-            --text-primary: #000000;
-            --text-secondary: #8E8E93;
-            --border-color: #E5E5EA;
-            --shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-            --shadow-hover: 0 8px 32px rgba(0, 0, 0, 0.15);
-            --gradient-faqs: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --text-primary: #2D3748;
+            --text-secondary: #4A5568;
+            --border-color: #E2E8F0;
+            --shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            --shadow-hover: 0 15px 40px rgba(0, 0, 0, 0.15);
         }
 
         * {
@@ -49,47 +43,43 @@
             background: var(--background);
             color: var(--text-primary);
             line-height: 1.6;
+            padding-bottom: 80px; /* Space for footer navigation */
+            min-height: 100vh;
         }
 
-        /* Modern Hero Section */
-        .faqs-hero-section {
-            background: 
-                linear-gradient(135deg, rgba(102, 126, 234, 0.85), rgba(118, 75, 162, 0.85)),
-                url('./assets/uploads/images/Drive/faqs-bg.jpg');
-            background-size: cover;
-            background-position: center;
-            background-attachment: fixed;
+        /* Hero Section */
+        .faq-hero {
+            background: var(--primary-gradient);
             color: white;
             padding: 120px 0 80px;
             position: relative;
             overflow: hidden;
+            margin-bottom: 2rem;
         }
-        
-        .faqs-hero-section::before {
+
+        .faq-hero::before {
             content: '';
             position: absolute;
             top: 0;
             left: 0;
             right: 0;
             bottom: 0;
-            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
-            z-index: 1;
+            background: rgba(0, 0, 0, 0.2);
         }
-        
-        .faqs-hero-section .container {
+
+        .faq-hero .container {
             position: relative;
             z-index: 2;
         }
 
         .back-btn {
             color: white;
+            font-size: 1.2rem;
             text-decoration: none;
+            transition: all 0.3s ease;
             display: inline-flex;
             align-items: center;
             gap: 0.5rem;
-            font-weight: 500;
-            transition: all 0.3s ease;
-            padding: 8px 0;
             margin-bottom: 2rem;
         }
 
@@ -98,559 +88,581 @@
             transform: translateX(-5px);
         }
 
-        .hero-title {
-            font-size: 3rem;
-            font-weight: 800;
-            margin-bottom: 1rem;
-            background: linear-gradient(45deg, #fff, #ffc107);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+        .hero-content h1 {
+            font-size: 3.5rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
         }
 
-        .hero-subtitle {
+        .hero-content p {
             font-size: 1.25rem;
             opacity: 0.9;
-            font-weight: 400;
+            max-width: 600px;
+        }
+
+        .menu-btn {
+            background: none;
+            border: none;
+            font-size: 1.25rem;
+            color: white;
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 10;
+        }
+
+        .menu-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        /* Sidebar Overlay */
+        .sidebar-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .sidebar-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* Sidebar base styles */
+        .main-sidebar {
+            position: fixed;
+            top: 0;
+            left: -300px;
+            width: 300px;
+            height: 100vh;
+            background: var(--card-background);
+            z-index: 1001;
+            transition: left 0.3s ease;
+            overflow-y: auto;
+        }
+
+        .main-sidebar.active {
+            left: 0;
         }
 
         /* Main Content */
         .main-content {
-            padding: 4rem 0;
+            padding: 0;
+            min-height: calc(100vh - 160px);
         }
 
-        /* FAQ Section with Creative Image Integration */
-        .faq-section {
-            background: var(--card-background);
-            border-radius: 30px;
-            box-shadow: var(--shadow);
-            margin: 2rem 0;
-            overflow: hidden;
-            position: relative;
+        /* FAQ Cards */
+        .faq-container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 0 1rem;
         }
 
-        .faq-section::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            right: 0;
-            width: 300px;
-            height: 100%;
-            background: url('./assets/uploads/images/Drive/faq-pattern.jpg') no-repeat center;
-            background-size: cover;
-            opacity: 0.05;
-            z-index: 1;
-        }
-
-        .faq-content {
-            position: relative;
-            z-index: 2;
-            padding: 3rem;
-        }
-
-        .faq-header {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
+        .faq-search {
             margin-bottom: 2rem;
-            padding-bottom: 1rem;
-            border-bottom: 2px solid var(--border-color);
         }
 
-        .faq-icon {
-            width: 60px;
-            height: 60px;
-            background: linear-gradient(45deg, var(--primary-blue), var(--secondary-blue));
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 1.5rem;
-        }
-
-        .faq-section-title {
-            font-size: 1.8rem;
-            font-weight: 700;
-            color: var(--text-primary);
-            margin: 0;
-        }
-
-        /* Accordion Styling */
-        .accordion {
-            --bs-accordion-border-radius: 20px;
-            --bs-accordion-border-color: var(--border-color);
-            --bs-accordion-bg: transparent;
-        }
-
-        .accordion-item {
-            border: none;
-            margin-bottom: 1rem;
-            background: rgba(255, 255, 255, 0.5);
-            border-radius: 16px !important;
-            overflow: hidden;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-        }
-
-        .accordion-button {
-            background: transparent;
-            border: none;
-            font-weight: 600;
+        .search-input {
+            width: 100%;
+            padding: 1.2rem 1.5rem;
+            border: 2px solid var(--border-color);
+            border-radius: 15px;
             font-size: 1.1rem;
-            color: var(--text-primary);
-            padding: 1.5rem;
-            border-radius: 16px !important;
-            box-shadow: none;
-        }
-
-        .accordion-button:not(.collapsed) {
-            background: linear-gradient(45deg, var(--primary-blue), var(--secondary-blue));
-            color: white;
-        }
-
-        .accordion-button::after {
-            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23fff'%3e%3cpath fill-rule='evenodd' d='M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z'/%3e%3c/svg%3e");
-        }
-
-        .accordion-body {
-            padding: 1.5rem;
-            color: var(--text-secondary);
-            line-height: 1.7;
-        }
-
-        /* Creative Image Cards */
-        .image-card {
-            position: relative;
-            border-radius: 20px;
-            overflow: hidden;
-            height: 200px;
-            background-size: cover;
-            background-position: center;
-            display: flex;
-            align-items: end;
-            margin-bottom: 2rem;
+            background: var(--card-background);
+            transition: all 0.3s ease;
             box-shadow: var(--shadow);
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .search-input::placeholder {
+            color: var(--text-secondary);
+        }
+
+        .faq-item {
+            background: var(--card-background);
+            border-radius: 20px;
+            margin-bottom: 1.5rem;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border-color);
+            overflow: hidden;
             transition: all 0.3s ease;
         }
 
-        .image-card:hover {
-            transform: translateY(-5px);
+        .faq-item:hover {
             box-shadow: var(--shadow-hover);
+            transform: translateY(-2px);
         }
 
-        .image-card::before {
+        .faq-question {
+            width: 100%;
+            padding: 1.8rem 2rem;
+            background: none;
+            border: none;
+            text-align: left;
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .faq-question::before {
             content: '';
             position: absolute;
             top: 0;
             left: 0;
             right: 0;
-            bottom: 0;
-            background: linear-gradient(to top, rgba(0, 0, 0, 0.7), transparent);
+            height: 4px;
+            background: var(--primary-gradient);
+            opacity: 0;
+            transition: opacity 0.3s ease;
         }
 
-        .image-card-content {
-            position: relative;
-            z-index: 2;
-            color: white;
-            padding: 2rem;
-            width: 100%;
+        .faq-question:hover::before,
+        .faq-question.active::before {
+            opacity: 1;
         }
 
-        .image-card-title {
-            font-size: 1.5rem;
-            font-weight: 700;
-            margin-bottom: 0.5rem;
+        .faq-question:hover {
+            color: var(--primary-color);
+            background: linear-gradient(to right, rgba(102, 126, 234, 0.02), rgba(118, 75, 162, 0.02));
         }
 
-        .image-card-description {
-            opacity: 0.9;
-            font-size: 1rem;
-        }
-
-        /* Quick Access Cards */
-        .quick-access-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 2rem;
-            margin: 3rem 0;
-        }
-
-        .quick-access-card {
-            background: var(--card-background);
-            border-radius: 20px;
-            padding: 2rem;
-            box-shadow: var(--shadow);
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .quick-access-card:hover {
-            transform: translateY(-5px);
-            box-shadow: var(--shadow-hover);
-        }
-
-        .quick-access-card::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            right: -50%;
-            width: 100px;
-            height: 100px;
-            background: linear-gradient(45deg, var(--primary-blue), var(--secondary-blue));
-            border-radius: 50%;
-            opacity: 0.1;
-        }
-
-        .quick-access-icon {
-            width: 50px;
-            height: 50px;
-            background: linear-gradient(45deg, var(--success-green), var(--warning-orange));
-            border-radius: 50%;
+        .faq-question .icon {
+            font-size: 1.2rem;
+            transition: transform 0.3s ease;
+            color: var(--primary-color);
+            width: 30px;
+            height: 30px;
             display: flex;
             align-items: center;
             justify-content: center;
+            border-radius: 50%;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
+        }
+
+        .faq-question.active .icon {
+            transform: rotate(180deg);
+            background: var(--primary-gradient);
             color: white;
-            font-size: 1.2rem;
-            margin-bottom: 1rem;
         }
 
-        .quick-access-title {
-            font-size: 1.3rem;
-            font-weight: 700;
-            margin-bottom: 1rem;
-            color: var(--text-primary);
+        .faq-answer {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease;
         }
 
-        .quick-access-description {
+        .faq-answer.active {
+            max-height: 600px;
+        }
+
+        .faq-answer-content {
+            padding: 0 2rem 2rem;
             color: var(--text-secondary);
-            line-height: 1.6;
+            line-height: 1.8;
+            font-size: 1.05rem;
+            border-top: 1px solid var(--border-color);
+            margin-top: 0;
+            background: linear-gradient(to right, rgba(102, 126, 234, 0.01), rgba(118, 75, 162, 0.01));
         }
 
         /* Responsive Design */
         @media (max-width: 768px) {
-            .hero-title {
-                font-size: 2.5rem;
-            }
-            
-            .hero-subtitle {
-                font-size: 1.1rem;
-            }
-            
-            .faqs-hero-section {
+            .faq-hero {
                 padding: 80px 0 60px;
             }
             
-            .faq-content {
-                padding: 2rem;
+            .hero-content h1 {
+                font-size: 2.5rem;
             }
             
-            .image-card {
-                height: 150px;
+            .hero-content p {
+                font-size: 1.1rem;
             }
             
-            .image-card-content {
-                padding: 1.5rem;
+            .faq-container {
+                padding: 0 1rem;
             }
-            
-            .quick-access-card {
+
+            .faq-question {
+                font-size: 1.1rem;
                 padding: 1.5rem;
             }
 
-            .faq-section::before {
-                width: 200px;
+            .faq-answer-content {
+                padding: 0 1.5rem 1.5rem;
+                font-size: 1rem;
+            }
+            
+            .menu-btn {
+                top: 15px;
+                left: 15px;
             }
         }
 
-        /* Loading Animation */
-        @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.6; }
-            100% { opacity: 1; }
+        /* Search Box Enhanced */
+        .search-wrapper {
+            position: relative;
+            margin-bottom: 2rem;
         }
 
-        .loading {
-            animation: pulse 1.5s ease-in-out infinite;
+        .search-wrapper::before {
+            content: '\f002';
+            font-family: 'Font Awesome 6 Free';
+            font-weight: 900;
+            position: absolute;
+            left: 1.5rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+            z-index: 2;
+        }
+
+        .search-input {
+            padding-left: 3.5rem;
+        }
+
+        /* Sidebar Overlay */
+        .sidebar-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .sidebar-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* Sidebar base styles */
+        .main-sidebar {
+            position: fixed;
+            top: 0;
+            left: -300px;
+            width: 300px;
+            height: 100vh;
+            background: var(--card-background);
+            z-index: 1001;
+            transition: left 0.3s ease;
+            overflow-y: auto;
+        }
+
+        .main-sidebar.active {
+            left: 0;
         }
     </style>
 </head>
+
 <body>
+    <!-- Menu Button -->
+    <button class="menu-btn" id="menuBtn">
+        <i class="fas fa-bars"></i>
+    </button>
 
-<div class="bg-overlay navbar-btn"></div>
-<div class="main-sidebar">
-   <div class="sidebar-close-toggler navbar-btn">
-      <a href="#">
-         <svg version="1.1" width="16" height="16" fill="currentColor" xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" viewBox="0 0 492 492"  xml:space="preserve">
-            <path d="M300.188,246L484.14,62.04c5.06-5.064,7.852-11.82,7.86-19.024c0-7.208-2.792-13.972-7.86-19.028L468.02,7.872
-         c-5.068-5.076-11.824-7.856-19.036-7.856c-7.2,0-13.956,2.78-19.024,7.856L246.008,191.82L62.048,7.872
-         c-5.06-5.076-11.82-7.856-19.028-7.856c-7.2,0-13.96,2.78-19.02,7.856L7.872,23.988c-10.496,10.496-10.496,27.568,0,38.052
-         L191.828,246L7.872,429.952c-5.064,5.072-7.852,11.828-7.852,19.032c0,7.204,2.788,13.96,7.852,19.028l16.124,16.116
-         c5.06,5.072,11.824,7.856,19.02,7.856c7.208,0,13.968-2.784,19.028-7.856l183.96-183.952l183.952,183.952
-         c5.068,5.072,11.824,7.856,19.024,7.856h0.008c7.204,0,13.96-2.784,19.028-7.856l16.12-16.116
-         c5.06-5.064,7.852-11.824,7.852-19.028c0-7.204-2.792-13.96-7.852-19.028L300.188,246z"/>
-            </svg>
-        </a>
-   </div>
-   <div class="my-544">
-      <div class="row align-items-center">
-         <div class="col-auto">
-            <div class="profile-img-item">
-               <img src="./assets/uploads/user.jpg" class="rounded-circle" alt="profile">
+    <!-- Sidebar -->
+    <div id="sidebar-placeholder"></div>
+
+    <!-- Sidebar Overlay -->
+    <div class="bg-overlay" id="sidebarOverlay"></div>
+
+    <!-- Hero Section -->
+    <section class="faq-hero">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col">
+                    <a href="javascript:history.back()" class="back-btn">
+                        <i class="fas fa-arrow-left"></i>
+                        <span data-i18n="backButton">Back</span>
+                    </a>
+                    <div class="hero-content">
+                        <h1 data-i18n="faqMainTitle">Frequently Asked Questions</h1>
+                        <p data-i18n="faqSubtitle">Find answers to common questions about CDOT and how our platform works.</p>
+                    </div>
+                </div>
             </div>
-         </div>         <div class="col ps-1">
-            <div class="profile-details">
-               <h4 class="mb-2" id="dashboard-username"></h4>
-               <p class="mb-0 text-grsay" id="dashboard-refcode"></p>
-            </div>
-         </div>
-      </div>
-   </div>
-   <hr>
-    
-   <div class="menu-sidebar">
-      <ul>
-         <li class="bottom-border">
-                <a href="./account.html"> 
-                   <img src="./assets/uploads/img/4.png" style="margin-right: 5px;" width="20px">
-                PROFILE </a>
-            </li>
-         <li class="bottom-border">
-            <a href="./deposits.html">
-               <img src="./assets/uploads/img/4.png" style="margin-right: 5px;" width="20px">
-               DEPOSIT
-            </a>
-         </li>
-         <li class="bottom-border">
-            <a href="./withdraws.html">
-               <img src="./assets/uploads/img/3.png"  style="margin-right: 5px;" width="20px">
-               WITHDRAWAL
-            </a>
-         </li>
-         <li class="bottom-border">
-            <a href="./certificates.html">
-               <img src="./assets/uploads/img/2.png"  style="margin-right: 5px;" width="20px">
-               CERTIFICATES
-            </a>
-         </li>
-         <li class="bottom-border">
-            <a href="./events.html">
-               <img src="./assets/uploads/img/6.png"  style="margin-right: 5px;" width="20px">
-               LATEST EVENTS
-            </a>
-         </li>
-         <li class="bottom-border">
-            <a href="./memberships.html">
-               <img src="./assets/uploads/img/6.png"  style="margin-right: 5px;" width="20px">
-               MEMBERSHIPS
-            </a>
-         </li>
-         <li class="bottom-border">
-            <a href="./terms.html">
-               <img src="./assets/uploads/img/5.png"  style="margin-right: 5px;" width="20px">
-               TERMS & CONDITIONS
-            </a>
-         </li>
-         <li class="bottom-border">
-            <a href="./faqs.html">
-               <img src="./assets/uploads/img/7.png"  style="margin-right: 5px;" width="20px">
-               FAQs
-            </a>
-         </li>
-         <li class="bottom-border">
-            <a href="./company.html">
-               <img src="./assets/uploads/img/8.png"  style="margin-right: 5px;" width="20px">
-               ABOUT US
-            </a>
-         </li>            <li class="bottom-border">
-                <a href="#" class="logout">
-                  <img src="./assets/uploads/img/8.png"  style="margin-right: 5px;" width="20px">
-                    <span data-i18n="sidebarLogoutLink">LOGOUT</span>
-                </a>            </li>
-
-      </ul>
-      
-      <!-- Language Switcher -->
-      <div class="language-switcher mt-4 px-3">
-          <label for="language-switcher" class="form-label mb-2" data-i18n="languageLabel">Language:</label>
-          <select id="language-switcher" class="form-select form-select-sm">
-              <option value="en">English</option>
-              <option value="es">Español</option>
-              <option value="fr">Français</option>
-          </select>
-      </div>
-      
-   </div>
-    <!-- <div class="copyright-item">
-        <p class="fs-14">Copyright © All Right Reserved</p>
-    </div> -->
-</div><!-- Modern Hero Section -->
-<div class="faqs-hero-section">
-    <div class="container text-center">
-        <a href="javascript:history.back()" class="back-btn">
-            <i class="fas fa-arrow-left"></i>
-            <span data-i18n="backButton">Back</span>
-        </a>
-        <h1 class="hero-title" data-i18n="faqsHeroTitle">Frequently Asked Questions</h1>
-        <p class="hero-subtitle" data-i18n="faqsHeroSubtitle">Get answers to all your questions about our platform and services</p>
-    </div>
-</div><main class="main-content">
-    <div class="container">
-         <div class="container">
-   <div class="row">
-      <div class="col-md-6 mx-auto">
-         <h5 class="mb-3" data-i18n="faqsHeader">Frequently asked questions</h5>
-
-         
-<h6 class="mb-3">1. Start optimizing your product</h6>
-<p>1.1 Taking the Membership level 1 level as an example, the minimum account balance for the first 40 optimization tasks is $50.</p>
-<p>1.2 For example, at the Membership level 1 level, resetting the product optimization task counter requires a minimum of $100.</p>
-
-<p>1.3 Taking the Membership level 1 level as an example, once 40 product optimization tasks are completed, the user must apply to reset the account and complete the day's work before they can apply for full withdrawal and receive the withdrawal amount.</p>
-
-<h6 class="mb-3">2. Cash withdrawal </h6>
-
-<p>2.1 Users must complete all product optimization tasks before they can apply for cash withdrawal.</p>
-
-<p>2.2 If you choose to give up or exit during the product optimization task, you cannot apply for cancellation or refund.</p>
-
-<p>2.3 If the user’s unsubscription request is not received, the unsubscription cannot be processed.</p>
-
-<p>2.4 Full withdrawal required</p>
-
-<h6 class="mb-3" data-i18n="faqSection3Title">3. Financial resources.</h6>
-
-<p data-i18n="faqSection3_1">3.1 All funds will be safely held in user accounts and can be withdrawn in full upon completion of all product optimization tasks.</p>
-
-<p data-i18n="faqSection3_2">3.2 To avoid economic losses, all data are processed by the system without manual processing.</p>
-
-<p data-i18n="faqSection3_3">3.3 The platform shall bear full responsibility for the economic losses caused by the incident.</p>
-
-<h6 class="mb-3" data-i18n="faqSection4Title">4. Account Security</h6>
-<p data-i18n="faqSection4_1">4.1 Please do not disclose your login password and security code to others, otherwise the platform will not be responsible for any losses caused.</p>
-<p data-i18n="faqSection4_2">4.2 It is not recommended that users set their birthdays, ID numbers, and mobile phone numbers as security codes or login passwords.</p>
-<p data-i18n="faqSection4_3">4.3 If you forget your login password or security code, please contact our online customer service to reset it.</p>
-
-
-<h6 class="mb-3" data-i18n="faqSection5Title">5. Common applications</h6>
-<p data-i18n="faqSection5_1">5.1 Platform income is divided into ordinary income and 15 times income. All users are generally limited to a maximum of 3 merge orders.</p>
-<p data-i18n="faqSection5_2">5.2 Membership level 1 will receive 0.5% of each normal product optimization profit.</p>
-<p data-i18n="faqSection5_3">5.3  Membership level 2 will receive 1.0% profit from each portfolio application.</p>
-<p data-i18n="faqSection5_4">5.4 After each product optimization is completed, funds and profits will be returned to the user account.</p>
-<p data-i18n="faqSection5_5">5.5 The system will randomly assign tasks to user accounts based on the total amount of funds in the user account.</p>
-<p data-i18n="faqSection5_6">5.6 Product orders cannot be canceled or skipped once assigned to a User Account.</p>
-
-
-<h6 class="mb-3" data-i18n="faqSection6Title">6. Merged orders</h6>
-<p data-i18n="faqSection6_1">6.1 A portfolio application consists of 1 to 3 product orders. Users don't necessarily get 3 combined products. Regular product orders will be randomly assigned by the system. When encountering merge data, users have a higher chance of getting 1 or 2 merge orders.</p>
-<p data-i18n="faqSection6_2">6.2 For each product order in the merged order, the user will receive 5 times the normal product optimization commission.</p>
-<p data-i18n="faqSection6_3">6.3 Upon receipt of your merged order, all funds will be returned to your account upon completion of the order for each item in the merged order.</p>
-<p data-i18n="faqSection6_4">6.4 The system will randomly allocate merge data to the user's account based on the total balance of the user's account.</p>
-<p data-i18n="faqSection6_5">6.5 Merged orders cannot be canceled or skipped once assigned to a user account.
-top up</p>
-
-<h6 class="mb-3" data-i18n="faqSection7Title">7. Deposit</h6>
-<p data-i18n="faqSection7_1">7.1 The deposit amount is chosen by the user. We are unable to determine the amount of the user's deposit. We recommend that all users pay an advance payment based on their ability.</p>
-
-<p data-i18n="faqSection7_2">7.2 If the User is required to pay a deposit when receiving a Portfolio Application, the User is advised to make an advance payment based on the difference amount shown on their account.</p>
-
-<p data-i18n="faqSection7_3">7.3 Before making a pre-payment, you must obtain the pre-payment deposit details from the online customer service and confirm the deposit details.</p>
-
-<p data-i18n="faqSection7_4">7.4 The platform will not be held responsible if the user makes a wrong recharge.</p>
-
-<h6 class="mb-3" data-i18n="faqSection8Title">8. Business co-operation</h6>
-<p data-i18n="faqSection8_1">8.1 Each product order inside and outside the platform is different. If the product order is not optimized for a long time, the merchant will not be able to settle the product, thus affecting the merchant's progress. It is recommended that users complete all product orders as soon as possible in order to withdraw cash, so as not to affect the merchant's progress.</p>
-
-<p data-i18n="faqSection8_2">8.2 The Merchant will provide the User with deposit details for the purpose of making a deposit.</p>
-
-<p data-i18n="faqSection8_3">8.3 Any delay in completing orders for goods will cause losses to the merchant and the company.</p>
-
-<h6 class="mb-3" data-i18n="faqSection9Title">9. Agent</h6>
-
-<p data-i18n="faqSection9_1">9.1 Advanced users and above Membership Level 3 can use the invitation code on the account to invite other users.</p>
-
-<p data-i18n="faqSection9_2">9.2 If the account has not completed all application optimizations, it cannot invite other users.</p>
-
-<p data-i18n="faqSection9_3">9.3 The referrer will receive an additional 20% of the total profit from the following items</p>
-
-<h6 class="mb-3" data-i18n="faqSection10Title">10. Withdraw limit.</h6>
-<p data-i18n="faqSection10_1">1.0 If your withdrawal amount is more than the withdrawal limit, You have to upgrade to a membership level that can accommodate the withdrawal.</p>
-<p data-i18n="faqSection10_2">1.2 Upgrading from one membership level to another, You will have to deposit $ 5000 and that amount will bee refunded to you as soon as you want to downgrade.</p>
-
-<h6 class="mb-3" data-i18n="faqSection11Title">11. Credit score </h6>
-<p data-i18n="faqSection11_1">11.1 In cases where you delay clearing merge data, misbehave or use any abusive language to your mentor or the company employees, You will lose points on your credit score.</p>
-
-<h6 class="mb-3" data-i18n="faqSection12Title">12. Business hours</h6>
-<p data-i18n="faqSection12_1">Users can start data advertising during daily business hours from 10:00 to 23:00.</p>
-<p data-i18n="faqSection12_2">Withdrawal time is from 10:30 to 22:30 daily.</p>
-<p data-i18n="faqSection12_3">Note: If you need further explanation, please click on the platform to contact online customer service!</p>
-
-
-         
-      </div>
-   </div>
-</div>
-
-    </div>
-</main>
-<footer>
-    <div class="container">
-        <div class="footer-bar">                <a href="./dashboard.html" class="">
-                    <svg viewBox="0 1 511 511.999" width="20" height="20"  fill="currentColor"
-                         xmlns="http://www.w3.org/2000/svg">
-                        <path d="m498.699219 222.695312c-.015625-.011718-.027344-.027343-.039063-.039062l-208.855468-208.847656c-8.902344-8.90625-20.738282-13.808594-33.328126-13.808594-12.589843 0-24.425781 4.902344-33.332031 13.808594l-208.746093 208.742187c-.070313.070313-.144532.144531-.210938.214844-18.28125 18.386719-18.25 48.21875.089844 66.558594 8.378906 8.382812 19.441406 13.234375 31.273437 13.746093.484375.046876.96875.070313 1.457031.070313h8.320313v153.695313c0 30.417968 24.75 55.164062 55.167969 55.164062h81.710937c8.285157 0 15-6.71875 15-15v-120.5c0-13.878906 11.292969-25.167969 25.171875-25.167969h48.195313c13.878906 0 25.167969 11.289063 25.167969 25.167969v120.5c0 8.28125 6.714843 15 15 15h81.710937c30.421875 0 55.167969-24.746094 55.167969-55.164062v-153.695313h7.71875c12.585937 0 24.421875-4.902344 33.332031-13.8125 18.359375-18.367187 18.367187-48.253906.027344-66.632813zm-21.242188 45.421876c-3.238281 3.238281-7.542969 5.023437-12.117187 5.023437h-22.71875c-8.285156 0-15 6.714844-15 15v168.695313c0 13.875-11.289063 25.164062-25.167969 25.164062h-66.710937v-105.5c0-30.417969-24.746094-55.167969-55.167969-55.167969h-48.195313c-30.421875 0-55.171875 24.75-55.171875 55.167969v105.5h-66.710937c-13.875 0-25.167969-11.289062-25.167969-25.164062v-168.695313c0-8.285156-6.714844-15-15-15h-22.328125c-.234375-.015625-.464844-.027344-.703125-.03125-4.46875-.078125-8.660156-1.851563-11.800781-4.996094-6.679688-6.679687-6.679688-17.550781 0-24.234375.003906 0 .003906-.003906.007812-.007812l.011719-.011719 208.847656-208.839844c3.234375-3.238281 7.535157-5.019531 12.113281-5.019531 4.574219 0 8.875 1.78125 12.113282 5.019531l208.800781 208.796875c.03125.03125.066406.0625.097656.09375 6.644531 6.691406 6.632813 17.539063-.03125 24.207032zm0 0"/>
-                    </svg> <span data-i18n="footerHomeLink">Home</span>
-                </a>
-                <a href="./task.html" class="">
-                    <svg   fill="currentColor" width="20" height="20"
-                         xmlns="http://www.w3.org/2000/svg" x="0px"
-                         y="0px"
-                         viewBox="0 0 469.341 469.341"
-                         xml:space="preserve">
-                                 <path d="M448.004,236.639v-65.965c0-22.368-17.35-40.559-39.271-42.323l-61.26-107c-5.677-9.896-14.844-16.969-25.813-19.906
-            c-10.917-2.917-22.333-1.385-32.104,4.302L79.553,128.007H42.67c-23.531,0-42.667,19.135-42.667,42.667v256
-            c0,23.531,19.135,42.667,42.667,42.667h362.667c23.531,0,42.667-19.135,42.667-42.667v-65.965
-            c12.389-4.418,21.333-16.147,21.333-30.035v-64C469.337,252.786,460.393,241.057,448.004,236.639z M383.944,128.007h-92.971
-            l69.729-40.596L383.944,128.007z M350.103,68.898l-101.529,59.109h-42.113l133.112-77.5L350.103,68.898z M300.295,24.184
-            c4.823-2.823,10.458-3.573,15.844-2.135c5.448,1.458,9.99,4.979,12.813,9.906l0.022,0.039l-164.91,96.013h-42.111L300.295,24.184
-            z M426.67,426.674c0,11.76-9.573,21.333-21.333,21.333H42.67c-11.76,0-21.333-9.573-21.333-21.333v-256
-            c0-11.76,9.573-21.333,21.333-21.333h362.667c11.76,0,21.333,9.573,21.333,21.333v64h-64c-35.292,0-64,28.708-64,64
-            c0,35.292,28.708,64,64,64h64V426.674z M448.004,330.674c0,5.885-4.781,10.667-10.667,10.667H362.67
-            c-23.531,0-42.667-19.135-42.667-42.667c0-23.531,19.135-42.667,42.667-42.667h74.667c5.885,0,10.667,4.781,10.667,10.667
-            V330.674z"/>
-                        <path d="M362.67,277.341c-11.76,0-21.333,9.573-21.333,21.333c0,11.76,9.573,21.333,21.333,21.333
-            c11.76,0,21.333-9.573,21.333-21.333C384.004,286.914,374.431,277.341,362.67,277.341z"/>
-                        </svg> <span data-i18n="footerStartingLink">Starting</span>
-                </a>
-                
-                <a href="./account.html" class="">
-                    <svg viewBox="-42 0 512 512.001" width="20" height="20" fill="currentColor"
-                         xmlns="http://www.w3.org/2000/svg">
-                        <path d="m210.351562 246.632812c33.882813 0 63.21875-12.152343 87.195313-36.128906 23.96875-23.972656 36.125-53.304687 36.125-87.191406 0-33.875-12.152344-63.210938-36.128906-87.191406-23.976563-23.96875-53.3125-36.121094-87.191407-36.121094-33.886718 0-63.21875 12.152344-87.191406 36.125s-36.128906 53.308594-36.128906 87.1875c0 33.886719 12.15625 63.222656 36.128906 87.195312 23.980469 23.96875 53.316406 36.125 87.191406 36.125zm-65.972656-189.292968c18.394532-18.394532 39.972656-27.335938 65.972656-27.335938 25.996094 0 47.578126 8.941406 65.976563 27.335938 18.394531 18.398437 27.339844 39.980468 27.339844 65.972656 0 26-8.945313 47.578125-27.339844 65.976562-18.398437 18.398438-39.980469 27.339844-65.976563 27.339844-25.992187 0-47.570312-8.945312-65.972656-27.339844-18.398437-18.394531-27.34375-39.976562-27.34375-65.976562 0-25.992188 8.945313-47.574219 27.34375-65.972656zm0 0"/>
-                        <path d="m426.128906 393.703125c-.691406-9.976563-2.089844-20.859375-4.148437-32.351563-2.078125-11.578124-4.753907-22.523437-7.957031-32.527343-3.3125-10.339844-7.808594-20.550781-13.375-30.335938-5.769532-10.15625-12.550782-19-20.160157-26.277343-7.957031-7.613282-17.699219-13.734376-28.964843-18.199219-11.226563-4.441407-23.667969-6.691407-36.976563-6.691407-5.226563 0-10.28125 2.144532-20.042969 8.5-6.007812 3.917969-13.035156 8.449219-20.878906 13.460938-6.707031 4.273438-15.792969 8.277344-27.015625 11.902344-10.949219 3.542968-22.066406 5.339844-33.042969 5.339844-10.96875 0-22.085937-1.796876-33.042968-5.339844-11.210938-3.621094-20.300782-7.625-26.996094-11.898438-7.769532-4.964844-14.800782-9.496094-20.898438-13.46875-9.753906-6.355468-14.808594-8.5-20.035156-8.5-13.3125 0-25.75 2.253906-36.972656 6.699219-11.257813 4.457031-21.003906 10.578125-28.96875 18.199219-7.609375 7.28125-14.390625 16.121094-20.15625 26.273437-5.558594 9.785157-10.058594 19.992188-13.371094 30.339844-3.199219 10.003906-5.875 20.945313-7.953125 32.523437-2.0625 11.476563-3.457031 22.363282-4.148437 32.363282-.679688 9.777344-1.023438 19.953125-1.023438 30.234375 0 26.726562 8.496094 48.363281 25.25 64.320312 16.546875 15.746094 38.4375 23.730469 65.066406 23.730469h246.53125c26.621094 0 48.511719-7.984375 65.0625-23.730469 16.757813-15.945312 25.253906-37.589843 25.253906-64.324219-.003906-10.316406-.351562-20.492187-1.035156-30.242187zm-44.90625 72.828125c-10.933594 10.40625-25.449218 15.464844-44.378906 15.464844h-246.527344c-18.933594 0-33.449218-5.058594-44.378906-15.460938-10.722656-10.207031-15.933594-24.140625-15.933594-42.585937 0-9.59375.316406-19.066407.949219-28.160157.617187-8.921874 1.878906-18.722656 3.75-29.136718 1.847656-10.285156 4.199219-19.9375 6.996094-28.675782 2.683593-8.378906 6.34375-16.675781 10.882812-24.667968 4.332031-7.617188 9.316407-14.152344 14.816407-19.417969 5.144531-4.925781 11.628906-8.957031 19.269531-11.980469 7.066406-2.796875 15.007812-4.328125 23.628906-4.558594 1.050781.558594 2.921875 1.625 5.953125 3.601563 6.167969 4.019531 13.277344 8.605469 21.136719 13.625 8.859375 5.648437 20.273437 10.75 33.910156 15.152344 13.941406 4.507812 28.160156 6.796875 42.273437 6.796875 14.113282 0 28.335938-2.289063 42.269532-6.792969 13.648437-4.410156 25.058594-9.507813 33.929687-15.164063 8.042969-5.140624 14.953125-9.59375 21.121094-13.617187 3.03125-1.972656 4.902344-3.042969 5.953125-3.601563 8.625.230469 16.566406 1.761719 23.636719 4.558594 7.636719 3.023438 14.121093 7.058594 19.265625 11.980469 5.5 5.261719 10.484375 11.796875 14.816406 19.421875 4.542969 7.988281 8.207031 16.289062 10.886719 24.660156 2.800781 8.75 5.15625 18.398438 7 28.675782 1.867187 10.433593 3.132812 20.238281 3.75 29.144531v.007812c.636719 9.058594.957031 18.527344.960937 28.148438-.003906 18.449219-5.214844 32.378906-15.9375 42.582031zm0 0"/>
-                    </svg> <span data-i18n="footerProfileLink">Profile</span>
-                </a>
-                
         </div>
-    </div>
-</footer> <script> let baseurl = 'http://127.0.0.1:5500/'; </script>
+    </section>
 
-<script src="./assets/frontend/js/bootstrap.bundle.min.js"></script>
-<script src="./assets/frontend/js/owl.carousel.min.js"></script>
-<script src="./assets/frontend/js/script.js"></script>
-<script src="./js/i18n.js"></script>
-<script src="./js/main.js"></script>
-<!-- Import auth-check.js for authentication -->
-<script src="./js/auth-check.js"></script>
-<!-- Import auth.js for logout functionality -->
-<script src="./js/auth.js"></script>
-<script src="./js/faqs.js"></script>
-<script>
-  document.addEventListener('DOMContentLoaded', function() {
-    // Initialize logout functionality
-    if (typeof attachLogoutHandlers === 'function') {
-      attachLogoutHandlers();
-    }
-  });
-</script>
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="container">
+            <div class="faq-container">
+                <!-- FAQ Search -->
+                <div class="search-wrapper">
+                    <input type="text" class="search-input" id="faqSearch" placeholder="Search for answers..." data-i18n-placeholder="faqSearchPlaceholder">
+                </div>
+                <!-- FAQ Item 1 -->
+                <div class="faq-item">
+                    <button class="faq-question" data-bs-toggle="collapse" data-bs-target="#faq1">
+                        <span>What is CDOT?</span>
+                        <i class="fas fa-chevron-down icon"></i>
+                    </button>
+                    <div class="faq-answer" id="faq1">
+                        <div class="faq-answer-content">
+                            CDOT stands for Commerce Data Optimization Technology. We connect real users with online sellers who want to improve product visibility through natural shopping activity. It's a modern, data-driven way for professionals and consumers to earn extra income while helping brands stay competitive.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- FAQ Item 2 -->
+                <div class="faq-item">
+                    <button class="faq-question" data-bs-toggle="collapse" data-bs-target="#faq2">
+                        <span>What is Product Engagement?</span>
+                        <i class="fas fa-chevron-down icon"></i>
+                    </button>
+                    <div class="faq-answer" id="faq2">
+                        <div class="faq-answer-content">
+                            Product Engagement on CDOT is a marketing support service where you assist online sellers in boosting visibility for their products on platforms like Amazon and Etsy. These sellers rely on real user interactions such as views, carts, and purchases to increase search momentum and reach more customers. That's where you play a role. When you engage, you're matched with a product and complete a standard checkout just like any regular customer. This helps generate natural activity, which improves the product's search ranking. After your engagement is confirmed (usually within 1 to 5 minutes), the full amount is immediately credited back to your CDOT balance, along with your engagement reward, based on your tier. It's a simple, structured process that supports genuine sellers using ethical marketing methods while giving you a consistent way to earn through everyday shopping interactions.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- FAQ Item 3 -->
+                <div class="faq-item">
+                    <button class="faq-question" data-bs-toggle="collapse" data-bs-target="#faq3">
+                        <span>Is this legal and safe?</span>
+                        <i class="fas fa-chevron-down icon"></i>
+                    </button>
+                    <div class="faq-answer" id="faq3">
+                        <div class="faq-answer-content">
+                            Yes, completely. CDOT operates within the legal frameworks of the jurisdictions we serve — including the United States and the European Union. You're helping sellers increase product visibility through natural shopping activity it's a common and accepted marketing method used by thousands of brands on platforms like Amazon, Etsy, and others. All activity is transparent and structured. Your funds are never at risk, and your balance is updated instantly once your engagement is confirmed.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- FAQ Item 4 -->
+                <div class="faq-item">
+                    <button class="faq-question" data-bs-toggle="collapse" data-bs-target="#faq4">
+                        <span>What kind of products will I see?</span>
+                        <i class="fas fa-chevron-down icon"></i>
+                    </button>
+                    <div class="faq-answer" id="faq4">
+                        <div class="faq-answer-content">
+                            Mostly everyday consumer products including electronics, beauty items, home goods, and personal accessories. All campaigns come from real sellers aiming to improve product performance through increased interaction.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- FAQ Item 5 -->
+                <div class="faq-item">
+                    <button class="faq-question" data-bs-toggle="collapse" data-bs-target="#faq5">
+                        <span>When do I receive my funds back?</span>
+                        <i class="fas fa-chevron-down icon"></i>
+                    </button>
+                    <div class="faq-answer" id="faq5">
+                        <div class="faq-answer-content">
+                            Immediately after your engagement is confirmed. This typically takes 1 to 5 minutes. Your CDOT balance will update in real time to reflect the full amount used, plus your earnings.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- FAQ Item 6 -->
+                <div class="faq-item">
+                    <button class="faq-question" data-bs-toggle="collapse" data-bs-target="#faq6">
+                        <span>How do I earn on CDOT?</span>
+                        <i class="fas fa-chevron-down icon"></i>
+                    </button>
+                    <div class="faq-answer" id="faq6">
+                        <div class="faq-answer-content">
+                            You earn by participating in product engagements. Each engagement generates a return of the original amount to your CDOT balance, plus a fixed earning depending on your tier. The more consistent your activity, the higher your earning potential.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- FAQ Item 7 -->
+                <div class="faq-item">
+                    <button class="faq-question" data-bs-toggle="collapse" data-bs-target="#faq7">
+                        <span>Can I withdraw my earnings anytime?</span>
+                        <i class="fas fa-chevron-down icon"></i>
+                    </button>
+                    <div class="faq-answer" id="faq7">
+                        <div class="faq-answer-content">
+                            Yes, once you reach your minimum withdrawal threshold based on your tier, you can request a payout. We support several withdrawal methods, including digital currency and traditional transfers.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- FAQ Item 8 -->
+                <div class="faq-item">
+                    <button class="faq-question" data-bs-toggle="collapse" data-bs-target="#faq8">
+                        <span>Why does CDOT need users like me?</span>
+                        <i class="fas fa-chevron-down icon"></i>
+                    </button>
+                    <div class="faq-answer" id="faq8">
+                        <div class="faq-answer-content">
+                            Online sellers are constantly competing for visibility on marketplaces like Amazon and Etsy. Algorithms favor products that show activity — such as being viewed, added to cart, or purchased. Sellers partner with CDOT to simulate this activity in an ethical way, using real people instead of bots. You provide that value by engaging naturally.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- FAQ Item 9 -->
+                <div class="faq-item">
+                    <button class="faq-question" data-bs-toggle="collapse" data-bs-target="#faq9">
+                        <span>Do I need to provide my real payment details?</span>
+                        <i class="fas fa-chevron-down icon"></i>
+                    </button>
+                    <div class="faq-answer" id="faq9">
+                        <div class="faq-answer-content">
+                            No. CDOT offers an internal wallet system that manages engagement amounts. You do not need to use your personal card or share sensitive information.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- FAQ Item 10 -->
+                <div class="faq-item">
+                    <button class="faq-question" data-bs-toggle="collapse" data-bs-target="#faq10">
+                        <span>Is this available worldwide?</span>
+                        <i class="fas fa-chevron-down icon"></i>
+                    </button>
+                    <div class="faq-answer" id="faq10">
+                        <div class="faq-answer-content">
+                            CDOT currently focuses on users in the United States, United Kingdom, Canada, and select countries in Europe and Asia. Availability may vary depending on seller campaigns.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- FAQ Item 11 -->
+                <div class="faq-item">
+                    <button class="faq-question" data-bs-toggle="collapse" data-bs-target="#faq11">
+                        <span>Is this the same as affiliate marketing or drop shipping?</span>
+                        <i class="fas fa-chevron-down icon"></i>
+                    </button>
+                    <div class="faq-answer" id="faq11">
+                        <div class="faq-answer-content">
+                            No. This is not about selling or promoting anything. You're not responsible for inventory, customer service, or sales. You simply participate in structured product engagement sessions to support visibility campaigns and get paid for your participation.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer Navigation -->
+    <div id="footer-navigation"></div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="./js/components.js"></script>
+    <script src="./js/i18n.js"></script>
+    <script src="./js/main.js"></script>
+    <script src="./js/auth.js"></script>
+    <script src="./js/simple-auth.js"></script>
+    <script src="./js/auth-check.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Load standard navigation components
+            loadStandardNavigation();
+
+            // Setup menu button for sidebar
+            const menuBtn = document.getElementById('menuBtn');
+            if (menuBtn) {
+                menuBtn.addEventListener('click', function() {
+                    if (window.SidebarManager) {
+                        window.SidebarManager.open();
+                    } else if (typeof window.openSidebar === 'function') {
+                        window.openSidebar();
+                    }
+                });
+            }
+
+            // FAQ Accordion functionality
+            initializeFAQAccordion();
+
+            // FAQ Search functionality
+            initializeFAQSearch();
+        });
+
+        function initializeFAQAccordion() {
+            const faqButtons = document.querySelectorAll('.faq-question');
+            
+            faqButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const targetId = this.getAttribute('data-bs-target');
+                    const targetAnswer = document.querySelector(targetId);
+                    const icon = this.querySelector('.icon');
+                    
+                    // Close all other FAQ items
+                    faqButtons.forEach(otherButton => {
+                        if (otherButton !== this) {
+                            const otherTargetId = otherButton.getAttribute('data-bs-target');
+                            const otherAnswer = document.querySelector(otherTargetId);
+                            const otherIcon = otherButton.querySelector('.icon');
+                            
+                            otherButton.classList.remove('active');
+                            otherAnswer.classList.remove('active');
+                            otherIcon.style.transform = 'rotate(0deg)';
+                        }
+                    });
+                    
+                    // Toggle current FAQ item
+                    this.classList.toggle('active');
+                    targetAnswer.classList.toggle('active');
+                    
+                    if (this.classList.contains('active')) {
+                        icon.style.transform = 'rotate(180deg)';
+                    } else {
+                        icon.style.transform = 'rotate(0deg)';
+                    }
+                });
+            });
+        }
+
+        function initializeFAQSearch() {
+            const searchInput = document.getElementById('faqSearch');
+            const faqItems = document.querySelectorAll('.faq-item');
+            
+            searchInput.addEventListener('input', function() {
+                const searchTerm = this.value.toLowerCase();
+                
+                faqItems.forEach(item => {
+                    const question = item.querySelector('.faq-question span').textContent.toLowerCase();
+                    const answer = item.querySelector('.faq-answer-content').textContent.toLowerCase();
+                    
+                    if (question.includes(searchTerm) || answer.includes(searchTerm)) {
+                        item.style.display = 'block';
+                    } else {
+                        item.style.display = 'none';
+                    }
+                });
+                
+                // If search is empty, show all items
+                if (searchTerm === '') {
+                    faqItems.forEach(item => {
+                        item.style.display = 'block';
+                    });
+                }
+            });
+        }
+    </script>
 </body>
 </html>
+`

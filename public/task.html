@@ -28,12 +28,14 @@
     <link rel="stylesheet" href="css/drive-unified-styles.css">
     <!-- Task page specific styles -->
     <link rel="stylesheet" href="css/task.css">
+    <!-- Luxury Enhancement Styles -->
+    <link rel="stylesheet" href="css/luxury-enhancement.css">
 </head>
-<body class="gdot-body">
+<body class="cdot-body">
 
-<div class="gdot-app-container">
+<div class="cdot-app-container">
     <!-- Header -->
-    <header class="gdot-header">
+    <header class="cdot-header">
         <div class="cdot-logo-container">
             <h1 class="cdot-logo">CDOT<span>DATABASE</span></h1>
         </div>
@@ -566,7 +568,13 @@
 <!-- <script src="./js/drive-product-renderer.js"></script> -->
 
 <!-- Main Drive Script -->
-<!-- <script src="./js/drive.js"></script> -->
+<script src="./js/drive.js"></script>
+
+<!-- Luxury Enhancement Scripts -->
+<script src="./js/luxury-dynamic-gauges.js"></script>
+<script src="./js/luxury-product-rating.js"></script>
+<script src="./js/luxury-trending-products.js"></script>
+<script src="./js/luxury-drive-enhancement.js"></script>
 
 <!-- Task scripts -->
 <script src="./js/task.js"></script>
@@ -579,8 +587,95 @@
     document.addEventListener('DOMContentLoaded', function() {
         // Load standard navigation components
         loadStandardNavigation('orders');
+        
+        // Initialize luxury features after basic page elements are ready
+        setTimeout(() => {
+            initializeLuxuryFeatures();
+        }, 1500); // Reduced delay - enough time for core scripts but not too long
     });
-    </script>
+    
+    /**
+     * Initialize all luxury enhancement features
+     */
+    function initializeLuxuryFeatures() {
+        console.log('Initializing Luxury Drive Features...');
+        
+        try {
+            // 1. Initialize Dynamic Gauges
+            if (typeof window.LuxuryDynamicGauges !== 'undefined') {
+                try {
+                    window.LuxuryDynamicGauges.init();
+                    console.log('✓ Luxury Dynamic Gauges initialized');
+                } catch (error) {
+                    console.warn('Failed to initialize Dynamic Gauges:', error);
+                }
+            }
+            
+            // 2. Initialize Trending Products Service
+            if (typeof window.LuxuryTrendingProducts !== 'undefined') {
+                try {
+                    window.LuxuryTrendingProducts.init();
+                    console.log('✓ Luxury Trending Products initialized');
+                } catch (error) {
+                    console.warn('Failed to initialize Trending Products:', error);
+                }
+            }
+            
+            // 3. Initialize Drive Enhancement
+            if (typeof LuxuryDriveEnhancement !== 'undefined') {
+                try {
+                    const driveEnhancement = new LuxuryDriveEnhancement();
+                    driveEnhancement.init();
+                    console.log('✓ Luxury Drive Enhancement initialized');
+                } catch (error) {
+                    console.warn('Failed to initialize Drive Enhancement:', error);
+                    // Ensure search button still works if enhancement fails
+                    ensureSearchButtonWorks();
+                }
+            } else {
+                // Fallback if luxury enhancement not available
+                ensureSearchButtonWorks();
+            }
+            
+            // 4. Ensure Product Rating Modal is globally available
+            if (typeof LuxuryProductRatingModal !== 'undefined') {
+                window.LuxuryProductRatingModal = LuxuryProductRatingModal;
+                console.log('✓ Luxury Product Rating Modal available');
+            }
+            
+            console.log('Luxury Drive Features initialization complete!');
+        } catch (error) {
+            console.error('Error during luxury features initialization:', error);
+            // Ensure basic functionality works even if luxury features fail
+            ensureSearchButtonWorks();
+        }
+    }
+    
+    /**
+     * Fallback to ensure search button works
+     */
+    function ensureSearchButtonWorks() {
+        const searchButton = document.getElementById('show-product-modal-btn');
+        if (searchButton && typeof window.openProductModal !== 'function') {
+            console.log('Setting up fallback search button functionality');
+            
+            // If openProductModal doesn't exist, create a basic version
+            window.openProductModal = function() {
+                const driveModal = document.getElementById('driveProductModal');
+                if (driveModal) {
+                    driveModal.style.display = 'flex';
+                    setTimeout(() => {
+                        driveModal.classList.add('show');
+                    }, 10);
+                    document.body.style.overflow = 'hidden';
+                    console.log('Fallback: Drive modal opened');
+                } else {
+                    console.warn('Fallback: Drive modal not found');
+                }
+            };
+        }
+    }
+</script>
 
 <!-- Purchase Success Popup Styling -->
 <link rel="stylesheet" href="css/task.css">

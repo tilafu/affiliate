@@ -162,6 +162,31 @@
             margin-bottom: 0;
         }
 
+        .terms-list {
+            list-style: none;
+            padding-left: 0;
+            margin: 1rem 0;
+        }
+
+        .terms-list li {
+            padding: 0.5rem 0;
+            border-bottom: 1px solid var(--border-color);
+            position: relative;
+            padding-left: 1.5rem;
+        }
+
+        .terms-list li:before {
+            content: '•';
+            color: var(--primary-color);
+            font-weight: bold;
+            position: absolute;
+            left: 0;
+        }
+
+        .terms-list li:last-child {
+            border-bottom: none;
+        }
+
         .highlight-box {
             background: linear-gradient(to right, rgba(255, 193, 7, 0.1), rgba(255, 149, 0, 0.1));
             border-left: 4px solid var(--warning-color);
@@ -276,8 +301,8 @@
                         <i class="fas fa-arrow-left"></i>
                         <span data-i18n="backButton">Back</span>
                     </a>
-                    <h1 class="mt-4 mb-2" data-i18n="termsAndConditionsTitle">Terms & Conditions</h1>
-                    <p class="mb-0">Please read our terms and conditions carefully</p>
+                    <h1 class="mt-4 mb-2" data-i18n="termsAndConditionsTitle">CDOT Database – Terms and Conditions</h1>
+                    <p class="mb-0">Last Updated: 03 January 2024</p>
                 </div>
             </div>
         </div>
@@ -292,17 +317,17 @@
                         <div class="section-icon">
                             <i class="fas fa-handshake"></i>
                         </div>
-                        <span data-i18n="termsWelcomeTitle">Welcome to Brainlabs Digital Agency</span>
+                        <span data-i18n="termsWelcomeTitle">Welcome to CDOT Database</span>
                     </h2>
                 </div>
                 <div class="terms-content">
                     <p class="terms-text" data-i18n="termsIntroduction">
-                        In order to protect the security of this website and merchants' personal information, please read the platform terms and conditions carefully. You need to fully understand these terms and conditions, especially the terms and restrictions of the services, and the separate agreements for each term and condition, and accept or reject liability for these terms and conditions.
+                        By accessing, browsing, or otherwise utilizing CDOT Database ("we," "our," or "the Platform"), whether via website, mobile interface, API, or other properties under our control ("Services"), you agree to be bound by these Terms and Conditions ("Terms"). If you do not agree, you are prohibited from accessing or using the Platform.
                     </p>
                     
                     <div class="important-note">
                         <p class="terms-text mb-0" data-i18n="termsAgeRequirement">
-                            <strong>Important:</strong> By using this website, you guarantee that you are over 18 years old and have read and agreed to the relevant terms and conditions. Otherwise, you do not have the right to download, install the software and enjoy the services.
+                            <strong>Important:</strong> By using this website, you represent and warrant that you are at least 21 years old and have read and agreed to these terms and conditions. If you do not meet these requirements, you do not have the right to access or use our services.
                         </p>
                     </div>
                 </div>
@@ -313,50 +338,41 @@
                 <div class="table-of-contents">
                     <h4 data-i18n="tableOfContentsTitle">Table of Contents</h4>
                     <ul>
-                        <li><a href="#privacy"><i class="fas fa-shield-alt"></i> <span data-i18n="tocPrivacy">Privacy & Data Protection</span></a></li>
-                        <li><a href="#responsibilities"><i class="fas fa-user-check"></i> <span data-i18n="tocResponsibilities">User Responsibilities</span></a></li>
-                        <li><a href="#conditions"><i class="fas fa-file-contract"></i> <span data-i18n="tocConditions">Terms & Conditions</span></a></li>
-                        <li><a href="#contracts"><i class="fas fa-handshake"></i> <span data-i18n="tocContracts">Contract Details</span></a></li>
-                        <li><a href="#withdrawals"><i class="fas fa-money-bill-wave"></i> <span data-i18n="tocWithdrawals">Withdrawal Requirements</span></a></li>
+                        <li><a href="#agreement"><i class="fas fa-file-contract"></i> <span data-i18n="tocAgreement">Agreement to Terms</span></a></li>
+                        <li><a href="#intellectual"><i class="fas fa-copyright"></i> <span data-i18n="tocIntellectual">Intellectual Property Rights</span></a></li>
+                        <li><a href="#representations"><i class="fas fa-user-check"></i> <span data-i18n="tocRepresentations">User Representations</span></a></li>
+                        <li><a href="#registration"><i class="fas fa-user-plus"></i> <span data-i18n="tocRegistration">User Registration</span></a></li>
+                        <li><a href="#prohibited"><i class="fas fa-ban"></i> <span data-i18n="tocProhibited">Prohibited Activities</span></a></li>
+                        <li><a href="#contributions"><i class="fas fa-edit"></i> <span data-i18n="tocContributions">User Generated Contributions</span></a></li>
+                        <li><a href="#management"><i class="fas fa-cogs"></i> <span data-i18n="tocManagement">Site Management</span></a></li>
+                        <li><a href="#termination"><i class="fas fa-times-circle"></i> <span data-i18n="tocTermination">Term and Termination</span></a></li>
+                        <li><a href="#governing"><i class="fas fa-gavel"></i> <span data-i18n="tocGoverning">Governing Law</span></a></li>
+                        <li><a href="#disputes"><i class="fas fa-balance-scale"></i> <span data-i18n="tocDisputes">Dispute Resolution</span></a></li>
+                        <li><a href="#disclaimer"><i class="fas fa-exclamation-triangle"></i> <span data-i18n="tocDisclaimer">Disclaimer</span></a></li>
+                        <li><a href="#liability"><i class="fas fa-shield-alt"></i> <span data-i18n="tocLiability">Limitations of Liability</span></a></li>
+                        <li><a href="#membership"><i class="fas fa-star"></i> <span data-i18n="tocMembership">Membership Policy</span></a></li>
+                        <li><a href="#payment"><i class="fas fa-money-bill-wave"></i> <span data-i18n="tocPayment">Payment Conditions</span></a></li>
+                        <li><a href="#compliance"><i class="fas fa-check-circle"></i> <span data-i18n="tocCompliance">Legal Compliance</span></a></li>
                     </ul>
                 </div>
             </div>
 
-            <!-- Privacy Section -->
-            <div class="terms-card" id="privacy">
+            <!-- Agreement to Terms Section -->
+            <div class="terms-card" id="agreement">
                 <div class="section-header">
                     <h2>
                         <div class="section-icon">
-                            <i class="fas fa-shield-alt"></i>
+                            <i class="fas fa-file-contract"></i>
                         </div>
-                        <span data-i18n="termsSection1Title">Protection of Users' Personal Information</span>
+                        <span data-i18n="termsSection1Title">1. Agreement to Terms</span>
                     </h2>
                 </div>
                 <div class="terms-content">
-                    <div class="numbered-list">
-                        <div class="numbered-item">
-                            <p class="terms-text" data-i18n="termsSection1p1">
-                                Protecting users' personal information and merchant information is a basic principle of this website. All "Brainlabs Digital Agency" information is stored and transmitted through professional encrypted channels to ensure user safety. If information is leaked without the consent of the original author, this website will take legal measures.
-                            </p>
-                        </div>
-                        
-                        <div class="numbered-item">
-                            <p class="terms-text" data-i18n="termsSection1p2">
-                                Users need to provide some necessary information when using the service. For example, in order to register an account, users need to fill in their phone number and agree to the relevant terms and conditions of use. If the information provided by the User is incomplete or incorrect, the User may be prohibited from using the Site.
-                            </p>
-                        </div>
-                        
-                        <div class="numbered-item">
-                            <p class="terms-text" data-i18n="termsSection1p3">
-                                Under normal circumstances, users can modify submitted data at any time. For security reasons (e.g. account retrieval services), users may not be able to freely modify their personal data after registration.
-                            </p>
-                        </div>
-                        
-                        <div class="numbered-item">
-                            <p class="terms-text" data-i18n="termsSection1p4">
-                                Brainlabs Digital Agency uses a variety of security technologies and procedures, and has a complete management system to protect users' personal information. Any unauthorized use may be subject to legal sanctions. The final registered phone number of a new Brainlabs Digital Agency account and Brainlabs Digital Agency account cannot be changed at will.
-                            </p>
-                        </div>
+                    <p class="terms-text">
+                        By accessing, browsing, or otherwise utilizing CDOT Database ("we," "our," or "the Platform"), whether via website, mobile interface, API, or other properties under our control ("Services"), you agree to be bound by these Terms and Conditions ("Terms"). If you do not agree, you are prohibited from accessing or using the Platform.
+                    </p>
+                </div>
+            </div>
                         
                         <div class="numbered-item">
                             <p class="terms-text" data-i18n="termsSection1p5">

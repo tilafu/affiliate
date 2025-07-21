@@ -12,8 +12,9 @@ const {
   getDriveStatus, // Added new function
   getDriveProgress, // Added for tracking progress
   getDetailedDriveProgress, // Added for detailed task-level progress
-  checkAutoUnfreeze // Added for auto-unfreeze functionality
-} = require('../controllers/driveController'); // Controller to be created
+  checkAutoUnfreeze, // Added for auto-unfreeze functionality
+  addRatingCommission // Added for luxury product rating system
+} = require('../controllers/drive'); // Fixed controller path
 
 // Route to start a new drive session (mimics task/suborder)
 router.post('/start', protect, startDrive);
@@ -47,5 +48,8 @@ router.post('/orders', protect, getDriveOrders);
 
 // Route to check if account can be auto-unfrozen
 router.post('/check-unfreeze', protect, checkAutoUnfreeze);
+
+// Route to add commission from product rating
+router.post('/add-commission', protect, addRatingCommission);
 
 module.exports = router;

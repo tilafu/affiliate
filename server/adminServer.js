@@ -80,6 +80,21 @@ app.use('/api/admin', dashboardRoutes);
 app.use('/api/admin/tier-management', tierManagementRoutes);
 app.use('/api/admin/chat', adminChatRoutes);
 
+// 404 Handler - Must be after all other routes
+app.use((req, res, next) => {
+  // Check if the request is for an API endpoint
+  if (req.originalUrl.startsWith('/api/')) {
+    return res.status(404).json({ 
+      success: false, 
+      error: 'Admin API endpoint not found',
+      path: req.originalUrl 
+    });
+  }
+  
+  // For all other requests (HTML pages), serve the 404.html page
+  res.status(404).sendFile(path.join(__dirname, '../public/404.html'));
+});
+
 // Start server
 app.listen(ADMIN_PORT, () => {
   logger.info(`Admin server running on port ${ADMIN_PORT}`);

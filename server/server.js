@@ -139,6 +139,21 @@ app.use('/api/admin/chat', chatUserManagementRoutes); // Mount chat user managem
 app.use('/api/admin/chat', chatMessageRoutes); // Mount chat message routes
 app.use('/api/dm', dmRoutes); // Mount direct message routes (separate from admin chat)
 
+// 404 Handler - Must be after all other routes
+app.use((req, res, next) => {
+  // Check if the request is for an API endpoint
+  if (req.originalUrl.startsWith('/api/')) {
+    return res.status(404).json({ 
+      success: false, 
+      error: 'API endpoint not found',
+      path: req.originalUrl 
+    });
+  }
+  
+  // For all other requests (HTML pages), serve the 404.html page
+  res.status(404).sendFile(path.join(__dirname, '../public/404.html'));
+});
+
 // Start server (using HTTP server instead of Express)
 server.listen(PORT, () => {
   logger.info(`Client server running on port ${PORT}`);
