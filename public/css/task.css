@@ -1,5 +1,389 @@
 /* Task Page Styles */
 
+/* Hero Section Styles */
+.hero-section {
+    background: #ffffff;
+    min-height: 500px;
+    padding: 60px 40px;
+    margin: 0 -20px 40px -20px;
+    position: relative;
+    overflow: hidden;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.hero-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    max-width: 1200px;
+    margin: 0 auto;
+    gap: 60px;
+}
+
+.hero-text {
+    flex: 1;
+    color: #2c3e50;
+}
+
+.hero-title {
+    font-size: 3.5rem;
+    font-weight: 300;
+    line-height: 1.1;
+    margin-bottom: 30px;
+    letter-spacing: -0.02em;
+    color: #1a1a1a;
+}
+
+.hero-subtitle {
+    font-size: 1.1rem;
+    line-height: 1.6;
+    color: #6c757d;
+    margin-bottom: 40px;
+    font-weight: 300;
+}
+
+.hero-cta-btn {
+    background: #ff4444;
+    color: white;
+    border: none;
+    padding: 15px 35px;
+    font-size: 1rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    box-shadow: 0 4px 15px rgba(255, 68, 68, 0.2);
+}
+
+.hero-cta-btn:hover {
+    background: #e63939;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(255, 68, 68, 0.4);
+}
+
+.hero-image {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+}
+
+/* Hero Carousel Styles */
+.hero-carousel-container {
+    position: relative;
+    width: 100%;
+    max-width: 500px;
+    margin: 0 auto;
+}
+
+.hero-carousel {
+    position: relative;
+    width: 100%;
+    height: 400px;
+    overflow: hidden;
+    border-radius: 15px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+    background: #f8f9fa;
+    cursor: pointer;
+}
+
+.hero-slide {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    transform: translateX(100%);
+    transition: all 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.hero-slide.active {
+    opacity: 1;
+    transform: translateX(0);
+    z-index: 2;
+}
+
+.hero-slide.prev {
+    transform: translateX(-100%);
+    z-index: 1;
+}
+
+.hero-slide.next {
+    transform: translateX(100%);
+    z-index: 1;
+}
+
+.hero-product-image {
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    filter: drop-shadow(0 8px 25px rgba(0, 0, 0, 0.15));
+    transition: all 0.4s ease;
+}
+
+.hero-slide.active .hero-product-image {
+    transform: scale(1.02);
+}
+
+.hero-slide:hover .hero-product-image {
+    transform: scale(1.08);
+    filter: drop-shadow(0 12px 35px rgba(0, 0, 0, 0.2));
+}
+
+/* Carousel Navigation */
+.hero-carousel-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    padding: 0 15px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.hero-carousel-container:hover .hero-carousel-nav {
+    opacity: 1;
+}
+
+.hero-nav-btn {
+    background: rgba(255, 255, 255, 0.95);
+    border: none;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    pointer-events: all;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+    backdrop-filter: blur(15px);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.hero-nav-btn:hover {
+    background: rgba(255, 255, 255, 1);
+    transform: scale(1.15);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+    border-color: rgba(255, 68, 68, 0.3);
+}
+
+.hero-nav-btn:active {
+    transform: scale(1.05);
+}
+
+.hero-nav-btn i {
+    color: #333;
+    font-size: 18px;
+    transition: color 0.3s ease;
+}
+
+.hero-nav-btn:hover i {
+    color: #ff4444;
+}
+
+/* Carousel Dots */
+.hero-carousel-dots {
+    position: absolute;
+    bottom: 25px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 12px;
+    background: rgba(0, 0, 0, 0.1);
+    padding: 8px 16px;
+    border-radius: 20px;
+    backdrop-filter: blur(10px);
+}
+
+.hero-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255, 255, 255, 0.6);
+    cursor: pointer;
+    transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    position: relative;
+    overflow: hidden;
+}
+
+.hero-dot::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 0%;
+    height: 100%;
+    background: #ff4444;
+    border-radius: 50%;
+    transition: width 4s linear;
+}
+
+.hero-dot.active::before {
+    width: 100%;
+}
+
+.hero-dot.active,
+.hero-dot:hover {
+    background: #ff4444;
+    transform: scale(1.3);
+    box-shadow: 0 0 15px rgba(255, 68, 68, 0.4);
+}
+
+.hero-dot:hover {
+    background: rgba(255, 68, 68, 0.8);
+}
+
+/* Auto-rotation progress indicator */
+.hero-carousel-container::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #ff4444, #ff6b6b);
+    border-radius: 0 0 15px 15px;
+    width: 0%;
+    animation: carousel-progress 4s linear infinite;
+}
+
+@keyframes carousel-progress {
+    0% { width: 0%; }
+    100% { width: 100%; }
+}
+
+.hero-carousel-container:hover::after {
+    animation-play-state: paused;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .hero-section {
+        padding: 30px 15px;
+        margin: 0 -10px 30px -10px;
+        min-height: auto;
+    }
+    
+    .hero-content {
+        flex-direction: column;
+        text-align: center;
+        gap: 30px;
+    }
+    
+    .hero-title {
+        font-size: 2.2rem;
+        margin-bottom: 20px;
+    }
+    
+    .hero-subtitle {
+        font-size: 1rem;
+        margin-bottom: 30px;
+    }
+    
+    /* Mobile carousel - make it more compact and creative */
+    .hero-carousel-container {
+        max-width: 100%;
+        width: 100%;
+    }
+    
+    .hero-carousel {
+        height: 280px;
+        border-radius: 20px;
+        margin: 0 10px;
+    }
+    
+    /* Mobile: Stack multiple products in view */
+    .hero-slide {
+        padding: 15px;
+    }
+    
+    .hero-product-image {
+        max-height: 220px;
+    }
+    
+    /* Smaller navigation buttons for mobile */
+    .hero-nav-btn {
+        width: 35px;
+        height: 35px;
+    }
+    
+    .hero-nav-btn i {
+        font-size: 14px;
+    }
+    
+    /* Larger dots for mobile touch */
+    .hero-dot {
+        width: 12px;
+        height: 12px;
+    }
+    
+    .hero-carousel-dots {
+        bottom: 15px;
+        gap: 10px;
+    }
+}
+
+/* Extra small mobile devices */
+@media (max-width: 480px) {
+    .hero-section {
+        padding: 25px 10px;
+    }
+    
+    .hero-title {
+        font-size: 1.8rem;
+    }
+    
+    .hero-carousel {
+        height: 250px;
+        margin: 0 5px;
+        border-radius: 15px;
+    }
+    
+    .hero-product-image {
+        max-height: 180px;
+    }
+    
+    /* Hide navigation buttons on very small screens, rely on swipe */
+    .hero-carousel-nav {
+        display: none;
+    }
+    
+    .hero-dot {
+        width: 8px;
+        height: 8px;
+    }
+}
+
+@media (max-width: 480px) {
+    .hero-title {
+        font-size: 2rem;
+    }
+    
+    .hero-subtitle {
+        font-size: 0.9rem;
+    }
+    
+    .hero-cta-btn {
+        padding: 12px 25px;
+        font-size: 0.9rem;
+    }
+}
+
 /* Global Styles */
 :root {
     --primary-color: #4f46e5;

@@ -16,38 +16,6 @@ document.addEventListener('DOMContentLoaded', () => {
     let totalProductsInItem = 0;
     let isLastProductInCurrentItem = false;
     let currentProductData = null; // Stores the full details of the currently displayed single product
-    
-    // Debug elements
-    const debugSection = document.getElementById('debug-section');
-    const debugConsole = document.getElementById('debug-console');
-    const clearDebugBtn = document.getElementById('clear-debug-btn');
-    
-    // Press Ctrl+Shift+D to toggle debug console
-    document.addEventListener('keydown', (e) => {
-        if (e.ctrlKey && e.shiftKey && e.key === 'D') {
-            debugSection.style.display = debugSection.style.display === 'none' ? 'block' : 'none';
-        }
-    });
-    
-    // Clear debug console button
-    if (clearDebugBtn) {
-        clearDebugBtn.addEventListener('click', () => {
-            if (debugConsole) debugConsole.innerHTML = '';
-        });
-    }
-    
-    // Debug logging function
-    function logDebug(message, type = 'info') {
-        if (!debugConsole) return;
-        
-        const timestamp = new Date().toISOString().split('T')[1].split('.')[0];
-        const entry = document.createElement('div');
-        entry.className = `debug-${type}`;
-        entry.innerHTML = `<span class="debug-time">${timestamp}</span> <span class="debug-type">[${type}]</span> ${message}`;
-        
-        debugConsole.appendChild(entry);
-        debugConsole.scrollTop = debugConsole.scrollHeight;
-    }
 
     // Event listener for the Start Drive button
     if (startDriveButton) {
@@ -56,7 +24,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Function to handle the Start Drive button click
     async function handleStartDrive() {
-        console.log('Start Drive button clicked');
         // Disable the button and show loading state
         startDriveButton.disabled = true;
         startDriveButton.textContent = 'Starting...';
@@ -69,44 +36,32 @@ document.addEventListener('DOMContentLoaded', () => {
                     'Content-Type': 'application/json'
                 },
             });
-
-            console.log('Start drive response status:', response.status);
             
             let data;
             try {
                 data = await response.json();
-                console.log('Start drive response data:', data);
             } catch (parseError) {
                 console.error('Error parsing response:', parseError);
-                logDebug(`Server error (status ${response.status}). Error parsing response: ${parseError.message}`, 'error');
                 throw new Error(`Server error (status ${response.status}). Please try again later.`);
             }
 
             if (response.ok && data.code === 0) {
-                logDebug(`Drive started or existing session found: ${data.message}. Session ID: ${data.session_id}`, 'info');
-                
                 startDriveButton.style.display = 'none';
                 driveContentArea.style.display = 'block';
                 
                 if (data.existing_session) {
-                    logDebug('Using existing session. Checking drive status...', 'info');
                     checkDriveStatus(); // Token is available in the outer scope
                 } else {
                     // New drive started, data should contain the first product
                     if (data.current_product_details) {
-                        logDebug('New drive started. Rendering first product.', 'info');
                         updateFrontendState(data);
-                        // renderProductCard(data.current_product_details);
                         updateWalletBalance();
                     } else {
-                        logDebug('New drive started, but no product details in response. Fetching next order.', 'warn');
                         fetchNextOrder(); // Fetch the first order/product
                     }
                 }
             } else {
-                logDebug(`Failed to start drive: ${data.info || data.message || 'Unknown error'}`, 'error');
                 if (response.status === 409) { // Conflict - existing session
-                    logDebug('Existing session detected (409). Checking drive status...', 'info');
                     startDriveButton.style.display = 'none';
                     driveContentArea.style.display = 'block';
                     checkDriveStatus();
@@ -117,7 +72,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
         } catch (error) {
-            logDebug(`Error starting drive: ${error.message}`, 'error');
             console.error('Error starting drive:', error);
             alert('Error starting drive: ' + error.message);
             startDriveButton.disabled = false;
@@ -133,22 +87,17 @@ document.addEventListener('DOMContentLoaded', () => {
             currentProductSlotInItem = data.product_slot_in_item;
             totalProductsInItem = data.total_products_in_item;
             isLastProductInCurrentItem = data.is_last_product_in_item;
-            logDebug(`State updated: itemID=${currentItemId}, slot=${currentProductSlotInItem}/${totalProductsInItem}, lastInItem=${isLastProductInCurrentItem}`, 'dev');
         } else if (data.product_details) { // For getOrder response
             currentProductData = data.product_details;
             currentItemId = data.item_id || data.order_id;
             currentProductSlotInItem = data.product_slot_in_item;
             totalProductsInItem = data.total_products_in_item;
             isLastProductInCurrentItem = data.is_last_product_in_item;
-            logDebug(`State updated (getOrder): itemID=${currentItemId}, slot=${currentProductSlotInItem}/${totalProductsInItem}, lastInItem=${isLastProductInCurrentItem}`, 'dev');
-        } else {
-            logDebug('No product details in data to update frontend state.', 'warn');
         }
     }
 
     // Function to fetch and display the next order/product
     async function fetchNextOrder() {
-        logDebug('Fetching next order...', 'info');
         driveContentArea.innerHTML = '<p>Loading next product...</p>'; // Loading state
         
         try {
@@ -161,30 +110,23 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             const data = await response.json();
-            logDebug(`Fetch next order response: ${JSON.stringify(data)}`, 'dev');
 
             if (response.ok) {
                 if (data.code === 0 && data.product_details) { // Success, product received
-                    logDebug('Received next product.', 'info');
                     updateFrontendState(data);
-                    // renderProductCard(data.product_details);
                     updateWalletBalance(); 
                 } else if (data.code === 2) { // Drive complete
-                    logDebug('Drive complete.', 'info');
                     displayDriveComplete(data.info || 'All tasks completed!');
                     updateWalletBalance(); 
                 } else {
-                     logDebug(`Received unexpected success data from getOrder: ${JSON.stringify(data)}`, 'warn');
                      alert('Received unexpected data while fetching order.');
                      displayDriveError('Received unexpected data from server.');
                 }
             } else {
-                 logDebug(`Failed to fetch order: ${data.info || data.message || 'Unknown error'}`, 'error');
                  alert('Failed to fetch order: ' + (data.info || data.message || 'Unknown error'));
                  displayDriveError(data.info || data.message || 'Failed to fetch next product.');
             }
         } catch (error) {
-            logDebug(`Error fetching order: ${error.message}`, 'error');
             console.error('Error fetching order:', error);
             alert('Error fetching order: ' + error.message);
             displayDriveError('Error fetching next product: ' + error.message);
@@ -223,8 +165,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }*/
 
     // Function to handle the Purchase button click
-    async function handlePurchase(productDataForPurchase) { // Renamed to avoid conflict with global currentProductData
-        logDebug(`Purchase button clicked for product: ${productDataForPurchase.product_name} (Slot: ${currentProductSlotInItem})`, 'info');
+    async function handlePurchase(productDataForPurchase) {
         const purchaseButton = document.getElementById('purchase-button');
         if (purchaseButton) {
             purchaseButton.disabled = true;
@@ -233,15 +174,13 @@ document.addEventListener('DOMContentLoaded', () => {
         
         try {
             const payload = {
-                order_id: currentItemId, // This is the user_active_drive_items.id
+                order_id: currentItemId,
                 product_id: productDataForPurchase.product_id,
-                item_id: currentItemId, // Explicitly pass item_id as per updated-combo.md
-                product_slot_to_complete: currentProductSlotInItem, // Send the current slot
+                item_id: currentItemId,
+                product_slot_to_complete: currentProductSlotInItem,
                 order_amount: productDataForPurchase.product_price,
                 earning_commission: productDataForPurchase.order_commission,
-                // product_number is not explicitly in productDataForPurchase, but backend might not need it if product_id is specific enough
             };
-            logDebug(`SaveOrder payload: ${JSON.stringify(payload)}`, 'dev');
 
             const response = await fetch(`${API_BASE_URL}/api/drive/saveorder`, {
                 method: 'POST',
@@ -253,12 +192,10 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             const data = await response.json();
-            logDebug(`SaveOrder response: ${JSON.stringify(data)}`, 'dev');            if (response.ok && data.code === 0) {
-                logDebug('Order saved successfully: ' + (data.info || 'Product purchased.'), 'info');
-                
+
+            if (response.ok && data.code === 0) {
                 // Process refund for the purchase amount
                 try {
-                    logDebug(`Processing refund of ${productDataForPurchase.product_price} USDT for product purchase`, 'info');
                     const refundResponse = await fetch(`${API_BASE_URL}/api/drive/refund`, {
                         method: 'POST',
                         headers: {
@@ -274,50 +211,25 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
 
                     const refundData = await refundResponse.json();
-                    logDebug(`Refund response: ${JSON.stringify(refundData)}`, 'dev');                    if (refundResponse.ok && refundData.success) {
-                        logDebug(`Refund successful: ${productDataForPurchase.product_price} USDT refunded`, 'info');
-                        
-                        // Show purchase success popup instead of notification
-                        if (typeof showPurchaseSuccessPopup === 'function') {
-                            showPurchaseSuccessPopup(productDataForPurchase.product_name, () => {
-                                // Continue with the drive flow after user clicks "Continue Drive"
-                                if (data.next_action === 'drive_complete') {
-                                    logDebug('Drive complete after purchase.', 'info');
-                                    displayDriveComplete(data.message_to_user || 'Congratulations! Drive complete!');
-                                } else {
-                                    // Default action is to fetch the next order/product
-                                    logDebug('Fetching next order after purchase.', 'info');
-                                    fetchNextOrder();
-                                }
-                            });
-                            return; // Exit early since popup will handle the continue flow
-                        } else {
-                            // Fallback to regular notification if popup function is not available
-                            if (typeof showNotification === 'function') {
-                                showNotification(`Purchase completed! ${productDataForPurchase.product_price} USDT refunded + ${productDataForPurchase.order_commission} USDT commission earned`, 'success');
+
+                    // Show purchase success popup regardless of refund status
+                    if (typeof showPurchaseSuccessPopup === 'function') {
+                        showPurchaseSuccessPopup(productDataForPurchase.product_name, () => {
+                            // Continue with the drive flow after user clicks "Continue Drive"
+                            if (data.next_action === 'drive_complete') {
+                                displayDriveComplete(data.message_to_user || 'Congratulations! Drive complete!');
+                            } else {
+                                fetchNextOrder();
                             }
-                        }
+                        });
+                        return; // Exit early since popup will handle the continue flow
                     } else {
-                        logDebug(`Refund failed: ${refundData.message || 'Unknown error'}`, 'warn');
-                        // Log error but don't stop the flow - user still got their commission
-                        console.warn('Refund failed but purchase was successful:', refundData);
-                        
-                        // Still show success popup even if refund failed
-                        if (typeof showPurchaseSuccessPopup === 'function') {
-                            showPurchaseSuccessPopup(productDataForPurchase.product_name, () => {
-                                // Continue with the drive flow
-                                if (data.next_action === 'drive_complete') {
-                                    logDebug('Drive complete after purchase.', 'info');
-                                    displayDriveComplete(data.message_to_user || 'Congratulations! Drive complete!');
-                                } else {
-                                    logDebug('Fetching next order after purchase.', 'info');
-                                    fetchNextOrder();
-                                }
-                            });
-                            return;
+                        // Fallback to regular notification if popup function is not available
+                        if (typeof showNotification === 'function') {
+                            showNotification(`Purchase completed! $${productDataForPurchase.product_price} refunded + $${productDataForPurchase.order_commission} commission earned`, 'success');
                         }
-                    }                } catch (refundError) {
-                    logDebug(`Error processing refund: ${refundError.message}`, 'error');
+                    }
+                } catch (refundError) {
                     console.error('Error processing refund:', refundError);
                     // Continue with normal flow even if refund fails
                     
@@ -326,10 +238,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         showPurchaseSuccessPopup(productDataForPurchase.product_name, () => {
                             // Continue with the drive flow
                             if (data.next_action === 'drive_complete') {
-                                logDebug('Drive complete after purchase.', 'info');
                                 displayDriveComplete(data.message_to_user || 'Congratulations! Drive complete!');
                             } else {
-                                logDebug('Fetching next order after purchase.', 'info');
                                 fetchNextOrder();
                             }
                         });
@@ -343,22 +253,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Only execute default flow if popup wasn't shown
                 if (typeof showPurchaseSuccessPopup !== 'function') {
                     if (data.next_action === 'drive_complete') {
-                        logDebug('Drive complete after purchase.', 'info');
                         displayDriveComplete(data.message_to_user || 'Congratulations! Drive complete!');
                     } else {
-                        // Default action is to fetch the next order/product
-                        logDebug('Fetching next order after purchase.', 'info');
                         fetchNextOrder();
                     }
-                }            }else if (data.code === 3) { // Insufficient balance/Frozen
-                 logDebug(`Insufficient balance/Frozen: ${data.info}`, 'warn');
+                }
+            } else if (data.code === 3) { // Insufficient balance/Frozen
                  const tasksCompleted = data.tasks_completed && data.tasks_required ? 
                      `${data.tasks_completed} of ${data.tasks_required}` : '0 of 0';
                  const totalCommission = data.total_session_commission || '0.00';
                  displayFrozenState(data.info, data.frozen_amount_needed, tasksCompleted, totalCommission);
                  updateWalletBalance();
             } else {
-                logDebug(`Failed to save order: ${data.info || data.message || 'Unknown error'}`, 'error');
                 alert('Failed to save order: ' + (data.info || data.message || 'Unknown error'));
                  if (purchaseButton) {
                      purchaseButton.disabled = false;
@@ -366,7 +272,6 @@ document.addEventListener('DOMContentLoaded', () => {
                  }
             }
         } catch (error) {
-            logDebug(`Error saving order: ${error.message}`, 'error');
             console.error('Error saving order:', error);
             alert('Error saving order: ' + error.message);
             if (purchaseButton) {
@@ -434,39 +339,32 @@ document.addEventListener('DOMContentLoaded', () => {
          });    
     }    // Function to display frozen state popup modal
     function displayFrozenState(message, amountNeeded, tasksCompleted = '0 of 0', totalCommission = '0.00') {
-        console.log('=== displayFrozenState called ===');
-        console.log('Message:', message);
-        console.log('Amount needed:', amountNeeded);
-        console.log('Tasks completed:', tasksCompleted);
-        console.log('Total commission:', totalCommission);
+        console.log('displayFrozenState called with:', { message, amountNeeded, tasksCompleted, totalCommission });
         
-        // Simple test modal to see if it shows up at all
-        const testModal = document.createElement('div');
-        testModal.id = 'test-modal';
-        testModal.style.cssText = `
-            position: fixed !important;
-            top: 50% !important;
-            left: 50% !important;
-            transform: translate(-50%, -50%) !important;
-            background: red !important;
-            color: white !important;
-            padding: 20px !important;
-            z-index: 999999 !important;
-            border: 5px solid yellow !important;
-            font-size: 20px !important;
-            font-weight: bold !important;
-        `;
-        testModal.innerHTML = 'TEST MODAL - ACCOUNT FROZEN<br>Click to close';
-        testModal.addEventListener('click', () => testModal.remove());
-        
-        document.body.appendChild(testModal);
-        console.log('Test modal added to body');
-        
-        // Also try the full modal
-        setTimeout(() => {
-            testModal.remove();
+        // Check if showFullModal function exists
+        if (typeof showFullModal === 'function') {
+            console.log('showFullModal function exists, calling it...');
             showFullModal(message, amountNeeded, tasksCompleted, totalCommission);
-        }, 2000);
+        } else {
+            console.error('showFullModal function not found!');
+            // Fallback to Bootstrap modal
+            const frozenModalElement = document.getElementById('frozenAccountModal');
+            if (frozenModalElement) {
+                console.log('Using Bootstrap modal fallback');
+                const modal = new bootstrap.Modal(frozenModalElement);
+                
+                // Update modal content
+                const currentBalanceElement = document.getElementById('modal-current-balance');
+                const amountNeededElement = document.getElementById('modal-amount-needed');
+                
+                if (currentBalanceElement) currentBalanceElement.textContent = '$0.00';
+                if (amountNeededElement) amountNeededElement.textContent = '$' + amountNeeded;
+                
+                modal.show();
+            } else {
+                console.error('No modal found - neither custom nor Bootstrap!');
+            }
+        }
     }
     
     function showFullModal(message, amountNeeded, tasksCompleted = '0 of 0', totalCommission = '0.00') {
@@ -476,14 +374,9 @@ document.addEventListener('DOMContentLoaded', () => {
             existingModal.remove();
         }
 
-        const existingStyles = document.getElementById('drive-frozen-modal-styles');
-        if (existingStyles) {
-            existingStyles.remove();
-        }
-
         // Calculate progress percentage
         let percentage = 0;
-        if (tasksCompleted && tasksCompleted !== '0 of 0' && tasksCompleted !== 'undefined of undefined') {
+        if (tasksCompleted && tasksCompleted !== '0 of 0') {
             const match = tasksCompleted.match(/(\d+)\s*of\s*(\d+)/);
             if (match) {
                 const completed = parseInt(match[1]);
@@ -494,312 +387,309 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        // Create modal with inline styles to override any conflicting CSS
+        // Create simplified modal
         const modalHTML = `
-            <div id="drive-frozen-modal" style="
-                position: fixed !important;
-                top: 0 !important;
-                left: 0 !important;
-                width: 100vw !important;
-                height: 100vh !important;
-                background: rgba(0, 0, 0, 0.8) !important;
-                backdrop-filter: blur(8px) !important;
-                display: flex !important;
-                align-items: center !important;
-                justify-content: center !important;
-                z-index: 999999 !important;
-                padding: 20px !important;
-                box-sizing: border-box !important;
-                font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
-                animation: fadeIn 0.3s ease !important;
-            ">
-                <div style="
-                    background: linear-gradient(145deg, #667eea 0%, #764ba2 100%) !important;
-                    border-radius: 20px !important;
-                    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5) !important;
-                    max-width: 450px !important;
-                    width: 100% !important;
-                    max-height: 90vh !important;
-                    overflow-y: auto !important;
-                    position: relative !important;
-                    color: white !important;
-                    border: 2px solid rgba(255, 255, 255, 0.1) !important;
-                    animation: slideUp 0.4s ease !important;
-                ">
-                    <div style="
-                        padding: 40px 35px 35px !important;
-                        text-align: center !important;
-                        position: relative !important;
-                    ">
-                        <!-- Close Button -->
-                        <button id="drive-frozen-close" style="
-                            position: absolute !important;
-                            top: 15px !important;
-                            right: 15px !important;
-                            background: rgba(255, 255, 255, 0.2) !important;
-                            border: none !important;
-                            border-radius: 50% !important;
-                            width: 40px !important;
-                            height: 40px !important;
-                            color: white !important;
-                            font-size: 18px !important;
-                            cursor: pointer !important;
-                            transition: all 0.3s ease !important;
-                            display: flex !important;
-                            align-items: center !important;
-                            justify-content: center !important;
-                            font-weight: bold !important;
-                        " onmouseover="this.style.background='rgba(255,255,255,0.3)'; this.style.transform='scale(1.1)'" onmouseout="this.style.background='rgba(255,255,255,0.2)'; this.style.transform='scale(1)'">×</button>
-                        
-                        <!-- Icon -->
-                        <div style="margin-bottom: 20px !important;">
-                            <i class="fas fa-exclamation-triangle" style="
-                                font-size: 56px !important;
-                                color: #FFD700 !important;
-                                text-shadow: 0 4px 15px rgba(255, 215, 0, 0.4) !important;
-                                animation: pulse 2s infinite !important;
-                            "></i>
-                        </div>
-                        
-                        <!-- Title -->
-                        <h2 style="
-                            font-size: 28px !important;
-                            font-weight: 700 !important;
-                            margin: 0 0 12px 0 !important;
-                            color: #FFD700 !important;
-                            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3) !important;
-                        ">⚠️ Account Frozen</h2>
-                        
-                        <!-- Message -->
-                        <p style="
-                            font-size: 16px !important;
-                            margin: 0 0 20px 0 !important;
-                            opacity: 0.9 !important;
-                            line-height: 1.5 !important;
-                            color: #e1e8f0 !important;
-                        ">${message}</p>
-                        
-                        <!-- Amount Section -->
-                        ${amountNeeded ? `
-                        <div style="
-                            font-size: 18px !important;
-                            margin-bottom: 25px !important;
-                            padding: 15px !important;
-                            background: rgba(255, 255, 255, 0.1) !important;
-                            border-radius: 12px !important;
-                            border: 1px solid rgba(255, 255, 255, 0.2) !important;
-                            backdrop-filter: blur(10px) !important;
-                        ">
-                            Amount needed: <span style="
-                                color: #FFD700 !important;
-                                font-weight: 800 !important;
-                                font-size: 22px !important;
-                                text-shadow: 0 2px 10px rgba(255, 215, 0, 0.3) !important;
-                            ">${amountNeeded} USDT</span>
-                        </div>
-                        ` : ''}
-                        
-                        <!-- Stats Section -->
-                        <div style="
-                            margin-bottom: 30px !important;
-                            padding: 20px !important;
-                            background: rgba(255, 255, 255, 0.08) !important;
-                            border-radius: 12px !important;
-                            border: 1px solid rgba(255, 255, 255, 0.15) !important;
-                            backdrop-filter: blur(10px) !important;
-                        ">
-                            <!-- Progress Section -->
-                            <div style="margin-bottom: 20px !important;">
-                                <div style="
-                                    font-size: 14px !important;
-                                    opacity: 0.8 !important;
-                                    margin-bottom: 8px !important;
-                                    color: #b8c6db !important;
-                                    text-transform: uppercase !important;
-                                    letter-spacing: 0.5px !important;
-                                ">Drive Progress</div>
-                                <div style="
-                                    font-size: 18px !important;
-                                    font-weight: 600 !important;
-                                    margin-bottom: 12px !important;
-                                    color: #FFD700 !important;
-                                ">${tasksCompleted} ${percentage > 0 ? `(${Math.round(percentage)}%)` : ''}</div>
-                                
-                                <!-- Progress Bar -->
-                                <div style="
-                                    width: 100% !important;
-                                    height: 10px !important;
-                                    background: rgba(255, 255, 255, 0.2) !important;
-                                    border-radius: 5px !important;
-                                    overflow: hidden !important;
-                                    margin-bottom: 8px !important;
-                                    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2) !important;
-                                ">
-                                    <div id="drive-progress-bar" style="
-                                        height: 100% !important;
-                                        background: linear-gradient(90deg, #4ECDC4 0%, #44A08D 100%) !important;
-                                        border-radius: 5px !important;
-                                        transition: width 0.8s ease-out !important;
-                                        width: ${percentage}% !important;
-                                        box-shadow: 0 2px 8px rgba(78, 205, 196, 0.4) !important;
-                                    "></div>
-                                </div>
-                            </div>
-                            
-                            <!-- Commission -->
-                            <div style="margin: 0 !important; text-align: center !important;">
-                                <div style="
-                                    color: #4ECDC4 !important;
-                                    font-size: 20px !important;
-                                    font-weight: 700 !important;
-                                    text-shadow: 0 2px 8px rgba(78, 205, 196, 0.3) !important;
-                                ">${totalCommission} USDT</div>
-                                <div style="
-                                    display: block !important;
-                                    margin-top: 8px !important;
-                                    opacity: 0.7 !important;
-                                    font-size: 13px !important;
-                                    line-height: 1.4 !important;
-                                    color: #b8c6db !important;
-                                ">Your earned commission is safe and will be available when you resume</div>
+            <div id="drive-frozen-modal" class="drive-frozen-overlay">
+                <div class="drive-frozen-content">
+                    <button id="drive-frozen-close" class="drive-frozen-close">×</button>
+                    
+                    <div class="drive-frozen-image">
+                        <img src="./assets/uploads/images/Drive/continue-drive.png" alt="Account Frozen" class="frozen-modal-image">
+                    </div>
+                    
+                    <h2 class="drive-frozen-title">Get Back to PEA Drive</h2>
+                    <p class="drive-frozen-message">${message}</p>
+                    
+                    ${amountNeeded ? `
+                    <div class="drive-frozen-amount">
+                        Amount needed: <span class="amount-value">$${amountNeeded} USD</span>
+                    </div>
+                    ` : ''}
+                    
+                    <div class="drive-frozen-stats">
+                        <div class="progress-section">
+                            <div class="progress-label">Drive Progress</div>
+                            <div class="progress-text">${tasksCompleted} ${percentage > 0 ? `(${Math.round(percentage)}%)` : ''}</div>
+                            <div class="progress-bar-container">
+                                <div class="progress-bar" style="width: ${percentage}%"></div>
                             </div>
                         </div>
                         
-                        <!-- Buttons -->
-                        <div style="
-                            display: flex !important;
-                            gap: 15px !important;
-                            flex-direction: column !important;
-                        ">
-                            <button id="drive-deposit-funds-btn" style="
-                                padding: 16px 24px !important;
-                                border-radius: 12px !important;
-                                border: none !important;
-                                font-weight: 600 !important;
-                                font-size: 16px !important;
-                                cursor: pointer !important;
-                                transition: all 0.3s ease !important;
-                                display: flex !important;
-                                align-items: center !important;
-                                justify-content: center !important;
-                                gap: 10px !important;
-                                text-transform: uppercase !important;
-                                letter-spacing: 0.5px !important;
-                                min-height: 50px !important;
-                                background: linear-gradient(135deg, #4ECDC4 0%, #44A08D 100%) !important;
-                                color: white !important;
-                                box-shadow: 0 6px 20px rgba(78, 205, 196, 0.4) !important;
-                            " onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 8px 25px rgba(78, 205, 196, 0.5)'; this.style.background='linear-gradient(135deg, #5FDDD6 0%, #55B09E 100%)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 6px 20px rgba(78, 205, 196, 0.4)'; this.style.background='linear-gradient(135deg, #4ECDC4 0%, #44A08D 100%)'">
-                                <i class="fas fa-plus-circle"></i> Deposit Funds
-                            </button>
-                            
-                            <button id="drive-contact-support-btn" style="
-                                padding: 16px 24px !important;
-                                border-radius: 12px !important;
-                                border: 1px solid rgba(255, 255, 255, 0.3) !important;
-                                font-weight: 600 !important;
-                                font-size: 16px !important;
-                                cursor: pointer !important;
-                                transition: all 0.3s ease !important;
-                                display: flex !important;
-                                align-items: center !important;
-                                justify-content: center !important;
-                                gap: 10px !important;
-                                text-transform: uppercase !important;
-                                letter-spacing: 0.5px !important;
-                                min-height: 50px !important;
-                                background: rgba(255, 255, 255, 0.15) !important;
-                                color: white !important;
-                            " onmouseover="this.style.background='rgba(255, 255, 255, 0.25)'; this.style.transform='translateY(-2px)'; this.style.borderColor='rgba(255, 255, 255, 0.4)'" onmouseout="this.style.background='rgba(255, 255, 255, 0.15)'; this.style.transform='translateY(0)'; this.style.borderColor='rgba(255, 255, 255, 0.3)'">
-                                <i class="fas fa-headset"></i> Contact Support
-                            </button>
+                        <div class="commission-section">
+                            <div class="commission-value">$${totalCommission} USD</div>
+                            <div class="commission-note">Your earned commission is safe and will be available when you resume</div>
                         </div>
+                    </div>
+                    
+                    <div class="drive-frozen-buttons">
+                        <button id="drive-deposit-funds-btn" class="btn-primary">
+                            <i class="fas fa-plus-circle"></i> Deposit Funds
+                        </button>
+                        <button id="drive-view-orders-btn" class="btn-secondary">
+                            <i class="fas fa-list"></i> View Orders
+                        </button>
+                        <button id="drive-contact-support-btn" class="btn-secondary">
+                            <i class="fas fa-headset"></i> Contact Support
+                        </button>
                     </div>
                 </div>
             </div>
-            
-            <style id="drive-frozen-modal-styles">
-                @keyframes fadeIn {
-                    from { opacity: 0; }
-                    to { opacity: 1; }
-                }
-                
-                @keyframes slideUp {
-                    from { 
-                        transform: translateY(-50px) scale(0.95); 
-                        opacity: 0; 
-                    }
-                    to { 
-                        transform: translateY(0) scale(1); 
-                        opacity: 1; 
-                    }
-                }
-                
-                @keyframes pulse {
-                    0%, 100% { transform: scale(1); }
-                    50% { transform: scale(1.05); }
-                }
-                
-                @keyframes fadeOut {
-                    from { opacity: 1; }
-                    to { opacity: 0; }
-                }
-            </style>
         `;
 
-        // Add styles and modal to DOM
-        document.head.insertAdjacentHTML('beforeend', '<style id="drive-frozen-modal-styles">@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } } @keyframes slideUp { from { transform: translateY(-50px) scale(0.95); opacity: 0; } to { transform: translateY(0) scale(1); opacity: 1; } } @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } } @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }</style>');
+        // Add CSS
+        const style = document.createElement('style');
+        style.id = 'drive-frozen-modal-styles';
+        style.textContent = `
+            .drive-frozen-overlay {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100vw;
+                height: 100vh;
+                background: rgba(0, 0, 0, 0.75);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 999999;
+                padding: 20px;
+                animation: fadeIn 0.3s ease;
+            }
+            
+            .drive-frozen-content {
+                background: #ffffff;
+                border-radius: 20px;
+                box-shadow: 0 30px 80px rgba(0, 0, 0, 0.2);
+                border: 1px solid #e9ecef;
+                max-width: 450px;
+                width: 100%;
+                color: #2c3e50;
+                padding: 40px 35px 35px;
+                text-align: center;
+                position: relative;
+                animation: slideUp 0.4s ease;
+            }
+            
+            .drive-frozen-close {
+                position: absolute;
+                top: 15px;
+                right: 15px;
+                background: #f8f9fa;
+                border: 1px solid #dee2e6;
+                border-radius: 50%;
+                width: 40px;
+                height: 40px;
+                color: #6c757d;
+                font-size: 18px;
+                cursor: pointer;
+                transition: all 0.3s ease;
+            }
+            
+            .drive-frozen-close:hover {
+                background: #e9ecef;
+                color: #495057;
+                transform: scale(1.1);
+            }
+            
+            .drive-frozen-image {
+                margin-bottom: 20px;
+                background: transparent;
+            }
+            
+            .frozen-modal-image {
+                max-width: 120px;
+                max-height: 120px;
+                width: auto;
+                height: auto;
+                border-radius: 10px;
+                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            }
+            
+            .drive-frozen-title {
+                font-size: 28px;
+                font-weight: 700;
+                margin: 0 0 12px 0;
+                color: #2c3e50;
+            }
+            
+            .drive-frozen-message {
+                font-size: 16px;
+                margin: 0 0 20px 0;
+                color: #6c757d;
+                line-height: 1.5;
+            }
+            
+            .drive-frozen-amount {
+                font-size: 18px;
+                margin-bottom: 25px;
+                padding: 15px;
+                background: #f8f9fa;
+                border: 1px solid #dee2e6;
+                border-radius: 12px;
+                color: #495057;
+            }
+            
+            .amount-value {
+                color: #dc3545;
+                font-weight: 800;
+                font-size: 22px;
+            }
+            
+            .drive-frozen-stats {
+                margin-bottom: 30px;
+                padding: 20px;
+                background: #f8f9fa;
+                border: 1px solid #dee2e6;
+                border-radius: 12px;
+            }
+            
+            .progress-section {
+                margin-bottom: 20px;
+            }
+            
+            .progress-label {
+                font-size: 14px;
+                color: #6c757d;
+                margin-bottom: 8px;
+                text-transform: uppercase;
+                font-weight: 600;
+            }
+            
+            .progress-text {
+                font-size: 18px;
+                font-weight: 600;
+                margin-bottom: 12px;
+                color: #2c3e50;
+            }
+            
+            .progress-bar-container {
+                width: 100%;
+                height: 10px;
+                background: #e9ecef;
+                border-radius: 5px;
+                overflow: hidden;
+            }
+            
+            .progress-bar {
+                height: 100%;
+                background: linear-gradient(90deg, #28a745 0%, #20c997 100%);
+                border-radius: 5px;
+                transition: width 0.8s ease-out;
+            }
+            
+            .commission-value {
+                color: #28a745;
+                font-size: 20px;
+                font-weight: 700;
+            }
+            
+            .commission-note {
+                margin-top: 8px;
+                color: #6c757d;
+                font-size: 13px;
+            }
+            
+            .drive-frozen-buttons {
+                display: flex;
+                gap: 15px;
+                flex-direction: column;
+            }
+            
+            .btn-primary, .btn-secondary {
+                padding: 16px 24px;
+                border-radius: 12px;
+                border: none;
+                font-weight: 600;
+                font-size: 16px;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 10px;
+                min-height: 50px;
+            }
+            
+            .btn-primary {
+                background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+                color: white;
+                box-shadow: 0 6px 20px rgba(0, 123, 255, 0.3);
+            }
+            
+            .btn-primary:hover {
+                transform: translateY(-3px);
+                background: linear-gradient(135deg, #0056b3 0%, #004085 100%);
+                box-shadow: 0 8px 25px rgba(0, 123, 255, 0.4);
+            }
+            
+            .btn-secondary {
+                background: #ffffff;
+                color: #6c757d;
+                border: 2px solid #dee2e6;
+            }
+            
+            .btn-secondary:hover {
+                background: #f8f9fa;
+                color: #495057;
+                border-color: #adb5bd;
+                transform: translateY(-2px);
+            }
+            
+            @keyframes fadeIn {
+                from { opacity: 0; }
+                to { opacity: 1; }
+            }
+            
+            @keyframes slideUp {
+                from { transform: translateY(-50px) scale(0.95); opacity: 0; }
+                to { transform: translateY(0) scale(1); opacity: 1; }
+            }
+            
+            @keyframes pulse {
+                0%, 100% { transform: scale(1); }
+                50% { transform: scale(1.05); }
+            }
+        `;
+
+        document.head.appendChild(style);
         document.body.insertAdjacentHTML('beforeend', modalHTML);
 
-        // Get modal elements and add event listeners
+        // Event listeners
         const modal = document.getElementById('drive-frozen-modal');
         const closeBtn = document.getElementById('drive-frozen-close');
         const depositBtn = document.getElementById('drive-deposit-funds-btn');
+        const viewOrdersBtn = document.getElementById('drive-view-orders-btn');
         const supportBtn = document.getElementById('drive-contact-support-btn');
 
-        // Close button event
-        closeBtn.addEventListener('click', () => {
-            modal.style.animation = 'fadeOut 0.3s ease-out forwards';
-            setTimeout(() => modal.remove(), 300);
-        });
-
-        // Close on overlay click (clicking outside modal)
+        closeBtn.addEventListener('click', () => modal.remove());
         modal.addEventListener('click', (e) => {
-            if (e.target === modal) {
-                modal.style.animation = 'fadeOut 0.3s ease-out forwards';
-                setTimeout(() => modal.remove(), 300);
-            }
+            if (e.target === modal) modal.remove();
         });
 
-        // Deposit funds button
         depositBtn.addEventListener('click', () => {
             modal.remove();
             window.location.href = './account.html';
         });
 
-        // Contact support button
+        viewOrdersBtn.addEventListener('click', () => {
+            modal.remove();
+            window.location.href = './orders.html';
+        });
+
         supportBtn.addEventListener('click', () => {
             modal.remove();
             window.location.href = './contact.html';
         });
 
-        // Close on Escape key
-        const handleEscape = (e) => {
+        document.addEventListener('keydown', function escapeHandler(e) {
             if (e.key === 'Escape') {
-                modal.style.animation = 'fadeOut 0.3s ease-out forwards';
-                setTimeout(() => modal.remove(), 300);
-                document.removeEventListener('keydown', handleEscape);
+                modal.remove();
+                document.removeEventListener('keydown', escapeHandler);
             }
-        };
-        document.addEventListener('keydown', handleEscape);        // Create global close function for the close button
-        window.closeFrozenModal = () => {
-            const modal = document.getElementById('drive-frozen-modal');
-            if (modal) {
-                modal.style.animation = 'fadeOut 0.3s ease-out forwards';
-                setTimeout(() => modal.remove(), 300);
-            }
-        };
+        });
     }
+
+    // Expose displayFrozenState to global scope for task.js to use
+    window.displayFrozenState = displayFrozenState;
 
      // Function to display a generic drive error
      function displayDriveError(message) {
@@ -857,53 +747,35 @@ async function checkDriveStatus() { // Removed token parameter, use global token
                 console.log('Active session with current product found. Resuming drive.');
                 if(startDriveButton) startDriveButton.style.display = 'none';
                 if(driveContentArea) driveContentArea.style.display = 'block';
-                if(driveProgressSection) {
-                    driveProgressSection.style.display = 'block';
-                    driveProgressSection.style.visibility = 'visible';
-                    driveProgressSection.style.opacity = '1';
-                    driveProgressSection.classList.add('show');
-                    driveProgressSection.classList.remove('d-none');
-                } // Show progress with multiple approaches
-                if(noDriveMessageSection) noDriveMessageSection.style.display = 'none'; // Hide no-drive message
-                updateFrontendState(data); // Update state with all details
-                // renderProductCard(data.current_product_details);
-                updateWalletBalance();            } else if (data.status === 'frozen') {
+                if(driveProgressSection) driveProgressSection.style.display = 'block';
+                if(noDriveMessageSection) noDriveMessageSection.style.display = 'none';
+                updateFrontendState(data);
+                updateWalletBalance();
+            } else if (data.status === 'frozen') {
                  console.log('Frozen session found. Displaying frozen state.');
                  if(startDriveButton) startDriveButton.style.display = 'none';
                  if(driveContentArea) driveContentArea.style.display = 'block';
-                 if(driveProgressSection) {
-                     driveProgressSection.style.display = 'block';
-                     driveProgressSection.style.visibility = 'visible';
-                     driveProgressSection.style.opacity = '1';
-                     driveProgressSection.classList.add('show');
-                     driveProgressSection.classList.remove('d-none');
-                 } // Show progress with multiple approaches
-                 if(noDriveMessageSection) noDriveMessageSection.style.display = 'none'; // Hide no-drive message
+                 if(driveProgressSection) driveProgressSection.style.display = 'block';
+                 if(noDriveMessageSection) noDriveMessageSection.style.display = 'none';
                  const tasksCompleted = data.tasks_completed && data.tasks_required ? 
                      `${data.tasks_completed} of ${data.tasks_required}` : '0 of 0';
                  const totalCommission = data.total_commission || '0.00';
                  displayFrozenState(data.info || 'Your drive is frozen.', data.frozen_amount_needed, tasksCompleted, totalCommission);
                  updateWalletBalance();
-            } else if (data.status === 'complete' || data.status === 'pending_reset') { // pending_reset is also a form of completion
+            } else if (data.status === 'complete' || data.status === 'pending_reset') {
                  console.log('Drive complete or pending reset.');
-                 if(driveProgressSection) {
-                     driveProgressSection.style.display = 'block';
-                     driveProgressSection.style.visibility = 'visible';
-                     driveProgressSection.style.opacity = '1';
-                     driveProgressSection.classList.add('show');
-                     driveProgressSection.classList.remove('d-none');
-                 } // Show progress (even if complete) with multiple approaches
-                 if(noDriveMessageSection) noDriveMessageSection.style.display = 'none'; // Hide no-drive message
+                 if(driveProgressSection) driveProgressSection.style.display = 'block';
+                 if(noDriveMessageSection) noDriveMessageSection.style.display = 'none';
                  displayDriveComplete(data.info || 'Your data drive is complete.');
                  updateWalletBalance();
             } else if (data.status === 'no_session') {
                  console.log('No active drive session found.');
                  if(startDriveButton) startDriveButton.style.display = 'block';
                  if(driveContentArea) driveContentArea.style.display = 'none';
-                 if(driveProgressSection) driveProgressSection.style.display = 'none'; // Hide progress
+                 if(driveProgressSection) driveProgressSection.style.display = 'none';
                  if(noDriveMessageSection) {
                     noDriveMessageSection.innerHTML = '<p>No active data drive. Please contact support if you believe this is an error.</p><button id="contact-support-no-drive-btn" class="btn btn-primary">Contact Support</button>';
-                    noDriveMessageSection.style.display = 'block'; // Show no-drive message
+                    noDriveMessageSection.style.display = 'block';
                     const contactBtn = document.getElementById('contact-support-no-drive-btn');
                     if(contactBtn) {
                         contactBtn.addEventListener('click', () => {
@@ -921,15 +793,15 @@ async function checkDriveStatus() { // Removed token parameter, use global token
                  console.log(`Received unexpected status: ${data.status}. Data:`, data);
                  if(startDriveButton) startDriveButton.style.display = 'block';
                  if(driveContentArea) driveContentArea.style.display = 'none';
-                 if(driveProgressSection) driveProgressSection.style.display = 'none'; // Hide progress
-                 if(noDriveMessageSection) noDriveMessageSection.style.display = 'none'; // Hide no-drive message
+                 if(driveProgressSection) driveProgressSection.style.display = 'none';
+                 if(noDriveMessageSection) noDriveMessageSection.style.display = 'none';
             }
         } else {
             console.log(`Failed to check drive status: ${data.info || data.message || 'Unknown error'}`);
             if(startDriveButton) startDriveButton.style.display = 'block'; 
             if(driveContentArea) driveContentArea.style.display = 'none';
-            if(driveProgressSection) driveProgressSection.style.display = 'none'; // Hide progress
-            if(noDriveMessageSection) noDriveMessageSection.style.display = 'none'; // Hide no-drive message
+            if(driveProgressSection) driveProgressSection.style.display = 'none';
+            if(noDriveMessageSection) noDriveMessageSection.style.display = 'none';
         }
     } catch (error) {
         console.error('Error checking drive status:', error);
@@ -954,31 +826,8 @@ function requireAuth() {
     return { token: token };
 }
 
-// Debug function to check progress section visibility
-function debugProgressSection() {
-    const progressSection = document.getElementById('progress-section');
-    if (progressSection) {
-        console.log('Progress Section Debug:', {
-            element: progressSection,
-            display: getComputedStyle(progressSection).display,
-            visibility: getComputedStyle(progressSection).visibility,
-            opacity: getComputedStyle(progressSection).opacity,
-            classList: progressSection.classList.toString(),
-            style: progressSection.style.cssText,
-            offsetHeight: progressSection.offsetHeight,
-            offsetWidth: progressSection.offsetWidth
-        });
-    } else {
-        console.log('Progress section element not found!');
-    }
-}
-
-// Add to window for manual debugging
-window.debugProgressSection = debugProgressSection;
-
 // Test function to manually trigger the frozen modal (for debugging)
 window.testFrozenModal = function() {
-    console.log('Testing frozen modal...');
     displayFrozenState(
         'Drive frozen. Please deposit funds and contact admin.',
         '100.00',
@@ -987,34 +836,5 @@ window.testFrozenModal = function() {
     );
 };
 
-// Manual function to show progress section for testing
-function showProgressSection() {
-    const progressSection = document.getElementById('progress-section');
-    if (progressSection) {
-        progressSection.style.display = 'block';
-        progressSection.style.visibility = 'visible';
-        progressSection.style.opacity = '1';
-        progressSection.classList.add('show');
-        progressSection.classList.remove('d-none');
-        console.log('Progress section manually shown');
-        debugProgressSection();
-    } else {
-        console.log('Progress section element not found');
-    }
-}
-
-// Add to window for testing
-window.showProgressSection = showProgressSection;
-
 // Initialize page and check drive status
 console.log('Drive.js initializing...');
-    
-// Ensure progress section is properly reset on load
-const progressSection = document.getElementById('progress-section');
-if (progressSection) {
-    // Remove any conflicting classes/styles that might hide it
-    progressSection.classList.remove('d-none');
-    progressSection.style.visibility = 'visible';
-    progressSection.style.opacity = '1';
-    console.log('Progress section initialized for visibility');
-}

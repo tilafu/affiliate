@@ -1,23 +1,51 @@
-// *** DEBUGGING MODE - 401 REDIRECTS DISABLED ***
-// - All 401 error redirects have been completely removed from task.js
-// - 401 errors are only logged to console with detailed debug information
-// - Users will NOT be automatically logged out on 401 errors from task.js
-// - Redirects will be restored after identifying the root cause
-// *** END DEBUG NOTE ***
 
-console.log('TASK.JS LOADING - CHECK FOR DUPLICATES', new Date().getTime());
 
-// Ensure API_BASE_URL and showNotification are available (assuming from main.js)
-// If not, define them here or ensure main.js is loaded first.
+// Ensure API_BASE_URL and showNotification are available
 if (typeof API_BASE_URL === 'undefined') {
     console.error('API_BASE_URL is not defined! Make sure main.js is loaded first.');
     window.API_BASE_URL = 'http://localhost:3000'; // Fallback
 }
 
-// --- Global Variables (Unlimited Task Sets Design) ---
-var oid = null; // Will be set by startDrive response if needed (using session ID?) // This seems unused, consider removing.
-let totalTasksRequired = 0; // Variable to store the total number of products across all task sets (unlimited design)
-let tasksCompleted = 0; // Track the current product step being worked on (unlimited design)
+// --- Centralized Constants and Utilities ---
+const MESSAGES = {
+    FROZEN_SESSION: 'Session paused due to insufficient balance',
+    NO_PRODUCT_DATA: 'Error: No product data to purchase.',
+    DRIVE_STARTED: 'Drive started!',
+    DRIVE_START_FAILED: 'Failed to start drive.',
+    ORDER_SUCCESS: 'Order Sent successfully!',
+    ACCOUNT_UNFROZEN: 'Account unfrozen! You can now continue with your drive.',
+    DATA_REFRESHED: 'Data refreshed successfully!',
+    REFRESH_FAILED: 'Failed to refresh data. Please try again.',
+    AUTH_ERROR: 'Authentication error while checking drive status. Check console for details.'
+};
+
+// Centralized update function to reduce redundancy
+function updateDriveInterface(options = {}) {
+    if (options.commission !== false) {
+        updateDriveCommission();
+    }
+    if (options.balance !== false) {
+        refreshWalletBalance();
+    }
+    if (options.progress && options.current !== undefined && options.total !== undefined) {
+        updateProgressBar(options.current, options.total);
+    }
+}
+
+// Centralized frozen state handler
+function handleFrozenState(responseData = {}) {
+    displayTaskFrozenState(
+        responseData.info || MESSAGES.FROZEN_SESSION, 
+        responseData.frozen_amount_needed, 
+        responseData
+    );
+    updateDriveInterface({ progress: false });
+}
+
+// --- Global Variables ---
+var oid = null; // Will be set by startDrive response if needed
+let totalTasksRequired = 0; // Variable to store the total number of products across all task sets
+let tasksCompleted = 0; // Track the current product step being worked on
 let totalDriveCommission = 0; // Track total commission earned in this drive
 let isStartingDrive = false; // Flag to prevent unintentional start drive calls
 
@@ -65,43 +93,21 @@ function initializeTaskPage() {
   window.taskPageElements.progressTextElement = document.getElementById('progress-text'); // Text element for progress 
   window.taskPageElements.progressSection = document.getElementById('progress-section'); // Progress section container
   window.taskPageElements.orderLoadingOverlay = document.getElementById('order-loading-overlay'); // Get reference to the loading overlay
-  // Debug: Check if elements are found
-  console.log('Element references:', {
-    autoStartButton: !!window.taskPageElements.autoStartButton,
-    productCardContainer: !!window.taskPageElements.productCardContainer,
-    walletBalanceElement: !!window.taskPageElements.walletBalanceElement,
-    driveCommissionElement: !!window.taskPageElements.driveCommissionElement,
-    tasksProgressElement: !!window.taskPageElements.tasksProgressElement,
-    tasksProgressBar: !!window.taskPageElements.tasksProgressBar,
-    driveProgressBar: !!window.taskPageElements.driveProgressBar,
-    progressTextElement: !!window.taskPageElements.progressTextElement,
-    progressSection: !!window.taskPageElements.progressSection,
-    orderLoadingOverlay: !!window.taskPageElements.orderLoadingOverlay
-  });
+
   
-  // Additional debug for tasks-count element specifically
-  console.log('Tasks count element details:', {
-    found: !!window.taskPageElements.tasksProgressElement,
-    id: window.taskPageElements.tasksProgressElement?.id,
-    currentText: window.taskPageElements.tasksProgressElement?.textContent,
-    innerHTML: window.taskPageElements.tasksProgressElement?.innerHTML
-  });  // Initial UI state: Hide elements by default, will be shown based on drive status
+  // Initial UI state: Hide elements by default, will be shown based on drive status
   if (window.taskPageElements.productCardContainer) window.taskPageElements.productCardContainer.style.display = 'none';
   if (window.taskPageElements.orderLoadingOverlay) window.taskPageElements.orderLoadingOverlay.style.display = 'none';
-    // Try to restore session data from localStorage first
+  // Try to restore session data from localStorage first
   const savedSessionData = getCurrentSessionData();
   if (savedSessionData) {
-    console.log('Restoring session data from localStorage:', savedSessionData);
     totalDriveCommission = savedSessionData.totalCommission || 0;
     tasksCompleted = savedSessionData.tasksCompleted || 0;
     totalTasksRequired = savedSessionData.totalTasksRequired || 0;
-    console.log('Values after restoration:', { totalDriveCommission, tasksCompleted, totalTasksRequired });
   } else {
-    console.log('No saved session data found, initializing with defaults');
     totalDriveCommission = 0;
     tasksCompleted = 0;
     totalTasksRequired = 0;
-    console.log('Values after default initialization:', { totalDriveCommission, tasksCompleted, totalTasksRequired });
   }
   
   // Initialize progress bars with restored or default values (delayed to allow components to load)
@@ -122,7 +128,6 @@ function initializeTaskPage() {
           // Only auto-refresh if we're not currently processing a purchase
           const purchaseButton = document.getElementById('purchase-button');
           if (!purchaseButton || !purchaseButton.disabled) {
-              console.log('Performing background refresh...');
               performBackgroundRefresh();
           }
       }
@@ -140,33 +145,17 @@ function initializeTaskPage() {
   // Attach listener for the refresh button
   const refreshButton = document.getElementById('refresh-drive-button');
   if (refreshButton) {
-      console.log("Found refresh button, attaching listener.");
       refreshButton.addEventListener('click', () => {
-          console.log("Refresh button clicked.");
           performManualRefresh();
       });
   }
   
-  // We'll rely on event delegation for the search button in initializeModalEventDelegation() instead
-  console.log("Using event delegation for the search button via initializeModalEventDelegation()");
-
-  // Attach listener for the Refresh Drive button
-  const refreshDriveButton = document.getElementById('refresh-drive-button');
-  if (refreshDriveButton) {
-      console.log("Found refresh drive button, attaching listener.");
-      refreshDriveButton.addEventListener('click', async () => {
-          console.log("Refresh drive button clicked.");
-          await performManualRefresh();
-      });
-  } else {
-      console.log('Refresh drive button not found - this is optional.');
-  }// Check drive status on page load for persistence - Moved below event listeners
+  // We'll rely on event delegation for the search button in initializeModalEventDelegation() instead// Check drive status on page load for persistence - Moved below event listeners
   // First check if user is resuming a specific order from orders page
   const resumeOrderId = sessionStorage.getItem('resumeOrderId');
   const resumeProductId = sessionStorage.getItem('resumeProductId');
   
   if (resumeOrderId && resumeProductId) {
-    console.log('Resuming order:', resumeOrderId, 'Product:', resumeProductId);
     // Clear the session data so it doesn't interfere with future visits
     sessionStorage.removeItem('resumeOrderId');
     sessionStorage.removeItem('resumeProductId');
@@ -183,14 +172,13 @@ function initializeTaskPage() {
   if (window.taskPageElements.productCardContainer) {
       window.taskPageElements.productCardContainer.addEventListener('click', function(event) {
           if (event.target && event.target.id === 'purchase-button') {
-              console.log("#purchase-button clicked.");
               if (currentProductData) {
                   handlePurchase(authData.token, currentProductData); // Pass token and current product data
               } else {
                   console.error("Purchase button clicked but no current product data available.");
                   if (typeof showNotification === 'function') {
-                      showNotification('Error: No product data to purchase.', 'error');
-                  } else { alert('Error: No product data to purchase.'); }
+                      showNotification(MESSAGES.NO_PRODUCT_DATA, 'error');
+                  } else { alert(MESSAGES.NO_PRODUCT_DATA); }
               }
           }
       });
@@ -201,7 +189,6 @@ function initializeTaskPage() {
   
   // Initialize modern modal event delegation for search button and modal controls
   initializeModalEventDelegation();
-  console.log("Drive product modal functionality enabled");
 
    return true; // Indicate successful initialization
 }
@@ -237,32 +224,12 @@ function fetchBalance(token) {
     .then(statusData => {        const isFrozen = statusData.success && statusData.status === 'frozen';
         const frozenAmountNeeded = statusData.frozen_amount_needed ? parseFloat(statusData.frozen_amount_needed) : 0;
           if (isFrozen) {
-            // Use the modern dashboard modal instead of Bootstrap modal
-            if (typeof window.displayFrozenState === 'function') {
-                const message = statusData.info || "Drive frozen due to insufficient balance. Please deposit funds to continue.";
-                const tasksCompleted = statusData.all_tasks_completed || '0 of 0';
-                const totalCommission = statusData.total_commission || '0.00';
-                
-                console.log('Using dashboard modal for frozen state');
-                window.displayFrozenState(message, frozenAmountNeeded, tasksCompleted, totalCommission);
-            } else {
-                // Fallback to Bootstrap modal if dashboard modal not available
-                console.warn('Dashboard modal not available, using Bootstrap fallback');
-                const frozenModalElement = document.getElementById('frozenAccountModal');
-                if (frozenModalElement) {
-                    const frozenModal = bootstrap.Modal.getOrCreateInstance(frozenModalElement);
-                    
-                    // Update modal with current frozen amount needed
-                    const modalAmountNeeded = document.getElementById('modal-amount-needed');
-                    if (modalAmountNeeded && frozenAmountNeeded > 0) {
-                        modalAmountNeeded.textContent = `$${frozenAmountNeeded.toFixed(2)} USDT`;
-                    } else if (modalAmountNeeded) {
-                        modalAmountNeeded.textContent = 'Contact Support';
-                    }
-                    
-                    frozenModal.show();
-                }
-            }
+            // Use the unified frozen modal system
+            const message = statusData.info || "Drive frozen due to insufficient balance. Please deposit funds to continue.";
+            const tasksCompleted = statusData.all_tasks_completed || '0 of 0';
+            const totalCommission = statusData.total_commission || '0.00';
+            
+            showFrozenModal(message, frozenAmountNeeded, tasksCompleted, totalCommission);
         }
         
         // Then fetch balances
@@ -287,7 +254,7 @@ function fetchBalance(token) {
                 // Update modal balance display
                 const modalCurrentBalance = document.getElementById('modal-current-balance');
                 if (modalCurrentBalance) {
-                    modalCurrentBalance.textContent = `$${mainBalance.toFixed(2)} USDT`;
+                    modalCurrentBalance.textContent = `$${mainBalance.toFixed(2)}`;
                 }
                 
                 // Check if user has sufficient balance to unfreeze automatically
@@ -302,16 +269,16 @@ function fetchBalance(token) {
                         balanceLabel.textContent = 'Frozen Balance';
                         balanceLabel.style.color = '#dc3545'; // Red color to indicate frozen
                     }
-                    balanceElement.innerHTML = `${frozenBalance.toFixed(2)} <small>USDT</small>`;
+                    balanceElement.innerHTML = `$ ${frozenBalance.toFixed(2)} <small></small>`;
                     balanceElement.style.color = '#dc3545'; // Red color for frozen balance
-                    balanceElement.title = `Your balance of ${frozenBalance.toFixed(2)} USDT is currently frozen. Please deposit funds to continue.`;
+                    balanceElement.title = `Your balance of $ ${frozenBalance.toFixed(2)} is currently frozen. Please deposit funds to continue.`;
                 } else {
                     // Show normal wallet balance
                     if (balanceLabel) {
                         balanceLabel.textContent = 'Wallet balance';
                         balanceLabel.style.color = ''; // Reset color
                     }
-                    balanceElement.innerHTML = `${mainBalance.toFixed(2)} <small>USDT</small>`;
+                    balanceElement.innerHTML = `$${mainBalance.toFixed(2)} <small></small>`;
                     balanceElement.style.color = ''; // Reset color
                     balanceElement.title = ''; // Clear title
                 }} else {
@@ -357,18 +324,15 @@ function refreshWalletBalance() {
 
 // --- Enhanced Balance Refresh with Retry Logic ---
 async function refreshWalletBalanceWithRetry(maxRetries = 3, delay = 1000) {
-    console.log(`Starting enhanced balance refresh with ${maxRetries} retries...`);
     
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
-            console.log(`Balance refresh attempt ${attempt}/${maxRetries}`);
             
             if (globalAuthData && globalAuthData.token) {
                 const balanceElement = document.querySelector('.datadrive-balance');
                 if (balanceElement) {
                     // Call the existing fetchBalance function
                     await fetchBalanceAsync(globalAuthData.token);
-                    console.log(`Balance refresh attempt ${attempt} completed successfully`);
                     return true; // Success
                 } else {
                     console.warn('Balance element not found during enhanced refresh');
@@ -380,7 +344,6 @@ async function refreshWalletBalanceWithRetry(maxRetries = 3, delay = 1000) {
             console.error(`Balance refresh attempt ${attempt} failed:`, error);
             
             if (attempt < maxRetries) {
-                console.log(`Waiting ${delay}ms before next attempt...`);
                 await new Promise(resolve => setTimeout(resolve, delay));
             }
         }
@@ -432,28 +395,25 @@ async function fetchBalanceAsync(token) {
             const mainBalance = parseFloat(data.balances.main_balance || 0);
             const frozenBalance = parseFloat(data.balances.frozen_balance || 0);
             
-            console.log('Balance updated:', { mainBalance, frozenBalance, isFrozen });
-            
             // Update modal balance display if modal is open
             const modalCurrentBalance = document.getElementById('modal-current-balance');
             if (modalCurrentBalance) {
-                modalCurrentBalance.textContent = `$${mainBalance.toFixed(2)} USDT`;
+                modalCurrentBalance.textContent = `$${mainBalance.toFixed(2)}`;
             }
             
             // Check if user has sufficient balance to unfreeze automatically
             if (isFrozen && frozenAmountNeeded > 0 && mainBalance >= frozenAmountNeeded) {
-                console.log('User has sufficient balance to unfreeze, attempting auto-unfreeze...');
                 // Could add auto-unfreeze logic here if needed
             }
             
             if (isFrozen && frozenBalance > 0) {
                 // Show frozen balance when account is frozen
-                balanceElement.innerHTML = `${frozenBalance.toFixed(2)} <small>USDT</small>`;
+                balanceElement.innerHTML = `$${frozenBalance.toFixed(2)} <small></small>`;
                 balanceElement.style.color = '#dc3545'; // Red color for frozen balance
-                balanceElement.title = `Your balance of ${frozenBalance.toFixed(2)} USDT is currently frozen. Please deposit funds to continue.`;
+                balanceElement.title = `Your balance of $${frozenBalance.toFixed(2)} is currently frozen. Please deposit funds to continue.`;
             } else {
                 // Show normal wallet balance
-                balanceElement.innerHTML = `${mainBalance.toFixed(2)} <small>USDT</small>`;
+                balanceElement.innerHTML = `$${mainBalance.toFixed(2)} <small></small>`;
                 balanceElement.style.color = ''; // Reset color
                 balanceElement.title = ''; // Clear title
             }
@@ -524,7 +484,6 @@ function updateProgressBar(currentStep, totalProducts) {
     totalTasksRequired = total;
     saveCurrentSessionData();
     
-    console.log(`Drive Progress updated: ${completed}/${total} tasks (${percentage.toFixed(1)}%)`);
 }
 
 // --- Update Drive Commission Function ---
@@ -532,7 +491,7 @@ function updateDriveCommission() {
     // Update the commission display element
     if (window.taskPageElements.driveCommissionElement) {
         const commissionValue = (totalDriveCommission || 0).toFixed(2);
-        window.taskPageElements.driveCommissionElement.innerHTML = `${commissionValue}<small style="font-size:14px"> USDT</small>`;
+        window.taskPageElements.driveCommissionElement.innerHTML = `$${commissionValue}<small style="font-size:14px"></small>`;
         
         // Add highlight animation when commission updates
         window.taskPageElements.driveCommissionElement.classList.remove('highlight-green');
@@ -542,8 +501,6 @@ function updateDriveCommission() {
     
     // Save current session data to localStorage for persistence
     saveCurrentSessionData();
-    
-    console.log(`Commission updated: ${(totalDriveCommission || 0).toFixed(2)} USDT`);
 }
 
 // --- Save Current Session Data Function ---
@@ -557,7 +514,6 @@ function saveCurrentSessionData() {
     
     try {
         localStorage.setItem('currentDriveSession', JSON.stringify(sessionData));
-        console.log('Session data saved:', sessionData);
     } catch (error) {
         console.error('Error saving session data:', error);
     }
@@ -578,7 +534,6 @@ function getCurrentSessionData() {
 function clearSessionData() {
     try {
         localStorage.removeItem('currentDriveSession');
-        console.log('Session data cleared');
     } catch (error) {
         console.error('Error clearing session data:', error);
     }
@@ -586,24 +541,20 @@ function clearSessionData() {
 
 function startDriveProcess(token) {
     if (!isStartingDrive) {
-        console.log("startDriveProcess called but isStartingDrive is false. Aborting.");
         return;
     }
-    console.log("startDriveProcess called.");
     
     // Call API directly without countdown
     callStartDriveAPI(token);
 }
 
 function callStartDriveAPI(token) {
-    console.log("callStartDriveAPI called");
     let loadingIndicator = null;
     let loadingMethod = null;
     try {
         if (typeof layer !== 'undefined' && typeof layer.load === 'function') {
             loadingIndicator = layer.load(2);
             loadingMethod = 'layer';
-            console.log("Using layer.load for loading indicator. Index:", loadingIndicator);
         } else if (typeof $(document).dialog === 'function') {
             loadingIndicator = $(document).dialog({
                 type: 'notice',
@@ -611,9 +562,7 @@ function callStartDriveAPI(token) {
                 autoClose: 0
             });
             loadingMethod = 'dialog';
-            console.log("Using jQuery dialog for loading indicator.");
         } else {
-            console.log("No loading indicator available, using console fallback");
             loadingMethod = 'none';
         }
     } catch (e) {
@@ -637,20 +586,16 @@ function callStartDriveAPI(token) {
             },
         })
         .then(response => {
-            console.log("Start drive API response status:", response.status, response.statusText);
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
             return response.json();
         })
         .then(data => {
-            console.log("API response received from /api/drive/start:", data);
             try {
                 if (loadingMethod === 'layer' && loadingIndicator !== null) {
-                    console.log("Closing layer indicator with index:", loadingIndicator);
                     layer.close(loadingIndicator);
                 } else if (loadingMethod === 'dialog' && loadingIndicator && typeof loadingIndicator.close === 'function') {
-                    console.log("Closing jQuery dialog indicator.");
                     loadingIndicator.close();
                 } else {
                      console.log("No specific loading indicator to close or method unknown.");
@@ -671,7 +616,7 @@ function callStartDriveAPI(token) {
             if (data.code === 0) {
                 try {
                     if (typeof showNotification === 'function') {
-                        showNotification(data.info || 'Drive started!', 'success');
+                        showNotification(data.info || MESSAGES.DRIVE_STARTED, 'success');
                     } else if (typeof $(document).dialog === 'function') {
                         $(document).dialog({infoText: data.info || 'Drive started!', autoClose: 2000});
                     } else {
@@ -702,10 +647,13 @@ function callStartDriveAPI(token) {
 
                     totalDriveCommission = 0; // Reset commission for new drive
                     clearSessionData(); // Clear any old session data
-                    // saveCurrentSessionData will be called by updateDriveCommission
-                    updateDriveCommission(); // Update UI and persist initial commission (0)
-
-                    updateProgressBar(tasksCompleted, totalTasksRequired);
+                    updateDriveInterface({ 
+                        commission: true, 
+                        balance: true, 
+                        progress: true, 
+                        current: tasksCompleted, 
+                        total: totalTasksRequired 
+                    });
 
                     currentProductData = data.current_order;
                     // renderProductCard(data.current_order); // DISABLED - Product card rendering turned off
@@ -729,7 +677,7 @@ function callStartDriveAPI(token) {
             } else {
                 try {
                     if (typeof showNotification === 'function') {
-                        showNotification(data.info || 'Failed to start drive.', 'error');
+                        showNotification(data.info || MESSAGES.DRIVE_START_FAILED, 'error');
                     } else if (typeof $(document).dialog === 'function') {
                         $(document).dialog({infoText: data.info || 'Failed to start drive.', autoClose: 4000});
                     } else {
@@ -796,11 +744,10 @@ function callStartDriveAPI(token) {
 }
 
 function fetchNextOrder(token) {
-    console.log("Fetching next order (/api/drive/getorder)...");
     if (window.taskPageElements.orderLoadingOverlay) window.taskPageElements.orderLoadingOverlay.style.display = 'flex';
     $('.product-carousel').trigger('stop.owl.autoplay');
-    fetch(`${API_BASE_URL}/api/drive/getorder`, { // This is a POST request as per existing code
-        method: 'POST', // Assuming it's POST, though GET might be more appropriate for "get"
+    fetch(`${API_BASE_URL}/api/drive/getorder`, {
+        method: 'POST',
         headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
@@ -808,11 +755,9 @@ function fetchNextOrder(token) {
     })
     .then(response => response.json())
     .then(data => {
-        console.log("Response from /api/drive/getorder:", data);
         $('.product-carousel').trigger('play.owl.autoplay', [3000]);
         if (window.taskPageElements.orderLoadingOverlay) window.taskPageElements.orderLoadingOverlay.style.display = 'none';
           if (data.code === 2) { // Drive complete
-            console.log("Drive complete message received from backend (getorder).");
             displayDriveComplete(data.info || 'Congratulations! Your data drive is complete.');
             if (data.total_commission !== undefined) {
                 totalDriveCommission = parseFloat(data.total_commission);
@@ -820,14 +765,10 @@ function fetchNextOrder(token) {
             }
             
             refreshWalletBalance();        } else if (data.code === 3) { // Drive Frozen
-            console.warn("Drive Frozen message received from backend (getorder).");
-            displayTaskFrozenState(data.info || "Session frozen due to insufficient balance.", data.frozen_amount_needed, data);
             if (data.total_commission !== undefined) {
                 totalDriveCommission = parseFloat(data.total_commission);
-                updateDriveCommission();
             }
-            
-            refreshWalletBalance();
+            handleFrozenState(data);
         }
         else if (data.success && data.current_order) {
             currentProductData = data.current_order;
@@ -868,12 +809,10 @@ function fetchNextOrder(token) {
             // Update commission data
             if (data.total_commission !== undefined) {
                 totalDriveCommission = parseFloat(data.total_commission);
-                updateDriveCommission();
             } else if (data.total_session_commission !== undefined) {
                 totalDriveCommission = parseFloat(data.total_session_commission);
-                updateDriveCommission();
             }
-            refreshWalletBalance();        } else {
+            updateDriveInterface();        } else {
             // Enhanced error logging for unknown errors
             if (!data.info && !data.message) {
                 console.error('Error fetching next order (getorder): FULL RESPONSE:', data);
@@ -885,8 +824,13 @@ function fetchNextOrder(token) {
                 if (window.taskPageElements.autoStartButton) window.taskPageElements.autoStartButton.style.display = 'block';
                 if (window.taskPageElements.productCardContainer) window.taskPageElements.productCardContainer.style.display = 'none';
                  totalDriveCommission = 0;
-                 updateDriveCommission();
-                 updateProgressBar(0, totalTasksRequired || 0); // Reset progress bar
+                 updateDriveInterface({ 
+                     commission: true, 
+                     balance: true, 
+                     progress: true, 
+                     current: 0, 
+                     total: totalTasksRequired || 0 
+                 });
             } else {
                 displayDriveError(`Error fetching order: ${errorMsg}`);
             }
@@ -903,15 +847,6 @@ function fetchNextOrder(token) {
 // renderProductCard function removed - product card rendering disabled
 
 async function handlePurchase(token, productData) {
-    console.log('--- handlePurchase Start ---');
-    console.log('Initial productData.user_active_drive_item_id:', productData ? productData.user_active_drive_item_id : 'productData is null/undefined');
-    console.log('Initial productData.product_id:', productData ? productData.product_id : 'productData is null/undefined');
-    console.log('Initial productData.product_price (for order_amount):', productData ? productData.product_price : 'productData is null/undefined');
-    console.log('Initial productData.product_slot (for product_slot_to_complete):', productData ? productData.product_slot : 'productData is null/undefined');
-    console.log('Initial productData.is_combo_product:', productData ? productData.is_combo_product : 'productData is null/undefined');
-    console.log('Initial productData.combo_product_index:', productData ? productData.combo_product_index : 'productData is null/undefined');
-    console.log('Full initial Product Data:', productData);
-
     const purchaseButton = document.getElementById('purchase-button');
     if (purchaseButton) {
         purchaseButton.disabled = true;
@@ -923,17 +858,12 @@ async function handlePurchase(token, productData) {
     let determined_slot;
     if (productData.product_slot !== undefined) {
         determined_slot = productData.product_slot;
-        console.log('Using productData.product_slot for slot:', determined_slot);
     } else if (productData.is_combo_product === true && productData.combo_product_index !== undefined) {
-        // combo_product_index is 1-based from backend, but saveOrder expects 0-based slot index
         determined_slot = productData.combo_product_index - 1;
-        console.log('Converting combo_product_index from 1-based to 0-based for slot:', productData.combo_product_index, '->', determined_slot);
     } else if (productData.is_combo_product === false) {
-        determined_slot = 0; // Default for non-combo products if product_slot is missing
-        console.log('Defaulting slot to 0 (non-combo product, product_slot missing):', determined_slot);
+        determined_slot = 0;
     } else {
-        determined_slot = undefined; // Fallback, should trigger backend error if this path is hit
-        console.warn('Could not determine product_slot_to_complete. It will be undefined.');
+        determined_slot = undefined;
     }
 
     const payload = {
@@ -941,7 +871,7 @@ async function handlePurchase(token, productData) {
         product_id: productData.product_id,
         order_amount: productData.product_price, 
         product_slot_to_complete: determined_slot 
-    };    console.log('Constructed payload for saveorder:', payload);
+    };
     
     try {
         const response = await fetch(`${API_BASE_URL}/api/drive/saveorder`, {
@@ -954,7 +884,6 @@ async function handlePurchase(token, productData) {
         });
 
         console.log('Response status:', response.status);
-        console.log('Response headers:', response.headers);
           // Check if response is actually JSON
         const contentType = response.headers.get('content-type');
         if (!contentType || !contentType.includes('application/json')) {
@@ -987,28 +916,16 @@ async function handlePurchase(token, productData) {
         if (window.taskPageElements.orderLoadingOverlay) window.taskPageElements.orderLoadingOverlay.style.display = 'none';
         
         if (response.ok && data.code === 0) { // Order processed successfully
-            console.log('Order saved successfully (saveorder):', data);
-            
             // Update commission and wallet balance from backend response
             if (data.total_commission !== undefined) {
                 totalDriveCommission = parseFloat(data.total_commission);
-                updateDriveCommission();
-                console.log(`Commission updated from backend (saveOrder): ${totalDriveCommission} USDT total`);
             } else if (data.total_session_commission !== undefined) {
                 totalDriveCommission = parseFloat(data.total_session_commission);
-                updateDriveCommission();
-                console.log(`Commission updated from backend (saveOrder/fallback): ${totalDriveCommission} USDT total`);
             }
-            
-            // Update wallet balance if provided
-            if (data.new_balance !== undefined) {
-                console.log(`Wallet balance updated from backend: ${data.new_balance} USDT`);
-                // The wallet will be refreshed below, but this logs the immediate update
-            }
+            updateDriveInterface();
             
             // Process refund for the purchase amount (commission was already added by backend)
             try {
-                console.log(`Processing refund of ${productData.product_price} USDT for product purchase`);
                 const refundResponse = await fetch(`${API_BASE_URL}/api/drive/refund`, {
                     method: 'POST',
                     headers: {
@@ -1024,200 +941,114 @@ async function handlePurchase(token, productData) {
                 });
 
                 const refundData = await refundResponse.json();
-                console.log('Refund response:', refundData);
 
-                if (refundResponse.ok && refundData.success) {
-                    console.log(`Refund successful: ${productData.product_price} USDT refunded`);
-                    console.log(`Commission flow: Backend handled commission during purchase, refund only returned product price`);
-                    
-                    // Commission was already updated from saveOrder response above
-                    
-                    // Update progress immediately after successful purchase
-                    console.log('Updating progress immediately after successful purchase...');
-                    tasksCompleted += 1; // Increment local progress
-                    updateProgressBar(tasksCompleted, totalTasksRequired);
-                    
-                    // Fetch fresh drive status to get accurate progress and update with detailed data
-                    try {
-                        await updateDriveStatus();
-                        console.log('Drive status updated after successful purchase and refund');
-                        
-                        // Also update with detailed progress for most accurate display
-                        updateProgressFromDetailedData().then(detailedData => {
-                            if (detailedData) {
-                                console.log('Progress updated with detailed data after purchase');
-                            }
-                        }).catch(error => {
-                            console.warn('Could not fetch detailed progress after purchase:', error.message);
-                        });
-                    } catch (statusError) {
-                        console.warn('Failed to update drive status after purchase:', statusError);
-                        // Fallback: progress was already updated locally above
-                        updateDriveCommission();
-                        updateProgressBar(tasksCompleted, totalTasksRequired);
-                    }                    // Refresh wallet balance immediately after successful refund
-                    console.log('Refreshing wallet balance after successful refund...');
-                    refreshWalletBalanceWithRetry(3, 500); // 3 retries with 500ms delay (no await to avoid syntax issues)
-                      // Show purchase success popup instead of notification
-                    if (typeof showPurchaseSuccessPopup === 'function') {
-                        showPurchaseSuccessPopup(productData.product_name || 'Product', () => {
-                            // Continue with next product or complete the drive
-                            fetchNextOrder(token);
-                        });
-                    } else {
-                        // Fallback to regular notification if popup function is not available
-                        if (typeof showNotification === 'function') {
-                            showNotification(`Purchase completed! ${productData.product_price} USDT refunded + ${(productData.order_commission || 0)} USDT commission earned`, 'success');
-                        } else { 
-                            alert(`Order completed! ${productData.product_price} USDT refunded + ${(productData.order_commission || 0)} USDT commission earned`); 
-                        }
-                        // Continue to next product after showing notification
-                        setTimeout(() => {
-                            fetchNextOrder(token);
-                        }, 2000);
-                    }
+                // Handle successful order regardless of refund status
+                const refundSuccess = refundResponse.ok && refundData.success;
+                
+                // Update progress immediately after successful purchase
+                tasksCompleted += 1;
+                updateProgressBar(tasksCompleted, totalTasksRequired);
+                
+                // Update drive status and refresh balance
+                try {
+                    await updateDriveStatus();
+                    updateProgressFromDetailedData().catch(error => {
+                        console.warn('Could not fetch detailed progress after purchase:', error.message);
+                    });
+                } catch (statusError) {
+                    console.warn('Failed to update drive status after purchase:', statusError);
+                    updateDriveInterface({ 
+                        commission: true, 
+                        balance: true, 
+                        progress: true, 
+                        current: tasksCompleted, 
+                        total: totalTasksRequired 
+                    });
+                }
+                
+                // Refresh wallet balance
+                if (refundSuccess) {
+                    refreshWalletBalanceWithRetry(3, 500);
                 } else {
-                    console.warn('Refund failed but purchase was successful:', refundData);
-                    
-                    // Commission was already updated from saveOrder response above, no need to add again
-                    
-                    // Update progress immediately after successful purchase
-                    console.log('Updating progress immediately after successful purchase (refund failed)...');
-                    tasksCompleted += 1; // Increment local progress
-                    updateProgressBar(tasksCompleted, totalTasksRequired);
-                    
-                    // Fetch fresh drive status to get accurate progress and update with detailed data
-                    try {
-                        await updateDriveStatus();
-                        console.log('Drive status updated after successful purchase (refund failed)');
-                        
-                        // Also update with detailed progress for most accurate display
-                        updateProgressFromDetailedData().then(detailedData => {
-                            if (detailedData) {
-                                console.log('Progress updated with detailed data after purchase (refund failed)');
-                            }
-                        }).catch(error => {
-                            console.warn('Could not fetch detailed progress after purchase:', error.message);
-                        });
-                    } catch (statusError) {
-                        console.warn('Failed to update drive status after purchase:', statusError);
-                        // Fallback: progress was already updated locally above
-                        updateDriveCommission();
-                        updateProgressBar(tasksCompleted, totalTasksRequired);
-                    }
-                      // Refresh wallet balance even if refund failed (commission should still be added)
-                    console.log('Refreshing wallet balance after purchase (refund failed)...');
-                        refreshWalletBalance();
-                          // Show success popup even if refund fails
-                        if (typeof showPurchaseSuccessPopup === 'function') {
-                            showPurchaseSuccessPopup(productData.product_name || 'Product', () => {
-                                // Continue with next product
-                                fetchNextOrder(token);
-                            });
-                        } else {
-                            // Fallback to standard success message if refund fails
-                            if (typeof showNotification === 'function') {
-                                showNotification(data.info || "Order Sent successfully!", 'success');
-                            } else { 
-                                alert(data.info || "Order Sent successfully!"); 
-                            }
-                            // Continue to next product after showing notification
-                            setTimeout(() => {
-                                fetchNextOrder(token);
-                            }, 2000);
-                        }
-                    }
-                } catch (refundError) {
-                    console.error('Error processing refund:', refundError);
-                    
-                    // Commission was already updated from saveOrder response above, no need to add again
-                    
-                    // Update progress immediately after successful purchase
-                    console.log('Updating progress immediately after successful purchase (refund error)...');
-                    tasksCompleted += 1; // Increment local progress
-                    updateProgressBar(tasksCompleted, totalTasksRequired);
-                    
-                    // Fetch fresh drive status to get accurate progress and update with detailed data
-                    try {
-                        await updateDriveStatus();
-                        console.log('Drive status updated after successful purchase (refund error)');
-                        
-                        // Also update with detailed progress for most accurate display
-                        updateProgressFromDetailedData().then(detailedData => {
-                            if (detailedData) {
-                                console.log('Progress updated with detailed data after purchase (refund error)');
-                            }
-                        }).catch(error => {
-                            console.warn('Could not fetch detailed progress after purchase:', error.message);
-                        });
-                    } catch (statusError) {
-                        console.warn('Failed to update drive status after purchase:', statusError);
-                        // Fallback: progress was already updated locally above
-                        updateDriveCommission();
-                        updateProgressBar(tasksCompleted, totalTasksRequired);
-                    }
-                  // Refresh wallet balance even if refund had an error (commission should still be added by backend)
-                console.log('Refreshing wallet balance after purchase (refund error)...');
-                refreshWalletBalance();
-                  // Show success popup even if refund had an error
+                    refreshWalletBalance();
+                }
+                
+                // Show success popup or notification
                 if (typeof showPurchaseSuccessPopup === 'function') {
                     showPurchaseSuccessPopup(productData.product_name || 'Product', () => {
-                        // Continue with next product
                         fetchNextOrder(token);
                     });
                 } else {
-                    // Fallback to standard success message if refund fails
+                    const message = refundSuccess 
+                        ? `Purchase completed! $${productData.product_price} refunded + ${(productData.order_commission || 0)} USDT commission earned`
+                        : (data.info || "Order Sent successfully!");
+                    
                     if (typeof showNotification === 'function') {
-                        showNotification(data.info || "Order Sent successfully!", 'success');
+                        showNotification(message, 'success');
+                    } else { 
+                        alert(message); 
+                    }
+                    
+                    setTimeout(() => {
+                        fetchNextOrder(token);
+                    }, 2000);
+                }
+            } catch (refundError) {
+                console.error('Error processing refund:', refundError);
+                
+                // Handle as successful purchase with refund error - use same unified logic
+                const refundSuccess = false;
+                
+                // Update progress immediately after successful purchase
+                tasksCompleted += 1;
+                updateProgressBar(tasksCompleted, totalTasksRequired);
+                
+                // Update drive status and refresh balance
+                try {
+                    await updateDriveStatus();
+                    updateProgressFromDetailedData().catch(error => {
+                        console.warn('Could not fetch detailed progress after purchase:', error.message);
+                    });
+                } catch (statusError) {
+                    console.warn('Failed to update drive status after purchase:', statusError);
+                    updateDriveInterface({ 
+                        commission: true, 
+                        balance: true, 
+                        progress: true, 
+                        current: tasksCompleted, 
+                        total: totalTasksRequired 
+                    });
+                }
+                
+                // Refresh wallet balance
+                refreshWalletBalance();
+                
+                // Show success popup or notification
+                if (typeof showPurchaseSuccessPopup === 'function') {
+                    showPurchaseSuccessPopup(productData.product_name || 'Product', () => {
+                        fetchNextOrder(token);
+                    });
+                } else {
+                    if (typeof showNotification === 'function') {
+                        showNotification(data.info || MESSAGES.ORDER_SUCCESS, 'success');
                     } else { 
                         alert(data.info || "Order Sent successfully!"); 
                     }
-                    // Continue to next product after showing notification
                     setTimeout(() => {
                         fetchNextOrder(token);
                     }, 2000);
                 }
             }
-              // Ensure session data is saved before page reload
-            console.log('Ensuring session data is saved before page reload...');
-            saveCurrentSessionData(); // Explicit save
+            // Save session data for persistence
+            saveCurrentSessionData();
             
-            // Final balance refresh before page reload
-            console.log('Final balance refresh before page reload...');
+            // Final balance refresh for immediate UI update
             refreshWalletBalance();
-            
-            // Log final values before reload
-            console.log('Final values before reload:', {
-                tasksCompleted,
-                totalTasksRequired, 
-                totalDriveCommission,
-                savedData: getCurrentSessionData()
-            });
-            
-            // Only reload page if popup is not being used
-            if (typeof showPurchaseSuccessPopup !== 'function') {
-                // Refresh the entire page after a brief delay to show the notification and allow balance update
-                console.log('Refreshing entire page after successful purchase...');
-                setTimeout(() => {
-                    // Additional balance refresh right before reload
-                    console.log('Final balance refresh right before reload...');
-                    refreshWalletBalance();
-                    
-                    // Small additional delay to ensure balance update completes
-                    setTimeout(() => {                    
-                        window.location.reload();
-                    }, 500); // Extra 500ms to ensure balance update completes
-                }, 2000); // Increased delay to 2 seconds to show refund message and allow processing
-            } else {
-                console.log('Popup handling flow - skipping automatic page reload');
-            }
-              // Note: Code below this point won't execute due to page refresh
-            // but keeping it for fallback in case reload fails
               } else if (data.code === 3) { // Frozen state
              if (typeof showNotification === 'function') {
-                showNotification(data.info || "Session frozen due to insufficient balance.", 'warning');
-             } else { alert(data.info || "Session frozen due to insufficient balance."); }
-             displayTaskFrozenState(data.info || "Session frozen due to insufficient balance.", data.frozen_amount_needed, data);
+                showNotification(data.info || "Session paused due to insufficient balance.", 'warning');
+             } else { alert(data.info || "Session paused due to insufficient balance."); }
+             displayTaskFrozenState(data.info || "Session paused due to insufficient balance.", data.frozen_amount_needed, data);
              refreshWalletBalance();
         }
         else {            if (typeof showNotification === 'function') {
@@ -1522,8 +1353,13 @@ function checkDriveStatus(token) {
             }
             
             // Update UI with current values
-            updateDriveCommission(); // Update UI and persist
-            updateProgressBar(tasksCompleted, totalTasksRequired); // Show proper progress
+            updateDriveInterface({ 
+                commission: true, 
+                balance: true, 
+                progress: true, 
+                current: tasksCompleted, 
+                total: totalTasksRequired 
+            });
             
             // Update with detailed progress data for more accurate display (async, non-blocking)
             updateProgressFromDetailedData().then(detailedData => {
@@ -1578,7 +1414,7 @@ function checkDriveStatus(token) {
                     console.warn('Could not fetch detailed progress for frozen session:', error.message);
                 });
                 
-                displayTaskFrozenState(data.info || "Session frozen due to insufficient balance.", data.frozen_amount_needed, data);
+                handleFrozenState(data);
                 if (window.taskPageElements.autoStartButton) window.taskPageElements.autoStartButton.style.display = 'none';
                 
                 // Show progress section for frozen drive
@@ -1637,7 +1473,7 @@ function checkDriveStatus(token) {
             console.warn('checkDriveStatus: API returned error code:', data.code, 'Message:', data.info || data.message);
             
             if (data.code === 3) { // Frozen state
-                displayTaskFrozenState(data.info || "Session frozen due to insufficient balance.", data.frozen_amount_needed, data);
+                displayTaskFrozenState(data.info || "Session paused due to insufficient balance.", data.frozen_amount_needed, data);
                 if (window.taskPageElements.autoStartButton) window.taskPageElements.autoStartButton.style.display = 'none';
                 return true;
             }
@@ -1662,7 +1498,7 @@ function checkDriveStatus(token) {
             
             // REDIRECT REMOVED FOR DEBUGGING - Will be restored after identifying the problem
             if (typeof showNotification === 'function') {
-                showNotification('Authentication error while checking drive status. Check console for details.', 'error');
+                showNotification(MESSAGES.AUTH_ERROR, 'error');
             }
         }
         
@@ -1700,7 +1536,7 @@ async function performManualRefresh() {
             
             // Success notification
             if (typeof showNotification === 'function') {
-                showNotification('Data refreshed successfully!', 'success');
+                showNotification(MESSAGES.DATA_REFRESHED, 'success');
             }
             
             console.log('Manual refresh completed successfully');
@@ -1710,7 +1546,7 @@ async function performManualRefresh() {
             
             // Error notification
             if (typeof showNotification === 'function') {
-                showNotification('Failed to refresh data. Please try again.', 'error');
+                showNotification(MESSAGES.REFRESH_FAILED, 'error');
             }
         } finally {
             // Restore button state
@@ -1772,7 +1608,7 @@ async function checkDriveStatusForRefresh(token) {
                     clearFrozenStateDisplay(); // Remove any frozen state displays
                       } else if (data.status === 'frozen') {
                     console.log('Drive is frozen');
-                    displayTaskFrozenState(data.info || "Session frozen due to insufficient balance.", data.frozen_amount_needed, data);
+                    displayTaskFrozenState(data.info || "Session paused due to insufficient balance.", data.frozen_amount_needed, data);
                     if (window.taskPageElements.autoStartButton) window.taskPageElements.autoStartButton.style.display = 'none';
                     
                 } else if (data.status === 'complete') {
@@ -1832,7 +1668,7 @@ async function checkDriveStatusForRefresh(token) {
                 // Update progress and commission
                 updateProgressBar(tasksCompleted, totalTasksRequired);                updateDriveCommission();
                 
-                displayTaskFrozenState(data.info || "Session frozen due to insufficient balance.", data.frozen_amount_needed, data);
+                displayTaskFrozenState(data.info || "Session paused due to insufficient balance.", data.frozen_amount_needed, data);
             }
         } else {
             console.error('Failed to fetch drive status:', response.status, response.statusText);
@@ -1918,7 +1754,7 @@ function displayDriveError(message) {
 }
 
 function displayTaskFrozenState(message, frozenAmountNeeded, serverData = null) {
-    console.log('Task.js displayTaskFrozenState called with message:', message, 'Amount needed:', frozenAmountNeeded, 'Server data:', serverData);
+    console.log('displayTaskFrozenState called:', { message, frozenAmountNeeded, serverData });
     
     // Hide product card and start button but KEEP progress and commission visible
     if (window.taskPageElements.productCardContainer) window.taskPageElements.productCardContainer.style.display = 'none';
@@ -1940,10 +1776,10 @@ function displayTaskFrozenState(message, frozenAmountNeeded, serverData = null) 
     }
     
     // Ensure commission and progress displays remain visible and updated
-    updateDriveCommission(); // Update commission display
-    updateProgressBar(tasksCompleted, totalTasksRequired); // Update progress display
+    updateDriveCommission();
+    updateProgressBar(tasksCompleted, totalTasksRequired);
     
-    // Prepare formatted data for the dashboard modal
+    // Prepare formatted data for the modal
     const tasksCompletedFormatted = totalTasksRequired > 0 
         ? `${tasksCompleted} of ${totalTasksRequired}`
         : '0 of 0';
@@ -1951,35 +1787,45 @@ function displayTaskFrozenState(message, frozenAmountNeeded, serverData = null) 
         ? totalDriveCommission.toFixed(2)
         : '0.00';
     
-    // Use the modern dashboard modal if available
+    // Use the unified frozen modal system
+    showFrozenModal(message, frozenAmountNeeded, tasksCompletedFormatted, totalCommissionFormatted);
+}
+
+// Unified frozen modal function - handles both custom and Bootstrap modals
+function showFrozenModal(message, amountNeeded, tasksCompleted = '0 of 0', totalCommission = '0.00') {
+    // Try the custom modal first (from drive.js)
     if (typeof window.displayFrozenState === 'function') {
-        console.log('Using dashboard modal for task frozen state');
-        window.displayFrozenState(message, frozenAmountNeeded, tasksCompletedFormatted, totalCommissionFormatted);
-    } else {
-        // Fallback to notification system if dashboard modal not available
-        console.warn('Dashboard modal not available, using notification fallback');
-        const frozenMessage = frozenAmountNeeded 
-            ? `${message} Please deposit ${parseFloat(frozenAmountNeeded).toFixed(2)} USDT to continue. Progress: ${tasksCompletedFormatted}. Commission: ${totalCommissionFormatted} USDT`
-            : `${message} Progress: ${tasksCompletedFormatted}. Commission: ${totalCommissionFormatted} USDT`;
-        
-        if (typeof showNotification === 'function') {
-            showNotification(frozenMessage, 'warning');
-        } else if (typeof $(document).dialog === 'function') {
-            $(document).dialog({infoText: frozenMessage, autoClose: 8000});
-        } else {
-            alert(frozenMessage);
-        }
-        
-        // Create fallback card display
-        createFrozenStateCard(message, frozenAmountNeeded);
+        window.displayFrozenState(message, amountNeeded, tasksCompleted, totalCommission);
+        return;
     }
     
-    // Add contact support button functionality if not already added
-    const contactSupportBtn = document.getElementById('contact-support-btn');
-    if (contactSupportBtn) {
-        contactSupportBtn.addEventListener('click', () => {
-            window.location.href = './support.html';
-        });
+    // Fallback to Bootstrap modal
+    const frozenModalElement = document.getElementById('frozenAccountModal');
+    if (frozenModalElement) {
+        // Update modal content
+        const currentBalanceElement = document.getElementById('modal-current-balance');
+        const amountNeededElement = document.getElementById('modal-amount-needed');
+        
+        if (currentBalanceElement) {
+            currentBalanceElement.textContent = `$0.00`;
+        }
+        if (amountNeededElement) {
+            amountNeededElement.textContent = `$${parseFloat(amountNeeded || 0).toFixed(2)}`;
+        }
+        
+        // Show the modal
+        const modal = new bootstrap.Modal(frozenModalElement);
+        modal.show();
+        return;
+    }
+    
+    // Final fallback to notification
+    const fallbackMessage = `${message} ${amountNeeded ? `Deposit needed: $${parseFloat(amountNeeded).toFixed(2)}. ` : ''}Progress: ${tasksCompleted}. Commission: $${totalCommission}`;
+    
+    if (typeof showNotification === 'function') {
+        showNotification(fallbackMessage, 'warning');
+    } else {
+        alert(fallbackMessage);
     }
 }
 
@@ -2005,7 +1851,7 @@ function createFrozenStateCard(message, frozenAmountNeeded) {
                         </h5>
                         <p class="text-muted">${message}</p>
                         ${frozenAmountNeeded ? 
-                            `<p class="text-danger"><strong>Amount needed: ${parseFloat(frozenAmountNeeded).toFixed(2)} USDT</strong></p>` : 
+                            `<p class="text-danger"><strong>Amount needed: $${parseFloat(frozenAmountNeeded).toFixed(2)} </strong></p>` : 
                             ''}
                         
                         <div class="mt-3 mb-3">
@@ -2020,7 +1866,7 @@ function createFrozenStateCard(message, frozenAmountNeeded) {
                         
                         <div class="mt-3 mb-3">
                             <h6>Commission Earned (Preserved)</h6>
-                            <p class="text-success"><strong>${totalDriveCommission.toFixed(2)} USDT</strong></p>
+                            <p class="text-success"><strong>$${totalDriveCommission.toFixed(2)} </strong></p>
                             <p class="small text-muted">Your earned commission is safe and will be available when you resume</p>
                         </div>
                         
@@ -2116,7 +1962,7 @@ function attemptAutoUnfreeze(token, currentBalance, requiredAmount) {
             
             // Show success notification
             if (typeof showNotification === 'function') {
-                showNotification('Account unfrozen! You can now continue with your drive.', 'success');
+                showNotification(MESSAGES.ACCOUNT_UNFROZEN, 'success');
             }
               // Hide any frozen modals that might be showing
             // Try to hide Bootstrap modal (legacy fallback)
@@ -2147,34 +1993,6 @@ function attemptAutoUnfreeze(token, currentBalance, requiredAmount) {
     .catch(error => {
         console.error('Error attempting auto-unfreeze:', error);
     });
-}
-
-// Helper function to show frozen account modal
-function showFrozenAccountModal(currentBalance, amountNeeded) {
-    console.log('showFrozenAccountModal: Displaying modal with balance:', currentBalance, 'needed:', amountNeeded);
-    
-    const frozenModalElement = document.getElementById('frozenAccountModal');
-    if (frozenModalElement) {
-        // Update modal content with current status
-        const currentBalanceElement = document.getElementById('modal-current-balance');
-        const amountNeededElement = document.getElementById('modal-amount-needed');
-        
-        if (currentBalanceElement) {
-            currentBalanceElement.textContent = `$${currentBalance.toFixed(2)}`;
-        }
-        
-        if (amountNeededElement) {
-            amountNeededElement.textContent = `$${amountNeeded.toFixed(2)}`;
-        }
-        
-        // Show the modal
-        const frozenModal = bootstrap.Modal.getOrCreateInstance(frozenModalElement);
-        frozenModal.show();
-        
-        console.log('showFrozenAccountModal: Modal should now be visible');
-    } else {
-        console.error('showFrozenAccountModal: frozenAccountModal element not found in DOM');
-    }
 }
 
 // --- Periodic Frozen Account Check ---
@@ -2223,23 +2041,23 @@ function checkFrozenAccountStatus(token) {
                         } else {
                             // Show frozen account modal
                             console.log('Insufficient balance - showing frozen account modal');
-                            showFrozenAccountModal(mainBalance, frozenAmountNeeded);
+                            showFrozenModal("Account frozen due to insufficient balance.", frozenAmountNeeded, '0 of 0', '0.00');
                         }
                     } else {
                         // Show frozen account modal with default values
                         console.log('Could not get balance - showing frozen account modal');
-                        showFrozenAccountModal(0, frozenAmountNeeded);
+                        showFrozenModal("Account frozen due to insufficient balance.", frozenAmountNeeded, '0 of 0', '0.00');
                     }
                 })
                 .catch(error => {
                     console.error('Error checking balance for auto-unfreeze:', error);
                     // Show frozen account modal with default values
-                    showFrozenAccountModal(0, frozenAmountNeeded);
+                    showFrozenModal("Account frozen due to insufficient balance.", frozenAmountNeeded, '0 of 0', '0.00');
                 });
             } else {
                 // Show frozen account modal even if amount needed is 0
                 console.log('Account frozen - showing frozen account modal');
-                showFrozenAccountModal(0, frozenAmountNeeded);
+                showFrozenModal("Account frozen due to insufficient balance.", frozenAmountNeeded || 0, '0 of 0', '0.00');
             }
         } else {
             console.log('checkFrozenAccountStatus: Account is not frozen');
@@ -2347,9 +2165,9 @@ function initializeModalEventDelegation() {
         } else {
           console.error("Modal purchase clicked but no current product data available.");
           if (typeof showNotification === 'function') {
-            showNotification('Error: No product data to purchase.', 'error');
+            showNotification(MESSAGES.NO_PRODUCT_DATA, 'error');
           } else { 
-            alert('Error: No product data to purchase.'); 
+            alert(MESSAGES.NO_PRODUCT_DATA); 
           }
         }
         closeProductModal();
@@ -2640,20 +2458,20 @@ function populateModalWithProductData(productData) {
   // Update purchase price
   const purchasePrice = document.getElementById('drivePurchasePrice');
   if (purchasePrice && productData.product_price) {
-    purchasePrice.textContent = `$${productData.product_price} USDT`;
+    purchasePrice.textContent = `$${productData.product_price}`;
   }
   
   // Update commission
   const commission = document.getElementById('driveCommission');
   if (commission && productData.order_commission) {
-    commission.textContent = `+ $${productData.order_commission} USDT`;
+    commission.textContent = `+ $${productData.order_commission}`;
   }
   
   // Update net result (purchase price minus commission)
   const netResult = document.getElementById('driveNetResult');
   if (netResult && productData.product_price && productData.order_commission) {
     const net = (parseFloat(productData.product_price) - parseFloat(productData.order_commission)).toFixed(2);
-    netResult.textContent = `$${net} USDT`;
+    netResult.textContent = `$${net}`;
   }
   
   // Update confirm button text
@@ -2697,30 +2515,6 @@ function initializeModalEventHandlers() {
       }
     });
   }
-}
-
-// --- Debugging and Testing Utilities ---
-// Simple debug logger
-function debugLog(message, type = 'log') {
-    const timestamp = new Date().toISOString();
-    const formattedMessage = `[${timestamp}] ${message}`;
-    
-    switch (type) {
-        case 'log':
-            console.log(formattedMessage);
-            break;
-        case 'warn':
-            console.warn(formattedMessage);
-            break;
-        case 'error':
-            console.error(formattedMessage);
-            break;
-        case 'info':
-            console.info(formattedMessage);
-            break;
-        default:
-            console.log(formattedMessage);
-    }
 }
 
 // --- Update Progress From Detailed Data Function ---

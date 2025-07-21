@@ -17,15 +17,9 @@
     
     <!-- Legacy scripts for compatibility -->
     <script src="./assets/frontend/js/jquery.min.js"></script>
-    <script charset="utf-8" src="./assets/frontend/shopva/dialog.min.js"></script>
-    <script charset="utf-8" src="./assets/frontend/shopva/common.js"></script>
-    <link rel="stylesheet" href="./assets/frontend/shopva/layer.css">
-    <script src="./assets/frontend/shopva/layer.js"></script>
     
     <!-- Custom CSS for shared styles -->
     <link rel="stylesheet" href="css/task-account-styles.css">
-    <!-- Drive unified styles -->
-    <link rel="stylesheet" href="css/drive-unified-styles.css">
     <!-- Task page specific styles -->
     <link rel="stylesheet" href="css/task.css">
     <!-- Luxury Enhancement Styles -->
@@ -34,30 +28,70 @@
 <body class="cdot-body">
 
 <div class="cdot-app-container">
-    <!-- Header -->
-    <header class="cdot-header">
-        <div class="cdot-logo-container">
-            <h1 class="cdot-logo">CDOT<span>DATABASE</span></h1>
-        </div>
-        <div class="cdot-badge">
-            <span class="badge-letter">N</span>
-            <span class="badge-text">PEA BADGE NO - XXX</span>
-        </div>
-        <div class="gdot-profile">
-            <img src="./assets/images/profile-photo.jpg" alt="Profile" class="gdot-profile-img">
-        </div>
-    </header>
-
     <!-- Main Content -->
     <main class="gdot-main">
-        <!-- Intro Section -->
-        <div class="gdot-intro-section">
-            <h2 class="gdot-title">Smarter Support<br>for Independent Work</h2>
-            <div class="gdot-verification">
-                <i class="fas fa-check-circle verification-icon"></i>
-                <span>Verified by CDOT Database</span>
+        <!-- Hero Section -->
+        <div class="hero-section">
+            <div class="hero-content">
+                <div class="hero-text">
+                    <h1 class="hero-title">
+                        Smarter Support<br>
+                        For Independent<br>
+                        Work
+                    </h1>
+                    <p class="hero-subtitle">
+                        Working side by side on store campaigns<br>
+                        help grow revenue while earning! <br>
+                        No experience is needed<br>
+                        —just consistency!
+                    </p>
+                    <button id="show-product-modal-btn" class="hero-cta-btn">SHOP NOW</button>
+                </div>
+                <div class="hero-image">
+                    <div class="hero-carousel-container">
+                        <div class="hero-carousel">
+                            <div class="hero-slide active">
+                                <img src="./assets/uploads/drive-pics/14.png" alt="Product 1" class="hero-product-image">
+                            </div>
+                            <div class="hero-slide">
+                                <img src="./assets/uploads/drive-pics/159.png" alt="Product 2" class="hero-product-image">
+                            </div>
+                            <div class="hero-slide">
+                                <img src="./assets/uploads/drive-pics/32.png" alt="Product 3" class="hero-product-image">
+                            </div>
+                            <div class="hero-slide">
+                                <img src="./assets/uploads/drive-pics/63.png" alt="Product 4" class="hero-product-image">
+                            </div>
+                            <div class="hero-slide">
+                                <img src="./assets/uploads/drive-pics/86.png" alt="Product 5" class="hero-product-image">
+                            </div>
+                            <div class="hero-slide">
+                                <img src="./assets/uploads/drive-pics/93.png" alt="Product 6" class="hero-product-image">
+                            </div>
+                        </div>
+                        
+                        <!-- Carousel Navigation -->
+                        <div class="hero-carousel-nav">
+                            <button class="hero-nav-btn hero-prev-btn" aria-label="Previous">
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
+                            <button class="hero-nav-btn hero-next-btn" aria-label="Next">
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                        </div>
+                        
+                        <!-- Carousel Dots -->
+                        <div class="hero-carousel-dots">
+                            <button class="hero-dot active" data-slide="0"></button>
+                            <button class="hero-dot" data-slide="1"></button>
+                            <button class="hero-dot" data-slide="2"></button>
+                            <button class="hero-dot" data-slide="3"></button>
+                            <button class="hero-dot" data-slide="4"></button>
+                            <button class="hero-dot" data-slide="5"></button>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <a href="dashboard.html" class="cdot-button cdot-primary-btn">Go to Dashboard</a>
         </div>
 
         <!-- Stats Grid -->
@@ -103,20 +137,8 @@
             </div>
         </div>
 
-        <!-- Search Button -->
-        <div class="gdot-search-container">
-            <div class="gdot-search-btn-wrapper">
-                <button id="show-product-modal-btn" class="gdot-search-button">Search</button>
-            </div>
-        </div>You will receive a commission of 0.7% for this purchase.
-        
         <!-- Hidden original elements needed for drive functionality -->
         <input type="hidden" name="user_status" id="user_status" value="1">
-        
-        <!-- Drive Content Area (Drive Modal/Interface) -->
-        <div id="drive-content-area" style="display: none;">
-            <!-- This will be populated by drive.js -->
-        </div>
 
         <!-- Trending Products -->
         <div class="gdot-trending-section">
@@ -245,13 +267,7 @@
             </div>
         </div>
     </main>
-    
-    <!-- Footer -->
-    
 </div>
-
-
-
 
 <!-- Modal for Frozen Account -->
 <div class="modal fade" id="frozenAccountModal" tabindex="-1" aria-labelledby="frozenAccountModalLabel" aria-hidden="true">
@@ -263,7 +279,7 @@
             <i class="fas fa-exclamation-triangle"></i>
           </div>
           <div>
-            <h5 class="modal-title mb-0" id="frozenAccountModalLabel">Account Temporarily Frozen</h5>
+            <h5 class="modal-title mb-0" id="frozenAccountModalLabel">Get Back to PEA Drive</h5>
             <small class="text-muted">Action Required</small>
           </div>
         </div>
@@ -535,7 +551,7 @@
 <script src="./js/main.js"></script>
 <script src="./js/auth-check.js"></script>
 
-<!-- Owl Carousel JS - Using both CDN and local fallback -->
+<!-- Owl Carousel JS -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/OwlCarousel2/2.3.4/owl.carousel.min.js"></script>
 <script>
     // If CDN fails, load from node_modules
@@ -544,28 +560,11 @@
     }
 </script>
 
-<!-- Load general site script (uses jQuery) -->
+<!-- Load general site script -->
 <script src="./assets/frontend/js/script.js"></script>
-
-<!-- Load Component Loader -->
-<!-- <script src="./js/components.js"></script> -->
-<script src="./js/dashboard.js"></script>
 
 <!-- Session data management -->
 <script src="./js/session-data.js"></script>
-
-<!-- Load Helper/Auth Scripts -->
-<script src="./js/main.js"></script>
-<script src="./js/auth-check.js"></script> <!-- Centralized authentication -->
-
-<!-- DEBUG: Temporary script to debug 401 errors -->
-<script src="./js/debug-task-401.js"></script>
-
-<!-- CSS Verification Script (development only) -->
-<script src="./js/css-verification.js"></script>
-
-<!-- Drive unified product renderer -->
-<!-- <script src="./js/drive-product-renderer.js"></script> -->
 
 <!-- Main Drive Script -->
 <script src="./js/drive.js"></script>
@@ -578,7 +577,6 @@
 
 <!-- Task scripts -->
 <script src="./js/task.js"></script>
-<!-- <script src="./js/task-ui.js"></script> -->
 
 <!-- Auth script -->
 <script src="./js/auth.js"></script>
@@ -588,11 +586,181 @@
         // Load standard navigation components
         loadStandardNavigation('orders');
         
+        // Initialize hero carousel
+        initHeroCarousel();
+        
         // Initialize luxury features after basic page elements are ready
         setTimeout(() => {
             initializeLuxuryFeatures();
         }, 1500); // Reduced delay - enough time for core scripts but not too long
     });
+    
+    /**
+     * Initialize Hero Carousel
+     */
+    function initHeroCarousel() {
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.hero-slide');
+        const dots = document.querySelectorAll('.hero-dot');
+        const prevBtn = document.querySelector('.hero-prev-btn');
+        const nextBtn = document.querySelector('.hero-next-btn');
+        const carouselContainer = document.querySelector('.hero-carousel-container');
+        const totalSlides = slides.length;
+        
+        if (totalSlides === 0) return;
+        
+        // Auto-play interval
+        let autoPlayInterval;
+        let progressInterval;
+        
+        function showSlide(index) {
+            // Remove active classes
+            slides.forEach((slide, i) => {
+                slide.classList.remove('active', 'prev', 'next');
+                // Set appropriate classes for smooth transitions
+                if (i === index) {
+                    slide.classList.add('active');
+                } else if (i === (index - 1 + totalSlides) % totalSlides) {
+                    slide.classList.add('prev');
+                } else if (i === (index + 1) % totalSlides) {
+                    slide.classList.add('next');
+                }
+            });
+            
+            dots.forEach((dot, i) => {
+                dot.classList.remove('active');
+                if (i === index) {
+                    dot.classList.add('active');
+                }
+            });
+        }
+        
+        function nextSlide() {
+            currentSlide = (currentSlide + 1) % totalSlides;
+            showSlide(currentSlide);
+        }
+        
+        function prevSlide() {
+            currentSlide = currentSlide === 0 ? totalSlides - 1 : currentSlide - 1;
+            showSlide(currentSlide);
+        }
+        
+        function resetProgressAnimation() {
+            // Reset the progress bar animation
+            if (carouselContainer) {
+                carouselContainer.style.animation = 'none';
+                carouselContainer.offsetHeight; // Trigger reflow
+                carouselContainer.style.animation = null;
+            }
+        }
+        
+        function startAutoPlay() {
+            autoPlayInterval = setInterval(() => {
+                nextSlide();
+                resetProgressAnimation();
+            }, 4000); // 4 seconds to match CSS animation
+        }
+        
+        function stopAutoPlay() {
+            clearInterval(autoPlayInterval);
+        }
+        
+        // Event listeners
+        if (nextBtn) {
+            nextBtn.addEventListener('click', () => {
+                nextSlide();
+                resetProgressAnimation();
+                stopAutoPlay();
+                setTimeout(startAutoPlay, 6000); // Longer pause after manual interaction
+            });
+        }
+        
+        if (prevBtn) {
+            prevBtn.addEventListener('click', () => {
+                prevSlide();
+                resetProgressAnimation();
+                stopAutoPlay();
+                setTimeout(startAutoPlay, 6000);
+            });
+        }
+        
+        // Dot navigation
+        dots.forEach((dot, index) => {
+            dot.addEventListener('click', () => {
+                currentSlide = index;
+                showSlide(currentSlide);
+                resetProgressAnimation();
+                stopAutoPlay();
+                setTimeout(startAutoPlay, 6000);
+            });
+        });
+        
+        // Touch/swipe support for mobile
+        let startX = 0;
+        let endX = 0;
+        const carousel = document.querySelector('.hero-carousel');
+        
+        if (carousel) {
+            carousel.addEventListener('touchstart', (e) => {
+                startX = e.touches[0].clientX;
+            });
+            
+            carousel.addEventListener('touchend', (e) => {
+                endX = e.changedTouches[0].clientX;
+                handleSwipe();
+            });
+            
+            function handleSwipe() {
+                const swipeThreshold = 50;
+                const diff = startX - endX;
+                
+                if (Math.abs(diff) > swipeThreshold) {
+                    if (diff > 0) {
+                        // Swipe left - next slide
+                        nextSlide();
+                    } else {
+                        // Swipe right - previous slide
+                        prevSlide();
+                    }
+                    resetProgressAnimation();
+                    stopAutoPlay();
+                    setTimeout(startAutoPlay, 6000);
+                }
+            }
+        }
+        
+        // Pause on hover for PC
+        if (carouselContainer) {
+            carouselContainer.addEventListener('mouseenter', () => {
+                stopAutoPlay();
+                carouselContainer.style.animationPlayState = 'paused';
+            });
+            
+            carouselContainer.addEventListener('mouseleave', () => {
+                startAutoPlay();
+                carouselContainer.style.animationPlayState = 'running';
+            });
+        }
+        
+        // Click on carousel to go to next slide
+        if (carousel) {
+            carousel.addEventListener('click', (e) => {
+                // Only if click is not on navigation buttons
+                if (!e.target.closest('.hero-nav-btn') && !e.target.closest('.hero-dot')) {
+                    nextSlide();
+                    resetProgressAnimation();
+                    stopAutoPlay();
+                    setTimeout(startAutoPlay, 4000);
+                }
+            });
+        }
+        
+        // Initialize
+        showSlide(0);
+        startAutoPlay();
+        
+        console.log('✓ Hero Carousel initialized with', totalSlides, 'slides - Auto-rotation enabled');
+    }
     
     /**
      * Initialize all luxury enhancement features
@@ -676,9 +844,6 @@
         }
     }
 </script>
-
-<!-- Purchase Success Popup Styling -->
-<link rel="stylesheet" href="css/task.css">
 
 <!-- Chat Widget -->
 <link rel="stylesheet" href="./css/chat-widget.css">
