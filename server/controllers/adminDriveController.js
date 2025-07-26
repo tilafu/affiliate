@@ -1008,16 +1008,17 @@ const assignDriveConfigurationToUser = async (req, res) => {
 // Assign a tier-based Drive Configuration to a user
 const assignTierBasedDriveToUser = async (req, res) => {
     const { userId } = req.params;
+    const { min_percent_balance = 30, max_percent_balance = 90, use_tier_quantity = true } = req.body;
     let newDriveConfigurationId = null; // Declare here
 
     const client = await pool.connect();
 
     try {
         await client.query('BEGIN');
-        logger.info(`assignTierBasedDriveToUser: Initiating for user ${userId}.`);
+        logger.info(`assignTierBasedDriveToUser: Initiating for user ${userId}. Price range: ${min_percent_balance}%-${max_percent_balance}%. Use tier quantity: ${use_tier_quantity}`);
 
-        // 1. Fetch user details, including tier
-        const userResult = await client.query('SELECT id, username, tier FROM users WHERE id = $1', [userId]); // Changed user_tier_id to tier
+        // 1. Fetch user details, including tier and balance
+        const userResult = await client.query('SELECT id, username, tier, balance FROM users WHERE id = $1', [userId]); // Added balance
         if (userResult.rows.length === 0) {
             await client.query('ROLLBACK');
             logger.warn(`assignTierBasedDriveToUser: User ${userId} not found.`);
@@ -1025,6 +1026,7 @@ const assignTierBasedDriveToUser = async (req, res) => {
         }
         const user = userResult.rows[0];
         const userTierName = user.tier; // Changed userTierId to userTierName
+        const userBalance = parseFloat(user.balance) || 0;
 
         if (!userTierName) {
             await client.query('ROLLBACK');
@@ -1041,16 +1043,31 @@ const assignTierBasedDriveToUser = async (req, res) => {
         
         // FOR INITIAL DRIVE ASSIGNMENT: Only create regular (single) tasks
         // Admin combos will be added manually by admins after drive assignment
-        const num_single_tasks = totalTasksRequired; // All tasks are single tasks initially
+        const num_single_tasks = use_tier_quantity ? totalTasksRequired : 40; // Default to 40 tasks if not using tier quantity
         
-        // Set price ranges based on tier (only need single task ranges for initial assignment)
-        const priceRanges = {
-            'Bronze': { min_price_single: 1.00, max_price_single: 30.00 },
-            'Silver': { min_price_single: 25.00, max_price_single: 50.00 },
-            'Gold': { min_price_single: 50.00, max_price_single: 75.00 },
-            'Platinum': { min_price_single: 75.00, max_price_single: 100.00 }
-        };
-        const { min_price_single, max_price_single } = priceRanges[userTierName] || priceRanges['Bronze'];
+        // Calculate price ranges based on user's balance and provided percentages
+        let min_price_single, max_price_single;
+        
+        if (userBalance > 0) {
+            // Calculate price ranges as percentages of user balance
+            min_price_single = parseFloat((userBalance * min_percent_balance / 100).toFixed(2));
+            max_price_single = parseFloat((userBalance * max_percent_balance / 100).toFixed(2));
+            
+            logger.info(`assignTierBasedDriveToUser: User ${userId} has balance $${userBalance}. Using ${min_percent_balance}%-${max_percent_balance}% range: $${min_price_single}-$${max_price_single}`);
+        } else {
+            // Fallback to tier-based ranges if balance is zero or not available
+            const priceRanges = {
+                'Bronze': { min_price_single: 1.00, max_price_single: 30.00 },
+                'Silver': { min_price_single: 25.00, max_price_single: 50.00 },
+                'Gold': { min_price_single: 50.00, max_price_single: 75.00 },
+                'Platinum': { min_price_single: 75.00, max_price_single: 100.00 }
+            };
+            const defaultRange = priceRanges[userTierName] || priceRanges['Bronze'];
+            min_price_single = defaultRange.min_price_single;
+            max_price_single = defaultRange.max_price_single;
+            
+            logger.warn(`assignTierBasedDriveToUser: User ${userId} has no balance. Falling back to tier-based ranges: $${min_price_single}-$${max_price_single}`);
+        }
 
         logger.info(`assignTierBasedDriveToUser: User ${userId} (Tier: ${userTierName}) requires ${num_single_tasks} regular tasks initially. Total: ${totalTasksRequired}. Admin combos will be added manually.`);
         logger.debug(`assignTierBasedDriveToUser: Price ranges - Single: ${min_price_single}-${max_price_single}`);// 3. Create a new Drive Configuration for this tier
@@ -1210,11 +1227,17 @@ const assignTierBasedDriveToUser = async (req, res) => {
         logger.info(`assignTierBasedDriveToUser: Successfully generated and assigned tier-based drive for user ${userId}. Created ${num_single_tasks} regular tasks. New config ID: ${newDriveConfigurationId}, New session ID: ${newDriveSessionId}. Admin combos can be added manually.`);
         res.status(201).json({
             success: true,
-            message: `Tier-based drive assigned successfully! Created ${num_single_tasks} regular tasks. Admin combos can be added manually.`,
+            message: `Tier-based drive assigned successfully! Created ${num_single_tasks} regular tasks.`,
             drive_configuration_id: newDriveConfigurationId,
             drive_session_id: newDriveSessionId,
             first_active_drive_item_id: firstUserActiveDriveItemId,
             tasks_created: num_single_tasks,
+            price_range: {
+                min: min_price_single,
+                max: max_price_single,
+                percent_min: min_percent_balance,
+                percent_max: max_percent_balance
+            },
             task_type: 'regular_only'
         });
 

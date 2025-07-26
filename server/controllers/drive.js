@@ -126,16 +126,47 @@ const listCombos = async (req, res) => {
 // @access  Private
 const addRatingCommission = async (req, res) => {
     const userId = req.user.id;
-    const { rating, productId, productName, userTier } = req.body;
+    const { rating, productId, productName, userTier, reviewText } = req.body;
+    
+    console.log('Rating commission request received:', {
+        userId,
+        rating,
+        productId,
+        productName,
+        userTier,
+        reviewText: reviewText ? reviewText.substring(0, 50) + '...' : 'none'
+    });
     
     if (!rating || rating < 1 || rating > 5) {
+        console.log('Invalid rating provided:', rating);
         return res.status(400).json({ 
             code: 1, 
             message: 'Invalid rating. Must be between 1 and 5.' 
         });
     }
     
+    if (!productName || productName.trim() === '') {
+        console.log('Product name missing');
+        return res.status(400).json({ 
+            code: 1, 
+            message: 'Product name is required.' 
+        });
+    }
+    
     try {
+        // Verify user exists
+        const userCheck = await pool.query('SELECT id, tier FROM users WHERE id = $1', [userId]);
+        if (userCheck.rows.length === 0) {
+            console.log('User not found:', userId);
+            return res.status(404).json({ 
+                code: 1, 
+                message: 'User not found.' 
+            });
+        }
+        
+        // Use actual user tier from database if not provided
+        const actualUserTier = userTier || userCheck.rows[0].tier || 'bronze';
+        
         // Define commission rates based on tier and rating
         const commissionRates = {
             'bronze': { 4: 0.40, 5: 0.20 },
@@ -143,7 +174,7 @@ const addRatingCommission = async (req, res) => {
             'gold': { 4: 0.90, 5: 0.50 }
         };
         
-        const tier = (userTier || 'bronze').toLowerCase();
+        const tier = actualUserTier.toLowerCase();
         let commissionAmount = 0;
         
         // Only pay commission for 4 and 5 star ratings
@@ -152,6 +183,8 @@ const addRatingCommission = async (req, res) => {
                 (commissionRates[tier][rating] || 0) : 
                 commissionRates['bronze'][rating] || 0;
         }
+        
+        console.log(`Commission calculation: ${rating} stars, ${tier} tier = $${commissionAmount}`);
         
         if (commissionAmount > 0) {
             // Add commission to user's drive session
@@ -163,8 +196,11 @@ const addRatingCommission = async (req, res) => {
                 [commissionAmount, userId]
             );
             
+            console.log('Drive session commission update result:', addCommissionResult.rowCount);
+            
             if (addCommissionResult.rowCount === 0) {
                 // If no active session, create a simple commission record
+                console.log('No active drive session, adding to commission history');
                 await pool.query(
                     `INSERT INTO user_commission_history 
                      (user_id, amount, source, description, created_at)
@@ -176,20 +212,25 @@ const addRatingCommission = async (req, res) => {
                     ]
                 );
             }
-            
-            // Log the rating and commission
-            await pool.query(
-                `INSERT INTO product_ratings 
-                 (user_id, product_id, product_name, rating, commission_earned, created_at)
-                 VALUES ($1, $2, $3, $4, $5, NOW())
-                 ON CONFLICT (user_id, product_id) 
-                 DO UPDATE SET 
-                   rating = EXCLUDED.rating,
-                   commission_earned = EXCLUDED.commission_earned,
-                   updated_at = NOW()`,
-                [userId, productId || 0, productName, rating, commissionAmount]
-            );
         }
+        
+        // Log the rating and commission (including review text)
+        console.log('Inserting rating record into product_ratings table');
+        const ratingResult = await pool.query(
+            `INSERT INTO product_ratings 
+             (user_id, product_id, product_name, rating, commission_earned, review_text, created_at)
+             VALUES ($1, $2, $3, $4, $5, $6, NOW())
+             ON CONFLICT (user_id, product_id) 
+             DO UPDATE SET 
+               rating = EXCLUDED.rating,
+               commission_earned = EXCLUDED.commission_earned,
+               review_text = EXCLUDED.review_text,
+               updated_at = NOW()
+             RETURNING id`,
+            [userId, productId || 0, productName, rating, commissionAmount, reviewText || null]
+        );
+        
+        console.log('Rating record saved with ID:', ratingResult.rows[0].id);
         
         res.status(200).json({
             code: 0,

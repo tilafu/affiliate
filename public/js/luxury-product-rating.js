@@ -14,10 +14,11 @@ class LuxuryProductRatingModal {
         this.ratingType = 'manual'; // 'manual' or 'ai'
         
         // Compensation matrix based on user tier
+        // AI reviews get higher commission than manual reviews
         this.compensationMatrix = {
-            'Bronze': { manual: 0.40, ai: 0.20 },
-            'Silver': { manual: 0.70, ai: 0.30 },
-            'Gold': { manual: 0.90, ai: 0.50 }
+            'Bronze': { manual: 0.20, ai: 0.40 },
+            'Silver': { manual: 0.30, ai: 0.70 },
+            'Gold': { manual: 0.50, ai: 0.90 }
         };
     }
     
@@ -27,6 +28,8 @@ class LuxuryProductRatingModal {
      * @param {Function} onContinue - Callback to execute after rating submission
      */
     show(productData, onContinue) {
+        console.log('Rating modal opening with product data:', productData);
+        
         if (this.isOpen) {
             console.warn('LuxuryProductRatingModal: Modal is already open');
             return;
@@ -55,7 +58,446 @@ class LuxuryProductRatingModal {
         const userTier = this.getUserTier();
         const compensation = this.calculateCompensation('manual', userTier);
         
+        // Remove any existing styles to prevent duplicates
+        const existingStyles = document.getElementById('lux-rating-modal-styles');
+        if (existingStyles) {
+            existingStyles.remove();
+        }
+        
+        // Add CSS styles for white theme
+        const modalCSS = `
+            <style id="lux-rating-modal-styles">
+                .lux-rating-modal-overlay {
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100vw;
+                    height: 100vh;
+                    background-color: rgba(0, 0, 0, 0.5);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    z-index: 99999;
+                    opacity: 0;
+                    transition: opacity 0.3s ease;
+                }
+                
+                .lux-rating-modal-overlay.show {
+                    opacity: 1;
+                }
+                
+                .lux-rating-modal {
+                    background: white;
+                    border: 1px solid #e5e5e5;
+                    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+                    border-radius: 12px;
+                    width: 90%;
+                    max-width: 500px;
+                    max-height: 90vh;
+                    overflow-y: auto;
+                    transform: scale(0.9);
+                    transition: transform 0.3s ease;
+                }
+                
+                .lux-rating-modal-overlay.show .lux-rating-modal {
+                    transform: scale(1);
+                }
+                
+                .lux-rating-modal-header {
+                    background: white;
+                    border-bottom: 1px solid #f0f0f0;
+                    padding: 20px;
+                    text-align: center;
+                    border-radius: 12px 12px 0 0;
+                    position: relative;
+                }
+                
+                .lux-rating-modal-close {
+                    position: absolute;
+                    top: 15px;
+                    right: 15px;
+                    background: #f8f9fa;
+                    border: 1px solid #dee2e6;
+                    border-radius: 50%;
+                    width: 35px;
+                    height: 35px;
+                    color: #6c757d;
+                    font-size: 18px;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                }
+                
+                .lux-rating-modal-close:hover {
+                    background: #e9ecef;
+                    color: #495057;
+                    transform: scale(1.1);
+                }
+                
+                .lux-rating-modal-title {
+                    margin: 0 0 8px 0;
+                    color: #212529;
+                    font-size: 24px;
+                    font-weight: 600;
+                }
+                
+                .lux-rating-modal-subtitle {
+                    margin: 0;
+                    color: #6c757d;
+                    font-size: 16px;
+                }
+                
+                .lux-rating-tabs {
+                    display: flex;
+                    background: #f8f9fa;
+                    border-bottom: 1px solid #dee2e6;
+                }
+                
+                .lux-tab-btn {
+                    flex: 1;
+                    background: #f8f9fa;
+                    border: none;
+                    border-bottom: 3px solid transparent;
+                    color: #495057;
+                    padding: 15px 20px;
+                    font-size: 16px;
+                    font-weight: 500;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                }
+                
+                .lux-tab-btn:hover {
+                    background: #e9ecef;
+                    color: #212529;
+                }
+                
+                .lux-tab-btn.active {
+                    background: white;
+                    border-bottom-color: #007bff;
+                    color: #007bff;
+                    font-weight: 600;
+                }
+                
+                .lux-rating-content {
+                    padding: 25px;
+                }
+                
+                .lux-tab-content {
+                    display: none;
+                }
+                
+                .lux-tab-content.active {
+                    display: block;
+                }
+                
+                .lux-star-rating {
+                    text-align: center;
+                    margin-bottom: 20px;
+                }
+                
+                .lux-star {
+                    color: #ddd;
+                    cursor: pointer;
+                    font-size: 32px;
+                    margin: 0 5px;
+                    transition: all 0.2s ease;
+                    user-select: none;
+                }
+                
+                .lux-star:hover,
+                .lux-star.active {
+                    color: #ffc107;
+                    transform: scale(1.1);
+                }
+                
+                .lux-review-textarea {
+                    width: 100%;
+                    min-height: 120px;
+                    border: 2px solid #e9ecef;
+                    border-radius: 8px;
+                    padding: 15px;
+                    font-size: 16px;
+                    font-family: inherit;
+                    resize: vertical;
+                    transition: border-color 0.3s ease;
+                }
+                
+                .lux-review-textarea:focus {
+                    outline: none;
+                    border-color: #007bff;
+                    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+                }
+                
+                .lux-ai-generate-btn {
+                    width: 100%;
+                    background: #f8f9fa;
+                    border: 2px dashed #dee2e6;
+                    color: #6c757d;
+                    padding: 25px 20px;
+                    border-radius: 8px;
+                    font-size: 16px;
+                    font-weight: 500;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                    margin-bottom: 15px;
+                }
+                
+                .lux-ai-generate-btn:hover {
+                    background: #e9ecef;
+                    border-color: #adb5bd;
+                    color: #495057;
+                }
+                
+                .lux-ai-generate-btn:disabled {
+                    opacity: 0.6;
+                    cursor: not-allowed;
+                }
+                
+                .lux-ai-preview {
+                    background: #f8f9fa;
+                    border: 1px solid #e9ecef;
+                    border-radius: 8px;
+                    padding: 15px;
+                    font-style: italic;
+                    color: #495057;
+                    line-height: 1.5;
+                }
+                
+                .lux-compensation-info {
+                    background: #f8f9fa;
+                    border: 1px solid #e9ecef;
+                    border-radius: 8px;
+                    padding: 16px;
+                    margin: 20px 25px;
+                }
+                
+                .lux-tier-display {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                }
+                
+                .lux-user-tier {
+                    color: #495057;
+                    font-weight: 500;
+                    font-size: 16px;
+                }
+                
+                .lux-compensation {
+                    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+                    color: white;
+                    padding: 6px 15px;
+                    border-radius: 20px;
+                    font-weight: 600;
+                    font-size: 16px;
+                }
+                
+                .lux-modal-actions {
+                    padding: 20px 25px 25px;
+                    display: flex;
+                    gap: 15px;
+                }
+                
+                .lux-submit-rating-btn {
+                    flex: 1;
+                    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+                    border: none;
+                    color: white;
+                    padding: 15px 25px;
+                    border-radius: 8px;
+                    font-size: 16px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                }
+                
+                .lux-submit-rating-btn:hover {
+                    background: linear-gradient(135deg, #0056b3 0%, #004085 100%);
+                    transform: translateY(-1px);
+                }
+                
+                .lux-submit-rating-btn:disabled {
+                    opacity: 0.6;
+                    cursor: not-allowed;
+                    transform: none;
+                }
+                
+                .lux-skip-rating-btn {
+                    background: white;
+                    border: 2px solid #dee2e6;
+                    color: #6c757d;
+                    padding: 15px 25px;
+                    border-radius: 8px;
+                    font-size: 16px;
+                    font-weight: 500;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                }
+                
+                .lux-skip-rating-btn:hover {
+                    background: #f8f9fa;
+                    border-color: #adb5bd;
+                    color: #495057;
+                    transform: translateY(-1px);
+                }
+                
+                /* Success Modal Styles */
+                .lux-success-modal-overlay {
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100vw;
+                    height: 100vh;
+                    background-color: rgba(0, 0, 0, 0.5);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    z-index: 999999;
+                    opacity: 0;
+                    transition: opacity 0.3s ease;
+                }
+                
+                .lux-success-modal-overlay.show {
+                    opacity: 1;
+                }
+                
+                .lux-success-modal-content {
+                    background: white;
+                    border: 1px solid #e5e5e5;
+                    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+                    border-radius: 12px;
+                    width: 90%;
+                    max-width: 450px;
+                    transform: scale(0.9);
+                    transition: transform 0.3s ease;
+                }
+                
+                .lux-success-modal-overlay.show .lux-success-modal-content {
+                    transform: scale(1);
+                }
+                
+                .lux-success-header {
+                    background: white;
+                    border-bottom: 1px solid #f0f0f0;
+                    padding: 30px 25px 20px;
+                    text-align: center;
+                    border-radius: 12px 12px 0 0;
+                }
+                
+                .lux-success-icon {
+                    color: #28a745;
+                    font-size: 48px;
+                    margin-bottom: 15px;
+                }
+                
+                .lux-success-header h3 {
+                    margin: 0 0 10px 0;
+                    color: #212529;
+                    font-size: 24px;
+                    font-weight: 600;
+                }
+                
+                .lux-success-header p {
+                    margin: 0;
+                    color: #6c757d;
+                    font-size: 16px;
+                }
+                
+                .lux-success-details {
+                    padding: 25px;
+                }
+                
+                .lux-bonus-earned {
+                    text-align: center;
+                    background: #f8f9fa;
+                    border: 1px solid #e9ecef;
+                    border-radius: 8px;
+                    padding: 20px;
+                    margin-bottom: 25px;
+                }
+                
+                .lux-bonus-label {
+                    display: block;
+                    color: #6c757d;
+                    font-size: 14px;
+                    margin-bottom: 8px;
+                    text-transform: uppercase;
+                    font-weight: 600;
+                }
+                
+                .lux-bonus-amount {
+                    color: #28a745;
+                    font-size: 28px;
+                    font-weight: 700;
+                }
+                
+                .lux-rating-summary {
+                    margin-bottom: 25px;
+                }
+                
+                .lux-summary-item {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    padding: 10px 0;
+                    border-bottom: 1px solid #f0f0f0;
+                }
+                
+                .lux-summary-item:last-child {
+                    border-bottom: none;
+                }
+                
+                .lux-summary-label {
+                    color: #6c757d;
+                    font-weight: 500;
+                }
+                
+                .lux-summary-value {
+                    color: #212529;
+                    font-weight: 600;
+                }
+                
+                .lux-next-steps h4 {
+                    color: #212529;
+                    font-size: 18px;
+                    margin: 0 0 15px 0;
+                }
+                
+                .lux-next-steps ul {
+                    margin: 0;
+                    padding-left: 20px;
+                    color: #6c757d;
+                }
+                
+                .lux-next-steps li {
+                    margin-bottom: 8px;
+                }
+                
+                .lux-success-actions {
+                    padding: 20px 25px 25px;
+                    text-align: center;
+                }
+                
+                .lux-continue-btn {
+                    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+                    border: none;
+                    color: white;
+                    padding: 15px 35px;
+                    border-radius: 8px;
+                    font-size: 16px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                }
+                
+                .lux-continue-btn:hover {
+                    background: linear-gradient(135deg, #0056b3 0%, #004085 100%);
+                    transform: translateY(-1px);
+                }
+            </style>
+        `;
+        
         const modalHTML = `
+            ${modalCSS}
             <div id="lux-rating-modal-overlay" class="lux-rating-modal-overlay">
                 <div class="lux-rating-modal">
                     <div class="lux-rating-modal-header">
@@ -98,7 +540,7 @@ class LuxuryProductRatingModal {
                     <div class="lux-compensation-info">
                         <div class="lux-tier-display">
                             <span class="lux-user-tier">${userTier} Tier</span>
-                            <span class="lux-compensation" id="lux-compensation-amount">+$${compensation.toFixed(2)} USDT</span>
+                            <span class="lux-compensation" id="lux-compensation-amount">+$${compensation.toFixed(2)}</span>
                         </div>
                     </div>
                     
@@ -240,6 +682,9 @@ class LuxuryProductRatingModal {
             this.selectedStars = 5;
             this.reviewText = aiReview;
             
+            // Update star display
+            this.highlightStars(5);
+            
         } catch (error) {
             console.error('Error generating AI review:', error);
             generateBtn.textContent = 'Try Again';
@@ -251,15 +696,41 @@ class LuxuryProductRatingModal {
      * Generate a mock AI review (replace with actual AI service)
      */
     generateMockAIReview() {
-        const positiveAdjectives = ['excellent', 'outstanding', 'impressive', 'reliable', 'high-quality'];
-        const features = ['build quality', 'performance', 'design', 'functionality', 'value'];
-        const conclusions = ['Highly recommended!', 'Great purchase decision.', 'Exceeded expectations.'];
+        const positiveAdjectives = [
+            'excellent', 'outstanding', 'impressive', 'reliable', 'high-quality',
+            'exceptional', 'remarkable', 'superb', 'fantastic', 'amazing',
+            'premium', 'top-notch', 'first-class', 'superior', 'professional'
+        ];
+        
+        const features = [
+            'build quality', 'performance', 'design', 'functionality', 'value',
+            'durability', 'craftsmanship', 'user experience', 'efficiency', 'innovation',
+            'attention to detail', 'materials', 'finish quality', 'ergonomics', 'versatility'
+        ];
+        
+        const conclusions = [
+            'Highly recommended!', 'Great purchase decision.', 'Exceeded expectations.',
+            'Worth every penny!', 'Perfect for my needs.', 'Outstanding value for money.',
+            'Will definitely buy again.', 'Impressive quality overall.', 'Couldn\'t be happier!',
+            'Exceptional product quality.', 'Best purchase I\'ve made recently.'
+        ];
+        
+        const experiences = [
+            'The overall experience has been very satisfying and meets all my requirements.',
+            'I\'m thoroughly impressed with every aspect of this product.',
+            'This has proven to be an excellent investment in quality.',
+            'The attention to detail really shows in the final product.',
+            'Everything about this product demonstrates superior craftsmanship.',
+            'I can confidently say this exceeds industry standards.',
+            'The quality is immediately apparent from the first use.'
+        ];
         
         const adj = positiveAdjectives[Math.floor(Math.random() * positiveAdjectives.length)];
         const feature = features[Math.floor(Math.random() * features.length)];
         const conclusion = conclusions[Math.floor(Math.random() * conclusions.length)];
+        const experience = experiences[Math.floor(Math.random() * experiences.length)];
         
-        return `This product offers ${adj} ${feature}. The overall experience has been very satisfying and meets all my requirements. ${conclusion}`;
+        return `This product offers ${adj} ${feature}. ${experience} ${conclusion}`;
     }
     
     /**
@@ -279,8 +750,13 @@ class LuxuryProductRatingModal {
                 type: this.ratingType,
                 stars: this.selectedStars,
                 review: this.reviewText,
-                productId: this.currentProductData?.product_id
+                productId: this.currentProductData?.product_id || this.currentProductData?.id || 0
             };
+            
+            // Validate that we have the required data
+            if (!ratingData.productId && ratingData.productId !== 0) {
+                throw new Error('Product ID is missing');
+            }
             
             await this.submitRatingToServer(ratingData);
             
@@ -316,6 +792,10 @@ class LuxuryProductRatingModal {
                 this.showError('Please generate an AI review first.');
                 return false;
             }
+            if (this.selectedStars === 0) {
+                this.showError('AI review star rating not set. Please regenerate the review.');
+                return false;
+            }
         }
         return true;
     }
@@ -325,13 +805,28 @@ class LuxuryProductRatingModal {
      */
     async submitRatingToServer(ratingData) {
         const userTier = this.getUserTier();
-        const compensation = this.calculateCompensation(ratingData.type, userTier);
         
         // Get auth token (using existing system)
         const token = localStorage.getItem('auth_token');
         if (!token) {
             throw new Error('No authentication token found');
         }
+        
+        // Get product name from current product data
+        const productName = this.currentProductData?.product_name || 
+                           this.currentProductData?.name || 
+                           'Unknown Product';
+        
+        // Prepare request data
+        const requestData = {
+            rating: ratingData.stars,
+            productId: ratingData.productId,
+            productName: productName,
+            userTier: userTier,
+            reviewText: ratingData.review || this.reviewText || null
+        };
+        
+        console.log('Submitting rating data:', requestData);
         
         // Add compensation to current drive session
         const response = await fetch(`${window.API_BASE_URL || ''}/api/drive/add-commission`, {
@@ -340,26 +835,31 @@ class LuxuryProductRatingModal {
                 'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({
-                amount: compensation,
-                reason: `Product rating bonus - ${ratingData.type}`,
-                product_id: ratingData.productId,
-                rating_data: {
-                    stars: ratingData.stars,
-                    review: ratingData.review,
-                    type: ratingData.type
-                }
-            })
+            body: JSON.stringify(requestData)
         });
         
+        console.log('Rating response status:', response.status);
+        
         if (!response.ok) {
-            throw new Error(`Server error: ${response.status}`);
+            let errorMessage = `Server error: ${response.status}`;
+            try {
+                const errorData = await response.json();
+                errorMessage = errorData.message || errorMessage;
+            } catch (e) {
+                // If we can't parse the error response, use the status code
+            }
+            throw new Error(errorMessage);
         }
         
         const result = await response.json();
-        if (!result.success) {
+        console.log('Rating response data:', result);
+        
+        if (result.code !== 0) {
             throw new Error(result.message || 'Failed to add commission');
         }
+        
+        // Get the commission amount from the server response
+        const compensation = result.data?.commissionEarned || 0;
         
         // Update UI commission display if function exists
         if (typeof window.updateCommissionDisplay === 'function') {
@@ -404,7 +904,7 @@ class LuxuryProductRatingModal {
         const compensationElement = document.getElementById('lux-compensation-amount');
         if (compensationElement) {
             const compensation = this.calculateCompensation(this.ratingType);
-            compensationElement.textContent = `+$${compensation.toFixed(2)} USDT`;
+            compensationElement.textContent = `+$${compensation.toFixed(2)}`;
         }
     }
     
@@ -443,7 +943,7 @@ class LuxuryProductRatingModal {
                     <div class="lux-success-details">
                         <div class="lux-bonus-earned">
                             <span class="lux-bonus-label">Bonus Earned</span>
-                            <span class="lux-bonus-amount">+$${compensation.toFixed(2)} USDT</span>
+                            <span class="lux-bonus-amount">+$${compensation.toFixed(2)}</span>
                         </div>
                         
                         <div class="lux-rating-summary">
@@ -559,6 +1059,11 @@ class LuxuryProductRatingModal {
             // Remove from DOM after animation
             setTimeout(() => {
                 overlay.remove();
+                // Also remove the styles
+                const styles = document.getElementById('lux-rating-modal-styles');
+                if (styles) {
+                    styles.remove();
+                }
             }, 400);
         }
         

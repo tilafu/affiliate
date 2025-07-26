@@ -27,3 +27,5 @@ function updateFaqsTranslations() {
     // This function can be expanded to update any specific dynamic content
     // that's not covered by the standard data-i18n attributes
 }
+
+

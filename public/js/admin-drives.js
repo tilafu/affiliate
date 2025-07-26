@@ -542,6 +542,35 @@ async function showAssignDriveConfigModal(userId, username) {
               <button type="submit" class="btn btn-primary">Assign Configuration</button>
               <button type="button" class="btn btn-success ms-2" id="assign-tier-based-config-btn">Auto</button>
             </form>
+            
+            <hr>
+            <h5>Auto Configuration Settings</h5>
+            <p class="text-muted small">When using Auto, products will be selected based on user's balance and tier.</p>
+            <form id="auto-config-settings-form" class="mt-3">
+              <div class="mb-3">
+                <label class="form-label">Product Price Range (% of User Balance)</label>
+                <div class="row g-2">
+                  <div class="col-6">
+                    <div class="input-group">
+                      <input type="number" class="form-control" id="min-percent-balance" placeholder="Min %" min="1" max="100" value="30">
+                      <span class="input-group-text">%</span>
+                    </div>
+                  </div>
+                  <div class="col-6">
+                    <div class="input-group">
+                      <input type="number" class="form-control" id="max-percent-balance" placeholder="Max %" min="1" max="100" value="90">
+                      <span class="input-group-text">%</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="form-text">Products will be selected that cost between these percentages of the user's balance. For example, if a user has $1000 balance and you set 30%-90%, products between $300-$900 will be selected.</div>
+              </div>
+              <div class="mb-3 form-check">
+                <input type="checkbox" class="form-check-input" id="use-tier-quantity" checked>
+                <label class="form-check-label" for="use-tier-quantity">Use tier-based product quantities</label>
+                <div class="form-text">When checked, the number of products will be based on the user's tier settings. Otherwise, a default of 40 products will be used.</div>
+              </div>
+            </form>
           </div>
         </div>
       </div>
@@ -593,8 +622,29 @@ async function showAssignDriveConfigModal(userId, username) {
             return;
         }
 
+        // Get price range percentages
+        const minPercentBalance = parseInt(document.getElementById('min-percent-balance').value) || 30;
+        const maxPercentBalance = parseInt(document.getElementById('max-percent-balance').value) || 90;
+        const useTierQuantity = document.getElementById('use-tier-quantity').checked;
+        
+        // Validate inputs
+        if (minPercentBalance < 1 || minPercentBalance > 100) {
+            showNotification('Min percentage must be between 1 and 100', 'error');
+            return;
+        }
+        
+        if (maxPercentBalance < 1 || maxPercentBalance > 100) {
+            showNotification('Max percentage must be between 1 and 100', 'error');
+            return;
+        }
+        
+        if (minPercentBalance > maxPercentBalance) {
+            showNotification('Min percentage cannot be greater than max percentage', 'error');
+            return;
+        }
+
         // Confirmation dialog
-        if (!confirm(`This will generate and assign a new drive configuration based on user ${username}\\'s tier. Any existing active drive for this user will be replaced. Continue?`)) {
+        if (!confirm(`This will generate and assign a new drive configuration based on user ${username}'s tier and balance. Products will be selected between ${minPercentBalance}% and ${maxPercentBalance}% of user balance. Any existing active drive will be replaced. Continue?`)) {
             return;
         }
 
@@ -602,15 +652,29 @@ async function showAssignDriveConfigModal(userId, username) {
 
         try {
             const response = await fetchWithAuth(`/api/admin/drive-management/users/${currentUserId}/assign-tier-based-drive`, {
-                method: 'POST', // Assuming POST to create/assign
+                method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
-                }
-                // No body needed if the backend derives everything from userId and their tier
+                },
+                body: JSON.stringify({
+                    min_percent_balance: minPercentBalance,
+                    max_percent_balance: maxPercentBalance,
+                    use_tier_quantity: useTierQuantity
+                })
             });
 
             if (response.success && response.drive_session_id) {
-                showNotification(response.message || 'Tier-based drive configuration assigned successfully!', 'success');
+                // Enhanced success message with price range details
+                let successMessage = response.message || 'Tier-based drive configuration assigned successfully!';
+                
+                // Add percentage information if available
+                if (response.price_range) {
+                    const priceRange = response.price_range;
+                    const percentInfo = `\nProducts selected between ${priceRange.percent_min}%-${priceRange.percent_max}% of user balance ($${priceRange.min} to $${priceRange.max})`;
+                    successMessage += percentInfo;
+                }
+                
+                showNotification(successMessage, 'success');
                 modal.hide();
                 await loadDrives(); // Refresh the drives list
             } else {
