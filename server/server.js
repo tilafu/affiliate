@@ -123,11 +123,14 @@ const chatRoutes = require('./routes/chat'); // Import chat routes
 const usersRoutes = require('./routes/users'); // Import users routes
 const dmRoutes = require('./routes/dm'); // Import direct message routes
 const userChatRoutes = require('./routes/user-chat-api'); // Import user chat routes
+const enhancedDmRoutes = require('./routes/enhanced-dm-api'); // Import enhanced DM routes for fake users and support
+const enhancedAdminRoutes = require('./routes/enhanced-admin-api'); // Import enhanced admin chat management routes
 
 // Apply routes
 app.use('/api/auth', authRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/user/chat', userChatRoutes); // Mount user chat routes
+app.use('/api/user/chat', enhancedDmRoutes); // Mount enhanced DM routes (support, fake user DMs)
 app.use('/api/users', usersRoutes); // Mount users routes
 app.use('/api/drive', driveRoutes);
 app.use('/api/chat', chatRoutes); // Mount chat routes
@@ -135,6 +138,8 @@ app.use('/api/admin', adminRoutes); // Mount admin routes
 app.use('/api/admin', notificationRoutes); // Mount notification routes under /api/admin
 app.use('/api/admin/drive-management', adminDriveRoutes); // Mount admin drive routes
 app.use('/api/admin/chat', adminChatRoutes); // Mount admin chat routes - Standardized route pattern
+app.use('/api/admin/chat', enhancedDmRoutes); // Mount enhanced DM admin routes
+app.use('/api/admin/chat', enhancedAdminRoutes); // Mount enhanced admin chat management routes
 app.use('/api/admin/chat', chatUserManagementRoutes); // Mount chat user management routes
 app.use('/api/admin/chat', chatMessageRoutes); // Mount chat message routes
 app.use('/api/dm', dmRoutes); // Mount direct message routes (separate from admin chat)

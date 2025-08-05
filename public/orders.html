@@ -15,6 +15,8 @@
     
     <!-- Custom CSS for public pages (for general brand style) -->
     <link rel="stylesheet" href="css/public-pages.css">
+    <!-- Sidebar Enhancement Styles -->
+    <link rel="stylesheet" href="css/sidebar-fixes.css">
     <!-- Custom CSS for task/account pages (for specific component styles) -->
     <link rel="stylesheet" href="css/task-account-styles.css"> <!-- New file for shared styles -->
 
@@ -216,7 +218,10 @@
     </style>
 </head>
 <body>
-    <div class="bg-overlay navbar-btn"></div>
+    <!-- Dashboard Header -->
+    <div id="dashboard-header-placeholder"></div>
+
+    <div class="bg-overlay" id="sidebarOverlay"></div>
     <!-- Sidebar Placeholder -->
     <div id="sidebar-placeholder"></div>
     <!-- End Sidebar Placeholder -->
@@ -276,13 +281,28 @@
     
     <!-- Load component loader -->
     <script src="./js/components.js"></script>
+    <script src="./js/clean-header-loader.js"></script>
     <script src="./js/auth-check.js"></script>
+    <script src="./js/auth.js"></script>
+    <script src="./js/simple-auth.js"></script>
     <script src="./js/orders.js"></script>
 
     <script>
     document.addEventListener('DOMContentLoaded', function() {
         // Load standard navigation components
         loadStandardNavigation('orders');
+        
+        // Wait for sidebar component to be loaded before initializing sidebar scripts
+        const sidebarPlaceholder = document.getElementById('sidebar-placeholder');
+        if (sidebarPlaceholder) {
+            sidebarPlaceholder.addEventListener('componentLoaded', function() {
+                // This will run after the sidebar component is fully loaded
+                setTimeout(() => {
+                    initializeSidebarScripts();
+                    attachSidebarEventListeners();
+                }, 100); // Small delay to ensure DOM is updated
+            });
+        }
     });
     </script>
 

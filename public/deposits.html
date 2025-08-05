@@ -423,6 +423,9 @@
 </head>
 <body>
 
+<!-- Dashboard Header -->
+<div id="dashboard-header-placeholder"></div>
+
 <div class="bg-overlay navbar-btn"></div>
 <!-- Sidebar Placeholder -->
 <div id="sidebar-placeholder"></div>
@@ -802,11 +805,14 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
 <!-- Load component loader -->
 <script src="./js/components.js"></script>
+<script src="./js/clean-header-loader.js"></script>
 <!-- Important: i18n.js must be loaded before other scripts -->
 <script src="./js/i18n.js"></script>
 <!-- Load Helper/Auth Scripts -->
 <script src="./js/main.js"></script>
 <script src="./js/auth-check.js"></script> <!-- Centralized authentication -->
+<script src="./js/auth.js"></script>
+<script src="./js/simple-auth.js"></script>
 <!-- Load Page Specific Script -->
 <script src="./js/deposit.js"></script>
 
@@ -814,6 +820,18 @@
 document.addEventListener('DOMContentLoaded', function() {
     // Load standard navigation components
     loadStandardNavigation('deposits');
+    
+    // Wait for sidebar component to be loaded before initializing sidebar scripts
+    const sidebarPlaceholder = document.getElementById('sidebar-placeholder');
+    if (sidebarPlaceholder) {
+        sidebarPlaceholder.addEventListener('componentLoaded', function() {
+            // This will run after the sidebar component is fully loaded
+            setTimeout(() => {
+                initializeSidebarScripts();
+                attachSidebarEventListeners();
+            }, 100); // Small delay to ensure DOM is updated
+        });
+    }
     
     // Handle tab switching for image visibility
     const tabButtons = document.querySelectorAll('[data-bs-toggle="tab"]');

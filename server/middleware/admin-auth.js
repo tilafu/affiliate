@@ -25,11 +25,16 @@ const authenticateAdmin = async (req, res, next) => {
     }
     
     const token = authHeader.split(' ')[1];
-    console.log(`[ADMIN AUTH] Token received, length: ${token.length}`);
+    // Debug logging controlled by environment variable
+    if (process.env.DEBUG_AUTH === 'true') {
+        console.log(`[ADMIN AUTH] Token received, length: ${token.length}`);
+    }
     
     // Verify JWT token using the same secret as token creation
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    console.log(`[ADMIN AUTH] Token verified successfully for userId: ${decoded.userId}`);
+    if (process.env.DEBUG_AUTH === 'true') {
+        console.log(`[ADMIN AUTH] Token verified successfully for userId: ${decoded.userId}`);
+    }
     
     // Check if user exists and has admin role
     const user = await db.query(

@@ -1,0 +1,1403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Enhanced Admin Chat Management</title>
+  
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: #f8fafc;
+      color: #334155;
+      line-height: 1.6;
+    }
+
+    .admin-container {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Header */
+    .admin-header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 1.3rem;
+      font-weight: 700;
+    }
+
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .logout-btn {
+      background: rgba(255,255,255,0.2);
+      border: 1px solid rgba(255,255,255,0.3);
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .logout-btn:hover {
+      background: rgba(255,255,255,0.3);
+    }
+
+    /* Main Layout */
+    .admin-main {
+      flex: 1;
+      display: flex;
+      gap: 2rem;
+      padding: 2rem;
+    }
+
+    /* Sidebar */
+    .admin-sidebar {
+      width: 300px;
+      background: white;
+      border-radius: 1rem;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+      padding: 1.5rem;
+      height: fit-content;
+    }
+
+    .sidebar-section {
+      margin-bottom: 2rem;
+    }
+
+    .sidebar-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #1e293b;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .sidebar-item {
+      padding: 0.75rem 1rem;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .sidebar-item:hover {
+      background: #f1f5f9;
+    }
+
+    .sidebar-item.active {
+      background: #3b82f6;
+      color: white;
+    }
+
+    .notification-badge {
+      background: #ef4444;
+      color: white;
+      font-size: 0.75rem;
+      padding: 0.25rem 0.5rem;
+      border-radius: 10px;
+      min-width: 20px;
+      text-align: center;
+    }
+
+    /* Content Area */
+    .admin-content {
+      flex: 1;
+      background: white;
+      border-radius: 1rem;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+      padding: 2rem;
+      overflow: hidden;
+    }
+
+    .content-header {
+      display: flex;
+      justify-content: between;
+      align-items: center;
+      margin-bottom: 2rem;
+      padding-bottom: 1rem;
+      border-bottom: 2px solid #e2e8f0;
+    }
+
+    .content-title {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: #1e293b;
+    }
+
+    .content-actions {
+      display: flex;
+      gap: 1rem;
+    }
+
+    /* Tabs */
+    .tab-container {
+      margin-bottom: 2rem;
+    }
+
+    .tab-nav {
+      display: flex;
+      gap: 0.5rem;
+      border-bottom: 2px solid #e2e8f0;
+      margin-bottom: 1.5rem;
+    }
+
+    .tab-btn {
+      padding: 0.75rem 1.5rem;
+      background: none;
+      border: none;
+      color: #64748b;
+      font-weight: 500;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s ease;
+    }
+
+    .tab-btn:hover {
+      color: #3b82f6;
+    }
+
+    .tab-btn.active {
+      color: #3b82f6;
+      border-bottom-color: #3b82f6;
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    /* Statistics Cards */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .stat-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 1.5rem;
+      border-radius: 1rem;
+      text-align: center;
+    }
+
+    .stat-value {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+
+    .stat-label {
+      font-size: 0.9rem;
+      opacity: 0.9;
+    }
+
+    /* Tables */
+    .table-container {
+      background: white;
+      border-radius: 0.5rem;
+      overflow: hidden;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .table th {
+      background: #f8fafc;
+      color: #374151;
+      font-weight: 600;
+      padding: 1rem;
+      text-align: left;
+      border-bottom: 1px solid #e5e7eb;
+    }
+
+    .table td {
+      padding: 1rem;
+      border-bottom: 1px solid #f3f4f6;
+    }
+
+    .table tr:hover {
+      background: #f9fafb;
+    }
+
+    /* Buttons */
+    .btn {
+      padding: 0.5rem 1rem;
+      border: none;
+      border-radius: 0.5rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .btn-primary {
+      background: #3b82f6;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #2563eb;
+    }
+
+    .btn-success {
+      background: #10b981;
+      color: white;
+    }
+
+    .btn-success:hover {
+      background: #059669;
+    }
+
+    .btn-warning {
+      background: #f59e0b;
+      color: white;
+    }
+
+    .btn-warning:hover {
+      background: #d97706;
+    }
+
+    .btn-danger {
+      background: #ef4444;
+      color: white;
+    }
+
+    .btn-danger:hover {
+      background: #dc2626;
+    }
+
+    .btn-sm {
+      padding: 0.25rem 0.75rem;
+      font-size: 0.875rem;
+    }
+
+    /* Search and Filters */
+    .search-filter-bar {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    .search-input {
+      flex: 1;
+      min-width: 250px;
+      padding: 0.75rem 1rem;
+      border: 1px solid #d1d5db;
+      border-radius: 0.5rem;
+      font-size: 0.875rem;
+    }
+
+    .filter-select {
+      padding: 0.75rem 1rem;
+      border: 1px solid #d1d5db;
+      border-radius: 0.5rem;
+      background: white;
+      font-size: 0.875rem;
+    }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.5);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+
+    .modal {
+      background: white;
+      border-radius: 1rem;
+      padding: 2rem;
+      max-width: 500px;
+      width: 90%;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    .modal-header {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+    }
+
+    /* Form Elements */
+    .form-group {
+      margin-bottom: 1rem;
+    }
+
+    .form-label {
+      display: block;
+      font-weight: 500;
+      margin-bottom: 0.5rem;
+      color: #374151;
+    }
+
+    .form-input, .form-textarea {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid #d1d5db;
+      border-radius: 0.5rem;
+      font-size: 0.875rem;
+    }
+
+    .form-textarea {
+      resize: vertical;
+      min-height: 100px;
+    }
+
+    /* Status Indicators */
+    .status-badge {
+      padding: 0.25rem 0.75rem;
+      border-radius: 0.5rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .status-active {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .status-pending {
+      background: #fef3c7;
+      color: #92400e;
+    }
+
+    .status-blocked {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    /* Loading States */
+    .loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      color: #64748b;
+    }
+
+    .spinner {
+      width: 20px;
+      height: 20px;
+      border: 2px solid #e2e8f0;
+      border-top: 2px solid #3b82f6;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-right: 0.5rem;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .admin-main {
+        flex-direction: column;
+        gap: 1rem;
+        padding: 1rem;
+      }
+
+      .admin-sidebar {
+        width: 100%;
+      }
+
+      .stats-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .search-filter-bar {
+        flex-direction: column;
+      }
+
+      .search-input {
+        min-width: auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="admin-container">
+    <!-- Header -->
+    <header class="admin-header">
+      <div class="logo">
+        <span>🔧</span>
+        Enhanced Admin Chat
+      </div>
+      <div class="user-info">
+        <span id="adminName">Admin User</span>
+        <button class="logout-btn" onclick="logout()">Logout</button>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="admin-main">
+      <!-- Sidebar -->
+      <aside class="admin-sidebar">
+        <div class="sidebar-section">
+          <h3 class="sidebar-title">📊 Dashboard</h3>
+          <div class="sidebar-item active" data-section="overview">
+            <span>Overview</span>
+          </div>
+        </div>
+
+        <div class="sidebar-section">
+          <h3 class="sidebar-title">💬 Chat Management</h3>
+          <div class="sidebar-item" data-section="fake-user-dms">
+            <span>Fake User DMs</span>
+            <span class="notification-badge" id="fakeUserDMCount">0</span>
+          </div>
+          <div class="sidebar-item" data-section="support-conversations">
+            <span>Support Conversations</span>
+            <span class="notification-badge" id="supportCount">0</span>
+          </div>
+          <div class="sidebar-item" data-section="group-notifications">
+            <span>Group Notifications</span>
+          </div>
+          <div class="sidebar-item" data-section="direct-messages">
+            <span>All Direct Messages</span>
+          </div>
+        </div>
+
+        <div class="sidebar-section">
+          <h3 class="sidebar-title">👥 User Management</h3>
+          <div class="sidebar-item" data-section="fake-users">
+            <span>Fake Users</span>
+          </div>
+          <div class="sidebar-item" data-section="active-users">
+            <span>Active Users</span>
+          </div>
+        </div>
+
+        <div class="sidebar-section">
+          <h3 class="sidebar-title">⚙️ Settings</h3>
+          <div class="sidebar-item" data-section="chat-settings">
+            <span>Chat Settings</span>
+          </div>
+          <div class="sidebar-item" data-section="notification-settings">
+            <span>Notifications</span>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Content Area -->
+      <div class="admin-content">
+        <!-- Overview Section -->
+        <div id="overview-section" class="content-section">
+          <div class="content-header">
+            <h1 class="content-title">Enhanced Chat System Overview</h1>
+          </div>
+
+          <!-- Statistics -->
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-value" id="totalFakeUserDMs">0</div>
+              <div class="stat-label">Fake User DMs</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value" id="totalSupportConversations">0</div>
+              <div class="stat-label">Support Conversations</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value" id="totalActiveUsers">0</div>
+              <div class="stat-label">Active Users</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value" id="totalNotifications">0</div>
+              <div class="stat-label">Notifications Sent</div>
+            </div>
+          </div>
+
+          <!-- Recent Activity -->
+          <div class="tab-container">
+            <div class="tab-nav">
+              <button class="tab-btn active" data-tab="recent-messages">Recent Messages</button>
+              <button class="tab-btn" data-tab="recent-dms">New DMs</button>
+              <button class="tab-btn" data-tab="recent-support">Support Requests</button>
+            </div>
+
+            <div class="tab-content active" id="recent-messages">
+              <div class="table-container">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th>Time</th>
+                      <th>Type</th>
+                      <th>From</th>
+                      <th>To</th>
+                      <th>Message</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="recentMessagesTable">
+                    <tr>
+                      <td colspan="6" class="loading">
+                        <div class="spinner"></div>
+                        Loading recent messages...
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="tab-content" id="recent-dms">
+              <div class="table-container">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th>Started</th>
+                      <th>User</th>
+                      <th>Fake User</th>
+                      <th>Last Message</th>
+                      <th>Status</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="recentDMsTable">
+                    <tr>
+                      <td colspan="6" class="loading">
+                        <div class="spinner"></div>
+                        Loading recent DMs...
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="tab-content" id="recent-support">
+              <div class="table-container">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th>Time</th>
+                      <th>User</th>
+                      <th>Subject</th>
+                      <th>Status</th>
+                      <th>Priority</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="recentSupportTable">
+                    <tr>
+                      <td colspan="6" class="loading">
+                        <div class="spinner"></div>
+                        Loading support requests...
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Fake User DMs Section -->
+        <div id="fake-user-dms-section" class="content-section" style="display: none;">
+          <div class="content-header">
+            <h1 class="content-title">Fake User Direct Messages</h1>
+            <div class="content-actions">
+              <button class="btn btn-primary" onclick="refreshFakeUserDMs()">
+                🔄 Refresh
+              </button>
+            </div>
+          </div>
+
+          <div class="search-filter-bar">
+            <input type="text" class="search-input" placeholder="Search fake user DMs..." id="fakeUserDMSearch">
+            <select class="filter-select" id="fakeUserFilter">
+              <option value="">All Fake Users</option>
+            </select>
+            <select class="filter-select" id="dmStatusFilter">
+              <option value="">All Statuses</option>
+              <option value="active">Active</option>
+              <option value="archived">Archived</option>
+              <option value="blocked">Blocked</option>
+            </select>
+          </div>
+
+          <div class="table-container">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Conversation ID</th>
+                  <th>User</th>
+                  <th>Fake User</th>
+                  <th>Started</th>
+                  <th>Last Message</th>
+                  <th>Messages</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="fakeUserDMsTable">
+                <tr>
+                  <td colspan="8" class="loading">
+                    <div class="spinner"></div>
+                    Loading fake user DMs...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Support Conversations Section -->
+        <div id="support-conversations-section" class="content-section" style="display: none;">
+          <div class="content-header">
+            <h1 class="content-title">Support Conversations</h1>
+            <div class="content-actions">
+              <button class="btn btn-success" onclick="broadcastSupportMessage()">
+                📢 Broadcast Message
+              </button>
+              <button class="btn btn-primary" onclick="refreshSupportConversations()">
+                🔄 Refresh
+              </button>
+            </div>
+          </div>
+
+          <div class="search-filter-bar">
+            <input type="text" class="search-input" placeholder="Search support conversations..." id="supportSearch">
+            <select class="filter-select" id="supportStatusFilter">
+              <option value="">All Statuses</option>
+              <option value="open">Open</option>
+              <option value="in-progress">In Progress</option>
+              <option value="resolved">Resolved</option>
+              <option value="closed">Closed</option>
+            </select>
+            <select class="filter-select" id="supportPriorityFilter">
+              <option value="">All Priorities</option>
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+              <option value="urgent">Urgent</option>
+            </select>
+          </div>
+
+          <div class="table-container">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>User</th>
+                  <th>Subject</th>
+                  <th>Started</th>
+                  <th>Last Response</th>
+                  <th>Messages</th>
+                  <th>Priority</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="supportConversationsTable">
+                <tr>
+                  <td colspan="8" class="loading">
+                    <div class="spinner"></div>
+                    Loading support conversations...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Group Notifications Section -->
+        <div id="group-notifications-section" class="content-section" style="display: none;">
+          <div class="content-header">
+            <h1 class="content-title">Group Notifications Management</h1>
+            <div class="content-actions">
+              <button class="btn btn-primary" onclick="sendGroupNotification()">
+                📨 Send Notification
+              </button>
+            </div>
+          </div>
+
+          <div class="tab-container">
+            <div class="tab-nav">
+              <button class="tab-btn active" data-tab="send-notification">Send Notification</button>
+              <button class="tab-btn" data-tab="notification-history">History</button>
+              <button class="tab-btn" data-tab="notification-templates">Templates</button>
+            </div>
+
+            <div class="tab-content active" id="send-notification">
+              <form id="notificationForm" style="max-width: 600px;">
+                <div class="form-group">
+                  <label class="form-label">Target Groups</label>
+                  <select class="form-input" id="notificationGroups" multiple>
+                    <option value="all">All Personal Groups</option>
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">Notification Type</label>
+                  <select class="form-input" id="notificationType">
+                    <option value="info">Information</option>
+                    <option value="warning">Warning</option>
+                    <option value="success">Success</option>
+                    <option value="urgent">Urgent</option>
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">Message</label>
+                  <textarea class="form-textarea" id="notificationMessage" placeholder="Enter your notification message..." required></textarea>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">Style Options</label>
+                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div>
+                      <label class="form-label">Background Color</label>
+                      <input type="color" class="form-input" id="notificationBgColor" value="#f0f9ff">
+                    </div>
+                    <div>
+                      <label class="form-label">Text Color</label>
+                      <input type="color" class="form-input" id="notificationTextColor" value="#0369a1">
+                    </div>
+                  </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary">Send Notification</button>
+              </form>
+            </div>
+
+            <div class="tab-content" id="notification-history">
+              <div class="table-container">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th>Time</th>
+                      <th>Groups</th>
+                      <th>Type</th>
+                      <th>Message</th>
+                      <th>Sent By</th>
+                      <th>Recipients</th>
+                    </tr>
+                  </thead>
+                  <tbody id="notificationHistoryTable">
+                    <tr>
+                      <td colspan="6" class="loading">
+                        <div class="spinner"></div>
+                        Loading notification history...
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="tab-content" id="notification-templates">
+              <div class="search-filter-bar">
+                <input type="text" class="search-input" placeholder="Search templates..." id="templateSearch">
+                <button class="btn btn-success" onclick="createNotificationTemplate()">+ New Template</button>
+              </div>
+              
+              <div id="templatesGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1rem;">
+                <div class="loading">
+                  <div class="spinner"></div>
+                  Loading templates...
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Other sections will be implemented similarly -->
+        <div id="direct-messages-section" class="content-section" style="display: none;">
+          <div class="content-header">
+            <h1 class="content-title">All Direct Messages</h1>
+          </div>
+          <p style="color: #64748b; text-align: center; padding: 2rem;">
+            This section will show all direct messages in the system for monitoring purposes.
+          </p>
+        </div>
+
+        <div id="fake-users-section" class="content-section" style="display: none;">
+          <div class="content-header">
+            <h1 class="content-title">Fake Users Management</h1>
+          </div>
+          <p style="color: #64748b; text-align: center; padding: 2rem;">
+            Manage fake users who participate in conversations.
+          </p>
+        </div>
+
+        <div id="active-users-section" class="content-section" style="display: none;">
+          <div class="content-header">
+            <h1 class="content-title">Active Users</h1>
+          </div>
+          <p style="color: #64748b; text-align: center; padding: 2rem;">
+            Monitor currently active users and their chat activities.
+          </p>
+        </div>
+
+        <div id="chat-settings-section" class="content-section" style="display: none;">
+          <div class="content-header">
+            <h1 class="content-title">Chat Settings</h1>
+          </div>
+          <p style="color: #64748b; text-align: center; padding: 2rem;">
+            Configure chat system settings and preferences.
+          </p>
+        </div>
+
+        <div id="notification-settings-section" class="content-section" style="display: none;">
+          <div class="content-header">
+            <h1 class="content-title">Notification Settings</h1>
+          </div>
+          <p style="color: #64748b; text-align: center; padding: 2rem;">
+            Configure notification preferences and templates.
+          </p>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Modals -->
+  <div class="modal-overlay" id="messageModal">
+    <div class="modal">
+      <div class="modal-header">View Conversation</div>
+      <div id="modalContent">
+        <div class="loading">
+          <div class="spinner"></div>
+          Loading conversation...
+        </div>
+      </div>
+      <div style="margin-top: 1rem; text-align: right;">
+        <button class="btn btn-primary" onclick="closeModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    // Enhanced Admin Chat Management System
+    class EnhancedAdminChat {
+      constructor() {
+        this.socket = io();
+        this.currentSection = 'overview';
+        this.data = {
+          fakeUserDMs: [],
+          supportConversations: [],
+          notifications: [],
+          stats: {}
+        };
+        this.init();
+      }
+
+      init() {
+        this.setupEventListeners();
+        this.setupSocketHandlers();
+        this.loadInitialData();
+        this.startAutoRefresh();
+      }
+
+      setupEventListeners() {
+        // Sidebar navigation
+        document.querySelectorAll('.sidebar-item').forEach(item => {
+          item.addEventListener('click', () => {
+            const section = item.dataset.section;
+            if (section) {
+              this.switchSection(section);
+            }
+          });
+        });
+
+        // Tab navigation
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            this.switchTab(btn.dataset.tab);
+          });
+        });
+
+        // Form submissions
+        document.getElementById('notificationForm')?.addEventListener('submit', (e) => {
+          e.preventDefault();
+          this.sendNotification();
+        });
+
+        // Search functionality
+        this.setupSearchHandlers();
+      }
+
+      setupSearchHandlers() {
+        const searchInputs = [
+          'fakeUserDMSearch',
+          'supportSearch',
+          'templateSearch'
+        ];
+
+        searchInputs.forEach(inputId => {
+          const input = document.getElementById(inputId);
+          if (input) {
+            input.addEventListener('input', (e) => {
+              this.handleSearch(inputId, e.target.value);
+            });
+          }
+        });
+      }
+
+      setupSocketHandlers() {
+        this.socket.on('new_fake_user_dm', (data) => {
+          this.handleNewFakeUserDM(data);
+        });
+
+        this.socket.on('new_support_message', (data) => {
+          this.handleNewSupportMessage(data);
+        });
+
+        this.socket.on('notification_sent', (data) => {
+          this.handleNotificationSent(data);
+        });
+      }
+
+      async loadInitialData() {
+        try {
+          await Promise.all([
+            this.loadStats(),
+            this.loadFakeUserDMs(),
+            this.loadSupportConversations(),
+            this.loadNotificationHistory()
+          ]);
+          
+          this.renderCurrentSection();
+        } catch (error) {
+          console.error('Error loading initial data:', error);
+          this.showNotification('Failed to load data', 'error');
+        }
+      }
+
+      async loadStats() {
+        try {
+          const response = await fetch('/api/admin/chat/stats', {
+            headers: { 'Authorization': `Bearer ${this.getAuthToken()}` }
+          });
+          
+          if (response.ok) {
+            this.data.stats = await response.json();
+            this.updateStatsDisplay();
+          }
+        } catch (error) {
+          console.error('Error loading stats:', error);
+        }
+      }
+
+      async loadFakeUserDMs() {
+        try {
+          const response = await fetch('/api/admin/chat/fake-user-dms', {
+            headers: { 'Authorization': `Bearer ${this.getAuthToken()}` }
+          });
+          
+          if (response.ok) {
+            this.data.fakeUserDMs = await response.json();
+            this.renderFakeUserDMs();
+          }
+        } catch (error) {
+          console.error('Error loading fake user DMs:', error);
+        }
+      }
+
+      async loadSupportConversations() {
+        try {
+          const response = await fetch('/api/admin/chat/support-conversations', {
+            headers: { 'Authorization': `Bearer ${this.getAuthToken()}` }
+          });
+          
+          if (response.ok) {
+            this.data.supportConversations = await response.json();
+            this.renderSupportConversations();
+          }
+        } catch (error) {
+          console.error('Error loading support conversations:', error);
+        }
+      }
+
+      async loadNotificationHistory() {
+        try {
+          const response = await fetch('/api/admin/chat/notification-history', {
+            headers: { 'Authorization': `Bearer ${this.getAuthToken()}` }
+          });
+          
+          if (response.ok) {
+            this.data.notifications = await response.json();
+            this.renderNotificationHistory();
+          }
+        } catch (error) {
+          console.error('Error loading notification history:', error);
+        }
+      }
+
+      switchSection(section) {
+        // Update sidebar selection
+        document.querySelectorAll('.sidebar-item').forEach(item => {
+          item.classList.remove('active');
+        });
+        document.querySelector(`[data-section="${section}"]`)?.classList.add('active');
+
+        // Hide all sections
+        document.querySelectorAll('.content-section').forEach(section => {
+          section.style.display = 'none';
+        });
+
+        // Show selected section
+        const sectionElement = document.getElementById(`${section}-section`);
+        if (sectionElement) {
+          sectionElement.style.display = 'block';
+          this.currentSection = section;
+          this.renderCurrentSection();
+        }
+      }
+
+      switchTab(tabName) {
+        const container = document.querySelector('.tab-container');
+        if (!container) return;
+
+        // Update tab buttons
+        container.querySelectorAll('.tab-btn').forEach(btn => {
+          btn.classList.remove('active');
+        });
+        container.querySelector(`[data-tab="${tabName}"]`)?.classList.add('active');
+
+        // Update tab content
+        container.querySelectorAll('.tab-content').forEach(content => {
+          content.classList.remove('active');
+        });
+        container.querySelector(`#${tabName}`)?.classList.add('active');
+      }
+
+      renderCurrentSection() {
+        switch (this.currentSection) {
+          case 'overview':
+            this.renderOverview();
+            break;
+          case 'fake-user-dms':
+            this.renderFakeUserDMs();
+            break;
+          case 'support-conversations':
+            this.renderSupportConversations();
+            break;
+          case 'group-notifications':
+            this.renderGroupNotifications();
+            break;
+        }
+      }
+
+      renderOverview() {
+        this.updateStatsDisplay();
+        this.renderRecentMessages();
+      }
+
+      updateStatsDisplay() {
+        const stats = this.data.stats;
+        if (!stats) return;
+
+        document.getElementById('totalFakeUserDMs').textContent = stats.fakeUserDMs || 0;
+        document.getElementById('totalSupportConversations').textContent = stats.supportConversations || 0;
+        document.getElementById('totalActiveUsers').textContent = stats.activeUsers || 0;
+        document.getElementById('totalNotifications').textContent = stats.notificationsSent || 0;
+
+        // Update notification badges
+        document.getElementById('fakeUserDMCount').textContent = stats.newFakeUserDMs || 0;
+        document.getElementById('supportCount').textContent = stats.openSupportRequests || 0;
+      }
+
+      renderRecentMessages() {
+        const tableBody = document.getElementById('recentMessagesTable');
+        if (!tableBody || !this.data.stats.recentMessages) return;
+
+        if (this.data.stats.recentMessages.length === 0) {
+          tableBody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #64748b;">No recent messages</td></tr>';
+          return;
+        }
+
+        tableBody.innerHTML = this.data.stats.recentMessages.map(message => `
+          <tr>
+            <td>${this.formatTime(message.created_at)}</td>
+            <td><span class="status-badge status-${message.type}">${message.type}</span></td>
+            <td>${message.from_name}</td>
+            <td>${message.to_name}</td>
+            <td style="max-width: 200px; overflow: hidden; text-overflow: ellipsis;">${message.content}</td>
+            <td>
+              <button class="btn btn-sm btn-primary" onclick="adminChat.viewMessage(${message.id})">View</button>
+            </td>
+          </tr>
+        `).join('');
+      }
+
+      renderFakeUserDMs() {
+        const tableBody = document.getElementById('fakeUserDMsTable');
+        if (!tableBody) return;
+
+        if (this.data.fakeUserDMs.length === 0) {
+          tableBody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: #64748b;">No fake user DMs found</td></tr>';
+          return;
+        }
+
+        tableBody.innerHTML = this.data.fakeUserDMs.map(dm => `
+          <tr>
+            <td>#${dm.id}</td>
+            <td>${dm.user_name}</td>
+            <td>${dm.fake_user_name}</td>
+            <td>${this.formatTime(dm.created_at)}</td>
+            <td>${this.formatTime(dm.last_message_at)}</td>
+            <td>${dm.message_count}</td>
+            <td><span class="status-badge status-${dm.status}">${dm.status}</span></td>
+            <td>
+              <button class="btn btn-sm btn-primary" onclick="adminChat.viewConversation(${dm.id})">View</button>
+              <button class="btn btn-sm btn-warning" onclick="adminChat.archiveConversation(${dm.id})">Archive</button>
+            </td>
+          </tr>
+        `).join('');
+      }
+
+      renderSupportConversations() {
+        const tableBody = document.getElementById('supportConversationsTable');
+        if (!tableBody) return;
+
+        if (this.data.supportConversations.length === 0) {
+          tableBody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: #64748b;">No support conversations found</td></tr>';
+          return;
+        }
+
+        tableBody.innerHTML = this.data.supportConversations.map(support => `
+          <tr>
+            <td>${support.user_name}</td>
+            <td>${support.subject || 'General Support'}</td>
+            <td>${this.formatTime(support.created_at)}</td>
+            <td>${this.formatTime(support.last_response_at)}</td>
+            <td>${support.message_count}</td>
+            <td><span class="status-badge status-${support.priority}">${support.priority}</span></td>
+            <td><span class="status-badge status-${support.status}">${support.status}</span></td>
+            <td>
+              <button class="btn btn-sm btn-primary" onclick="adminChat.viewSupportConversation(${support.id})">Reply</button>
+              <button class="btn btn-sm btn-success" onclick="adminChat.resolveSupportConversation(${support.id})">Resolve</button>
+            </td>
+          </tr>
+        `).join('');
+      }
+
+      async sendNotification() {
+        const form = document.getElementById('notificationForm');
+        const formData = new FormData(form);
+        
+        const notificationData = {
+          groups: Array.from(document.getElementById('notificationGroups').selectedOptions).map(opt => opt.value),
+          type: document.getElementById('notificationType').value,
+          message: document.getElementById('notificationMessage').value,
+          style: {
+            backgroundColor: document.getElementById('notificationBgColor').value,
+            textColor: document.getElementById('notificationTextColor').value,
+            borderColor: this.getBorderColorForType(document.getElementById('notificationType').value)
+          }
+        };
+
+        try {
+          const response = await fetch('/api/admin/chat/send-notification', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${this.getAuthToken()}`
+            },
+            body: JSON.stringify(notificationData)
+          });
+
+          if (response.ok) {
+            this.showNotification('Notification sent successfully!', 'success');
+            form.reset();
+            this.loadNotificationHistory();
+          } else {
+            throw new Error('Failed to send notification');
+          }
+        } catch (error) {
+          console.error('Error sending notification:', error);
+          this.showNotification('Failed to send notification', 'error');
+        }
+      }
+
+      // Utility Methods
+      formatTime(timestamp) {
+        const date = new Date(timestamp);
+        const now = new Date();
+        const diffInHours = (now - date) / (1000 * 60 * 60);
+        
+        if (diffInHours < 1) {
+          return 'Just now';
+        } else if (diffInHours < 24) {
+          return `${Math.floor(diffInHours)}h ago`;
+        } else {
+          return date.toLocaleDateString();
+        }
+      }
+
+      getBorderColorForType(type) {
+        const colors = {
+          info: '#38bdf8',
+          warning: '#fbbf24',
+          success: '#34d399',
+          urgent: '#f87171'
+        };
+        return colors[type] || '#38bdf8';
+      }
+
+      getAuthToken() {
+        return localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken');
+      }
+
+      showNotification(message, type = 'info') {
+        // Create notification element
+        const notification = document.createElement('div');
+        notification.style.cssText = `
+          position: fixed;
+          top: 20px;
+          right: 20px;
+          padding: 12px 16px;
+          border-radius: 6px;
+          color: white;
+          font-weight: 500;
+          z-index: 9999;
+          transition: all 0.3s ease;
+          background-color: ${type === 'error' ? '#ef4444' : type === 'success' ? '#10b981' : '#3b82f6'};
+        `;
+        notification.textContent = message;
+        
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+          notification.style.opacity = '0';
+          setTimeout(() => notification.remove(), 300);
+        }, 3000);
+      }
+
+      startAutoRefresh() {
+        // Refresh data every 30 seconds
+        setInterval(() => {
+          this.loadStats();
+        }, 30000);
+      }
+
+      // Event Handlers
+      handleNewFakeUserDM(data) {
+        this.data.fakeUserDMs.unshift(data);
+        this.renderFakeUserDMs();
+        this.loadStats();
+        this.showNotification(`New fake user DM from ${data.user_name}`, 'info');
+      }
+
+      handleNewSupportMessage(data) {
+        this.loadSupportConversations();
+        this.loadStats();
+        this.showNotification(`New support message from ${data.user_name}`, 'info');
+      }
+
+      handleNotificationSent(data) {
+        this.loadNotificationHistory();
+        this.loadStats();
+      }
+
+      // Action Methods
+      async viewConversation(conversationId) {
+        try {
+          const response = await fetch(`/api/admin/chat/conversation/${conversationId}`, {
+            headers: { 'Authorization': `Bearer ${this.getAuthToken()}` }
+          });
+          
+          if (response.ok) {
+            const conversation = await response.json();
+            this.showConversationModal(conversation);
+          }
+        } catch (error) {
+          console.error('Error loading conversation:', error);
+          this.showNotification('Failed to load conversation', 'error');
+        }
+      }
+
+      showConversationModal(conversation) {
+        const modal = document.getElementById('messageModal');
+        const content = document.getElementById('modalContent');
+        
+        content.innerHTML = `
+          <div style="max-height: 400px; overflow-y: auto;">
+            ${conversation.messages.map(msg => `
+              <div style="margin-bottom: 1rem; padding: 0.75rem; background: #f8fafc; border-radius: 0.5rem;">
+                <div style="font-weight: 600; color: #374151;">${msg.sender_name}</div>
+                <div style="font-size: 0.875rem; color: #64748b;">${this.formatTime(msg.created_at)}</div>
+                <div style="margin-top: 0.5rem;">${msg.content}</div>
+              </div>
+            `).join('')}
+          </div>
+        `;
+        
+        modal.style.display = 'flex';
+      }
+
+      closeModal() {
+        document.getElementById('messageModal').style.display = 'none';
+      }
+    }
+
+    // Global functions
+    function logout() {
+      localStorage.removeItem('adminToken');
+      sessionStorage.removeItem('adminToken');
+      window.location.href = '/admin-login.html';
+    }
+
+    function closeModal() {
+      adminChat.closeModal();
+    }
+
+    // Initialize admin chat
+    let adminChat;
+    document.addEventListener('DOMContentLoaded', () => {
+      adminChat = new EnhancedAdminChat();
+      window.adminChat = adminChat;
+    });
+  </script>
+</body>
+</html>

@@ -1753,15 +1753,22 @@
                 <button class="menu-btn" id="menuBtn">
                     <i class="fas fa-bars"></i>
                 </button>
-                <div class="user-avatar">
-                    <span id="userInitials">RA</span>
-                </div>
+                <img src="./assets/uploads/cdot/logo.png" alt="CDOT Database Logo" style="height: 32px;">
             </div>
             <div class="header-actions">
                 <button class="notification-btn" onclick="window.location.href='./chat/'">
                     <i class="far fa-bell"></i>
                     <span class="notification-badge" id="notificationCount">0</span>
                 </button>
+                <div class="user-info">
+                    <div class="user-avatar">
+                        <span id="userInitials">RA</span>
+                    </div>
+                    <div class="user-details">
+                        <h6 id="dashboardUsername">Loading...</h6>
+                        <p id="userBadgeNumber">Badge: Loading...</p>
+                    </div>
+                </div>
                 <button class="login-btn" id="loginBtn" onclick="window.location.href='./login.html'" style="display: none;">
                     <i class="fas fa-sign-in-alt"></i>
                     <span>Login</span>
@@ -3162,5 +3169,6 @@
 <!-- Chat Widget -->
 <link rel="stylesheet" href="./css/chat-widget.css">
 <script src="./js/chat-widget.js"></script>
+  <script src="/chat/enhanced-chat-features.js"></script>
 </body>
 </html>

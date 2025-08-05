@@ -4,16 +4,17 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <meta http-equiv="X-UA-Compatible" content="IE=Edge"/>
-    <title data-i18n-title="termsAndConditionsPageTitle">Terms & Conditions</title>
+    <title data-i18n-title="termsAndConditionsPageTitle">Terms & Conditions - CDOT Database</title>
     <meta name="csrf-token" content="t9EtiRskFKx5XpnOFvbrimp5ZgsKIg3UU1Ea1iDM">
-    <link rel="shortcut icon" href="./assets/uploads/generals/favicon-665b8c8a863b91717275786.png">
+    <link rel="shortcut icon" href="./assets/uploads/cdot/logo.png">
+    <link rel="icon" type="image/png" href="./assets/uploads/cdot/logo.png">
     
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     
     <style>
         :root {
@@ -32,11 +33,18 @@
             --shadow-hover: 0 15px 40px rgba(0, 0, 0, 0.15);
         }
 
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             background: var(--background);
             color: var(--text-primary);
             line-height: 1.6;
+            padding-bottom: 0;
             min-height: 100vh;
         }
 
@@ -73,6 +81,7 @@
             display: inline-flex;
             align-items: center;
             gap: 0.5rem;
+            margin-bottom: 2rem;
         }
 
         .back-btn:hover {
@@ -80,8 +89,55 @@
             transform: translateX(-5px);
         }
 
-        /* Content Cards */
-        .terms-card {
+        .hero-content h1 {
+            font-size: 3.5rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .hero-content p {
+            font-size: 1.25rem;
+            opacity: 0.9;
+            max-width: 600px;
+        }
+
+        .last-updated {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 0.5rem 1rem;
+            border-radius: 25px;
+            font-size: 0.9rem;
+            margin-top: 1rem;
+        }
+
+        .menu-btn {
+            background: none;
+            border: none;
+            font-size: 1.25rem;
+            color: white;
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 10;
+        }
+
+        .menu-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        /* Table of Contents */
+        .toc-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 0 1rem 2rem;
+        }
+
+        .toc-card {
             background: var(--card-background);
             border-radius: 20px;
             box-shadow: var(--shadow);
@@ -91,182 +147,198 @@
             transition: all 0.3s ease;
         }
 
-        .terms-card:hover {
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-hover);
+        .toc-header {
+            background: var(--primary-gradient);
+            color: white;
+            padding: 1.5rem 2rem;
+            font-size: 1.3rem;
+            font-weight: 600;
         }
 
-        .terms-content {
+        .toc-content {
             padding: 2rem;
         }
 
-        .section-header {
-            background: linear-gradient(to right, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
-            padding: 1.5rem 2rem;
-            border-bottom: 1px solid var(--border-color);
+        .toc-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1rem;
         }
 
-        .section-header h2 {
-            margin: 0;
-            color: var(--primary-color);
-            font-weight: 700;
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-        }
-
-        .section-icon {
-            width: 40px;
-            height: 40px;
-            background: var(--primary-gradient);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 1.1rem;
-        }
-
-        .terms-section {
-            margin-bottom: 2.5rem;
-        }
-
-        .terms-section:last-child {
-            margin-bottom: 0;
-        }
-
-        .section-title {
-            color: var(--primary-color);
-            font-weight: 600;
-            font-size: 1.3rem;
-            margin-bottom: 1rem;
-            padding-bottom: 0.5rem;
-            border-bottom: 2px solid var(--primary-color);
-            display: inline-block;
-        }
-
-        .subsection-title {
-            color: var(--text-primary);
-            font-weight: 600;
-            font-size: 1.1rem;
-            margin: 1.5rem 0 0.75rem 0;
-        }
-
-        .terms-text {
-            color: var(--text-secondary);
-            margin-bottom: 1rem;
-            line-height: 1.7;
-        }
-
-        .terms-text:last-child {
-            margin-bottom: 0;
-        }
-
-        .terms-list {
-            list-style: none;
-            padding-left: 0;
-            margin: 1rem 0;
-        }
-
-        .terms-list li {
-            padding: 0.5rem 0;
-            border-bottom: 1px solid var(--border-color);
-            position: relative;
-            padding-left: 1.5rem;
-        }
-
-        .terms-list li:before {
-            content: '•';
-            color: var(--primary-color);
-            font-weight: bold;
-            position: absolute;
-            left: 0;
-        }
-
-        .terms-list li:last-child {
-            border-bottom: none;
-        }
-
-        .highlight-box {
-            background: linear-gradient(to right, rgba(255, 193, 7, 0.1), rgba(255, 149, 0, 0.1));
-            border-left: 4px solid var(--warning-color);
-            padding: 1.5rem;
-            border-radius: 0 15px 15px 0;
-            margin: 1.5rem 0;
-        }
-
-        .important-note {
-            background: linear-gradient(to right, rgba(255, 59, 48, 0.1), rgba(255, 45, 146, 0.1));
-            border-left: 4px solid var(--danger-color);
-            padding: 1.5rem;
-            border-radius: 0 15px 15px 0;
-            margin: 1.5rem 0;
-        }
-
-        .table-of-contents {
-            background: linear-gradient(to right, rgba(102, 126, 234, 0.05), rgba(118, 75, 162, 0.05));
-            border: 1px solid var(--border-color);
-            border-radius: 15px;
-            padding: 1.5rem;
-            margin-bottom: 2rem;
-        }
-
-        .table-of-contents h4 {
-            color: var(--primary-color);
-            font-weight: 600;
-            margin-bottom: 1rem;
-        }
-
-        .table-of-contents ul {
-            list-style: none;
-            margin: 0;
-            padding: 0;
-        }
-
-        .table-of-contents li {
-            margin-bottom: 0.5rem;
-        }
-
-        .table-of-contents a {
-            color: var(--text-secondary);
-            text-decoration: none;
+        .toc-item {
+            padding: 0.75rem 1rem;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.05), rgba(118, 75, 162, 0.05));
+            border-radius: 10px;
+            border-left: 4px solid var(--primary-color);
             transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .toc-item:hover {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
+            transform: translateX(5px);
+        }
+
+        .toc-item a {
+            text-decoration: none;
+            color: var(--text-primary);
+            font-weight: 500;
             display: flex;
             align-items: center;
             gap: 0.5rem;
         }
 
-        .table-of-contents a:hover {
+        .toc-item:hover a {
             color: var(--primary-color);
-            transform: translateX(5px);
         }
 
-        .numbered-list {
-            counter-reset: section-counter;
+        /* Main Content */
+        .main-content {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 0 1rem;
         }
 
-        .numbered-item {
-            counter-increment: section-counter;
-            margin-bottom: 1rem;
-            position: relative;
-            padding-left: 2.5rem;
+        /* Section Cards */
+        .section-card {
+            background: var(--card-background);
+            border-radius: 20px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border-color);
+            margin-bottom: 2rem;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            scroll-margin-top: 100px;
         }
 
-        .numbered-item::before {
-            content: counter(section-counter);
-            position: absolute;
-            left: 0;
-            top: 0;
+        .section-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-hover);
+        }
+
+        .section-header {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .section-number {
+            display: inline-block;
             background: var(--primary-gradient);
             color: white;
-            width: 25px;
-            height: 25px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.85rem;
+            padding: 0.5rem 1rem;
+            border-radius: 25px;
             font-weight: 600;
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin: 0;
+        }
+
+        .section-content {
+            padding: 2rem;
+        }
+
+        .section-content p {
+            margin-bottom: 1.2rem;
+            line-height: 1.8;
+            color: var(--text-secondary);
+        }
+
+        .section-content ul, .section-content ol {
+            margin: 1.2rem 0;
+            padding-left: 2rem;
+        }
+
+        .section-content li {
+            margin-bottom: 0.8rem;
+            line-height: 1.7;
+            color: var(--text-secondary);
+        }
+
+        .section-content strong {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        /* Highlighted Content */
+        .highlight-box {
+            background: linear-gradient(135deg, rgba(255, 149, 0, 0.1), rgba(255, 59, 48, 0.1));
+            border-left: 4px solid var(--warning-color);
+            padding: 1.5rem;
+            border-radius: 10px;
+            margin: 1.5rem 0;
+        }
+
+        .highlight-box p {
+            margin: 0;
+            color: var(--text-primary);
+        }
+
+        /* Important Notice */
+        .notice-box {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
+            border: 1px solid var(--primary-color);
+            padding: 1.5rem;
+            border-radius: 15px;
+            margin: 2rem 0;
+            text-align: center;
+        }
+
+        .notice-box .icon {
+            font-size: 2rem;
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+        }
+
+        .notice-box h4 {
+            color: var(--primary-color);
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        /* Contact Section */
+        .contact-section {
+            background: var(--primary-gradient);
+            color: white;
+            padding: 3rem 0;
+            text-align: center;
+            margin-top: 0;
+            margin-bottom: 0;
+        }
+
+        .contact-content h3 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+
+        .contact-content p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            margin-bottom: 2rem;
+        }
+
+        .contact-btn {
+            display: inline-block;
+            background: white;
+            color: var(--primary-color);
+            padding: 1rem 2rem;
+            border-radius: 25px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .contact-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            color: var(--primary-color);
         }
 
         /* Responsive Design */
@@ -275,22 +347,88 @@
                 padding: 80px 0 60px;
             }
             
-            .terms-content {
-                padding: 1.5rem;
+            .hero-content h1 {
+                font-size: 2.5rem;
             }
             
-            .section-header {
-                padding: 1rem 1.5rem;
+            .hero-content p {
+                font-size: 1.1rem;
             }
+
+            .toc-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .section-content {
+                padding: 1.5rem;
+            }
+
+            .section-header {
+                padding: 1.2rem 1.5rem;
+            }
+
+            .section-title {
+                font-size: 1.3rem;
+            }
+
+            .menu-btn {
+                top: 15px;
+                left: 15px;
+            }
+        }
+
+        /* Sidebar Overlay */
+        .sidebar-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .sidebar-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* Sidebar base styles */
+        .main-sidebar {
+            position: fixed;
+            top: 0;
+            left: -300px;
+            width: 300px;
+            height: 100vh;
+            background: var(--card-background);
+            z-index: 1001;
+            transition: left 0.3s ease;
+            overflow-y: auto;
+        }
+
+        .main-sidebar.active {
+            left: 0;
         }
     </style>
 </head>
+
 <body>
-    <div class="bg-overlay navbar-btn"></div>
-    
-    <!-- Sidebar Placeholder -->
+    <!-- Dashboard Header -->
+    <div id="dashboard-header-placeholder"></div>
+
+    <!-- Menu Button -->
+    <button class="menu-btn" id="menuBtn">
+        <i class="fas fa-bars"></i>
+    </button>
+
+    <!-- Sidebar -->
     <div id="sidebar-placeholder"></div>
-    <!-- End Sidebar Placeholder -->
+
+    <!-- Sidebar Overlay -->
+    <div class="bg-overlay" id="sidebarOverlay"></div>
 
     <!-- Hero Section -->
     <section class="terms-hero">
@@ -299,284 +437,700 @@
                 <div class="col">
                     <a href="javascript:history.back()" class="back-btn">
                         <i class="fas fa-arrow-left"></i>
-                        <span data-i18n="backButton">Back</span>
+                        <span>Back</span>
                     </a>
-                    <h1 class="mt-4 mb-2" data-i18n="termsAndConditionsTitle">CDOT Database – Terms and Conditions</h1>
-                    <p class="mb-0">Last Updated: 03 January 2024</p>
+                    <div class="hero-content">
+                        <h1>Terms & Conditions</h1>
+                        <p>Please read these terms and conditions carefully before using our platform. Your use of CDOT Database constitutes acceptance of these terms.</p>
+                        <div class="last-updated">
+                            <i class="fas fa-calendar-alt"></i>
+                            Last Updated: 03 January 2025
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </section>
 
-    <main class="main-content">
-        <div class="container">
-            <!-- Welcome Section -->
-            <div class="terms-card">
-                <div class="section-header">
-                    <h2>
-                        <div class="section-icon">
+    <!-- Table of Contents -->
+    <section class="toc-container">
+        <div class="toc-card">
+            <div class="toc-header">
+                <i class="fas fa-list"></i>
+                Table of Contents
+            </div>
+            <div class="toc-content">
+                <div class="toc-grid">
+                    <div class="toc-item">
+                        <a href="#agreement-to-terms">
                             <i class="fas fa-handshake"></i>
-                        </div>
-                        <span data-i18n="termsWelcomeTitle">Welcome to CDOT Database</span>
-                    </h2>
-                </div>
-                <div class="terms-content">
-                    <p class="terms-text" data-i18n="termsIntroduction">
-                        By accessing, browsing, or otherwise utilizing CDOT Database ("we," "our," or "the Platform"), whether via website, mobile interface, API, or other properties under our control ("Services"), you agree to be bound by these Terms and Conditions ("Terms"). If you do not agree, you are prohibited from accessing or using the Platform.
-                    </p>
-                    
-                    <div class="important-note">
-                        <p class="terms-text mb-0" data-i18n="termsAgeRequirement">
-                            <strong>Important:</strong> By using this website, you represent and warrant that you are at least 21 years old and have read and agreed to these terms and conditions. If you do not meet these requirements, you do not have the right to access or use our services.
-                        </p>
+                            Agreement to Terms
+                        </a>
                     </div>
-                </div>
-            </div>
-
-            <!-- Table of Contents -->
-            <div class="terms-card">
-                <div class="table-of-contents">
-                    <h4 data-i18n="tableOfContentsTitle">Table of Contents</h4>
-                    <ul>
-                        <li><a href="#agreement"><i class="fas fa-file-contract"></i> <span data-i18n="tocAgreement">Agreement to Terms</span></a></li>
-                        <li><a href="#intellectual"><i class="fas fa-copyright"></i> <span data-i18n="tocIntellectual">Intellectual Property Rights</span></a></li>
-                        <li><a href="#representations"><i class="fas fa-user-check"></i> <span data-i18n="tocRepresentations">User Representations</span></a></li>
-                        <li><a href="#registration"><i class="fas fa-user-plus"></i> <span data-i18n="tocRegistration">User Registration</span></a></li>
-                        <li><a href="#prohibited"><i class="fas fa-ban"></i> <span data-i18n="tocProhibited">Prohibited Activities</span></a></li>
-                        <li><a href="#contributions"><i class="fas fa-edit"></i> <span data-i18n="tocContributions">User Generated Contributions</span></a></li>
-                        <li><a href="#management"><i class="fas fa-cogs"></i> <span data-i18n="tocManagement">Site Management</span></a></li>
-                        <li><a href="#termination"><i class="fas fa-times-circle"></i> <span data-i18n="tocTermination">Term and Termination</span></a></li>
-                        <li><a href="#governing"><i class="fas fa-gavel"></i> <span data-i18n="tocGoverning">Governing Law</span></a></li>
-                        <li><a href="#disputes"><i class="fas fa-balance-scale"></i> <span data-i18n="tocDisputes">Dispute Resolution</span></a></li>
-                        <li><a href="#disclaimer"><i class="fas fa-exclamation-triangle"></i> <span data-i18n="tocDisclaimer">Disclaimer</span></a></li>
-                        <li><a href="#liability"><i class="fas fa-shield-alt"></i> <span data-i18n="tocLiability">Limitations of Liability</span></a></li>
-                        <li><a href="#membership"><i class="fas fa-star"></i> <span data-i18n="tocMembership">Membership Policy</span></a></li>
-                        <li><a href="#payment"><i class="fas fa-money-bill-wave"></i> <span data-i18n="tocPayment">Payment Conditions</span></a></li>
-                        <li><a href="#compliance"><i class="fas fa-check-circle"></i> <span data-i18n="tocCompliance">Legal Compliance</span></a></li>
-                    </ul>
-                </div>
-            </div>
-
-            <!-- Agreement to Terms Section -->
-            <div class="terms-card" id="agreement">
-                <div class="section-header">
-                    <h2>
-                        <div class="section-icon">
-                            <i class="fas fa-file-contract"></i>
-                        </div>
-                        <span data-i18n="termsSection1Title">1. Agreement to Terms</span>
-                    </h2>
-                </div>
-                <div class="terms-content">
-                    <p class="terms-text">
-                        By accessing, browsing, or otherwise utilizing CDOT Database ("we," "our," or "the Platform"), whether via website, mobile interface, API, or other properties under our control ("Services"), you agree to be bound by these Terms and Conditions ("Terms"). If you do not agree, you are prohibited from accessing or using the Platform.
-                    </p>
-                </div>
-            </div>
-                        
-                        <div class="numbered-item">
-                            <p class="terms-text" data-i18n="termsSection1p5">
-                                Under no circumstances will Brainlabs Digital Agency disclose user information to companies and organizations outside Brainlabs Digital Agency without the user's consent.
-                            </p>
-                        </div>
-                        
-                        <div class="numbered-item">
-                            <p class="terms-text" data-i18n="termsSection1p6">
-                                Persons under the age of 18 must obtain written consent from a parent or law enforcement official before using the Site's services.
-                            </p>
-                        </div>
+                    <div class="toc-item">
+                        <a href="#intellectual-property">
+                            <i class="fas fa-copyright"></i>
+                            Intellectual Property Rights
+                        </a>
                     </div>
-                </div>
-            </div>
-
-            <!-- User Responsibilities Section -->
-            <div class="terms-card" id="responsibilities">
-                <div class="section-header">
-                    <h2>
-                        <div class="section-icon">
+                    <div class="toc-item">
+                        <a href="#user-representations">
                             <i class="fas fa-user-check"></i>
-                        </div>
-                        <span data-i18n="termsSection2Title">User Responsibilities</span>
-                    </h2>
-                </div>
-                <div class="terms-content">
-                    <div class="numbered-list">
-                        <div class="numbered-item">
-                            <p class="terms-text" data-i18n="termsSection2p1">
-                                Users need to complete a series of product optimization tasks before applying for withdrawal.
-                            </p>
-                        </div>
-                        
-                        <div class="numbered-item">
-                            <p class="terms-text" data-i18n="termsSection2p2">
-                                During product optimization, users are not allowed to withdraw cash.
-                            </p>
-                        </div>
-                        
-                        <div class="numbered-item">
-                            <p class="terms-text" data-i18n="termsSection2p3">
-                                Users cannot cancel or skip any product optimization tasks.
-                            </p>
-                        </div>
+                            User Representations
+                        </a>
                     </div>
-                </div>
-            </div>
-
-            <!-- Terms and Conditions Section -->
-            <div class="terms-card" id="conditions">
-                <div class="section-header">
-                    <h2>
-                        <div class="section-icon">
+                    <div class="toc-item">
+                        <a href="#user-registration">
+                            <i class="fas fa-user-plus"></i>
+                            User Registration
+                        </a>
+                    </div>
+                    <div class="toc-item">
+                        <a href="#prohibited-activities">
+                            <i class="fas fa-ban"></i>
+                            Prohibited Activities
+                        </a>
+                    </div>
+                    <div class="toc-item">
+                        <a href="#user-contributions">
+                            <i class="fas fa-edit"></i>
+                            User Generated Contributions
+                        </a>
+                    </div>
+                    <div class="toc-item">
+                        <a href="#contribution-license">
                             <i class="fas fa-file-contract"></i>
-                        </div>
-                        <span data-i18n="termsSection3Title">Terms and Conditions</span>
-                    </h2>
-                </div>
-                <div class="terms-content">
-                    <div class="numbered-list">
-                        <div class="numbered-item">
-                            <p class="terms-text" data-i18n="termsSection3p1">
-                                Agreement: The user contract and service terms are subject to the terms in the account. Users should provide relevant information and documents to this website.
-                            </p>
-                        </div>
-                        
-                        <div class="numbered-item">
-                            <p class="terms-text" data-i18n="termsSection3p2">
-                                This website provides terms and conditions of service to all users. If you have any questions or other important questions, please contact the relevant department for feedback.
-                            </p>
-                        </div>
+                            Contribution License
+                        </a>
                     </div>
-                </div>
-            </div>
-
-            <!-- Contract Details Section -->
-            <div class="terms-card" id="contracts">
-                <div class="section-header">
-                    <h2>
-                        <div class="section-icon">
-                            <i class="fas fa-handshake"></i>
-                        </div>
-                        <span data-i18n="termsContractTitle">Contract Details</span>
-                    </h2>
-                </div>
-                <div class="terms-content">
-                    <div class="terms-section">
-                        <h6 class="subsection-title" data-i18n="termsContract1Title">Account Reset Requirements</h6>
-                        <div class="highlight-box">
-                            <p class="terms-text" data-i18n="termsContract1">
-                                If you need to reset your account and product optimization tasks, you must first complete all unfinished optimization tasks. The minimum amount for an account reset is $100.
-                            </p>
-                        </div>
-                        <p class="terms-text" data-i18n="termsContract1p1">
-                            If you need to reset your account, you must contact our online customer service to reset your account after completing all product optimization and completing the withdrawal process.
-                        </p>
+                    <div class="toc-item">
+                        <a href="#review-guidelines">
+                            <i class="fas fa-star"></i>
+                            Guidelines for Reviews
+                        </a>
                     </div>
-                </div>
-            </div>
-
-            <!-- Withdrawal Requirements Section -->
-            <div class="terms-card" id="withdrawals">
-                <div class="section-header">
-                    <h2>
-                        <div class="section-icon">
+                    <div class="toc-item">
+                        <a href="#submissions">
+                            <i class="fas fa-paper-plane"></i>
+                            Submissions
+                        </a>
+                    </div>
+                    <div class="toc-item">
+                        <a href="#third-party">
+                            <i class="fas fa-external-link-alt"></i>
+                            Third-Party Content
+                        </a>
+                    </div>
+                    <div class="toc-item">
+                        <a href="#site-management">
+                            <i class="fas fa-cogs"></i>
+                            Site Management
+                        </a>
+                    </div>
+                    <div class="toc-item">
+                        <a href="#termination">
+                            <i class="fas fa-times-circle"></i>
+                            Term and Termination
+                        </a>
+                    </div>
+                    <div class="toc-item">
+                        <a href="#modifications">
+                            <i class="fas fa-sync-alt"></i>
+                            Modifications and Interruptions
+                        </a>
+                    </div>
+                    <div class="toc-item">
+                        <a href="#governing-law">
+                            <i class="fas fa-balance-scale"></i>
+                            Governing Law
+                        </a>
+                    </div>
+                    <div class="toc-item">
+                        <a href="#dispute-resolution">
+                            <i class="fas fa-gavel"></i>
+                            Dispute Resolution
+                        </a>
+                    </div>
+                    <div class="toc-item">
+                        <a href="#corrections">
+                            <i class="fas fa-edit"></i>
+                            Corrections
+                        </a>
+                    </div>
+                    <div class="toc-item">
+                        <a href="#disclaimer">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            Disclaimer
+                        </a>
+                    </div>
+                    <div class="toc-item">
+                        <a href="#liability">
+                            <i class="fas fa-shield-alt"></i>
+                            Limitations of Liability
+                        </a>
+                    </div>
+                    <div class="toc-item">
+                        <a href="#indemnification">
+                            <i class="fas fa-umbrella"></i>
+                            Indemnification
+                        </a>
+                    </div>
+                    <div class="toc-item">
+                        <a href="#user-data">
+                            <i class="fas fa-database"></i>
+                            User Data
+                        </a>
+                    </div>
+                    <div class="toc-item">
+                        <a href="#membership-policy">
+                            <i class="fas fa-crown"></i>
+                            Membership Policy
+                        </a>
+                    </div>
+                    <div class="toc-item">
+                        <a href="#electronic-communications">
+                            <i class="fas fa-envelope-open-text"></i>
+                            Electronic Communications
+                        </a>
+                    </div>
+                    <div class="toc-item">
+                        <a href="#platform-behavior">
+                            <i class="fas fa-users"></i>
+                            Platform Behavior
+                        </a>
+                    </div>
+                    <div class="toc-item">
+                        <a href="#payment-conditions">
                             <i class="fas fa-money-bill-wave"></i>
-                        </div>
-                        <span data-i18n="termsWithdrawalTitle">User Withdrawal Requirements / Security of User Funds</span>
-                    </h2>
-                </div>
-                <div class="terms-content">
-                    <div class="numbered-list">
-                        <div class="numbered-item">
-                            <p class="terms-text" data-i18n="termsWithdrawal1">
-                                In order to meet the system exit requirements, each user needs to complete the optimization of all products.
-                            </p>
-                        </div>
-                        
-                        <div class="numbered-item">
-                            <p class="terms-text" data-i18n="termsWithdrawal2">
-                                To avoid loss of funds, all withdrawals are processed automatically by the system without manual intervention.
-                            </p>
-                        </div>
-                        
-                        <div class="numbered-item">
-                            <p class="terms-text" data-i18n="termsWithdrawal3">
-                                All users are not allowed to withdraw cash during the process of completing product optimization, so as not to affect merchant operations.
-                            </p>
-                        </div>
-                        
-                        <div class="numbered-item">
-                            <p class="terms-text" data-i18n="termsWithdrawal4">
-                                User funds are completely safe on the platform. The platform will bear responsibility for losses caused by accidents.
-                            </p>
-                        </div>
+                            Payment Conditions
+                        </a>
                     </div>
-                    
-                    <div class="important-note">
-                        <p class="terms-text mb-0" data-i18n="termsSecurityNotice">
-                            <strong>Security Notice:</strong> Please do not disclose your account password and security code to others. The Platform is not responsible for any loss or damage caused by such actions.
-                        </p>
+                    <div class="toc-item">
+                        <a href="#refund-policies">
+                            <i class="fas fa-undo"></i>
+                            Refund Policies
+                        </a>
+                    </div>
+                    <div class="toc-item">
+                        <a href="#legal-compliance">
+                            <i class="fas fa-clipboard-check"></i>
+                            Legal Compliance
+                        </a>
+                    </div>
+                    <div class="toc-item">
+                        <a href="#miscellaneous">
+                            <i class="fas fa-ellipsis-h"></i>
+                            Miscellaneous
+                        </a>
                     </div>
                 </div>
             </div>
         </div>
+    </section>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Agreement to Terms -->
+        <section id="agreement-to-terms" class="section-card">
+            <div class="section-header">
+                <div class="section-number">1</div>
+                <h2 class="section-title">Agreement to Terms</h2>
+            </div>
+            <div class="section-content">
+                <p>By accessing, browsing, or otherwise utilizing CDOT Database ("we," "our," or "the Platform"), whether via website, mobile interface, API, or other properties under our control ("Services"), you agree to be bound by these Terms and Conditions ("Terms").</p>
+                
+                <div class="highlight-box">
+                    <p><strong>Important:</strong> If you do not agree to these terms, you are prohibited from accessing or using the Platform.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Intellectual Property Rights -->
+        <section id="intellectual-property" class="section-card">
+            <div class="section-header">
+                <div class="section-number">2</div>
+                <h2 class="section-title">Intellectual Property Rights</h2>
+            </div>
+            <div class="section-content">
+                <p>All content, functionality, and design elements of the Platform, including source code, databases, images, videos, and logos, are owned by or licensed to CDOT Database and protected by copyright, trademark, and other laws.</p>
+                
+                <p><strong>Unauthorized use or duplication is strictly prohibited.</strong></p>
+            </div>
+        </section>
+
+        <!-- User Representations -->
+        <section id="user-representations" class="section-card">
+            <div class="section-header">
+                <div class="section-number">3</div>
+                <h2 class="section-title">User Representations</h2>
+            </div>
+            <div class="section-content">
+                <p>You represent and warrant that:</p>
+                <ul>
+                    <li>You are at least <strong>21 years old</strong></li>
+                    <li>You provide accurate and up-to-date information</li>
+                    <li>You will not access the Platform through automated means</li>
+                    <li>You will maintain the confidentiality of your account credentials</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- User Registration -->
+        <section id="user-registration" class="section-card">
+            <div class="section-header">
+                <div class="section-number">4</div>
+                <h2 class="section-title">User Registration</h2>
+            </div>
+            <div class="section-content">
+                <p>Account registration requires valid, complete information. Each user is permitted <strong>one account</strong>. Duplicate or falsified accounts may be suspended or terminated.</p>
+                
+                <p>Certain fields (e.g., name, contact) may be locked post-verification.</p>
+            </div>
+        </section>
+
+        <!-- Prohibited Activities -->
+        <section id="prohibited-activities" class="section-card">
+            <div class="section-header">
+                <div class="section-number">5</div>
+                <h2 class="section-title">Prohibited Activities</h2>
+            </div>
+            <div class="section-content">
+                <p>You agree not to:</p>
+                <ul>
+                    <li>Bypass security features</li>
+                    <li>Use automation or bots</li>
+                    <li>Scrape, extract, or reverse-engineer content</li>
+                    <li>Engage in impersonation, fraud, or abuse</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- User Generated Contributions -->
+        <section id="user-contributions" class="section-card">
+            <div class="section-header">
+                <div class="section-number">6</div>
+                <h2 class="section-title">User Generated Contributions</h2>
+            </div>
+            <div class="section-content">
+                <p>You may submit content to the Platform, which you grant us a license to use, reproduce, and distribute in connection with platform functionality.</p>
+            </div>
+        </section>
+
+        <!-- Contribution License -->
+        <section id="contribution-license" class="section-card">
+            <div class="section-header">
+                <div class="section-number">7</div>
+                <h2 class="section-title">Contribution License</h2>
+            </div>
+            <div class="section-content">
+                <p>You affirm you own or control the rights to your contributions and grant us a perpetual, non-exclusive, royalty-free license to use them.</p>
+            </div>
+        </section>
+
+        <!-- Guidelines for Reviews -->
+        <section id="review-guidelines" class="section-card">
+            <div class="section-header">
+                <div class="section-number">8</div>
+                <h2 class="section-title">Guidelines for Reviews</h2>
+            </div>
+            <div class="section-content">
+                <p>Reviews must reflect genuine experiences and comply with our standards. <strong>Misleading, paid, or spam reviews are prohibited.</strong></p>
+            </div>
+        </section>
+
+        <!-- Submissions -->
+        <section id="submissions" class="section-card">
+            <div class="section-header">
+                <div class="section-number">9</div>
+                <h2 class="section-title">Submissions</h2>
+            </div>
+            <div class="section-content">
+                <p>Any unsolicited submissions (ideas, feedback, etc.) become our property without compensation.</p>
+            </div>
+        </section>
+
+        <!-- Third-Party Website and Content -->
+        <section id="third-party" class="section-card">
+            <div class="section-header">
+                <div class="section-number">10</div>
+                <h2 class="section-title">Third-Party Website and Content</h2>
+            </div>
+            <div class="section-content">
+                <p>We are not responsible for content or services provided by third-party websites or platforms linked to or integrated with the Platform.</p>
+            </div>
+        </section>
+
+        <!-- Site Management -->
+        <section id="site-management" class="section-card">
+            <div class="section-header">
+                <div class="section-number">11</div>
+                <h2 class="section-title">Site Management</h2>
+            </div>
+            <div class="section-content">
+                <p>We reserve the right to:</p>
+                <ul>
+                    <li>Monitor usage</li>
+                    <li>Restrict access</li>
+                    <li>Enforce compliance through audits or suspensions</li>
+                    <li>Remove any content</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- Term and Termination -->
+        <section id="termination" class="section-card">
+            <div class="section-header">
+                <div class="section-number">12</div>
+                <h2 class="section-title">Term and Termination</h2>
+            </div>
+            <div class="section-content">
+                <p>These Terms remain in effect while you use the Platform. We may suspend or terminate your access at any time for violations or inactivity.</p>
+            </div>
+        </section>
+
+        <!-- Modifications and Interruptions -->
+        <section id="modifications" class="section-card">
+            <div class="section-header">
+                <div class="section-number">13</div>
+                <h2 class="section-title">Modifications and Interruptions</h2>
+            </div>
+            <div class="section-content">
+                <p>We may change or discontinue parts of the Platform without notice. Access may be interrupted for maintenance, updates, or reviews.</p>
+            </div>
+        </section>
+
+        <!-- Governing Law -->
+        <section id="governing-law" class="section-card">
+            <div class="section-header">
+                <div class="section-number">14</div>
+                <h2 class="section-title">Governing Law</h2>
+            </div>
+            <div class="section-content">
+                <p>These Terms shall be governed by and construed in accordance with the laws of the <strong>United Kingdom, the European Union, Canada, the United States of America, Singapore, and Australia</strong>, to the extent applicable in each respective jurisdiction.</p>
+            </div>
+        </section>
+
+        <!-- Dispute Resolution -->
+        <section id="dispute-resolution" class="section-card">
+            <div class="section-header">
+                <div class="section-number">15</div>
+                <h2 class="section-title">Dispute Resolution</h2>
+            </div>
+            <div class="section-content">
+                <p>In the event of any dispute, controversy, or claim arising out of or relating to this Agreement, the parties shall first attempt to resolve the matter amicably through good-faith negotiations.</p>
+                
+                <p>If such efforts fail, the dispute shall be submitted to mediation, conducted in English, in a mutually agreed-upon location or virtually. If mediation is unsuccessful, the matter may then be referred to arbitration or appropriate legal proceedings, subject to the governing laws outlined in this Agreement.</p>
+                
+                <p>Each party shall bear its own legal costs unless otherwise determined by the final ruling.</p>
+            </div>
+        </section>
+
+        <!-- Corrections -->
+        <section id="corrections" class="section-card">
+            <div class="section-header">
+                <div class="section-number">16</div>
+                <h2 class="section-title">Corrections</h2>
+            </div>
+            <div class="section-content">
+                <p>We reserve the right to correct errors or inaccuracies and update content at any time.</p>
+            </div>
+        </section>
+
+        <!-- Disclaimer -->
+        <section id="disclaimer" class="section-card">
+            <div class="section-header">
+                <div class="section-number">17</div>
+                <h2 class="section-title">Disclaimer</h2>
+            </div>
+            <div class="section-content">
+                <div class="highlight-box">
+                    <p><strong>Important Notice:</strong> The Platform is provided "as-is" and "as-available." We disclaim all warranties, including merchantability and fitness for a particular purpose.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Limitations of Liability -->
+        <section id="liability" class="section-card">
+            <div class="section-header">
+                <div class="section-number">18</div>
+                <h2 class="section-title">Limitations of Liability</h2>
+            </div>
+            <div class="section-content">
+                <p>We are not liable for indirect, incidental, or consequential damages arising from your use of the Platform.</p>
+            </div>
+        </section>
+
+        <!-- Indemnification -->
+        <section id="indemnification" class="section-card">
+            <div class="section-header">
+                <div class="section-number">19</div>
+                <h2 class="section-title">Indemnification</h2>
+            </div>
+            <div class="section-content">
+                <p>You agree to indemnify and hold CDOT harmless from any claims or losses resulting from your use of the Platform or violation of these Terms.</p>
+            </div>
+        </section>
+
+        <!-- User Data -->
+        <section id="user-data" class="section-card">
+            <div class="section-header">
+                <div class="section-number">20</div>
+                <h2 class="section-title">User Data</h2>
+            </div>
+            <div class="section-content">
+                <p>We store user data securely and comply with industry-standard protections. Users may request a copy of their data, subject to verification.</p>
+            </div>
+        </section>
+
+        <!-- Membership Policy -->
+        <section id="membership-policy" class="section-card">
+            <div class="section-header">
+                <div class="section-number">21</div>
+                <h2 class="section-title">Membership Policy</h2>
+            </div>
+            <div class="section-content">
+                <p>Platform tiers—<strong>Basic, Plus, Pro, and Premium</strong>—grant varying levels of earning limits, access, and withdrawal speeds.</p>
+                
+                <p>Users may be subject to one-time fees, including a <strong>$5,000 upgrade fee</strong> to unlock higher-tier privileges during an uncompleted order.</p>
+                
+                <p>Inactivity or account dormancy may trigger reactivation, balance maintenance, or re-engagement fees.</p>
+            </div>
+        </section>
+
+        <!-- Electronic Communications -->
+        <section id="electronic-communications" class="section-card">
+            <div class="section-header">
+                <div class="section-number">22</div>
+                <h2 class="section-title">Electronic Communications, Transactions, and Signatures</h2>
+            </div>
+            <div class="section-content">
+                <p>By using the Platform, you consent to receive notices and agreements electronically. Digital records and signatures have full legal effect.</p>
+            </div>
+        </section>
+
+        <!-- Platform Behavior -->
+        <section id="platform-behavior" class="section-card">
+            <div class="section-header">
+                <div class="section-number">23</div>
+                <h2 class="section-title">Platform Behavior and Fair Use</h2>
+            </div>
+            <div class="section-content">
+                <p>Users must act in good faith. Abuses, including false reports, automated actions, impersonation, or system exploitation, may result in penalties or bans.</p>
+            </div>
+        </section>
+
+        <!-- Payment Conditions -->
+        <section id="payment-conditions" class="section-card">
+            <div class="section-header">
+                <div class="section-number">24</div>
+                <h2 class="section-title">Payment Conditions, Earning Rules, and Financial Disclaimers</h2>
+            </div>
+            <div class="section-content">
+                <p>Earnings are tied to valid task completion. Reviews and audits may delay withdrawals.</p>
+                
+                <div class="highlight-box">
+                    <p><strong>Important:</strong> Withdrawals over $25,000 may incur a refundable 10–15% hold and require tax documentation.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Refund Policies -->
+        <section id="refund-policies" class="section-card">
+            <div class="section-header">
+                <div class="section-number">25</div>
+                <h2 class="section-title">Refund Policies, Tier Upgrades, and Incentive Structure</h2>
+            </div>
+            <div class="section-content">
+                <p>Tier upgrades are optional and may be refundable under policy guidelines. Platform incentives are non-transferable.</p>
+                
+                <p>Fees may apply for reactivation or expedited processing.</p>
+            </div>
+        </section>
+
+        <!-- Legal Compliance -->
+        <section id="legal-compliance" class="section-card">
+            <div class="section-header">
+                <div class="section-number">26</div>
+                <h2 class="section-title">Legal Compliance, Risk, and Regulatory Clauses</h2>
+            </div>
+            <div class="section-content">
+                <p>Users must comply with <strong>KYC/AML standards</strong>. Verification may include ID, proof of address, or tax forms.</p>
+                
+                <p>CDOT complies with global fraud prevention frameworks.</p>
+            </div>
+        </section>
+
+        <!-- Miscellaneous -->
+        <section id="miscellaneous" class="section-card">
+            <div class="section-header">
+                <div class="section-number">27</div>
+                <h2 class="section-title">Miscellaneous</h2>
+            </div>
+            <div class="section-content">
+                <p>These Terms constitute the full agreement. No waiver shall be deemed unless in writing. Invalid provisions shall not affect remaining clauses.</p>
+                
+                <div class="notice-box">
+                    <div class="icon">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <h4>Acceptance of Terms</h4>
+                    <p>Your continued use of CDOT Database confirms your acceptance of these Terms and Conditions.</p>
+                </div>
+            </div>
+        </section>
     </main>
 
-    <!-- Standard Footer Navigation -->
-    <div id="footer-navigation"></div>
-    <!-- Bootstrap 5 JS Bundle -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- Load component loader -->
-    <script src="./js/components.js"></script>
-    <!-- Important: i18n.js must be loaded before other scripts -->
-    <script src="./js/i18n.js"></script>
-    <!-- Load Helper/Auth Scripts -->
-    <script src="./js/main.js"></script>
-    <script src="./js/auth-check.js"></script> <!-- Centralized authentication -->
-    <!-- Load Page Specific Script -->
-    <script src="./js/terms.js"></script>
+    <!-- Contact Section -->
+    <section class="contact-section">
+        <div class="container">
+            <div class="contact-content">
+                <h3>Need Help or Have Questions?</h3>
+                <p>If you have any questions about these Terms and Conditions, please don't hesitate to contact our support team.</p>
+                <a href="contact.html" class="contact-btn">
+                    <i class="fas fa-envelope"></i>
+                    Contact Support
+                </a>
+            </div>
+        </div>
+    </section>
 
+    <!-- Footer -->
+    <div id="footer-placeholder"></div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Authentication and Components Scripts -->
+    <script src="./js/components.js"></script>
+    <script src="./js/clean-header-loader.js"></script>
+    <script src="./js/i18n.js"></script>
+    <script src="./js/main.js"></script>
+    <script src="./js/auth.js"></script>
+    <script src="./js/simple-auth.js"></script>
+    <script src="./js/auth-check.js"></script>
+    
+    <!-- Sidebar Script -->
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Load standard navigation components
-            loadStandardNavigation('terms');
-            
-            // Smooth scrolling for table of contents links
-            document.querySelectorAll('.table-of-contents a').forEach(link => {
-                link.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    const targetId = this.getAttribute('href');
-                    const targetElement = document.querySelector(targetId);
-                    if (targetElement) {
-                        targetElement.scrollIntoView({
-                            behavior: 'smooth',
-                            block: 'start'
-                        });
-                    }
-                });
+        document.addEventListener('DOMContentLoaded', async function() {
+            try {
+                // Load clean dashboard header and navigation
+                await loadCleanStandardNavigation();
+                console.log('Clean navigation loaded successfully for terms page');
+                
+                // Wait for sidebar component to be loaded before initializing sidebar scripts
+                const sidebarPlaceholder = document.getElementById('sidebar-placeholder');
+                if (sidebarPlaceholder) {
+                    sidebarPlaceholder.addEventListener('componentLoaded', function() {
+                        // This will run after the sidebar component is fully loaded
+                        setTimeout(() => {
+                            initializeSidebarScripts();
+                            attachSidebarEventListeners();
+                        }, 100); // Small delay to ensure DOM is updated
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading clean navigation for terms page:', error);
+                // Fallback to manual loading
+                fetch('./components/sidebar.html')
+                    .then(response => response.text())
+                    .then(data => {
+                        document.getElementById('sidebar-placeholder').innerHTML = data;
+                        
+                        // Initialize sidebar functionality
+                        const menuBtn = document.getElementById('menuBtn');
+                        const sidebar = document.querySelector('.main-sidebar');
+                        const overlay = document.getElementById('sidebarOverlay');
+                        
+                        if (menuBtn && sidebar && overlay) {
+                            menuBtn.addEventListener('click', () => {
+                                sidebar.classList.add('active');
+                                overlay.classList.add('active');
+                            });
+                            
+                            overlay.addEventListener('click', () => {
+                                sidebar.classList.remove('active');
+                                overlay.classList.remove('active');
+                            });
+                        }
+
+                        // Populate sidebar user data after sidebar is loaded
+                        if (typeof populateSidebarUserData === 'function') {
+                            populateSidebarUserData();
+                        } else {
+                            console.warn('populateSidebarUserData function not available');
+                        }
+                    })
+                    .catch(error => console.error('Error loading sidebar:', error));
+            }
+        });
+
+        // Load footer
+        fetch('./components/footer.html')
+            .then(response => response.text())
+            .then(data => {
+                document.getElementById('footer-placeholder').innerHTML = data;
+            })
+            .catch(error => console.error('Error loading footer:', error));
+
+        // Smooth scrolling for TOC links
+        document.querySelectorAll('.toc-item a').forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                const targetId = this.getAttribute('href').substring(1);
+                const targetElement = document.getElementById(targetId);
+                
+                if (targetElement) {
+                    targetElement.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
             });
+        });
+
+        // Add active class to current section in viewport
+        const observerOptions = {
+            root: null,
+            rootMargin: '-20% 0px -80% 0px',
+            threshold: 0
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    // Remove active class from all TOC items
+                    document.querySelectorAll('.toc-item').forEach(item => {
+                        item.classList.remove('active');
+                    });
+                    
+                    // Add active class to current TOC item
+                    const currentTocItem = document.querySelector(`.toc-item a[href="#${entry.target.id}"]`)?.parentElement;
+                    if (currentTocItem) {
+                        currentTocItem.classList.add('active');
+                    }
+                }
+            });
+        }, observerOptions);
+
+        // Observe all sections
+        document.querySelectorAll('.section-card').forEach(section => {
+            observer.observe(section);
         });
     </script>
 
-<script>let baseurl = '.';</script> <!-- Use relative base URL -->
-
-<!-- Bootstrap 5 JS Bundle -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
-<script src="./js/components.js"></script>
-<!-- Important: i18n.js must be loaded before other scripts -->
-<script src="./js/i18n.js"></script>
-<script src="./js/main.js"></script>
-<script src="./js/auth-check.js"></script> <!-- Centralized authentication -->
-
-<script>
-// Load standard navigation components
-document.addEventListener('DOMContentLoaded', async function() {
-    try {
-        await loadStandardNavigation();
-        console.log('Standard navigation components loaded for terms page');
-    } catch (error) {
-        console.error('Error loading navigation components:', error);
-    }
-});
-</script>
+    <style>
+        .toc-item.active {
+            background: var(--primary-gradient) !important;
+        }
+        
+        .toc-item.active a {
+            color: white !important;
+        }
+        
+        .toc-item.active:hover {
+            transform: none !important;
+        }
+    </style>
 </body>
 </html>
+        

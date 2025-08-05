@@ -251,16 +251,31 @@ function updateSidebarUI(data) {
         return;
     }
     const { user, balances } = data;
-    // Username
+    
+    // Sidebar Username
     const usernameElement = document.getElementById('dashboard-username');
     if (usernameElement) {
         usernameElement.textContent = user.username || 'User';
     }
-    // Badge Number (Referral Code)
+    
+    // Dashboard Header Username
+    const dashboardUsernameElement = document.getElementById('dashboardUsername');
+    if (dashboardUsernameElement) {
+        dashboardUsernameElement.textContent = user.username || 'User';
+    }
+    
+    // Sidebar Badge Number (Referral Code)
     const badgeElement = document.getElementById('user-badge-number');
     if (badgeElement) {
         badgeElement.textContent = user.referral_code || 'N/A';
     }
+    
+    // Dashboard Header Badge Number
+    const userBadgeElement = document.getElementById('userBadgeNumber');
+    if (userBadgeElement) {
+        userBadgeElement.textContent = `Badge: ${user.referral_code || 'N/A'}`;
+    }
+    
     // Balance
     const balanceElement = document.getElementById('user-balance');
     if (balanceElement) {
@@ -275,6 +290,7 @@ function updateSidebarUI(data) {
             maximumFractionDigits: 2
         }).format(totalBalance);
     }
+    
     // Avatar
     const avatarElement = document.getElementById('user-avatar');
     if (avatarElement) {
@@ -291,6 +307,14 @@ function updateSidebarUI(data) {
             this.src = '/assets/uploads/user.jpg';
         };
     }
+    
+    // Dashboard Header User Initials
+    const userInitialsElement = document.getElementById('userInitials');
+    if (userInitialsElement && user.username) {
+        const initials = user.username.split(' ').map(name => name.charAt(0)).join('').toUpperCase().substring(0, 2);
+        userInitialsElement.textContent = initials;
+    }
+    
     // Verification Provider
     const verificationElement = document.getElementById('verification-provider');
     if (verificationElement) {
@@ -401,6 +425,23 @@ async function loadHeaderNavigation() {
 }
 
 /**
+ * Loads the dashboard header component
+ */
+async function loadDashboardHeader() {
+    // Check which dashboard header element exists and use the appropriate one
+    const headerTarget = document.getElementById('dashboard-header-placeholder') ? 'dashboard-header-placeholder' : 
+                        document.getElementById('dashboard-header') ? 'dashboard-header' : null;
+    
+    // Only load if the target element exists
+    if (headerTarget && document.getElementById(headerTarget)) {
+        return loadComponent('/components/dashboard-header-clean.html', headerTarget);
+    } else {
+        console.log('No dashboard header target found, skipping...');
+        return Promise.resolve();
+    }
+}
+
+/**
  * Loads the standard footer navigation component
  */
 async function loadFooterNavigation() {
@@ -440,7 +481,11 @@ async function loadStandardNavigation() {
         } else {
             console.log('No sidebar target found, skipping sidebar component...');
         }
-          // Add header and footer navigation
+        
+        // Add dashboard header
+        promises.push(loadDashboardHeader());
+        
+        // Add header and footer navigation
         promises.push(loadHeaderNavigation());
         promises.push(loadFooterNavigation());
         
